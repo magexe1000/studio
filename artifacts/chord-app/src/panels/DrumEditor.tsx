@@ -1,6 +1,25 @@
 import {
-  memo, useCallback, useEffect, useMemo, useRef, useState,
+  memo, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState,
 } from 'react';
+import { createPortal } from 'react-dom';
+
+const MetronomeIcon = ({ size = 16 }: { size?: number }) => (
+  <svg 
+    viewBox="0 0 24 24" 
+    fill="none" 
+    stroke="currentColor" 
+    strokeWidth="2" 
+    strokeLinecap="round" 
+    strokeLinejoin="round" 
+    style={{ width: size, height: size, display: 'block' }}
+  >
+    <path d="M12 2L5 21h14L12 2z" />
+    <path d="M12 7v10" strokeWidth="1.5" opacity="0.5" />
+    <path d="M12 17L15 8" strokeWidth="2" />
+    <circle cx="15" cy="8" r="1.5" fill="currentColor" />
+  </svg>
+);
+
 import ElasticSlider from '../components/ElasticSlider';
 import { useChordStore, ACCENT_COLORS } from '../store/useChordStore';
 import EmptyStateLottie from '../components/lottie/EmptyStateLottie';
@@ -47,6 +66,30 @@ const MIN_STEP = 16;
 // Order mirrors KIT_INSTRUMENTS display order: high → low pitch.
 const CORE_INSTS: DrumInstrument[] = ['hihat-closed', 'snare', 'kick', 'crash'];
 
+const getInstrumentColor = (inst: DrumInstrument, isLight: boolean, noteColor: string): string => {
+  if (isLight) {
+    switch (inst) {
+      case 'kick':
+      case 'snare':
+        return '#09090b'; // zinc-950 (black/dark zinc)
+      case 'hihat-closed':
+      case 'hihat-open':
+      case 'hihat-foot':
+        return '#27272a'; // zinc-800
+      case 'tom-high':
+      case 'tom-mid':
+      case 'tom-floor':
+        return '#3f3f46'; // zinc-700
+      case 'crash':
+      case 'ride':
+        return '#52525b'; // zinc-600
+      default:
+        return '#09090b';
+    }
+  }
+  return INSTRUMENT_COLOR[inst] ?? noteColor;
+};
+
 // Staff lines within each row (fraction of ROW_H)
 const STAFF_YF = [0.29, 0.52, 0.75] as const;
 
@@ -76,10 +119,10 @@ const INST_LABEL: Record<DrumInstrument, string> = {
   'tom-floor': 'Floor Tom', crash: 'Cymbal', ride: 'Ride',
 };
 const KIT_LABEL: Record<KitType, string> = {
-  ludwig: 'Pearl Master Studio',  jazz: 'Pearl Master (Brushed)', rock: 'Rock Kit',   vintage: "Vintage '60s",
-  studio: 'Studio A',             r8:   'Roland R8',    linn: 'LinnDrum',   funk: 'Funk Kit',
-  cr78:   'Roland CR-78',         tr808:'Roland TR-808', techno:'Techno Kit', stark:'Stark Industrial',
-  rmm:    'Real Music Media OSDK', chrome:'Chrome Acoustic', house: 'House Kit',
+  ludwig: 'Acoustic — House Kit',  jazz: 'Acoustic — House Kit', rock: 'Acoustic — House Kit',   vintage: "Acoustic — House Kit",
+  studio: 'Acoustic — House Kit',             r8:   'Acoustic — House Kit',    linn: 'Acoustic — House Kit',   funk: 'Acoustic — House Kit',
+  cr78:   'Acoustic — House Kit',         tr808:'Acoustic — House Kit', techno:'Acoustic — House Kit', stark:'Acoustic — House Kit',
+  rmm:    'Acoustic — House Kit', chrome:'Acoustic — House Kit', house: 'Acoustic — House Kit',
 };
 
 // ── Per-instrument character presets ─────────────────────────────────────────
@@ -163,10 +206,10 @@ type DrumTab = 'songs' | 'patterns' | 'prefs';
 const TAB_ORDER: DrumTab[] = ['songs', 'patterns', 'prefs'];
 
 // ── SVG note heads (memoized — rendered hundreds of times in the grid) ─────
-const CircleHead = memo(function CircleHead({ r, color }: { r: number; color: string }) {
-  return <ellipse cx={0} cy={0} rx={r} ry={r * 0.82} fill={color} />;
+const CircleHead = memo(function CircleHead({ r, color, strokeColor }: { r: number; color: string; strokeColor?: string }) {
+  return <ellipse cx={0} cy={0} rx={r} ry={r * 0.82} fill={color} stroke={strokeColor} strokeWidth={strokeColor ? 1 : 0} />;
 });
-const XHead = memo(function XHead({ r, color, opacity = 1 }: { r: number; color: string; opacity?: number }) {
+const XHead = memo(function XHead({ r, color, opacity = 1, strokeColor }: { r: number; color: string; opacity?: number; strokeColor?: string }) {
   const d = r * 0.85;
   return (
     <g opacity={opacity}>
@@ -175,10 +218,10 @@ const XHead = memo(function XHead({ r, color, opacity = 1 }: { r: number; color:
     </g>
   );
 });
-const GhostHead = memo(function GhostHead({ r, color }: { r: number; color: string }) {
-  return <ellipse cx={0} cy={0} rx={r * 0.62} ry={r * 0.62 * 0.82} fill={color} opacity={0.40} />;
+const GhostHead = memo(function GhostHead({ r, color, strokeColor }: { r: number; color: string; strokeColor?: string }) {
+  return <ellipse cx={0} cy={0} rx={r * 0.62} ry={r * 0.62 * 0.82} fill={color} opacity={0.40} stroke={strokeColor} strokeWidth={strokeColor ? 0.8 : 0} />;
 });
-const RimshotHead = memo(function RimshotHead({ r, color }: { r: number; color: string }) {
+const RimshotHead = memo(function RimshotHead({ r, color, strokeColor }: { r: number; color: string; strokeColor?: string }) {
   const d = r * 0.60;
   return (
     <>
@@ -188,16 +231,16 @@ const RimshotHead = memo(function RimshotHead({ r, color }: { r: number; color: 
     </>
   );
 });
-const FlamHead = memo(function FlamHead({ r, color }: { r: number; color: string }) {
+const FlamHead = memo(function FlamHead({ r, color, strokeColor }: { r: number; color: string; strokeColor?: string }) {
   const gr = r * 0.50;
   return (
     <>
-      <ellipse cx={-r * 1.05} cy={-r * 0.95} rx={gr} ry={gr * 0.82} fill={color} opacity={0.72} />
-      <ellipse cx={0} cy={0} rx={r} ry={r * 0.82} fill={color} />
+      <ellipse cx={-r * 1.05} cy={-r * 0.95} rx={gr} ry={gr * 0.82} fill={color} opacity={0.72} stroke={strokeColor} strokeWidth={strokeColor ? 0.8 : 0} />
+      <ellipse cx={0} cy={0} rx={r} ry={r * 0.82} fill={color} stroke={strokeColor} strokeWidth={strokeColor ? 1 : 0} />
     </>
   );
 });
-const AccentHead = memo(function AccentHead({ r, color }: { r: number; color: string }) {
+const AccentHead = memo(function AccentHead({ r, color, strokeColor }: { r: number; color: string; strokeColor?: string }) {
   const oy = r * 2.1;
   return (
     <>
@@ -205,11 +248,11 @@ const AccentHead = memo(function AccentHead({ r, color }: { r: number; color: st
         points={`${-r * 0.58},${-oy} 0,${-oy - r * 0.72} ${r * 0.58},${-oy}`}
         fill="none" stroke={color} strokeWidth={1.2} strokeLinecap="round" strokeLinejoin="round"
       />
-      <ellipse cx={0} cy={0} rx={r} ry={r * 0.82} fill={color} />
+      <ellipse cx={0} cy={0} rx={r} ry={r * 0.82} fill={color} stroke={strokeColor} strokeWidth={strokeColor ? 1 : 0} />
     </>
   );
 });
-const OpenHHHead = memo(function OpenHHHead({ r, color }: { r: number; color: string }) {
+const OpenHHHead = memo(function OpenHHHead({ r, color, strokeColor }: { r: number; color: string; strokeColor?: string }) {
   const d = r * 0.62;
   return (
     <>
@@ -219,11 +262,11 @@ const OpenHHHead = memo(function OpenHHHead({ r, color }: { r: number; color: st
     </>
   );
 });
-const BellHead = memo(function BellHead({ r, color }: { r: number; color: string }) {
+const BellHead = memo(function BellHead({ r, color, strokeColor }: { r: number; color: string; strokeColor?: string }) {
   const rx = r * 0.82; const ry = r * 0.95;
   return <polygon points={`0,${-ry} ${rx},0 0,${ry} ${-rx},0`} fill={color} />;
 });
-const ChokeHead = memo(function ChokeHead({ r, color }: { r: number; color: string }) {
+const ChokeHead = memo(function ChokeHead({ r, color, strokeColor }: { r: number; color: string; strokeColor?: string }) {
   const d = r * 0.62;
   return (
     <>
@@ -234,54 +277,50 @@ const ChokeHead = memo(function ChokeHead({ r, color }: { r: number; color: stri
   );
 });
 
-const NoteHead = memo(function NoteHead({ inst, variation, r, color }: {
-  inst: DrumInstrument; variation: NoteVariation; r: number; color: string;
+const NoteHead = memo(function NoteHead({ inst, variation, r, color, strokeColor }: {
+  inst: DrumInstrument; variation: NoteVariation; r: number; color: string; strokeColor?: string;
 }) {
   // HH-family and cymbals that default to X
   if (inst === 'hihat-closed') {
-    if (variation === 'open')  return <OpenHHHead r={r} color={color} />;
-    if (variation === 'pedal') return <XHead      r={r} color={color} />;
-    return <XHead r={r} color={color} />;
+    if (variation === 'open')  return <OpenHHHead r={r} color={color} strokeColor={strokeColor} />;
+    if (variation === 'pedal') return <XHead      r={r} color={color} strokeColor={strokeColor} />;
+    return <XHead r={r} color={color} strokeColor={strokeColor} />;
   }
   if (inst === 'crash') {
-    if (variation === 'choke') return <ChokeHead r={r} color={color} />;
-    if (variation === 'bell')  return <BellHead  r={r} color={color} />;
-    if (variation === 'ride')  return <XHead     r={r} color={color} opacity={0.65} />;
-    return <XHead r={r} color={color} />;
+    if (variation === 'choke') return <ChokeHead r={r} color={color} strokeColor={strokeColor} />;
+    if (variation === 'bell')  return <BellHead  r={r} color={color} strokeColor={strokeColor} />;
+    if (variation === 'ride')  return <XHead     r={r} color={color} strokeColor={strokeColor} opacity={0.65} />;
+    return <XHead r={r} color={color} strokeColor={strokeColor} />;
   }
   if (inst === 'ride') {
-    if (variation === 'bell') return <BellHead r={r} color={color} />;
-    return <XHead r={r} color={color} />;
+    if (variation === 'bell') return <BellHead r={r} color={color} strokeColor={strokeColor} />;
+    return <XHead r={r} color={color} strokeColor={strokeColor} />;
   }
   // Circle-family instruments
   if (inst === 'snare') {
-    if (variation === 'ghost')   return <GhostHead   r={r} color={color} />;
-    if (variation === 'rimshot') return <RimshotHead r={r} color={color} />;
-    if (variation === 'flam')    return <FlamHead    r={r} color={color} />;
-    return <CircleHead r={r} color={color} />;
+    if (variation === 'ghost')   return <GhostHead   r={r} color={color} strokeColor={strokeColor} />;
+    if (variation === 'rimshot') return <RimshotHead r={r} color={color} strokeColor={strokeColor} />;
+    if (variation === 'flam')    return <FlamHead    r={r} color={color} strokeColor={strokeColor} />;
+    return <CircleHead r={r} color={color} strokeColor={strokeColor} />;
   }
-  if (variation === 'accent') return <AccentHead r={r} color={color} />;
-  return <CircleHead r={r} color={color} />;
+  if (variation === 'accent') return <AccentHead r={r} color={color} strokeColor={strokeColor} />;
+  return <CircleHead r={r} color={color} strokeColor={strokeColor} />;
 });
 
 // A cell's hit info: variation + velocity (0–127). Replaces what used to be
 // just a NoteVariation so the row can render velocity bars without a second
 // store lookup.
-export interface HitInfo { variation: NoteVariation; velocity: number; }
 
-// Stable empty map — prevents creating a new reference each render for muted rows
-const EMPTY_HIT_MAP: Map<number, HitInfo> = new Map();
 
 // ── Instrument row SVG ─────────────────────────────────────────────────────
 interface RowProps {
   inst: DrumInstrument;
   mStartIdx: number;
-  rowMeasures: { id: string; hits: Partial<Record<DrumInstrument, { step: number; length: number; variation?: NoteVariation; velocity?: number }[]>> }[];
+  rowMeasures: DrumMeasure[];
   spm: number;
   stepsPerBeat: number;
   STEP_W: number;
   MEASURE_W: number;
-  hitMap: Map<number, HitInfo>;
   noteColor: string;
   staffColor: string;
   barColor: string;
@@ -289,14 +328,17 @@ interface RowProps {
   showVariations: boolean;
   gridEmphasis: boolean;
   accentFrom: string;
+  ROW_H: number;
+  isLight: boolean;
 }
 const InstrumentRow = memo(({
   inst, mStartIdx, rowMeasures, spm, stepsPerBeat, STEP_W, MEASURE_W,
-  hitMap, noteColor, staffColor, barColor, altBg, showVariations, gridEmphasis, accentFrom,
+  noteColor, staffColor, barColor: propBarColor, altBg, showVariations, gridEmphasis, accentFrom, ROW_H, isLight,
 }: RowProps) => {
   const totalW     = rowMeasures.length * MEASURE_W;
   const defaultNoteY = NOTE_YF[inst] * ROW_H;
   const NOTE_R     = 4.5;
+  const barColor = isLight ? 'rgba(9, 9, 11, 0.40)' : propBarColor;
 
   return (
     <svg width={totalW} height={ROW_H} viewBox={`0 0 ${totalW} ${ROW_H}`} style={{ display: 'block', overflow: 'visible', flexShrink: 0 }}>
@@ -311,40 +353,37 @@ const InstrumentRow = memo(({
       {STAFF_YF.map((yf, i) => (
         <line key={i} x1={0} y1={yf * ROW_H} x2={totalW} y2={yf * ROW_H} stroke={staffColor} strokeWidth={0.7} />
       ))}
-      {/* Per-step cell dividers — gives every note slot a visible square box.
-          Uses a high-contrast color so the squares pop in both light & dark themes. */}
+      {/* Per-step cell dividers */}
       {rowMeasures.map((_, mi) =>
         Array.from({ length: spm }, (__, s) => {
           if (s === 0) return null;
           const x = (mi * spm + s) * STEP_W;
           const onBeat = s % stepsPerBeat === 0;
           return <line key={`s-${mi}-${s}`} x1={x} y1={0} x2={x} y2={ROW_H}
-            stroke="var(--c-text-primary)"
-            strokeWidth={onBeat ? 1.2 : 0.9}
-            opacity={onBeat ? 0.55 : 0.32} />;
+            stroke={isLight ? (onBeat ? 'rgba(9, 9, 11, 0.50)' : 'rgba(9, 9, 11, 0.25)') : (onBeat ? 'rgba(255, 255, 255, 0.15)' : 'rgba(255, 255, 255, 0.08)')}
+            strokeWidth={onBeat ? 1.0 : 0.7}
+            opacity={onBeat ? (gridEmphasis ? 1.0 : 0.75) : (gridEmphasis ? 0.6 : 0.4)} />;
         })
       )}
-      {/* Top + bottom row borders — close the cell squares vertically */}
-      <line x1={0} y1={0} x2={totalW} y2={0} stroke="var(--c-text-primary)" strokeWidth={0.9} opacity={0.45} />
-      <line x1={0} y1={ROW_H} x2={totalW} y2={ROW_H} stroke="var(--c-text-primary)" strokeWidth={0.9} opacity={0.45} />
+      {/* Top + bottom row borders */}
+      <line x1={0} y1={0} x2={totalW} y2={0} stroke={isLight ? 'rgba(9, 9, 11, 0.35)' : 'rgba(255, 255, 255, 0.06)'} strokeWidth={0.8} />
+      <line x1={0} y1={ROW_H} x2={totalW} y2={ROW_H} stroke={isLight ? 'rgba(9, 9, 11, 0.35)' : 'rgba(255, 255, 255, 0.06)'} strokeWidth={0.8} />
       {/* Measure bar lines */}
       {rowMeasures.map((_, mi) => (
         <line key={mi} x1={mi * MEASURE_W} y1={0} x2={mi * MEASURE_W} y2={ROW_H} stroke={barColor} strokeWidth={mi === 0 ? 1.5 : 1.2} />
       ))}
       <line x1={totalW} y1={0} x2={totalW} y2={ROW_H} stroke={barColor} strokeWidth={1.5} />
-      {/* Velocity bars — thin accent-tinted bar at the bottom of each active
-          cell, width proportional to velocity. Drawn before noteheads so the
-          notation always reads on top. */}
-      {rowMeasures.map((_, mi) =>
-        Array.from({ length: spm }, (__, s) => {
-          const globalStep = (mStartIdx + mi) * spm + s;
-          const info = hitMap.get(globalStep);
-          if (!info) return null;
+      {/* Velocity bars */}
+      {rowMeasures.map((m, mi) => {
+        const hits = m.hits[inst] ?? [];
+        return Array.from({ length: spm }, (__, s) => {
+          const hit = hits.find(h => h.step === s);
+          if (!hit) return null;
+          const vel     = typeof hit.velocity === 'number' ? hit.velocity : DEFAULT_VELOCITY;
           const cellW   = STEP_W - 3;
-          const frac    = Math.max(0.06, Math.min(1, info.velocity / MAX_VELOCITY));
+          const frac    = Math.max(0.06, Math.min(1, vel / MAX_VELOCITY));
           const w       = cellW * frac;
           const x       = (mi * spm + s) * STEP_W + (STEP_W - w) / 2;
-          // Subtle: blends in for low velocity, more vivid for hard hits.
           const op      = 0.32 + frac * 0.45;
           return (
             <rect
@@ -357,19 +396,17 @@ const InstrumentRow = memo(({
               pointerEvents="none"
             />
           );
-        })
-      )}
+        });
+      })}
       {/* Note heads */}
-      {rowMeasures.map((_, mi) =>
-        Array.from({ length: spm }, (__, s) => {
-          const globalStep = (mStartIdx + mi) * spm + s;
-          const info = hitMap.get(globalStep);
-          if (!info) return null;
-          // showVariations=false → all notes look identical (normal)
-          const rawVariation = info.variation;
+      {rowMeasures.map((m, mi) => {
+        const hits = m.hits[inst] ?? [];
+        return Array.from({ length: spm }, (__, s) => {
+          const hit = hits.find(h => h.step === s);
+          if (!hit) return null;
+          const rawVariation = hit.variation ?? 'normal';
           const variation: NoteVariation = showVariations ? rawVariation : 'normal';
 
-          // Pedal HH sits at the bottom; ride hits on the cymbal row sit slightly lower
           const noteY =
             (inst === 'hihat-closed' && rawVariation === 'pedal' && showVariations) ? ROW_H * 0.86 :
             (inst === 'crash' && (rawVariation === 'ride' || rawVariation === 'bell') && showVariations) ? ROW_H * 0.28 :
@@ -381,30 +418,57 @@ const InstrumentRow = memo(({
           const stemY1 = stemUp ? cy - NOTE_R * 0.9  : cy + NOTE_R * 0.9;
           const stemY2 = stemUp ? cy - NOTE_R * 3.5  : cy + NOTE_R * 3.5;
 
-          // Ghost notes: draw a faint parenthesis pair instead of stem
           const isGhost = showVariations && variation === 'ghost';
+          
+          const strokeColor = isLight ? '#ffffff' : '#141418';
+          const instColor = getInstrumentColor(inst, isLight, noteColor);
 
           return (
             <g key={`${mi}-${s}`} transform={`translate(${cx}, ${cy})`}>
               {isGhost ? (
                 <>
-                  <text x={-NOTE_R * 1.9} y={NOTE_R * 0.38} fontSize={NOTE_R * 1.7} fill={noteColor} opacity={0.38} fontFamily="serif" dominantBaseline="middle">(</text>
-                  <text x={NOTE_R * 0.95}  y={NOTE_R * 0.38} fontSize={NOTE_R * 1.7} fill={noteColor} opacity={0.38} fontFamily="serif" dominantBaseline="middle">)</text>
+                  <text x={-NOTE_R * 1.9} y={NOTE_R * 0.38} fontSize={NOTE_R * 1.7} fill={instColor} opacity={0.38} fontFamily="serif" dominantBaseline="middle">(</text>
+                  <text x={NOTE_R * 0.95}  y={NOTE_R * 0.38} fontSize={NOTE_R * 1.7} fill={instColor} opacity={0.38} fontFamily="serif" dominantBaseline="middle">)</text>
                 </>
               ) : (
                 <line
                   x1={stemUp ? NOTE_R * 0.75 : -NOTE_R * 0.75} y1={stemY1 - cy}
                   x2={stemUp ? NOTE_R * 0.75 : -NOTE_R * 0.75} y2={stemY2 - cy}
-                  stroke={noteColor} strokeWidth={1.2} strokeLinecap="round"
+                  stroke={instColor} strokeWidth={1.2} strokeLinecap="round"
                 />
               )}
-              <NoteHead inst={inst} variation={variation} r={NOTE_R} color={noteColor} />
+              <NoteHead inst={inst} variation={variation} r={NOTE_R} color={instColor} strokeColor={strokeColor} />
             </g>
           );
-        })
-      )}
+        });
+      })}
     </svg>
   );
+}, (prev, next) => {
+  if (prev.inst !== next.inst) return false;
+  if (prev.mStartIdx !== next.mStartIdx) return false;
+  if (prev.spm !== next.spm) return false;
+  if (prev.stepsPerBeat !== next.stepsPerBeat) return false;
+  if (prev.STEP_W !== next.STEP_W) return false;
+  if (prev.MEASURE_W !== next.MEASURE_W) return false;
+  if (prev.noteColor !== next.noteColor) return false;
+  if (prev.staffColor !== next.staffColor) return false;
+  if (prev.barColor !== next.barColor) return false;
+  if (prev.altBg !== next.altBg) return false;
+  if (prev.showVariations !== next.showVariations) return false;
+  if (prev.gridEmphasis !== next.gridEmphasis) return false;
+  if (prev.accentFrom !== next.accentFrom) return false;
+  if (prev.ROW_H !== next.ROW_H) return false;
+  if (prev.isLight !== next.isLight) return false;
+
+  if (prev.rowMeasures.length !== next.rowMeasures.length) return false;
+
+  for (let i = 0; i < prev.rowMeasures.length; i++) {
+    const prevHits = prev.rowMeasures[i].hits[prev.inst];
+    const nextHits = next.rowMeasures[i].hits[next.inst];
+    if (prevHits !== nextHits) return false;
+  }
+  return true;
 });
 
 // ── Tab icons ──────────────────────────────────────────────────────────────
@@ -1223,12 +1287,13 @@ function DrumExportModal({ patterns, song, accent, onClose }: {
     </div>
   );
 
-  return (
-    <div style={{ position: 'fixed', inset: 0, zIndex: 300, background: '#0e0e0e', display: 'flex', flexDirection: 'column',
-      animation: closing ? 'sheet-down 320ms cubic-bezier(0.25,0.46,0.45,0.94) both' : 'sheet-up 340ms cubic-bezier(0.25,0.46,0.45,0.94) both' }}>
+  const isWebDesktop = useIsWebDesktop();
 
-      {/* ── Header ── */}
-      <div style={{ paddingTop: 'env(safe-area-inset-top)', background: '#191a1a', flexShrink: 0, borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
+  return (
+    <div style={isWebDesktop ? { position: 'fixed', inset: 0, zIndex: 300, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(0, 0, 0, 0.6)', backdropFilter: 'blur(8px)', WebkitBackdropFilter: 'blur(8px)' } : { position: 'fixed', inset: 0, zIndex: 300, background: '#0e0e0e', display: 'flex', flexDirection: 'column', animation: closing ? 'sheet-down 320ms cubic-bezier(0.25,0.46,0.45,0.94) both' : 'sheet-up 340ms cubic-bezier(0.25,0.46,0.45,0.94) both' }}>
+      <div style={isWebDesktop ? { position: 'relative', width: '560px', maxWidth: '90vw', maxHeight: '85vh', background: '#0a0a0c', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '1.25rem', boxShadow: '0 20px 40px rgba(0,0,0,0.55)', display: 'flex', flexDirection: 'column', overflow: 'hidden' } : { display: 'flex', flexDirection: 'column', flex: 1, height: '100%' }}>
+        {/* ── Header ── */}
+        <div style={{ paddingTop: isWebDesktop ? '0' : 'env(safe-area-inset-top)', background: isWebDesktop ? 'transparent' : '#191a1a', flexShrink: 0, borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 20px', height: 56 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
             <button onClick={handleClose} className="btn-smooth"
@@ -1372,6 +1437,7 @@ function DrumExportModal({ patterns, song, accent, onClose }: {
           )}
         </div>
       </div>
+      </div>
     </div>
   );
 }
@@ -1379,14 +1445,14 @@ function DrumExportModal({ patterns, song, accent, onClose }: {
 // ── DrumImportModal ─────────────────────────────────────────────────────────
 function DrumImportModal({ accent, onImport, onClose }: {
   accent: { from: string; to: string };
-  onImport: (name: string, artist: string, notes: string, patterns: DrumPattern[], activePatternId: string) => void;
+  onImport: (name: string, artist: string, notes: string, patterns: DrumPattern[], activePatternId: string, kitType?: KitType | null) => void;
   onClose: () => void;
 }) {
   type Stage = 'idle' | 'preview' | 'error';
   const [stage, setStage]     = useState<Stage>('idle');
   const [errorMsg, setErrorMsg] = useState('');
   const [dragOver, setDragOver] = useState(false);
-  const [preview, setPreview]   = useState<{ name: string; artist: string; notes: string; patterns: DrumPattern[]; activePatternId: string } | null>(null);
+  const [preview, setPreview]   = useState<{ name: string; artist: string; notes: string; patterns: DrumPattern[]; activePatternId: string; kitType?: KitType | null } | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const parseFile = (file: File) => {
@@ -1415,7 +1481,8 @@ function DrumImportModal({ accent, onImport, onClose }: {
         const songName   = (raw.song?.name   ?? '').trim() || 'Imported Beat';
         const artist     = (raw.song?.artist ?? '').trim();
         const notes      = (raw.song?.notes  ?? '').trim();
-        setPreview({ name: songName, artist, notes, patterns: reconstructed, activePatternId: reconstructed[0].id });
+        const kitType    = raw.song?.kitType || 'house';
+        setPreview({ name: songName, artist, notes, patterns: reconstructed, activePatternId: reconstructed[0].id, kitType });
         setStage('preview');
       } catch (err) {
         setErrorMsg(err instanceof Error ? err.message : 'Could not parse file.'); setStage('error');
@@ -1431,13 +1498,17 @@ function DrumImportModal({ accent, onImport, onClose }: {
 
   const totalBars = preview ? preview.patterns.reduce((n, p) => n + p.measures.length, 0) : 0;
 
+  const isWebDesktop = useIsWebDesktop();
+
   return (
-    <div style={{ position: 'fixed', inset: 0, zIndex: 300 }}>
-      <div onClick={onClose} style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.55)', backdropFilter: 'blur(4px)' }} />
-      <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, background: 'var(--app-surface)', borderRadius: '1.5rem 1.5rem 0 0', animation: 'sheet-up 400ms cubic-bezier(0.16, 1, 0.3, 1) both', maxHeight: '80vh', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-        <div style={{ display: 'flex', justifyContent: 'center', padding: '12px 0 4px', flexShrink: 0 }}>
-          <div style={{ width: 36, height: 4, borderRadius: 9999, background: 'rgba(128,128,128,0.25)' }} />
-        </div>
+    <div style={isWebDesktop ? { position: 'fixed', inset: 0, zIndex: 300, display: 'flex', alignItems: 'center', justifyContent: 'center' } : { position: 'fixed', inset: 0, zIndex: 300 }}>
+      <div onClick={onClose} style={isWebDesktop ? { position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(8px)', WebkitBackdropFilter: 'blur(8px)' } : { position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.55)', backdropFilter: 'blur(4px)' }} />
+      <div style={isWebDesktop ? { position: 'relative', width: '520px', maxWidth: '90vw', maxHeight: '85vh', background: '#0a0a0c', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '1.25rem', boxShadow: '0 20px 40px rgba(0,0,0,0.55)', display: 'flex', flexDirection: 'column', overflow: 'hidden', padding: '24px 0' } : { position: 'absolute', bottom: 0, left: 0, right: 0, background: 'var(--app-surface)', borderRadius: '1.5rem 1.5rem 0 0', animation: 'sheet-up 400ms cubic-bezier(0.16, 1, 0.3, 1) both', maxHeight: '80vh', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+        {!isWebDesktop && (
+          <div style={{ display: 'flex', justifyContent: 'center', padding: '12px 0 4px', flexShrink: 0 }}>
+            <div style={{ width: 36, height: 4, borderRadius: 9999, background: 'rgba(128,128,128,0.25)' }} />
+          </div>
+        )}
         <div style={{ display: 'flex', alignItems: 'center', padding: '4px 20px 16px', flexShrink: 0 }}>
           <span style={{ flex: 1, fontSize: 16, fontWeight: 800, color: 'var(--c-text-primary)', fontFamily: 'Manrope,sans-serif' }}>Import Beat</span>
           <button onClick={onClose} style={{ width: 32, height: 32, borderRadius: '50%', background: 'rgba(128,128,128,0.10)', border: 'none', cursor: 'pointer', color: 'var(--c-text-secondary)', fontSize: 18, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>✕</button>
@@ -1488,7 +1559,7 @@ function DrumImportModal({ accent, onImport, onClose }: {
                   <span style={{ fontSize: 11, color: 'var(--c-text-muted)' }}>{p.bpm} BPM · {p.measures.length} bar{p.measures.length !== 1 ? 's' : ''}</span>
                 </div>
               ))}
-              <button onClick={() => { onImport(preview.name, preview.artist, preview.notes, preview.patterns, preview.activePatternId); onClose(); }}
+              <button onClick={() => { onImport(preview.name, preview.artist, preview.notes, preview.patterns, preview.activePatternId, preview.kitType); onClose(); }}
                 className="btn-smooth"
                 style={{ padding: '15px', borderRadius: 9999, background: `linear-gradient(135deg,${accent.from},${accent.to})`, border: 'none', cursor: 'pointer', color: '#fff', fontSize: 15, fontWeight: 800, fontFamily: 'Manrope,sans-serif', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, boxShadow: `0 6px 24px ${accent.to}50` }}>
                 <span className="material-symbols-outlined" style={{ fontSize: 20 }}>add_circle</span>
@@ -1515,7 +1586,7 @@ const LibMiniGrid = memo(function LibMiniGrid({ lp, isLight }: { lp: LibraryPatt
     <div style={{ background: isLight ? 'rgba(0,0,0,0.04)' : 'rgba(0,0,0,0.35)', borderRadius: 10, padding: '8px 6px', overflow: 'hidden' }}>
       {usedInsts.slice(0, 4).map(inst => {
         const instHits = m0.hits[inst] ?? [];
-        const color = INSTRUMENT_COLOR[inst] ?? '#888';
+        const color = getInstrumentColor(inst, isLight, '#888');
         const hitSet = new Set(instHits.map(h => h.step));
         const ghostSet = new Set(instHits.filter(h => h.variation === 'ghost').map(h => h.step));
         return (
@@ -1550,17 +1621,28 @@ interface LibCardProps {
 }
 
 const LibCard = memo(function LibCard({ lp, isPreviewPlaying, accent, isLight, onPreview, onReplace, onInsert }: LibCardProps) {
+  const isWebDesktop = useIsWebDesktop();
   return (
-    <div style={{ background: 'var(--app-surface)', borderRadius: 14, overflow: 'hidden', border: '1px solid rgba(128,128,128,0.06)' }}>
+    <div style={{
+      background: isWebDesktop ? (isLight ? '#ffffff' : '#000000') : 'var(--app-surface)',
+      borderRadius: isWebDesktop ? 12 : 14,
+      overflow: 'hidden',
+      border: isWebDesktop ? (isLight ? '1px solid #e4e4e7' : '1px solid #18181b') : '1px solid rgba(128,128,128,0.06)',
+      transition: 'border-color 200ms'
+    }} className="group hover:border-zinc-800">
       <div style={{ padding: '14px 14px 8px' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
           <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--c-text-primary)', fontFamily: 'Manrope,sans-serif' }}>{lp.name}</div>
-            <div style={{ fontSize: 10.5, color: 'var(--c-text-muted)', marginTop: 3, textTransform: 'uppercase', letterSpacing: '0.08em', fontFamily: 'Inter,sans-serif', fontWeight: 600 }}>{lp.category} · {lp.genre} · {lp.bpm} BPM</div>
+            <div style={{ fontSize: 13, fontWeight: 800, color: isLight ? '#09090b' : '#ffffff', fontFamily: 'Manrope,sans-serif', textTransform: 'uppercase', letterSpacing: '0.04em' }}>{lp.name}</div>
+            <div style={{ fontSize: 9.5, color: '#71717a', marginTop: 3, textTransform: 'uppercase', letterSpacing: '0.08em', fontFamily: 'Inter,sans-serif', fontWeight: 700 }}>{lp.category} · {lp.genre} · {lp.bpm} BPM</div>
           </div>
-          <button onClick={() => onPreview(lp)} className="btn-smooth"
-            style={{ width: 40, height: 40, borderRadius: '50%', border: 'none', flexShrink: 0, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', background: isPreviewPlaying ? `linear-gradient(135deg,${accent.from},${accent.to})` : `${accent.from}12`, color: isPreviewPlaying ? '#fff' : accent.from, transition: 'all 160ms', boxShadow: isPreviewPlaying ? `0 4px 16px ${accent.from}44` : 'none' }}>
-            <span className="material-symbols-outlined" style={{ fontSize: 18 }}>{isPreviewPlaying ? 'stop' : 'play_arrow'}</span>
+          <button onClick={() => onPreview(lp)} title={isPreviewPlaying ? "Stop Preview" : "Preview Groove"} className="btn-smooth cursor-pointer"
+            style={{ 
+              width: 34, height: 34, borderRadius: '50%', border: 'none', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', 
+              background: isPreviewPlaying ? `linear-gradient(135deg,${accent.from},${accent.to})` : (isLight ? '#f4f4f5' : '#18181b'), 
+              color: isPreviewPlaying ? '#fff' : (isLight ? '#27272a' : '#a1a1aa'), transition: 'all 160ms' 
+            }}>
+            <span className="material-symbols-outlined" style={{ fontSize: 16 }}>{isPreviewPlaying ? 'stop' : 'play_arrow'}</span>
           </button>
         </div>
       </div>
@@ -1568,15 +1650,27 @@ const LibCard = memo(function LibCard({ lp, isPreviewPlaying, accent, isLight, o
         <LibMiniGrid lp={lp} isLight={isLight} />
       </div>
       <div style={{ padding: '0 14px 12px', display: 'flex', gap: 6 }}>
-        <button onClick={() => onReplace(lp)} className="btn-smooth"
-          style={{ flex: 1, padding: '10px', borderRadius: 10, background: isLight ? 'rgba(0,0,0,0.05)' : 'rgba(255,255,255,0.06)', border: 'none', cursor: 'pointer', color: 'var(--c-text-primary)', fontSize: 12, fontWeight: 700, fontFamily: 'Manrope,sans-serif', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5, transition: 'all 160ms' }}>
-          <span className="material-symbols-outlined" style={{ fontSize: 14 }}>file_download</span>
-          Use
+        <button onClick={() => onReplace(lp)} title="Replace current pattern with this groove" className="btn-smooth cursor-pointer"
+          style={{ 
+            flex: 1, padding: '7px', borderRadius: 8, 
+            background: isLight ? '#f4f4f5' : '#09090b', 
+            border: isLight ? '1px solid #e4e4e7' : '1px solid #18181b', 
+            color: isLight ? '#27272a' : '#e4e4e7', fontSize: 10.5, fontWeight: 800, fontFamily: 'Manrope,sans-serif', 
+            display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5, transition: 'all 160ms' 
+          }}>
+          <span className="material-symbols-outlined" style={{ fontSize: 13 }}>file_download</span>
+          <span>USE</span>
         </button>
-        <button onClick={() => onInsert(lp)} className="btn-smooth"
-          style={{ flex: 1, padding: '10px', borderRadius: 10, background: isLight ? 'rgba(0,0,0,0.05)' : 'rgba(255,255,255,0.06)', border: 'none', cursor: 'pointer', color: 'var(--c-text-primary)', fontSize: 12, fontWeight: 700, fontFamily: 'Manrope,sans-serif', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5, transition: 'all 160ms' }}>
-          <span className="material-symbols-outlined" style={{ fontSize: 14 }}>playlist_add</span>
-          Append
+        <button onClick={() => onInsert(lp)} title="Append this groove to the end of the pattern" className="btn-smooth cursor-pointer"
+          style={{ 
+            flex: 1, padding: '7px', borderRadius: 8, 
+            background: isLight ? '#f4f4f5' : '#09090b', 
+            border: isLight ? '1px solid #e4e4e7' : '1px solid #18181b', 
+            color: isLight ? '#27272a' : '#e4e4e7', fontSize: 10.5, fontWeight: 800, fontFamily: 'Manrope,sans-serif', 
+            display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5, transition: 'all 160ms' 
+          }}>
+          <span className="material-symbols-outlined" style={{ fontSize: 13 }}>playlist_add</span>
+          <span>APPEND</span>
         </button>
       </div>
     </div>
@@ -1627,8 +1721,8 @@ export default function DrumEditor() {
   const accent = ACCENT_COLORS[(settings.perApp?.drums?.accentColor ?? settings.accentColor) as keyof typeof ACCENT_COLORS] ?? ACCENT_COLORS.blue;
   const spm    = stepsPerMeasure(pattern);
   const stepsPerBeat = pattern.subdivision / pattern.timeSignature[1];
-  const kit    = kitType ?? 'ludwig';
-  const ALL_INSTS = KIT_INSTRUMENTS[kit] ?? KIT_INSTRUMENTS.ludwig;
+  const kit    = kitType ?? 'house';
+  const ALL_INSTS = KIT_INSTRUMENTS[kit] ?? KIT_INSTRUMENTS.house;
 
   // ── Theme — use per-app drums theme, fall back to global ─────────────────
   const drumsVis = settings.perApp?.drums ?? { theme: settings.theme ?? 'dark', amoledMode: settings.amoledMode ?? false };
@@ -1647,10 +1741,13 @@ export default function DrumEditor() {
   })();
   const isAmoled = !isLight && (drumsVis.amoledMode ?? false);
   // SVG/canvas colors — CSS vars can't be used directly in SVG props
-  const noteColor  = isLight ? '#111118' : '#f0f0f2';
-  const staffColor = isLight ? 'rgba(0,0,0,0.22)' : 'rgba(255,255,255,0.18)';
-  const barColor   = isLight ? 'rgba(0,0,0,0.50)' : 'rgba(255,255,255,0.45)';
-  const altBg      = isLight ? 'rgba(0,0,0,0.025)' : 'rgba(255,255,255,0.018)';
+  const noteColor  = isLight ? '#111118' : '#ffffff';
+  const staffColor = isLight ? 'rgba(9, 9, 11, 0.08)' : 'rgba(255, 255, 255, 0.05)';
+  const barColor   = isLight ? 'rgba(9, 9, 11, 0.25)' : 'rgba(255, 255, 255, 0.15)';
+  const altBg      = isLight ? 'rgba(9, 9, 11, 0.015)' : 'rgba(255, 255, 255, 0.008)';
+
+  const ROW_H      = isWebDesktop ? 68 : 42;
+  const rowGap     = isWebDesktop ? 8 : 0;
 
   // ── Landscape detection ──────────────────────────────────────────────────
   const [isLandscape, setIsLandscape] = useState(() =>
@@ -1692,30 +1789,197 @@ export default function DrumEditor() {
   const [houseLoaded,  setHouseLoaded]      = useState(false);
   const [houseProgress, setHouseProgress]  = useState({ loaded: 0, total: 0 });
   const [showBpmPanel,   setShowBpmPanel]   = useState(false);
+  const [showBpmPopover, setShowBpmPopover] = useState(false);
+  const [bpmInputVal, setBpmInputVal]       = useState(() => pattern.bpm.toString());
+  const [songOpenUp, setSongOpenUp]         = useState(false);
+  const metronomeBtnRef = useRef<HTMLButtonElement | null>(null);
+  const renameBtnRef = useRef<HTMLButtonElement | null>(null);
+  const deleteBtnRef = useRef<HTMLButtonElement | null>(null);
+  const [popoverCoords, setPopoverCoords] = useState<{ top: number; left: number; position: 'above' | 'below' } | null>(null);
+
+  const updatePopoverPosition = useCallback(() => {
+    if (!showBpmPopover || !metronomeBtnRef.current) return;
+    const rect = metronomeBtnRef.current.getBoundingClientRect();
+    const popoverWidth = 260;
+    const popoverHeight = 230; // approximate height
+    const padding = 12;
+
+    let left = rect.left + rect.width / 2 - popoverWidth / 2;
+    left = Math.max(padding, Math.min(window.innerWidth - popoverWidth - padding, left));
+
+    let position: 'above' | 'below' = 'below';
+    let top = rect.bottom + 8;
+
+    if (top + popoverHeight + padding > window.innerHeight && rect.top - popoverHeight - 8 - padding > 0) {
+      position = 'above';
+      top = rect.top - popoverHeight - 8;
+    }
+
+    setPopoverCoords({ top, left, position });
+  }, [showBpmPopover]);
+
+  useEffect(() => {
+    if (!showBpmPopover) return;
+    updatePopoverPosition();
+    window.addEventListener('resize', updatePopoverPosition, { passive: true });
+    window.addEventListener('scroll', updatePopoverPosition, { capture: true, passive: true });
+    
+    const handleEscape = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        setShowBpmPopover(false);
+        metronomeBtnRef.current?.focus();
+      }
+    };
+    window.addEventListener('keydown', handleEscape);
+
+    return () => {
+      window.removeEventListener('resize', updatePopoverPosition);
+      window.removeEventListener('scroll', updatePopoverPosition);
+      window.removeEventListener('keydown', handleEscape);
+    };
+  }, [showBpmPopover, updatePopoverPosition]);
+
+  useEffect(() => {
+    setBpmInputVal(pattern.bpm.toString());
+  }, [pattern.bpm]);
+
+  const tapTimesRef = useRef<number[]>([]);
+  const handleTapTempo = useCallback(() => {
+    const now = performance.now();
+    tapTimesRef.current = tapTimesRef.current.filter(t => now - t < 2500);
+    tapTimesRef.current.push(now);
+
+    if (tapTimesRef.current.length >= 2) {
+      let sum = 0;
+      for (let i = 1; i < tapTimesRef.current.length; i++) {
+        sum += tapTimesRef.current[i] - tapTimesRef.current[i - 1];
+      }
+      const avgMs = sum / (tapTimesRef.current.length - 1);
+      const calculatedBpm = Math.round(60000 / avgMs);
+      const clampedBpm = Math.max(40, Math.min(280, calculatedBpm));
+      updatePattern(pattern.id, { bpm: clampedBpm });
+    }
+  }, [pattern.id, updatePattern]);
+
+  const commitBpm = useCallback((valStr: string) => {
+    let bpmVal = parseInt(valStr, 10);
+    if (isNaN(bpmVal)) {
+      bpmVal = pattern.bpm;
+    } else {
+      bpmVal = Math.max(40, Math.min(280, bpmVal));
+    }
+    setBpmInputVal(bpmVal.toString());
+    updatePattern(pattern.id, { bpm: bpmVal });
+  }, [pattern.id, pattern.bpm, updatePattern]);
+
+  const handleBpmKeyDown = useCallback((e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter') {
+      commitBpm(bpmInputVal);
+      e.currentTarget.blur();
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      const nextBpm = Math.min(280, pattern.bpm + (e.shiftKey ? 5 : 1));
+      updatePattern(pattern.id, { bpm: nextBpm });
+    } else if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      const nextBpm = Math.max(40, pattern.bpm - (e.shiftKey ? 5 : 1));
+      updatePattern(pattern.id, { bpm: nextBpm });
+    }
+  }, [bpmInputVal, pattern.bpm, pattern.id, updatePattern, commitBpm]);
+
+  const changeBpmBy = useCallback((delta: number) => {
+    const nextBpm = Math.max(40, Math.min(280, pattern.bpm + delta));
+    updatePattern(pattern.id, { bpm: nextBpm });
+  }, [pattern.bpm, pattern.id, updatePattern]);
+
   const [showLoopPanel,  setShowLoopPanel]  = useState(false);
   const [showHamburger,     setShowHamburger]     = useState(false);
   const [hamburgerClosing,  setHamburgerClosing]  = useState(false);
   const [showSoundCharacter, setShowSoundCharacter] = useState(false);
-  const [expandedCats,   setExpandedCats]   = useState<Set<string>>(() => new Set(['ultrahd']));
+  const [expandedCats,   setExpandedCats]   = useState<Set<string>>(() => new Set(['acoustic']));
   const [focusedInst,    setFocusedInst]    = useState<DrumInstrument | null>(null);
+  const [sideTab,        setSideTab]        = useState<'kit' | 'mixer' | 'fx'>('kit');
+  const [isRightPanelCollapsed, setIsRightPanelCollapsed] = useState(false);
   // Songs panel state
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [createName,     setCreateName]     = useState('');
   const [createArtist,   setCreateArtist]   = useState('');
   const [createBpm,      setCreateBpm]      = useState('120');
   const [createNotes,    setCreateNotes]    = useState('');
-  const [createFamily,   setCreateFamily]   = useState<string>('ultrahd');
+  const [createFamily,   setCreateFamily]   = useState<string>('acoustic');
   const [createVariant,  setCreateVariant]  = useState<KitType>('house');
   const [showSaveForm,     setShowSaveForm]     = useState(false);
   const [saveName,         setSaveName]         = useState('');
   const [saveArtist,       setSaveArtist]       = useState('');
   const [saveNotes,        setSaveNotes]        = useState('');
   const [deletingId,       setDeletingId]       = useState<string | null>(null);
+  const [songSearch,       setSongSearch]       = useState('');
+  const [songKitFilter,    setSongKitFilter]    = useState('all');
+  const [songSort,         setSongSort]         = useState<'recent' | 'name' | 'bpm'>('recent');
+  const [songMenuId,       setSongMenuId]       = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!songMenuId) return;
+    const handleEscape = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        setSongMenuId(null);
+      }
+    };
+    window.addEventListener('keydown', handleEscape);
+    return () => window.removeEventListener('keydown', handleEscape);
+  }, [songMenuId]);
   const [editingSong,      setEditingSong]      = useState<DrumSong | null>(null);
   const [editingName,      setEditingName]      = useState('');
   const [editingArtist,    setEditingArtist]    = useState('');
   const [activeDrumSongId, setActiveDrumSongId] = useState<string | null>(null);
   const [tabAnim, setTabAnim] = useState<'panel-enter-right' | 'panel-enter-left'>('panel-enter-right');
+
+  const filteredSongs = useMemo(() => {
+    let list = [...drumSongs];
+    if (songKitFilter !== 'all') {
+      list = list.filter(s => s.kitType === songKitFilter);
+    }
+    if (songSearch.trim()) {
+      const q = songSearch.toLowerCase();
+      list = list.filter(s => 
+        s.name.toLowerCase().includes(q) || 
+        (s.artist && s.artist.toLowerCase().includes(q))
+      );
+    }
+    if (songSort === 'name') {
+      list.sort((a, b) => a.name.localeCompare(b.name));
+    } else if (songSort === 'bpm') {
+      list.sort((a, b) => {
+        const aPat = a.patterns.find((p: any) => p.id === a.activePatternId) ?? a.patterns[0];
+        const bPat = b.patterns.find((p: any) => p.id === b.activePatternId) ?? b.patterns[0];
+        const aBpm = aPat?.bpm ?? 120;
+        const bBpm = bPat?.bpm ?? 120;
+        return bBpm - aBpm;
+      });
+    } else {
+      list.reverse();
+    }
+    return list;
+  }, [drumSongs, songSearch, songKitFilter, songSort]);
+  const [collapsedKitSections, setCollapsedKitSections] = useState<Record<string, boolean>>({
+    'drum-kit': false,
+    'kit-variant': false,
+    'mic-position': true,
+    'sound-character': true,
+    'advanced-kit-options': true,
+  });
+  const [collapsedMixerSections, setCollapsedMixerSections] = useState<Record<string, boolean>>({
+    'master': false,
+    'levels': false,
+    'pan': true,
+    'room-send': true,
+  });
+  const [collapsedFxSections, setCollapsedFxSections] = useState<Record<string, boolean>>({
+    'global-fx': false,
+    'per-instrument-fx': false,
+    'reverb-room': true,
+    'humanize-groove-feel': true,
+  });
   const handleSetTab = (newTab: DrumTab) => {
     const oldIdx = TAB_ORDER.indexOf(activeTab);
     const newIdx = TAB_ORDER.indexOf(newTab);
@@ -1845,10 +2109,12 @@ export default function DrumEditor() {
   // In landscape the screen is wider so rawMpr is naturally larger →
   // more measures shown per row without stretching any of them.
   const rawMpr         = Math.max(1, Math.floor(availableW / (spm * MIN_STEP)));
-  const measuresPerRow = isLandscape ? rawMpr : 1;
-  const MEASURE_W      = availableW / measuresPerRow;
+  const measuresPerRow = isLandscape ? pattern.measures.length : 1;
+  const MEASURE_W      = isLandscape
+    ? (pattern.measures.length <= 2 ? (availableW - 16) / Math.max(1, pattern.measures.length) : Math.max(340, availableW / 2.5))
+    : availableW;
   const STEP_W         = MEASURE_W / spm;
-  const SYSTEM_H       = RULER_H + visibleInsts.length * ROW_H;
+  const SYSTEM_H       = RULER_H + visibleInsts.length * ROW_H + (visibleInsts.length > 0 ? (visibleInsts.length - 1) * rowGap : 0);
   const FULL_SYS_H     = SYSTEM_H + SYS_SEP;
 
   const spmRef      = useRef(spm);            spmRef.current = spm;
@@ -1857,6 +2123,7 @@ export default function DrumEditor() {
   const measureWRef = useRef(MEASURE_W);      measureWRef.current = MEASURE_W;
   const sysHRef     = useRef(FULL_SYS_H);    sysHRef.current = FULL_SYS_H;
   const allInstsRef = useRef(visibleInsts);   allInstsRef.current = visibleInsts;
+  const activeDragInst = useRef<DrumInstrument | null>(null);
   const totalStepsRef = useRef(spm * pattern.measures.length);
   totalStepsRef.current = spm * pattern.measures.length;
   const secPerStepRef = useRef(0);
@@ -1878,31 +2145,9 @@ export default function DrumEditor() {
   );
   const loopActive = effectiveLoop.enabled && pattern.measures.length > 0;
 
-  // ── Landscape auto-fill: ensure enough empty measures to fill one row ───
-  useEffect(() => {
-    if (!isLandscape || !inEditor) return;
-    const needed = measuresPerRow - pattern.measures.length;
-    if (needed > 0) {
-      const extra = Array.from({ length: needed }, () => emptyMeasure());
-      updatePattern(pattern.id, { measures: [...pattern.measures, ...extra] });
-    }
-  }, [isLandscape, inEditor, measuresPerRow, pattern.measures.length, pattern.id]);
 
   // ── Hit maps (step → { variation, velocity }) ────────────────────────────
-  const allHitMaps = useMemo(() => {
-    const map = new Map<DrumInstrument, Map<number, HitInfo>>();
-    visibleInsts.forEach(inst => {
-      const m2 = new Map<number, HitInfo>();
-      pattern.measures.forEach((m, mIdx) => {
-        m.hits[inst]?.forEach(h => m2.set(mIdx * spm + h.step, {
-          variation: h.variation ?? 'normal',
-          velocity: typeof h.velocity === 'number' ? h.velocity : DEFAULT_VELOCITY,
-        }));
-      });
-      map.set(inst, m2);
-    });
-    return map;
-  }, [pattern, spm, visibleInsts]);
+
 
   // ── Scroll-hide for bottom nav ────────────────────────────────────────────
   const drumNavLastY = useRef(0);
@@ -1980,34 +2225,34 @@ export default function DrumEditor() {
   useEffect(() => {
     drumScheduler.onStep = (gs, mIdx, stepInM) => {
       if (endAdvTimerRef.current) { clearTimeout(endAdvTimerRef.current); endAdvTimerRef.current = null; }
-      if (gs < 0) { if (playheadRef.current) playheadRef.current.style.display = 'none'; return; }
+      if (gs < 0) {
+        if (playheadRef.current) {
+          playheadRef.current.style.transform = `translate(${LABEL_W}px, 0px)`;
+          playheadRef.current.style.display = 'block';
+        }
+        return;
+      }
       const sp = spmRef.current; const mpr = mprRef.current; const sw = stepWRef.current; const sh = sysHRef.current;
       const systemIdx = Math.floor(mIdx / mpr); const measureInRow = mIdx % mpr; const stepInRow = measureInRow * sp + stepInM;
       const x = LABEL_W + stepInRow * sw; const y = systemIdx * sh;
       if (playheadRef.current) { playheadRef.current.style.transform = `translate(${x}px, ${y}px)`; playheadRef.current.style.display = 'block'; }
       const el = scrollRef.current;
-      if (el) { const rowBottom = y + RULER_H + allInstsRef.current.length * ROW_H; if (y < el.scrollTop || rowBottom > el.scrollTop + el.clientHeight) el.scrollTop = Math.max(0, y - 40); }
-      // ── Metronome ──────────────────────────────────────────────────────────
-      if (drumPrefsRef.current.metronome) {
-        const spBeat = spmRef.current / 4; // steps per beat (assumes 4/4)
-        if (gs % spBeat === 0) {
-          const isBeat1 = gs % (spBeat * 4) === 0;
-          const ctx = getAudioCtx();
-          if (ctx) {
-            const t = ctx.currentTime;
-            const osc = ctx.createOscillator();
-            const env = ctx.createGain();
-            osc.connect(env); env.connect(ctx.destination);
-            osc.frequency.value = isBeat1 ? 1200 : 880;
-            env.gain.setValueAtTime(0, t);
-            env.gain.linearRampToValueAtTime(0.28, t + 0.002);
-            env.gain.exponentialRampToValueAtTime(0.001, t + 0.055);
-            osc.start(t); osc.stop(t + 0.07);
-          }
+      if (el) {
+        const rowBottom = y + RULER_H + allInstsRef.current.length * ROW_H + (allInstsRef.current.length > 0 ? (allInstsRef.current.length - 1) * rowGap : 0);
+        if (y < el.scrollTop || rowBottom > el.scrollTop + el.clientHeight) el.scrollTop = Math.max(0, y - 40);
+        
+        // Horizontal auto-scroll
+        const leftBound = el.scrollLeft + LABEL_W;
+        const rightBound = el.scrollLeft + el.clientWidth;
+        if (x < leftBound) {
+          el.scrollLeft = Math.max(0, x - LABEL_W - 20);
+        } else if (x > rightBound - 40) {
+          el.scrollLeft = x - el.clientWidth + 40;
         }
       }
       // ── Auto-expand ────────────────────────────────────────────────────────
-      if (drumPrefsRef.current.autoExpandPattern && gs === totalStepsRef.current - 1) {
+      const totalSteps = drumScheduler.totalSteps;
+      if (drumPrefsRef.current.autoExpandPattern && gs === totalSteps - 1) {
         const { patterns: pts, activePatternId: actId } = useDrumStore.getState();
         const curPat = pts.find(p => p.id === actId);
         if (curPat) useDrumStore.getState().addMeasure(curPat.id);
@@ -2063,6 +2308,25 @@ export default function DrumEditor() {
     setHistoryCount(undoStack.current.length);
   }, [restorePatterns]);
 
+  const handleAddBar = useCallback(() => {
+    pushUndo();
+    addMeasure(pattern.id);
+  }, [pattern.id, addMeasure, pushUndo]);
+
+  const prevMeasureCount = useRef(pattern.measures.length);
+  useLayoutEffect(() => {
+    const currentCount = pattern.measures.length;
+    if (currentCount > prevMeasureCount.current) {
+      if (scrollRef.current) {
+        scrollRef.current.scrollTo({
+          left: scrollRef.current.scrollWidth,
+          behavior: 'smooth'
+        });
+      }
+    }
+    prevMeasureCount.current = currentCount;
+  }, [pattern.measures.length]);
+
   // ── Keyboard shortcuts (Ctrl+Z / Ctrl+Y / Ctrl+Shift+Z) ──────────────────
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
@@ -2075,18 +2339,107 @@ export default function DrumEditor() {
   }, [handleUndo, handleRedo]);
 
   // ── Metronome click ──────────────────────────────────────────────────────
-  const playMetronomeClick = useCallback((isBeat1: boolean) => {
+  const playMetronomeClick = useCallback((isBeat1: boolean, soundOverride?: string) => {
     const ctx = getAudioCtx(); if (!ctx) return;
+    const dest = ctx.destination;
     const t = ctx.currentTime;
-    const osc = ctx.createOscillator();
-    const env = ctx.createGain();
-    osc.connect(env); env.connect(ctx.destination);
-    osc.frequency.value = isBeat1 ? 1200 : 880;
-    env.gain.setValueAtTime(0, t);
-    env.gain.linearRampToValueAtTime(0.32, t + 0.002);
-    env.gain.exponentialRampToValueAtTime(0.001, t + 0.06);
-    osc.start(t); osc.stop(t + 0.08);
-  }, []);
+    const soundType = soundOverride || drumPrefs.metronomeSound || 'classic';
+
+    if (soundType === 'wood') {
+      const osc1 = ctx.createOscillator();
+      const osc2 = ctx.createOscillator();
+      const gainNode = ctx.createGain();
+      osc1.type = 'sine';
+      osc2.type = 'sine';
+      const pitch = isBeat1 ? 1400 : 1000;
+      osc1.frequency.setValueAtTime(pitch, t);
+      osc2.frequency.setValueAtTime(pitch * 1.4, t);
+      gainNode.gain.setValueAtTime(0, t);
+      gainNode.gain.linearRampToValueAtTime(isBeat1 ? 0.35 : 0.25, t + 0.002);
+      gainNode.gain.exponentialRampToValueAtTime(0.0001, t + 0.05);
+      osc1.connect(gainNode);
+      osc2.connect(gainNode);
+      gainNode.connect(dest);
+      osc1.start(t);
+      osc2.start(t);
+      osc1.stop(t + 0.06);
+      osc2.stop(t + 0.06);
+    } else if (soundType === 'studio') {
+      const osc = ctx.createOscillator();
+      const gainNode = ctx.createGain();
+      osc.type = 'sine';
+      const pitch = isBeat1 ? 2500 : 1800;
+      osc.frequency.setValueAtTime(pitch, t);
+      gainNode.gain.setValueAtTime(0, t);
+      gainNode.gain.linearRampToValueAtTime(isBeat1 ? 0.30 : 0.20, t + 0.001);
+      gainNode.gain.exponentialRampToValueAtTime(0.0001, t + 0.015);
+      osc.connect(gainNode);
+      gainNode.connect(dest);
+      osc.start(t);
+      osc.stop(t + 0.02);
+    } else if (soundType === 'digital') {
+      const osc = ctx.createOscillator();
+      const gainNode = ctx.createGain();
+      osc.type = 'sine';
+      const pitch = isBeat1 ? 800 : 600;
+      osc.frequency.setValueAtTime(pitch, t);
+      gainNode.gain.setValueAtTime(0, t);
+      gainNode.gain.linearRampToValueAtTime(isBeat1 ? 0.28 : 0.20, t + 0.003);
+      gainNode.gain.exponentialRampToValueAtTime(0.0001, t + 0.035);
+      osc.connect(gainNode);
+      gainNode.connect(dest);
+      osc.start(t);
+      osc.stop(t + 0.04);
+    } else if (soundType === 'rim') {
+      const osc = ctx.createOscillator();
+      const gainNode = ctx.createGain();
+      osc.type = 'sine';
+      const pitch = isBeat1 ? 1200 : 850;
+      osc.frequency.setValueAtTime(pitch, t);
+      const bufferSize = Math.floor(ctx.sampleRate * 0.03);
+      const buffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
+      const data = buffer.getChannelData(0);
+      for (let i = 0; i < bufferSize; i++) {
+        data[i] = Math.random() * 2 - 1;
+      }
+      const noise = ctx.createBufferSource();
+      noise.buffer = buffer;
+      const filter = ctx.createBiquadFilter();
+      filter.type = 'bandpass';
+      filter.frequency.setValueAtTime(1600, t);
+      filter.Q.setValueAtTime(8, t);
+      const noiseGain = ctx.createGain();
+      noiseGain.gain.setValueAtTime(0, t);
+      noiseGain.gain.linearRampToValueAtTime(isBeat1 ? 0.22 : 0.15, t + 0.001);
+      noiseGain.gain.exponentialRampToValueAtTime(0.0001, t + 0.025);
+      gainNode.gain.setValueAtTime(0, t);
+      gainNode.gain.linearRampToValueAtTime(isBeat1 ? 0.25 : 0.18, t + 0.002);
+      gainNode.gain.exponentialRampToValueAtTime(0.0001, t + 0.025);
+      noise.connect(filter);
+      filter.connect(noiseGain);
+      noiseGain.connect(dest);
+      osc.connect(gainNode);
+      gainNode.connect(dest);
+      noise.start(t);
+      osc.start(t);
+      noise.stop(t + 0.03);
+      osc.stop(t + 0.03);
+    } else {
+      const osc = ctx.createOscillator();
+      const gainNode = ctx.createGain();
+      osc.type = 'triangle';
+      const pitch = isBeat1 ? 1200 : 880;
+      osc.frequency.setValueAtTime(pitch * 2.5, t);
+      osc.frequency.exponentialRampToValueAtTime(pitch, t + 0.002);
+      gainNode.gain.setValueAtTime(0, t);
+      gainNode.gain.linearRampToValueAtTime(isBeat1 ? 0.35 : 0.25, t + 0.002);
+      gainNode.gain.exponentialRampToValueAtTime(0.0001, t + 0.04);
+      osc.connect(gainNode);
+      gainNode.connect(dest);
+      osc.start(t);
+      osc.stop(t + 0.05);
+    }
+  }, [drumPrefs.metronomeSound]);
 
   // ── Play/stop ────────────────────────────────────────────────────────────
   const startPattern = useCallback(() => {
@@ -2245,14 +2598,7 @@ export default function DrumEditor() {
   const adjustBpm = useCallback((d: number) => {
     const bpm = Math.max(40, Math.min(280, pattern.bpm + d));
     updatePattern(pattern.id, { bpm });
-    if (drumScheduler.isPlaying) {
-      const sm = { ...KIT_DEFAULTS[kit].soundMap, ...soundMap };
-      const vol: Partial<Record<DrumInstrument, number>> = {};
-      activeInstruments.forEach(i => { vol[i] = volumeMap[i] ?? 1.0; });
-      const updated = useDrumStore.getState().patterns.find(p => p.id === pattern.id)!;
-      drumScheduler.start(updated, sm, vol, masterVolume, looping, kit);
-    }
-  }, [pattern, kit, soundMap, volumeMap, activeInstruments, masterVolume, looping, updatePattern]);
+  }, [pattern.id, pattern.bpm, updatePattern]);
 
   // ── Subdivision ──────────────────────────────────────────────────────────
   const toggleSub = useCallback(() => {
@@ -2262,39 +2608,65 @@ export default function DrumEditor() {
 
   // ── Clear ────────────────────────────────────────────────────────────────
   const handleClear = useCallback(() => {
+    if (drumScheduler.isPlaying) {
+      drumScheduler.stop();
+      setPlaying(false);
+    }
+    drumScheduler.seekTo(0);
     pushUndo();
-    updatePattern(pattern.id, { measures: [emptyMeasure()] } as Parameters<typeof updatePattern>[1]);
-    if (drumScheduler.isPlaying) { drumScheduler.stop(); setPlaying(false); }
-  }, [pattern.id, updatePattern, pushUndo]);
+    const clearedMeasures = pattern.measures.map(m => ({ ...m, hits: {} }));
+    updatePattern(pattern.id, { measures: clearedMeasures });
+  }, [pattern, updatePattern, pushUndo]);
 
   // ── Cell tap / drag ──────────────────────────────────────────────────────
   // Resolve which grid cell a pointer event falls on; returns null if outside grid
-  const resolveCell = (clientX: number, clientY: number) => {
+  const resolveCell = (clientX: number, clientY: number, instOverride?: DrumInstrument | null) => {
     const el = scrollRef.current; if (!el) return null;
     const rect = el.getBoundingClientRect();
-    let cx = clientX - rect.left - LABEL_W;
+    let cx = clientX - rect.left - LABEL_W + el.scrollLeft;
     const cy   = clientY - rect.top + el.scrollTop;
     if (cx < 0) return null;
     const sysIdx   = Math.floor(cy / sysHRef.current);
-    const yInSys   = cy % sysHRef.current - RULER_H;
-    if (yInSys < 0) return null;
-    const instIdx      = Math.floor(yInSys / ROW_H);
     const measureInRow = Math.floor(cx / measureWRef.current);
+    const { patterns: pts, activePatternId: actId } = useDrumStore.getState();
+    const curPat = pts.find(p => p.id === actId);
+    if (!curPat) return null;
+    if (sysIdx * mprRef.current + measureInRow < 0 || sysIdx * mprRef.current + measureInRow >= curPat.measures.length) return null;
     const mIdx         = sysIdx * mprRef.current + measureInRow;
+
     // snapToGrid=false → quantize to beat rather than subdivision step
     let stepInM = Math.floor((cx % measureWRef.current) / stepWRef.current);
     if (!useDrumStore.getState().drumPrefs.snapToGrid) {
       const spBeat = spmRef.current / 4;
       stepInM = Math.floor(stepInM / spBeat) * spBeat;
     }
-    const vis = allInstsRef.current;
-    const { patterns: pts, activePatternId: actId } = useDrumStore.getState();
-    const curPat = pts.find(p => p.id === actId);
-    if (!curPat) return null;
-    if (instIdx < 0 || instIdx >= vis.length) return null;
-    if (mIdx < 0 || mIdx >= curPat.measures.length) return null;
     if (stepInM < 0 || stepInM >= spmRef.current) return null;
-    return { inst: vis[instIdx], m: curPat.measures[mIdx], stepInM, mIdx, instIdx };
+
+    const vis = allInstsRef.current;
+    let inst: DrumInstrument;
+    let instIdx: number;
+
+    if (instOverride) {
+      inst = instOverride;
+      instIdx = vis.indexOf(inst);
+    } else {
+      const yInSys   = cy % sysHRef.current - RULER_H;
+      if (yInSys < 0) return null;
+      instIdx = -1;
+      for (let i = 0; i < vis.length; i++) {
+        const top = i * (ROW_H + rowGap);
+        const bottom = top + ROW_H;
+        if (yInSys >= top && yInSys <= bottom) {
+          instIdx = i;
+          break;
+        }
+      }
+      if (instIdx === -1) return null;
+      inst = vis[instIdx];
+    }
+    
+    if (instIdx < 0 || instIdx >= vis.length) return null;
+    return { inst, m: curPat.measures[mIdx], stepInM, mIdx, instIdx };
   };
 
   const applyHitToCell = useCallback((inst: DrumInstrument, m: DrumMeasure, stepInM: number, patternId: string, preview = true) => {
@@ -2332,6 +2704,7 @@ export default function DrumEditor() {
 
   const cancelPointer = () => {
     pointerStart.current = null;
+    activeDragInst.current = null;
     isDragging.current   = false;
     dragFilled.current.clear();
   };
@@ -2341,6 +2714,14 @@ export default function DrumEditor() {
     pointerStart.current = { x: e.clientX, y: e.clientY };
     isDragging.current   = false;
     dragFilled.current.clear();
+    
+    const cell = resolveCell(e.clientX, e.clientY);
+    if (cell) {
+      activeDragInst.current = cell.inst;
+    } else {
+      activeDragInst.current = null;
+    }
+
     // Capture the pointer so move/up fire even if finger leaves the element
     try { (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId); } catch {}
   };
@@ -2352,7 +2733,7 @@ export default function DrumEditor() {
     const dist = Math.hypot(e.clientX - s.x, e.clientY - s.y);
     if (dist < 8) return; // minimum drag threshold
     if (!isDragging.current) { isDragging.current = true; pushUndo(); }
-    const cell = resolveCell(e.clientX, e.clientY);
+    const cell = resolveCell(e.clientX, e.clientY, activeDragInst.current);
     if (!cell) return;
     const key = `${cell.inst}:${cell.mIdx}:${cell.stepInM}`;
     if (dragFilled.current.has(key)) return; // already filled in this drag
@@ -2370,10 +2751,12 @@ export default function DrumEditor() {
 
   const handlePointerUp   = (e: React.PointerEvent) => {
     const s = pointerStart.current; if (!s) return; pointerStart.current = null;
+    const instLock = activeDragInst.current;
+    activeDragInst.current = null;
     // If this was a drag-to-fill event, just clean up
     if (isDragging.current) { isDragging.current = false; dragFilled.current.clear(); return; }
     if (Math.abs(e.clientX - s.x) > 12 || Math.abs(e.clientY - s.y) > 12) return;
-    const cell = resolveCell(e.clientX, e.clientY);
+    const cell = resolveCell(e.clientX, e.clientY, instLock);
     if (!cell) return;
     const { activePatternId: actId } = useDrumStore.getState();
     if (!actId) return;
@@ -2542,10 +2925,53 @@ export default function DrumEditor() {
   // ── Render ────────────────────────────────────────────────────────────────
   const inputSt: React.CSSProperties = { width: '100%', background: 'var(--app-surface-high)', border: '1px solid rgba(72,72,72,0.12)', borderRadius: '0.625rem', padding: '11px 14px', color: 'var(--c-text-primary)', fontFamily: 'Inter', fontSize: 14, outline: 'none', boxSizing: 'border-box' };
   const labelSt: React.CSSProperties = { color: 'var(--c-text-secondary)', fontFamily: 'Manrope', fontWeight: 700, fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.15em', display: 'block', marginBottom: 6 };
+  const renderCollapsibleSection = (
+    id: string,
+    title: string,
+    collapsedState: Record<string, boolean>,
+    onToggle: (id: string) => void,
+    content: React.ReactNode
+  ) => {
+    const isCollapsed = collapsedState[id];
+    const borderB = isLight ? '1px solid rgba(0, 0, 0, 0.06)' : '1px solid rgba(255, 255, 255, 0.04)';
+    const bg = isLight ? 'rgba(0, 0, 0, 0.015)' : 'rgba(255, 255, 255, 0.01)';
+    const border = isLight ? '1px solid rgba(0, 0, 0, 0.06)' : '1px solid rgba(255, 255, 255, 0.03)';
+    return (
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 6, borderBottom: borderB, paddingBottom: isCollapsed ? 6 : 10 }}>
+        <div
+          onClick={() => onToggle(id)}
+          className={`btn-smooth ${isLight ? 'hover:bg-black/5' : 'hover:bg-white/5'}`}
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            padding: '8px 10px',
+            background: bg,
+            border: border,
+            borderRadius: '6px',
+            cursor: 'pointer',
+            userSelect: 'none',
+          }}
+        >
+          <span style={{ fontSize: '10px', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.08em', color: isCollapsed ? 'var(--c-text-secondary)' : 'var(--c-text-primary)' }}>
+            {title}
+          </span>
+          <span className="material-symbols-outlined" style={{ fontSize: '14px', color: 'var(--c-text-muted)', transition: 'transform 200ms', transform: isCollapsed ? 'rotate(0deg)' : 'rotate(180deg)' }}>
+            expand_more
+          </span>
+        </div>
+        {!isCollapsed && (
+          <div style={{ padding: '6px 4px 2px', display: 'flex', flexDirection: 'column', gap: 10 }}>
+            {content}
+          </div>
+        )}
+      </div>
+    );
+  };
   const menuItemSt: React.CSSProperties = { width: '100%', display: 'flex', alignItems: 'center', gap: 8, padding: '8px 14px', background: 'transparent', border: 'none', cursor: 'pointer', color: 'var(--c-text-primary)', fontSize: 12.5, fontFamily: 'Manrope', fontWeight: 600, textAlign: 'left', transition: 'background 120ms' };
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', height: '100dvh', background: isWebDesktop ? '#050505' : 'var(--app-bg)', overflow: 'hidden', userSelect: 'none', WebkitUserSelect: 'none' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', height: '100dvh', background: 'var(--app-bg)', overflow: 'hidden', userSelect: 'none', WebkitUserSelect: 'none' }}>
 
       {/* ── Safe-area spacer ─────────────────────────────────────────────── */}
       {!(isLandscape && inEditor) && (
@@ -2553,73 +2979,451 @@ export default function DrumEditor() {
       )}
 
       {/* ── Top bar ──────────────────────────────────────────────────────── */}
-      <div style={{ flexShrink: 0, height: inEditor ? (isLandscape ? 40 : 52) : (isWebDesktop ? 0 : undefined), display: (isWebDesktop && !inEditor) ? 'none' : 'flex', alignItems: 'center', padding: isLandscape && inEditor ? '0 10px' : inEditor ? '0 20px' : (isWebDesktop ? '0' : '24px 24px 4px'), gap: isLandscape && inEditor ? 6 : 8, background: 'var(--app-bg)', borderBottom: isLandscape && inEditor ? '1px solid rgba(128,128,128,0.06)' : 'none' }}>
-        {inEditor ? (
-          <>
-            <button onClick={handleBack} className="btn-smooth" aria-label="Back" style={{ width: isLandscape ? 30 : 36, height: isLandscape ? 30 : 36, borderRadius: '50%', background: isLight ? 'rgba(0,0,0,0.06)' : 'rgba(255,255,255,0.08)', border: isLight ? '1px solid rgba(0,0,0,0.08)' : '1px solid rgba(255,255,255,0.10)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-              <span className="material-symbols-outlined" style={{ color: 'var(--c-text-primary)', fontSize: isLandscape ? 17 : 20 }}>arrow_back</span>
-            </button>
-            {activeSong && (
-              <p style={{ flex: 1, color: 'var(--c-text-primary)', fontFamily: 'Manrope, sans-serif', fontWeight: 700, fontSize: isLandscape ? 12 : 13, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', margin: 0, minWidth: 0 }}>
-                {activeSong.name}
-              </p>
-            )}
-            {!activeSong && <div style={{ flex: 1 }} />}
-            {/* Editor controls — only on the grid tab */}
-            {activeTab === 'songs' && (<>
-              {/* Landscape inline BPM + Play */}
-              {isLandscape && (
-                <>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 3, background: 'rgba(128,128,128,0.06)', borderRadius: 8, padding: '0 4px', height: 28 }}>
-                    <button onClick={() => adjustBpm(-1)} className="btn-smooth" style={{ width: 22, height: 22, borderRadius: 6, background: 'transparent', border: 'none', cursor: 'pointer', color: 'var(--c-text-muted)', fontSize: 14, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>−</button>
-                    <span style={{ fontSize: 11, fontWeight: 800, fontFamily: 'Manrope,sans-serif', color: accent.from, minWidth: 28, textAlign: 'center' }}>{pattern.bpm}</span>
-                    <button onClick={() => adjustBpm(1)} className="btn-smooth" style={{ width: 22, height: 22, borderRadius: 6, background: 'transparent', border: 'none', cursor: 'pointer', color: 'var(--c-text-muted)', fontSize: 14, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>+</button>
-                  </div>
-                  <div style={{ width: 1, height: 18, background: 'rgba(128,128,128,0.12)' }} />
-                  <button onClick={handlePlay} className="btn-smooth" style={{ width: 28, height: 28, borderRadius: '50%', border: 'none', background: playing ? 'rgba(128,128,128,0.12)' : `linear-gradient(135deg,${accent.from},${accent.to})`, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, color: playing ? 'var(--c-text-secondary)' : '#fff', transition: 'all 150ms', flexShrink: 0 }}>
-                    {playing ? '⏹' : '▶'}
-                  </button>
-                  <div style={{ width: 1, height: 18, background: 'rgba(128,128,128,0.12)' }} />
-                </>
+      {!isWebDesktop ? (
+        <div style={{ flexShrink: 0, height: inEditor ? (isLandscape ? 40 : 52) : (isWebDesktop ? 0 : undefined), display: (isWebDesktop && !inEditor) ? 'none' : 'flex', alignItems: 'center', padding: isLandscape && inEditor ? '0 10px' : inEditor ? '0 20px' : (isWebDesktop ? '0' : '24px 24px 4px'), gap: isLandscape && inEditor ? 6 : 8, background: 'var(--app-bg)', borderBottom: isLandscape && inEditor ? '1px solid rgba(128,128,128,0.06)' : 'none' }}>
+          {inEditor ? (
+            <>
+              <button onClick={handleBack} className="btn-smooth" aria-label="Back" style={{ width: isLandscape ? 30 : 36, height: isLandscape ? 30 : 36, borderRadius: '50%', background: isLight ? 'rgba(0,0,0,0.06)' : 'rgba(255,255,255,0.08)', border: isLight ? '1px solid rgba(0,0,0,0.08)' : '1px solid rgba(255,255,255,0.10)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                <span className="material-symbols-outlined" style={{ color: 'var(--c-text-primary)', fontSize: isLandscape ? 17 : 20 }}>arrow_back</span>
+              </button>
+              {activeSong && (
+                <p style={{ flex: 1, color: 'var(--c-text-primary)', fontFamily: 'Manrope, sans-serif', fontWeight: 700, fontSize: isLandscape ? 12 : 13, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', margin: 0, minWidth: 0 }}>
+                  {activeSong.name}
+                </p>
               )}
-              {/* Undo / Redo */}
-              <button onClick={handleUndo} disabled={historyCount === 0} title="Undo (Ctrl+Z)"
-                style={{ height: 30, width: 30, borderRadius: 8, background: historyCount > 0 ? 'rgba(128,128,128,0.08)' : 'transparent', border: `1px solid ${historyCount > 0 ? 'rgba(128,128,128,0.18)' : 'transparent'}`, cursor: historyCount > 0 ? 'pointer' : 'default', display: 'flex', alignItems: 'center', justifyContent: 'center', color: historyCount > 0 ? 'var(--c-text-secondary)' : 'var(--c-text-muted)', opacity: historyCount > 0 ? 1 : 0.35, flexShrink: 0, transition: 'all 180ms', padding: 0 }}>
-                <span className="material-symbols-outlined" style={{ fontSize: 17, lineHeight: 1 }}>undo</span>
+              {!activeSong && <div style={{ flex: 1 }} />}
+              {/* Editor controls — only on the grid tab */}
+              {activeTab === 'songs' && (<>
+                {/* Landscape inline BPM + Play */}
+                {isLandscape && (
+                  <>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 3, background: 'rgba(128,128,128,0.06)', borderRadius: 8, padding: '0 4px', height: 28 }}>
+                      <button onClick={() => adjustBpm(-1)} className="btn-smooth" title="Decrease BPM by 1" aria-label="Decrease BPM by 1" style={{ width: 22, height: 22, borderRadius: 6, background: 'transparent', border: 'none', cursor: 'pointer', color: 'var(--c-text-muted)', fontSize: 14, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>−</button>
+                      <span style={{ fontSize: 11, fontWeight: 800, fontFamily: 'Manrope,sans-serif', color: accent.from, minWidth: 28, textAlign: 'center' }}>{pattern.bpm}</span>
+                      <button onClick={() => adjustBpm(1)} className="btn-smooth" title="Increase BPM by 1" aria-label="Increase BPM by 1" style={{ width: 22, height: 22, borderRadius: 6, background: 'transparent', border: 'none', cursor: 'pointer', color: 'var(--c-text-muted)', fontSize: 14, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>+</button>
+                    </div>
+                    <div style={{ width: 1, height: 18, background: 'rgba(128,128,128,0.12)' }} />
+                    <button onClick={handlePlay} className="btn-smooth" title={playing ? "Stop Playback" : "Start Playback"} aria-label={playing ? "Stop" : "Play"} style={{ width: 28, height: 28, borderRadius: '50%', border: 'none', background: playing ? 'rgba(128,128,128,0.12)' : `linear-gradient(135deg,${accent.from},${accent.to})`, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, color: playing ? 'var(--c-text-secondary)' : '#fff', transition: 'all 150ms', flexShrink: 0 }}>
+                      {playing ? '⏹' : '▶'}
+                    </button>
+                    <div style={{ width: 1, height: 18, background: 'rgba(128,128,128,0.12)' }} />
+                  </>
+                )}
+                {/* Undo / Redo */}
+                <button onClick={handleUndo} disabled={historyCount === 0} title="Undo (Ctrl+Z)"
+                  style={{ height: 30, width: 30, borderRadius: 8, background: historyCount > 0 ? 'rgba(128,128,128,0.08)' : 'transparent', border: `1px solid ${historyCount > 0 ? 'rgba(128,128,128,0.18)' : 'transparent'}`, cursor: historyCount > 0 ? 'pointer' : 'default', display: 'flex', alignItems: 'center', justifyContent: 'center', color: historyCount > 0 ? 'var(--c-text-secondary)' : 'var(--c-text-muted)', opacity: historyCount > 0 ? 1 : 0.35, flexShrink: 0, transition: 'all 180ms', padding: 0 }}>
+                  <span className="material-symbols-outlined" style={{ fontSize: 17, lineHeight: 1 }}>undo</span>
+                </button>
+                <button onClick={handleRedo} disabled={redoStack.current.length === 0} title="Redo (Ctrl+Y)"
+                  style={{ height: 30, width: 30, borderRadius: 8, background: redoStack.current.length > 0 ? 'rgba(128,128,128,0.08)' : 'transparent', border: `1px solid ${redoStack.current.length > 0 ? 'rgba(128,128,128,0.18)' : 'transparent'}`, cursor: redoStack.current.length > 0 ? 'pointer' : 'default', display: 'flex', alignItems: 'center', justifyContent: 'center', color: redoStack.current.length > 0 ? 'var(--c-text-secondary)' : 'var(--c-text-muted)', opacity: redoStack.current.length > 0 ? 1 : 0.35, flexShrink: 0, transition: 'all 180ms', padding: 0 }}>
+                  <span className="material-symbols-outlined" style={{ fontSize: 17, lineHeight: 1 }}>redo</span>
+                </button>
+                <button onClick={() => {
+                  if (showHamburger) {
+                    setHamburgerClosing(true);
+                    setTimeout(() => { setShowHamburger(false); setHamburgerClosing(false); }, 170);
+                  } else {
+                    setShowHamburger(true);
+                  }
+                }} title="Toggle Menu" aria-label="Toggle Menu" style={{ height: 30, width: 38, borderRadius: 8, background: showHamburger ? `${accent.from}1e` : 'rgba(128,128,128,0.08)', border: `1px solid ${showHamburger ? accent.from + '33' : 'rgba(128,128,128,0.1)'}`, cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '4px', flexShrink: 0, transition: 'all 180ms' }}>
+                  {[0, 1, 2].map(i => <span key={i} style={{ display: 'block', width: i === 1 ? 10 : 14, height: 1.5, background: showHamburger ? accent.from : 'var(--c-text-secondary)', borderRadius: 2, transition: 'all 200ms' }} />)}
+                </button>
+              </>)}
+            </>
+          ) : (
+            <>
+              <AppModeMenuLogo color={isLight ? '#18181b' : '#d4d4d8'} size={13} />
+              <div style={{ flex: 1 }} />
+            </>
+          )}
+        </div>
+      ) : (
+        inEditor && (
+          <div className={`h-12 border-b px-5 flex items-center justify-between flex-shrink-0 select-none ${
+            isLight ? 'border-zinc-200 bg-zinc-50' : 'border-zinc-900 bg-[#000000]'
+          }`}>
+            {/* Left Group: App Logo + Section + Title */}
+            <div className="flex items-center gap-3.5 flex-1 min-w-0">
+              {/* Module Brand */}
+              <div className="flex items-center gap-2 flex-shrink-0">
+                <span className={`text-[10px] font-black uppercase tracking-[0.2em] ${isLight ? 'text-zinc-900' : 'text-white'}`}>DRUMEX</span>
+                <span className={`text-[10px] font-bold ${isLight ? 'text-zinc-300' : 'text-zinc-800'}`}>|</span>
+                <span className={`text-[9.5px] font-extrabold uppercase tracking-widest ${isLight ? 'text-zinc-500' : 'text-zinc-450'}`}>STEP SEQUENCER</span>
+              </div>
+              <div className={`h-4.5 w-[1px] ${isLight ? 'bg-zinc-200' : 'bg-zinc-850'}`} />
+              {/* Back button */}
+              <button 
+                onClick={handleBack} 
+                className={`w-7 h-7 rounded-lg flex items-center justify-center transition-all cursor-pointer border ${
+                  isLight 
+                    ? 'bg-transparent text-zinc-700 border-zinc-200 hover:border-zinc-350 hover:text-black' 
+                    : 'bg-transparent text-zinc-405 border-zinc-900 hover:text-white hover:border-zinc-800'
+                }`}
+                title="Back to Beats"
+                aria-label="Back"
+              >
+                <span className="material-symbols-outlined text-[15px]">arrow_back</span>
               </button>
-              <button onClick={handleRedo} disabled={redoStack.current.length === 0} title="Redo (Ctrl+Y)"
-                style={{ height: 30, width: 30, borderRadius: 8, background: redoStack.current.length > 0 ? 'rgba(128,128,128,0.08)' : 'transparent', border: `1px solid ${redoStack.current.length > 0 ? 'rgba(128,128,128,0.18)' : 'transparent'}`, cursor: redoStack.current.length > 0 ? 'pointer' : 'default', display: 'flex', alignItems: 'center', justifyContent: 'center', color: redoStack.current.length > 0 ? 'var(--c-text-secondary)' : 'var(--c-text-muted)', opacity: redoStack.current.length > 0 ? 1 : 0.35, flexShrink: 0, transition: 'all 180ms', padding: 0 }}>
-                <span className="material-symbols-outlined" style={{ fontSize: 17, lineHeight: 1 }}>redo</span>
-              </button>
-              {/* EQ / quick-mixer button */}
-              <button onClick={() => setShowMixerSheet(s => !s)} title="Mixer"
-                style={{ height: 30, width: 30, borderRadius: 8, background: showMixerSheet ? `${accent.from}1e` : 'rgba(128,128,128,0.08)', border: `1px solid ${showMixerSheet ? accent.from + '33' : 'rgba(128,128,128,0.18)'}`, cursor: 'pointer', color: showMixerSheet ? accent.from : 'var(--c-text-secondary)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, transition: 'all 150ms', padding: 0 }}>
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><line x1="4" y1="21" x2="4" y2="14"/><line x1="4" y1="10" x2="4" y2="3"/><line x1="12" y1="21" x2="12" y2="12"/><line x1="12" y1="8" x2="12" y2="3"/><line x1="20" y1="21" x2="20" y2="16"/><line x1="20" y1="12" x2="20" y2="3"/><line x1="1" y1="14" x2="7" y2="14"/><line x1="9" y1="8" x2="15" y2="8"/><line x1="17" y1="16" x2="23" y2="16"/></svg>
-              </button>
-              {/* Per-instrument FX button */}
-              <button onClick={() => { if (!showFXSheet) setFxInst(activeInstruments[0] ?? 'kick'); setShowFXSheet(s => !s); }} title="Instrument FX"
-                style={{ height: 30, width: 36, borderRadius: 8, background: showFXSheet ? `${accent.from}1e` : 'rgba(128,128,128,0.08)', border: `1px solid ${showFXSheet ? accent.from + '33' : 'rgba(128,128,128,0.18)'}`, cursor: 'pointer', color: showFXSheet ? accent.from : 'var(--c-text-secondary)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, transition: 'all 150ms', padding: 0 }}>
-                <span style={{ fontSize: 10, fontWeight: 800, fontFamily: 'Manrope,sans-serif', letterSpacing: '0.04em' }}>FX</span>
-              </button>
-              <button onClick={() => {
-                if (showHamburger) {
-                  setHamburgerClosing(true);
-                  setTimeout(() => { setShowHamburger(false); setHamburgerClosing(false); }, 170);
-                } else {
-                  setShowHamburger(true);
-                }
-              }} style={{ height: 30, width: 38, borderRadius: 8, background: showHamburger ? `${accent.from}1e` : 'rgba(128,128,128,0.08)', border: `1px solid ${showHamburger ? accent.from + '33' : 'rgba(128,128,128,0.1)'}`, cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '4px', flexShrink: 0, transition: 'all 180ms' }}>
-                {[0, 1, 2].map(i => <span key={i} style={{ display: 'block', width: i === 1 ? 10 : 14, height: 1.5, background: showHamburger ? accent.from : 'var(--c-text-secondary)', borderRadius: 2, transition: 'all 200ms' }} />)}
-              </button>
-            </>)}
-          </>
-        ) : (
-          <>
-            <AppModeMenuLogo color={isLight ? '#18181b' : '#d4d4d8'} size={13} />
-            <div style={{ flex: 1 }} />
-          </>
-        )}
-      </div>
+              
+              {/* Beat title */}
+              <div className="flex flex-col min-w-0">
+                <span className={`text-[11px] font-extrabold uppercase tracking-widest ${isLight ? 'text-zinc-800' : 'text-white'} truncate`}>
+                  {activeSong?.name || 'Untitled Beat'}
+                </span>
+              </div>
+            </div>
+
+            {/* Center Group: Transport Controls */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12, flex: '0 0 auto' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 12, background: isLight ? 'rgba(0,0,0,0.02)' : 'rgba(255,255,255,0.02)', border: isLight ? '1px solid rgba(0,0,0,0.08)' : '1px solid rgba(255,255,255,0.08)', borderRadius: '12px', padding: '4px 12px', height: 40 }}>
+                {/* Undo */}
+                <button onClick={handleUndo} disabled={historyCount === 0} title="Undo (Ctrl+Z)" aria-label="Undo" className="btn-smooth"
+                  style={{ height: 28, width: 28, borderRadius: 6, background: 'transparent', border: 'none', cursor: historyCount > 0 ? 'pointer' : 'default', display: 'flex', alignItems: 'center', justifyContent: 'center', color: historyCount > 0 ? 'var(--c-text-secondary)' : 'var(--c-text-muted)', opacity: historyCount > 0 ? 1 : 0.35, transition: 'all 150ms' }}>
+                  <span className="material-symbols-outlined" style={{ fontSize: 18 }}>undo</span>
+                </button>
+
+                {/* Redo */}
+                <button onClick={handleRedo} disabled={redoStack.current.length === 0} title="Redo (Ctrl+Y)" aria-label="Redo" className="btn-smooth"
+                  style={{ height: 28, width: 28, borderRadius: 6, background: 'transparent', border: 'none', cursor: redoStack.current.length > 0 ? 'pointer' : 'default', display: 'flex', alignItems: 'center', justifyContent: 'center', color: redoStack.current.length > 0 ? 'var(--c-text-secondary)' : 'var(--c-text-muted)', opacity: redoStack.current.length > 0 ? 1 : 0.35, transition: 'all 150ms' }}>
+                  <span className="material-symbols-outlined" style={{ fontSize: 18 }}>redo</span>
+                </button>
+
+                <div style={{ width: 1, height: 18, background: isLight ? 'rgba(9, 9, 11, 0.12)' : 'rgba(255, 255, 255, 0.08)' }} />
+
+                {/* Play/Stop */}
+                <button onClick={handlePlay} className="btn-smooth" title={playing ? "Stop Playback" : "Start Playback"} aria-label={playing ? "Stop" : "Play"} style={{
+                  width: 28, height: 28, borderRadius: '50%', border: 'none',
+                  background: playing ? '#ef4444' : (isLight ? '#18181b' : '#ffffff'),
+                  cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  color: playing ? '#ffffff' : (isLight ? '#ffffff' : '#18181b'), transition: 'all 150ms', flexShrink: 0
+                }}>
+                  {playing ? '⏹' : '▶'}
+                </button>
+
+                <div style={{ width: 1, height: 18, background: isLight ? 'rgba(9, 9, 11, 0.12)' : 'rgba(255, 255, 255, 0.08)' }} />
+
+                {/* Subdivision */}
+                <button onClick={toggleSub} className="btn-smooth" title="Step Resolution (Subdivision)" aria-label="Step Resolution (Subdivision)" style={{
+                  height: 24, padding: '0 8px', borderRadius: 6,
+                  background: isLight ? 'rgba(0,0,0,0.03)' : 'rgba(255,255,255,0.04)', border: isLight ? '1px solid rgba(0,0,0,0.08)' : '1px solid rgba(255,255,255,0.08)',
+                  cursor: 'pointer', color: 'var(--c-text-secondary)', fontSize: 10.5, fontWeight: 700
+                }}>
+                  1/{pattern.subdivision}
+                </button>
+
+                <div style={{ width: 1, height: 18, background: isLight ? 'rgba(9, 9, 11, 0.12)' : 'rgba(255, 255, 255, 0.08)' }} />
+
+                {/* Tempo & Metronome */}
+                <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+                  <button 
+                    ref={metronomeBtnRef}
+                    onClick={() => setShowBpmPopover(s => !s)} 
+                    className="btn-smooth" 
+                    style={{
+                      width: 24,
+                      height: 24,
+                      borderRadius: 6,
+                      border: 'none',
+                      background: showBpmPopover || drumPrefs.metronome ? `${accent.from}1a` : 'transparent',
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      color: showBpmPopover || drumPrefs.metronome ? accent.from : 'var(--c-text-secondary)',
+                      transition: 'all 150ms',
+                    }} 
+                    title="Tempo & Metronome" 
+                    aria-label="Tempo and Metronome"
+                  >
+                    <MetronomeIcon size={16} />
+                  </button>
+
+                  {showBpmPopover && createPortal(
+                    <>
+                      {/* Click-away overlay */}
+                      <div 
+                        onClick={() => {
+                          commitBpm(bpmInputVal);
+                          setShowBpmPopover(false);
+                        }} 
+                        style={{
+                          position: 'fixed',
+                          top: 0,
+                          left: 0,
+                          right: 0,
+                          bottom: 0,
+                          zIndex: 998,
+                          cursor: 'default',
+                        }}
+                      />
+                      {/* Popover Card */}
+                      <div style={{
+                        position: 'fixed',
+                        top: popoverCoords?.top ?? 0,
+                        left: popoverCoords?.left ?? 0,
+                        background: isLight ? '#ffffff' : '#18181b',
+                        border: isLight ? '1px solid rgba(0,0,0,0.1)' : '1px solid rgba(255,255,255,0.1)',
+                        borderRadius: 12,
+                        padding: '16px',
+                        boxShadow: '0 8px 32px rgba(0,0,0,0.5)',
+                        backdropFilter: 'blur(20px)',
+                        minWidth: 260,
+                        width: 260,
+                        zIndex: 999,
+                        display: 'flex',
+                        flexDirection: 'column',
+                        gap: 12,
+                      }}>
+                        {/* Title / Header */}
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: isLight ? '1px solid rgba(0,0,0,0.06)' : '1px solid rgba(255,255,255,0.06)', paddingBottom: 8 }}>
+                          <span style={{ fontSize: 11, fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--c-text-secondary)' }}>Tempo & Metronome</span>
+                          <span style={{ fontSize: 11, fontWeight: 700, color: accent.from }}>{pattern.bpm} BPM</span>
+                        </div>
+
+                        {/* Tempo Section */}
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                            <input
+                              type="text"
+                              value={bpmInputVal}
+                              onChange={e => setBpmInputVal(e.target.value)}
+                              onBlur={e => commitBpm(e.target.value)}
+                              onKeyDown={handleBpmKeyDown}
+                              style={{
+                                width: 56,
+                                height: 32,
+                                borderRadius: 6,
+                                border: isLight ? '1px solid rgba(0,0,0,0.15)' : '1px solid rgba(255,255,255,0.15)',
+                                background: 'transparent',
+                                textAlign: 'center',
+                                fontSize: 14,
+                                fontWeight: 850,
+                                color: 'var(--c-text-primary)',
+                                fontFamily: 'monospace',
+                              }}
+                            />
+                            <div style={{ display: 'flex', gap: 3, flex: 1 }}>
+                              <button onClick={() => changeBpmBy(-5)} style={{ flex: 1, height: 32, borderRadius: 6, border: 'none', background: isLight ? 'rgba(0,0,0,0.05)' : 'rgba(255,255,255,0.05)', color: 'var(--c-text-secondary)', cursor: 'pointer', fontSize: 11, fontWeight: 700 }}>-5</button>
+                              <button onClick={() => changeBpmBy(-1)} style={{ flex: 1, height: 32, borderRadius: 6, border: 'none', background: isLight ? 'rgba(0,0,0,0.05)' : 'rgba(255,255,255,0.05)', color: 'var(--c-text-secondary)', cursor: 'pointer', fontSize: 11, fontWeight: 700 }}>-1</button>
+                              <button onClick={() => changeBpmBy(1)} style={{ flex: 1, height: 32, borderRadius: 6, border: 'none', background: isLight ? 'rgba(0,0,0,0.05)' : 'rgba(255,255,255,0.05)', color: 'var(--c-text-secondary)', cursor: 'pointer', fontSize: 11, fontWeight: 700 }}>+1</button>
+                              <button onClick={() => changeBpmBy(5)} style={{ flex: 1, height: 32, borderRadius: 6, border: 'none', background: isLight ? 'rgba(0,0,0,0.05)' : 'rgba(255,255,255,0.05)', color: 'var(--c-text-secondary)', cursor: 'pointer', fontSize: 11, fontWeight: 700 }}>+5</button>
+                            </div>
+                          </div>
+
+                          {/* Range Slider */}
+                          <input
+                            type="range"
+                            min={40}
+                            max={280}
+                            step={1}
+                            value={pattern.bpm}
+                            onChange={e => {
+                              const val = Number(e.target.value);
+                              setBpmInputVal(val.toString());
+                              updatePattern(pattern.id, { bpm: val });
+                            }}
+                            style={{ width: '100%', cursor: 'pointer', accentColor: accent.from, height: 16 }}
+                          />
+
+                          {/* Tap Tempo Button */}
+                          <button
+                            onClick={handleTapTempo}
+                            style={{
+                              width: '100%',
+                              height: 32,
+                              borderRadius: 6,
+                              border: isLight ? '1px solid rgba(0,0,0,0.1)' : '1px solid rgba(255,255,255,0.1)',
+                              background: isLight ? 'rgba(0,0,0,0.03)' : 'rgba(255,255,255,0.03)',
+                              color: 'var(--c-text-primary)',
+                              cursor: 'pointer',
+                              fontSize: 11.5,
+                              fontWeight: 700,
+                              textTransform: 'uppercase',
+                              letterSpacing: '0.04em',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              gap: 6,
+                              transition: 'background 100ms',
+                            }}
+                          >
+                            <span className="material-symbols-outlined" style={{ fontSize: 15 }}>touch_app</span>
+                            <span>Tap Tempo</span>
+                          </button>
+                        </div>
+
+                        <div style={{ height: 1, background: isLight ? 'rgba(0,0,0,0.06)' : 'rgba(255,255,255,0.06)' }} />
+
+                        {/* Metronome Settings */}
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                            <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--c-text-muted)' }}>METRONOME</span>
+                            <button
+                              onClick={() => updateDrumPrefs({ metronome: !drumPrefs.metronome })}
+                              style={{
+                                padding: '4px 10px',
+                                borderRadius: 6,
+                                border: 'none',
+                                background: drumPrefs.metronome ? `${accent.from}1a` : (isLight ? 'rgba(0,0,0,0.05)' : 'rgba(255,255,255,0.05)'),
+                                color: drumPrefs.metronome ? accent.from : 'var(--c-text-secondary)',
+                                fontSize: 10.5,
+                                fontWeight: 700,
+                                cursor: 'pointer',
+                              }}
+                            >
+                              {drumPrefs.metronome ? 'ON' : 'OFF'}
+                            </button>
+                          </div>
+
+                          {/* Sound Choices */}
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                            <span style={{ fontSize: 9.5, fontWeight: 750, color: 'var(--c-text-muted)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Sound Character</span>
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                              {[
+                                { id: 'classic', label: 'Classic Mechanical' },
+                                { id: 'wood', label: 'Wood Block' },
+                                { id: 'studio', label: 'Studio Click' },
+                                { id: 'digital', label: 'Soft Digital' },
+                                { id: 'rim', label: 'Rim Click' },
+                              ].map(choice => {
+                                const isSel = (drumPrefs.metronomeSound || 'classic') === choice.id;
+                                return (
+                                  <div
+                                    key={choice.id}
+                                    style={{
+                                      display: 'flex',
+                                      alignItems: 'center',
+                                      justifyContent: 'space-between',
+                                      width: '100%',
+                                      height: 28,
+                                      borderRadius: 6,
+                                      background: isSel ? `${accent.from}15` : 'transparent',
+                                      padding: '0 4px 0 8px',
+                                    }}
+                                  >
+                                    <button
+                                      onClick={() => {
+                                        updateDrumPrefs({ metronomeSound: choice.id });
+                                        playMetronomeClick(true, choice.id);
+                                      }}
+                                      style={{
+                                        flex: 1,
+                                        height: '100%',
+                                        border: 'none',
+                                        background: 'transparent',
+                                        color: isSel ? accent.from : 'var(--c-text-secondary)',
+                                        cursor: 'pointer',
+                                        fontSize: 11,
+                                        fontWeight: isSel ? 750 : 500,
+                                        textAlign: 'left',
+                                        padding: 0,
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                      }}
+                                    >
+                                      {choice.label}
+                                    </button>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                                      <button
+                                        title={`Preview ${choice.label}`}
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          playMetronomeClick(true, choice.id);
+                                        }}
+                                        style={{
+                                          border: 'none',
+                                          background: 'transparent',
+                                          color: 'var(--c-text-muted)',
+                                          cursor: 'pointer',
+                                          padding: 4,
+                                          borderRadius: 4,
+                                          display: 'flex',
+                                          alignItems: 'center',
+                                          justifyContent: 'center',
+                                          fontSize: 9,
+                                        }}
+                                      >
+                                        ▶
+                                      </button>
+                                      {isSel && <span style={{ fontSize: 11, color: accent.from, paddingRight: 4 }}>✓</span>}
+                                    </div>
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </>,
+                    document.body
+                  )}
+                </div>
+              </div>
+            </div>
+
+            {/* Right Group: Actions */}
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 12, flex: '1 1 0%', minWidth: 0 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+
+
+                {/* Add Bar */}
+                <button onClick={handleAddBar} title="Add new measure (bar)" aria-label="Add Bar" className="btn-smooth" style={{
+                  height: 30, padding: '0 12px', borderRadius: 8,
+                  background: isLight ? 'rgba(0,0,0,0.04)' : 'rgba(255,255,255,0.04)',
+                  border: isLight ? '1px solid rgba(0,0,0,0.1)' : '1px solid rgba(255,255,255,0.1)',
+                  cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4,
+                  color: 'var(--c-text-primary)', fontSize: 11, fontWeight: 700
+                }}>
+                  <span className="material-symbols-outlined" style={{ fontSize: 16 }}>add</span>
+                  <span>Add Bar</span>
+                </button>
+
+                {/* Clear */}
+                <div style={{ position: 'relative' }}>
+                  <button onClick={() => setShowClearConfirm(s => !s)} title="Clear pattern" aria-label="Clear pattern" className="btn-smooth" style={{
+                    height: 30, width: 30, borderRadius: 8, background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)',
+                    cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#ee7d77'
+                  }}>
+                    <span className="material-symbols-outlined" style={{ fontSize: 18 }}>delete</span>
+                  </button>
+                  {showClearConfirm && (
+                    <div style={{ position: 'absolute', top: 'calc(100% + 8px)', right: 0, background: 'rgba(10, 10, 12, 0.98)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 12, padding: '12px 14px', boxShadow: '0 8px 32px rgba(0,0,0,0.6)', backdropFilter: 'blur(20px)', minWidth: 190, zIndex: 100 }}>
+                      <p style={{ margin: '0 0 10px', fontSize: 12.5, fontWeight: 700, color: 'var(--c-text-primary)', fontFamily: 'Manrope,sans-serif', lineHeight: 1.4 }}>Reset pattern?</p>
+                      <p style={{ margin: '0 0 12px', fontSize: 11, color: 'var(--c-text-muted)', lineHeight: 1.4 }}>All hits will be removed, preserving your bar count. You can undo after.</p>
+                      <div style={{ display: 'flex', gap: 6 }}>
+                        <button onClick={() => setShowClearConfirm(false)} className="btn-smooth"
+                          style={{ flex: 1, padding: '7px 0', borderRadius: 9, background: 'rgba(128,128,128,0.12)', border: 'none', cursor: 'pointer', fontSize: 12, fontWeight: 700, color: 'var(--c-text-secondary)', fontFamily: 'Manrope,sans-serif' }}>Cancel</button>
+                        <button onClick={() => { handleClear(); setShowClearConfirm(false); }} className="btn-smooth"
+                          style={{ flex: 1, padding: '7px 0', borderRadius: 9, background: 'rgba(239,68,68,0.15)', border: '1px solid rgba(239,68,68,0.3)', cursor: 'pointer', fontSize: 12, fontWeight: 700, color: '#f87171', fontFamily: 'Manrope,sans-serif' }}>Clear</button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {/* Save Groove */}
+                <button onClick={() => { setSavGrName(pattern.name); setSavGrTag(''); setShowSaveGroove(true); }} title="Save pattern to Groove Library" aria-label="Save pattern to Groove Library" className="btn-smooth" style={{
+                  height: 30, width: 30, borderRadius: 8, background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)',
+                  cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: accent.from
+                }}>
+                  <span className="material-symbols-outlined" style={{ fontSize: 18 }}>bookmark</span>
+                </button>
+
+                <div style={{ width: 1, height: 18, background: 'rgba(255,255,255,0.08)', margin: '0 2px' }} />
+
+                {/* Export JSON / PDF */}
+                <button onClick={() => { exportDrumSongJSON(patterns, activeSong); }} title="Export pattern as JSON file" aria-label="Export pattern as JSON file" className="btn-smooth"
+                  style={{ height: 30, width: 30, borderRadius: 8, background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--c-text-secondary)' }}>
+                  <span className="material-symbols-outlined" style={{ fontSize: 18 }}>data_object</span>
+                </button>
+                <button onClick={() => { setShowExportModal(true); }} title="Export as PDF" className="btn-smooth"
+                  style={{ height: 30, width: 30, borderRadius: 8, background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--c-text-secondary)' }}>
+                  <span className="material-symbols-outlined" style={{ fontSize: 18 }}>picture_as_pdf</span>
+                </button>
+              </div>
+            </div>
+          </div>
+        )
+      )}
 
       {/* ── Hamburger panel ──────────────────────────────────────────────── */}
       {inEditor && (showHamburger || hamburgerClosing) && (
@@ -2861,97 +3665,365 @@ export default function DrumEditor() {
             onChangeSection={handleSetTab} 
           />
         )}
-        <div key={activeTab} className={tabAnim} style={{ flex: 1, overflow: 'hidden', display: 'flex', flexDirection: 'column', paddingBottom: isWebDesktop ? '96px' : '0px' }}>
+        <div key={activeTab} className={tabAnim} style={{ flex: 1, overflow: 'hidden', display: 'flex', flexDirection: 'column', paddingBottom: '0px' }}>
+          
+          {/* Top bar / header for desktop */}
+          {isWebDesktop && !inEditor && (
+            <div className={`h-12 border-b px-5 flex items-center justify-between flex-shrink-0 select-none ${
+              isLight ? 'border-zinc-200 bg-zinc-50' : 'border-zinc-900 bg-[#000000]'
+            }`}>
+              <div className="flex items-center gap-2">
+                <span className={`text-[10px] font-black uppercase tracking-[0.2em] ${isLight ? 'text-zinc-900' : 'text-white'}`}>DRUMEX</span>
+                <span className={`text-[10px] font-bold ${isLight ? 'text-zinc-300' : 'text-zinc-800'}`}>|</span>
+                <span className={`text-[9.5px] font-extrabold uppercase tracking-widest ${isLight ? 'text-zinc-500' : 'text-zinc-450'}`}>
+                  {activeTab === 'songs' ? 'BEATS' : activeTab === 'patterns' ? 'GROOVE LIBRARY' : 'PREFERENCES'}
+                </span>
+              </div>
+              <div className="flex items-center gap-2.5">
+                {activeTab === 'songs' && (
+                  <>
+                    <button
+                      onClick={() => setShowImportDrum(true)}
+                      className={`h-7.5 px-3 rounded-lg border text-[9.5px] font-extrabold tracking-widest uppercase transition-all cursor-pointer flex items-center gap-1.5 ${
+                        isLight
+                          ? 'border-zinc-200 bg-zinc-100/50 text-zinc-650 hover:bg-zinc-200 hover:text-black'
+                          : 'border-zinc-900 bg-zinc-950/20 text-zinc-400 hover:bg-zinc-900 hover:text-white hover:border-zinc-800'
+                      }`}
+                    >
+                      <span className="material-symbols-outlined text-[13px]">upload_file</span>
+                      <span>IMPORT</span>
+                    </button>
+                    <button
+                      onClick={() => setShowCreateForm(true)}
+                      className={`h-7.5 px-3.5 rounded-lg border text-[9.5px] font-extrabold tracking-widest uppercase transition-all cursor-pointer flex items-center gap-1.5 ${
+                        isLight 
+                          ? 'border-blue-200 bg-blue-50 text-blue-600 hover:bg-blue-100' 
+                          : 'border-blue-900/60 bg-blue-950/40 text-blue-400 hover:bg-blue-900/40'
+                      }`}
+                    >
+                      <span className="material-symbols-outlined text-[13px]">add</span>
+                      <span>NEW BEAT</span>
+                    </button>
+                  </>
+                )}
+              </div>
+            </div>
+          )}
 
         {/* ═══ SONGS LIST (Songs tab, not in editor) ═══════════════════════ */}
         {activeTab === 'songs' && !inEditor && (
-          <div onScroll={drumScrollHide} style={{ flex: 1, overflowY: 'auto', paddingBottom: 100 }} className="no-scrollbar panel-enter-left">
-            <div style={{ padding: '0 20px', marginTop: 12, marginBottom: 24 }}>
-              <AnimatedAppHeader
-                title="Beats"
-                subtitle="Your drum songs"
-              />
-            </div>
+          <div onScroll={drumScrollHide} style={{ flex: 1, overflowY: 'auto', paddingBottom: 100 }} className="no-scrollbar panel-enter-left flex flex-col">
+            {!isWebDesktop && (
+              <div style={{ padding: '0 20px', marginTop: 12, marginBottom: 24 }}>
+                <AnimatedAppHeader
+                  title="Beats"
+                  subtitle="Your drum songs"
+                />
+              </div>
+            )}
+
+            {/* Desktop Secondary Toolbar */}
+            {isWebDesktop && (
+              <div className={`h-10 border-b px-5 flex items-center justify-between flex-shrink-0 text-[11px] font-manrope ${
+                isLight ? 'border-zinc-200 bg-zinc-50/50' : 'border-zinc-900 bg-[#000000]'
+              }`}>
+                {/* Left: Search input */}
+                <div className="flex items-center gap-2 flex-1 max-w-xs relative">
+                  <span className="material-symbols-outlined text-[14px] text-zinc-500 absolute left-2">search</span>
+                  <input
+                    value={songSearch}
+                    onChange={e => setSongSearch(e.target.value)}
+                    placeholder="Search beats..."
+                    className={`w-full pl-7 pr-2.5 py-1 rounded-md border text-[10.5px] outline-none transition-all ${
+                      isLight 
+                        ? 'bg-white border-zinc-200 text-zinc-850 focus:border-zinc-350 placeholder-zinc-400' 
+                        : 'bg-[#000000] border-zinc-850 text-white focus:border-zinc-750 placeholder-zinc-650'
+                    }`}
+                  />
+                </div>
+                
+                {/* Right: Filters & Sorting */}
+                <div className="flex items-center gap-4">
+                  {/* Kit filter */}
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-zinc-500 uppercase tracking-wider text-[9px] font-bold">Kit:</span>
+                    <select
+                      value={songKitFilter}
+                      onChange={e => setSongKitFilter(e.target.value)}
+                      className={`px-2 py-0.5 rounded border text-[10.5px] font-bold outline-none cursor-pointer ${
+                        isLight 
+                          ? 'bg-white border-zinc-200 text-zinc-700' 
+                          : 'bg-[#000000] border-zinc-850 text-zinc-300'
+                      }`}
+                    >
+                      <option value="all">All Kits</option>
+                      <option value="house">Acoustic — House Kit</option>
+                    </select>
+                  </div>
+                  
+                  {/* Sort */}
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-zinc-500 uppercase tracking-wider text-[9px] font-bold">Sort:</span>
+                    <select
+                      value={songSort}
+                      onChange={e => setSongSort(e.target.value as any)}
+                      className={`px-2 py-0.5 rounded border text-[10.5px] font-bold outline-none cursor-pointer ${
+                        isLight 
+                          ? 'bg-white border-zinc-200 text-zinc-700' 
+                          : 'bg-[#000000] border-zinc-850 text-zinc-300'
+                      }`}
+                    >
+                      <option value="recent">Recent</option>
+                      <option value="name">Name</option>
+                      <option value="bpm">BPM</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
+            )}
             {drumSongs.length === 0 ? (
-              <div className="spring-in" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '60px 20px', margin: '0 20px', background: 'var(--app-surface)', borderRadius: '1.5rem', gap: 16 }}>
-                <div style={{ width: 72, height: 72, borderRadius: '50%', background: `${accent.to}15`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                  <svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke={accent.from} strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"><ellipse cx="12" cy="7" rx="10" ry="4"/><path d="M2 7c0 2.21 4.48 4 10 4s10-1.79 10-4"/><path d="M2 7v5c0 2.21 4.48 4 10 4s10-1.79 10-4V7"/><path d="M2 12v5c0 2.21 4.48 4 10 4s10-1.79 10-4v-5"/></svg>
+              <div className={`spring-in flex flex-col items-center justify-center p-12 mx-5 border rounded-2xl gap-5 ${
+                isLight ? 'bg-zinc-50 border-zinc-200' : 'bg-[#000000] border-zinc-900'
+              }`}>
+                <div className={`w-14 h-14 rounded-xl flex items-center justify-center border ${
+                  isLight ? 'border-zinc-200 bg-zinc-100/50 text-zinc-650' : 'border-zinc-900 bg-zinc-950/20 text-zinc-400'
+                }`}>
+                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><ellipse cx="12" cy="7" rx="10" ry="4"/><path d="M2 7c0 2.21 4.48 4 10 4s10-1.79 10-4"/><path d="M2 7v5c0 2.21 4.48 4 10 4s10-1.79 10-4V7"/><path d="M2 12v5c0 2.21 4.48 4 10 4s10-1.79 10-4v-5"/></svg>
                 </div>
-                <div style={{ textAlign: 'center' }}>
-                  <p style={{ color: 'var(--c-text-primary)', fontFamily: 'Manrope', fontWeight: 800, fontSize: 18, margin: 0 }}>No beats yet</p>
-                  <p style={{ color: 'var(--c-text-secondary)', fontFamily: 'Inter', fontSize: 13, marginTop: 4, margin: '4px 0 0' }}>Create your first drum beat to get started.</p>
+                <div className="text-center">
+                  <span className={`block text-sm font-extrabold uppercase tracking-widest ${isLight ? 'text-zinc-800' : 'text-white'}`}>No beats yet</span>
+                  <span className="block text-[10px] text-zinc-500 font-extrabold uppercase tracking-wide mt-1.5">Create your first drum beat to get started.</span>
                 </div>
-                <button onClick={() => setShowCreateForm(true)} className="btn-smooth"
-                  style={{ padding: '12px 24px', borderRadius: 9999, background: `linear-gradient(135deg,${accent.from},${accent.to})`, color: '#fff', fontFamily: 'Manrope', fontWeight: 800, border: 'none', cursor: 'pointer', boxShadow: `0 4px 20px ${accent.to}44` }}>
+                <button 
+                  onClick={() => setShowCreateForm(true)} 
+                  className={`py-2 px-5 rounded-lg border text-[10px] font-extrabold tracking-widest uppercase transition-all cursor-pointer ${
+                    isLight 
+                      ? 'border-blue-200 bg-blue-50 text-blue-600 hover:bg-blue-100' 
+                      : 'border-blue-900/60 bg-blue-950/40 text-blue-400 hover:bg-blue-900/40'
+                  }`}
+                >
                   New Beat
                 </button>
               </div>
+            ) : filteredSongs.length === 0 ? (
+              <div className="flex flex-col items-center justify-center p-12 text-center text-zinc-500">
+                <span className="material-symbols-outlined text-[36px] mb-3">search_off</span>
+                <span className="text-xs font-bold uppercase tracking-wider">No matching beats found</span>
+                <span className="text-[10px] mt-1">Try refining your search term or filters.</span>
+              </div>
             ) : (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 10, padding: '0 20px' }}>
+              <div className={isWebDesktop ? "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 p-6" : "flex flex-col gap-2.5 px-4"}>
                 <StaggeredReveal staggerInterval={40}>
-                  {drumSongs.map(song => {
+                  {filteredSongs.map((song: any) => {
                   const isDeleting = deletingId === song.id;
                   const isEditing  = editingSong?.id === song.id;
-                  const kitLabel   = song.kitType ? KIT_LABEL[song.kitType] : 'No kit';
+                  const kitLabel   = song.kitType ? KIT_LABEL[song.kitType as KitType] : 'No kit';
                   const pCount     = song.patterns.length;
-                  const activePat  = song.patterns.find(p => p.id === song.activePatternId) ?? song.patterns[0];
+                  const activePat  = song.patterns.find((p: any) => p.id === song.activePatternId) ?? song.patterns[0];
                   const bpm        = activePat?.bpm ?? 120;
                   return (
-                    <div key={song.id} className="card-hover" style={{ background: 'var(--app-surface)', borderRadius: '1.25rem', overflow: 'hidden', border: '1px solid rgba(72,72,72,0.06)' }}>
+                    <div key={song.id} className={`border rounded-xl transition-all duration-300 ${
+                      isLight 
+                        ? 'bg-zinc-50 border-zinc-200 hover:border-zinc-300' 
+                        : 'bg-[#000000] border-zinc-900 hover:border-zinc-800'
+                    }`}>
                       {isEditing ? (
-                        <div style={{ padding: '12px 16px', display: 'flex', flexDirection: 'column', gap: 8 }}>
-                          <input value={editingName} onChange={e => setEditingName(e.target.value)} autoFocus placeholder="Beat name" style={{ ...inputSt, fontWeight: 700 }} />
-                          <input value={editingArtist} onChange={e => setEditingArtist(e.target.value)} placeholder="Artist (optional)" style={{ ...inputSt, fontSize: 13 }} />
-                          <div style={{ display: 'flex', gap: 8 }}>
-                            <button onClick={handleSaveEdit} className="btn-smooth" style={{ flex: 1, padding: '8px 0', borderRadius: 8, background: `linear-gradient(135deg,${accent.from},${accent.to})`, border: 'none', cursor: 'pointer', color: '#fff', fontSize: 13, fontWeight: 700 }}>Save</button>
-                            <button onClick={() => setEditingSong(null)} className="btn-smooth" style={{ flex: 1, padding: '8px 0', borderRadius: 8, background: 'rgba(128,128,128,0.10)', border: 'none', cursor: 'pointer', color: 'var(--c-text-secondary)', fontSize: 13, fontWeight: 600 }}>Cancel</button>
+                        <div className="p-3.5 flex flex-col gap-2.5">
+                          <input 
+                            value={editingName} 
+                            onChange={e => setEditingName(e.target.value)} 
+                            autoFocus 
+                            placeholder="Beat name" 
+                            className={`w-full py-1.5 px-2.5 rounded-lg border text-[12px] font-extrabold outline-none transition-all ${
+                              isLight 
+                                ? 'bg-white border-zinc-200 text-zinc-800 focus:border-zinc-350' 
+                                : 'bg-[#000000] border-zinc-850 text-white focus:border-zinc-750'
+                            }`} 
+                          />
+                          <input 
+                            value={editingArtist} 
+                            onChange={e => setEditingArtist(e.target.value)} 
+                            placeholder="Artist (optional)" 
+                            className={`w-full py-1.5 px-2.5 rounded-lg border text-[11px] outline-none transition-all ${
+                              isLight 
+                                ? 'bg-white border-zinc-200 text-zinc-800 focus:border-zinc-350' 
+                                : 'bg-[#000000] border-zinc-850 text-white focus:border-zinc-750'
+                            }`}
+                          />
+                          <div className="flex gap-2">
+                            <button 
+                              onClick={handleSaveEdit} 
+                              className={`flex-1 py-1.5 rounded-lg border text-[10px] font-extrabold tracking-widest uppercase transition-all cursor-pointer ${
+                                isLight 
+                                  ? 'border-blue-200 bg-blue-50 text-blue-600 hover:bg-blue-100' 
+                                  : 'border-blue-900/60 bg-blue-950/40 text-blue-400 hover:bg-blue-900/40'
+                              }`}
+                            >
+                              Save
+                            </button>
+                            <button 
+                              onClick={() => setEditingSong(null)} 
+                              className={`flex-1 py-1.5 rounded-lg border text-[10px] font-extrabold tracking-widest uppercase transition-all cursor-pointer ${
+                                isLight 
+                                  ? 'border-zinc-200 bg-zinc-100/50 text-zinc-700 hover:bg-zinc-200' 
+                                  : 'border-zinc-900 bg-zinc-950/20 text-zinc-400 hover:bg-zinc-900 hover:text-white'
+                              }`}
+                            >
+                              Cancel
+                            </button>
+                          </div>
+                        </div>
+                      ) : isDeleting ? (
+                        <div className="p-4 flex flex-col justify-center items-center text-center gap-3 flex-1">
+                          <span className={`text-[10.5px] font-extrabold uppercase tracking-wide ${isLight ? 'text-zinc-800' : 'text-white'}`}>
+                            Delete this beat?
+                          </span>
+                          <div className="flex gap-2 w-full max-w-[180px]">
+                            <button 
+                              onClick={() => { deleteDrumSong(song.id); setDeletingId(null); }} 
+                              className="flex-1 py-1 rounded-lg text-[9.5px] font-extrabold tracking-widest uppercase border border-red-500/20 bg-red-500/10 text-red-400 hover:bg-red-500/20 cursor-pointer"
+                            >
+                              Yes
+                            </button>
+                            <button 
+                              onClick={() => setDeletingId(null)} 
+                              className={`flex-1 py-1 rounded-lg text-[9.5px] font-extrabold tracking-widest uppercase border cursor-pointer ${
+                                isLight ? 'border-zinc-200 bg-zinc-50 text-zinc-650' : 'border-zinc-900 bg-zinc-950 text-zinc-400'
+                              }`}
+                            >
+                              No
+                            </button>
                           </div>
                         </div>
                       ) : (
-                        <div>
-                          <button onClick={() => handleLoadSong(song)} style={{ width: '100%', textAlign: 'left', padding: '16px', display: 'flex', alignItems: 'center', gap: 14, background: 'transparent', border: 'none', cursor: 'pointer' }}>
-                            <div style={{ width: 52, height: 52, borderRadius: 12, background: 'rgba(0,0,0,0.35)', overflow: 'hidden', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', border: `1px solid ${accent.from}22` }}>
-                              {song.kitType && KIT_IMAGE[song.kitType] ? (
-                                <img src={KIT_IMAGE[song.kitType]} alt={kitLabel} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                              ) : (
-                                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke={accent.from} strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"><ellipse cx="12" cy="7" rx="10" ry="4"/><path d="M2 7c0 2.21 4.48 4 10 4s10-1.79 10-4"/><path d="M2 7v5c0 2.21 4.48 4 10 4s10-1.79 10-4V7"/><path d="M2 12v5c0 2.21 4.48 4 10 4s10-1.79 10-4v-5"/></svg>
-                              )}
-                            </div>
-                            <div style={{ flex: 1, minWidth: 0 }}>
-                              <p style={{ color: 'var(--c-text-primary)', fontFamily: 'Manrope', fontWeight: 800, fontSize: 16, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', margin: 0 }}>{song.name}</p>
-                              {song.artist && <p style={{ color: 'var(--c-text-secondary)', fontFamily: 'Inter', fontSize: 12, margin: '2px 0 0' }}>{song.artist}</p>}
-                              <div style={{ display: 'flex', gap: 6, marginTop: 5, flexWrap: 'wrap', alignItems: 'center' }}>
-                                <span style={{ fontSize: 10, fontFamily: 'Manrope', fontWeight: 700, color: 'var(--c-text-primary)', background: 'var(--app-surface-high)', padding: '2px 8px', borderRadius: 9999, whiteSpace: 'nowrap' }}>{kitLabel}</span>
-                                <span style={{ fontSize: 10, fontFamily: 'Manrope', fontWeight: 700, color: 'var(--c-text-secondary)', display: 'inline-flex', alignItems: 'center', gap: 2, whiteSpace: 'nowrap' }}>
-                                  <span className="material-symbols-outlined" style={{ fontSize: 11, lineHeight: 1 }}>speed</span>
-                                  {bpm} BPM
-                                </span>
-                                <span style={{ fontSize: 10, fontFamily: 'Manrope', fontWeight: 700, color: 'var(--c-text-muted)' }}>{pCount} pattern{pCount !== 1 ? 's' : ''}</span>
-                              </div>
-                            </div>
-                            <span className="material-symbols-outlined" style={{ color: 'var(--c-text-secondary)', fontSize: 20, flexShrink: 0 }}>chevron_right</span>
-                          </button>
-                          <div style={{ display: 'flex', borderTop: '1px solid rgba(72,72,72,0.07)' }}>
-                            <button onClick={() => handleStartEdit(song)} className="btn-smooth" style={{ flex: 1, padding: '9px 6px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4, color: 'var(--c-text-secondary)', fontFamily: 'Manrope', fontWeight: 700, fontSize: 11, background: 'transparent', border: 'none', borderRight: '1px solid rgba(72,72,72,0.07)', cursor: 'pointer' }}>
-                              <span className="material-symbols-outlined" style={{ fontSize: 14, flexShrink: 0 }}>edit</span>
-                              Edit
+                        <div className="flex flex-col flex-1 relative">
+                          {/* Menu button (···) */}
+                          <div className="absolute right-2 top-2 z-10">
+                            <button 
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                if (songMenuId === song.id) {
+                                  setSongMenuId(null);
+                                } else {
+                                  const rect = e.currentTarget.getBoundingClientRect();
+                                  const spaceBelow = window.innerHeight - rect.bottom;
+                                  setSongOpenUp(spaceBelow < 120);
+                                  setSongMenuId(song.id);
+                                }
+                              }}
+                              className={`w-7 h-7 rounded-lg flex items-center justify-center border transition-all cursor-pointer ${
+                                songMenuId === song.id 
+                                  ? (isLight ? 'bg-zinc-100 border-zinc-350 text-black' : 'bg-zinc-900 border-zinc-800 text-white')
+                                  : (isLight ? 'bg-transparent border-transparent text-zinc-450 hover:border-zinc-250 hover:text-black' : 'bg-transparent border-transparent text-zinc-500 hover:border-zinc-800 hover:text-white')
+                              }`}
+                            >
+                              <span className="material-symbols-outlined text-[16px]">more_vert</span>
                             </button>
-                            {isDeleting ? (
+                            
+                            {/* Dropdown Menu */}
+                            {songMenuId === song.id && (
                               <>
-                                <button onClick={() => { deleteDrumSong(song.id); setDeletingId(null); }} className="btn-smooth" style={{ flex: 1, padding: '9px 6px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4, color: '#ee7d77', fontFamily: 'Manrope', fontWeight: 800, fontSize: 11, background: 'rgba(238,125,119,0.10)', border: 'none', cursor: 'pointer', borderRight: '1px solid rgba(72,72,72,0.07)' }}>
-                                  Confirm
-                                </button>
-                                <button onClick={() => setDeletingId(null)} className="btn-smooth" style={{ flex: 1, padding: '9px 6px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--c-text-muted)', fontFamily: 'Manrope', fontWeight: 700, fontSize: 11, background: 'transparent', border: 'none', cursor: 'pointer' }}>
-                                  Cancel
-                                </button>
+                                {/* Click-away overlay */}
+                                <div 
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    setSongMenuId(null);
+                                  }} 
+                                  style={{
+                                    position: 'fixed',
+                                    top: 0,
+                                    left: 0,
+                                    right: 0,
+                                    bottom: 0,
+                                    zIndex: 15,
+                                    cursor: 'default',
+                                  }}
+                                />
+                                <div className={`absolute right-0 z-20 w-32 py-1 rounded-lg border shadow-lg ${
+                                  songOpenUp ? 'bottom-8' : 'top-8'
+                                } ${
+                                  isLight ? 'bg-white border-zinc-200' : 'bg-[#080808] border-zinc-900'
+                                }`}>
+                                  <button 
+                                    ref={renameBtnRef}
+                                    autoFocus
+                                    onKeyDown={(e) => {
+                                      if (e.key === 'ArrowDown' || e.key === 'Tab') {
+                                        e.preventDefault();
+                                        deleteBtnRef.current?.focus();
+                                      }
+                                    }}
+                                    onClick={(e) => { e.stopPropagation(); handleStartEdit(song); setSongMenuId(null); }}
+                                    className={`w-full text-left px-3 py-1.5 text-[10px] font-bold flex items-center gap-1.5 transition-colors ${
+                                      isLight ? 'text-zinc-700 hover:bg-zinc-50 hover:text-black' : 'text-zinc-300 hover:bg-zinc-900 hover:text-white'
+                                    }`}
+                                  >
+                                    <span className="material-symbols-outlined text-[13px]">edit</span>
+                                    Rename
+                                  </button>
+                                  <button 
+                                    ref={deleteBtnRef}
+                                    onKeyDown={(e) => {
+                                      if (e.key === 'ArrowUp' || (e.key === 'Tab' && e.shiftKey)) {
+                                        e.preventDefault();
+                                        renameBtnRef.current?.focus();
+                                      }
+                                    }}
+                                    onClick={(e) => { e.stopPropagation(); setDeletingId(song.id); setSongMenuId(null); }}
+                                    className="w-full text-left px-3 py-1.5 text-[10px] font-bold flex items-center gap-1.5 transition-colors text-red-400 hover:bg-red-500/10"
+                                  >
+                                    <span className="material-symbols-outlined text-[13px]">delete</span>
+                                    Delete
+                                  </button>
+                                </div>
                               </>
-                            ) : (
-                              <button onClick={() => setDeletingId(song.id)} className="btn-smooth" style={{ flex: 1, padding: '9px 6px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4, color: '#ee7d77', fontFamily: 'Manrope', fontWeight: 700, fontSize: 11, background: 'transparent', border: 'none', cursor: 'pointer' }}>
-                                <span className="material-symbols-outlined" style={{ fontSize: 14, flexShrink: 0 }}>delete</span>
-                                Delete
-                              </button>
                             )}
                           </div>
+                          
+                          {/* Card click area */}
+                          <button 
+                            onClick={() => handleLoadSong(song)} 
+                            className="w-full text-left p-4 flex items-start gap-3.5 bg-transparent border-none cursor-pointer transition-all hover:bg-zinc-500/5 flex-1 rounded-xl"
+                          >
+                            <div className={`w-11 h-11 rounded-lg overflow-hidden flex-shrink-0 flex items-center justify-center border ${
+                              isLight ? 'border-zinc-200 bg-zinc-100' : 'border-zinc-900 bg-zinc-950'
+                            }`}>
+                              {song.kitType && KIT_IMAGE[song.kitType as KitType] ? (
+                                <img src={KIT_IMAGE[song.kitType as KitType]} alt={kitLabel} className="w-full h-full object-cover" />
+                              ) : (
+                                <span className={`material-symbols-outlined text-[18px] ${isLight ? 'text-zinc-500' : 'text-zinc-400'}`}>music_note</span>
+                              )}
+                            </div>
+                            <div className="flex-1 min-w-0 pr-6">
+                              <span className={`block text-[12.5px] font-extrabold uppercase tracking-widest ${isLight ? 'text-zinc-800' : 'text-white'} truncate`}>
+                                {song.name}
+                              </span>
+                              {song.artist && (
+                                <span className={`block text-[9px] font-extrabold uppercase tracking-wider truncate mt-0.5 ${isLight ? 'text-zinc-500' : 'text-zinc-450'}`}>
+                                  {song.artist}
+                                </span>
+                              )}
+                              <div className="flex gap-2 mt-2 items-center flex-wrap">
+                                <span className={`text-[8.5px] font-extrabold uppercase tracking-wider px-2 py-0.5 border rounded-full ${
+                                  isLight ? 'bg-zinc-100 border-zinc-200 text-zinc-650' : 'bg-zinc-900/30 border-zinc-900 text-zinc-400'
+                                }`}>
+                                  {kitLabel}
+                                </span>
+                                <span className={`text-[8.5px] font-extrabold uppercase tracking-wider flex items-center gap-1 ${isLight ? 'text-zinc-500' : 'text-zinc-400'}`}>
+                                  <span className="material-symbols-outlined text-[10px]">speed</span>
+                                  {bpm} BPM
+                                </span>
+                                <span className={`text-[8.5px] font-extrabold uppercase tracking-wider ${isLight ? 'text-zinc-450' : 'text-zinc-550'}`}>
+                                  {pCount} pattern{pCount !== 1 ? 's' : ''}
+                                </span>
+                              </div>
+                            </div>
+                          </button>
+                          
+                          {/* Bottom hover bar or indicator */}
+                          <div className={`h-1 w-full transition-all duration-300 mt-auto ${
+                            isLight ? 'bg-zinc-100 group-hover:bg-blue-600' : 'bg-zinc-950 group-hover:bg-blue-500/80'
+                          }`} />
                         </div>
                       )}
                     </div>
@@ -2965,7 +4037,8 @@ export default function DrumEditor() {
 
         {/* ═══ DRUM GRID EDITOR (Songs tab, in editor) ══════════════════════ */}
         {activeTab === 'songs' && inEditor && (
-          <div ref={containerCallbackRef} className="panel-enter-right" style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+          <div className="panel-enter-right" style={{ flex: 1, display: 'flex', flexDirection: isWebDesktop ? 'row' : 'column', overflow: 'hidden', position: 'relative' }}>
+            <div ref={containerCallbackRef} style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden', position: 'relative' }}>
             {/* Row visibility toggle */}
             {extraInsts.length > 0 && (
               <div style={{ flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 14px', height: 30, borderBottom: `1px solid ${barColor}`, background: 'var(--app-bg)' }}>
@@ -2990,11 +4063,11 @@ export default function DrumEditor() {
               onPointerUp={handlePointerUp}
               onPointerLeave={cancelPointer}
               onPointerCancel={cancelPointer}
-              style={{ flex: 1, overflowY: 'auto', overflowX: 'hidden', paddingTop: 8, paddingBottom: isLandscape ? 20 : 100, position: 'relative' }}
+              style={{ flex: 1, overflowY: 'auto', overflowX: (pattern.measures.length > 2) ? 'auto' : 'hidden', paddingTop: 8, paddingBottom: isWebDesktop ? 110 : (isLandscape ? 20 : 100), position: 'relative' }}
               className="no-scrollbar"
             >
               {/* Playhead — extends into ruler, draggable handle at top */}
-              <div ref={playheadRef} style={{ position: 'absolute', top: 8, left: 0, width: 2, height: RULER_H + visibleInsts.length * ROW_H, background: accent.from, boxShadow: `0 0 8px ${accent.from}88`, pointerEvents: 'none', zIndex: 10, display: 'none', borderRadius: 1, willChange: 'transform', transform: 'translateZ(0)' }}>
+              <div ref={playheadRef} style={{ position: 'absolute', top: 8, left: 0, width: 2, height: RULER_H + visibleInsts.length * ROW_H + (visibleInsts.length > 0 ? (visibleInsts.length - 1) * rowGap : 0), background: accent.from, boxShadow: `0 0 6px ${accent.from}88`, pointerEvents: 'none', zIndex: 10, display: 'block', borderRadius: 1, willChange: 'transform', transform: `translate(${LABEL_W}px, 0px)` }}>
                 {/* Draggable handle — downward triangle above the ruler */}
                 <div
                   onPointerDown={e => {
@@ -3016,25 +4089,34 @@ export default function DrumEditor() {
                     (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
                   }}
                   style={{
-                    position: 'absolute', top: -10, left: '50%', transform: 'translateX(-50%)',
+                    position: 'absolute', top: 0, left: '50%', transform: 'translateX(-50%)',
                     width: 0, height: 0,
-                    borderLeft: '7px solid transparent',
-                    borderRight: '7px solid transparent',
-                    borderTop: `10px solid ${accent.from}`,
+                    borderLeft: '4.5px solid transparent',
+                    borderRight: '4.5px solid transparent',
+                    borderTop: `7.5px solid ${accent.from}`,
                     cursor: 'ew-resize',
                     pointerEvents: 'auto',
-                    filter: `drop-shadow(0 0 4px ${accent.from}88)`,
                   }}
                 />
               </div>
               {containerW > LABEL_W && systemRows.map((rowMeasures, sysIdx) => {
                 const mStartIdx = sysIdx * measuresPerRow;
                 return (
-                  <div key={sysIdx} style={{ marginBottom: SYS_SEP }}>
-                    <div style={{ display: 'flex', height: RULER_H, marginLeft: LABEL_W, borderBottom: `1px solid ${barColor}` }}>
+                  <div key={sysIdx} style={{ marginBottom: SYS_SEP, width: isLandscape ? LABEL_W + pattern.measures.length * MEASURE_W : '100%', display: 'flex', flexDirection: 'column' }}>
+                    <div style={{ display: 'flex', height: RULER_H, borderBottom: `1px solid ${barColor}`, position: 'relative', width: '100%' }}>
+                      <div style={{
+                        width: LABEL_W,
+                        flexShrink: 0,
+                        position: 'sticky',
+                        left: 0,
+                        zIndex: 10,
+                        background: 'var(--app-bg)',
+                        borderRight: `1px solid ${barColor}`,
+                        height: '100%',
+                      }} />
                       {rowMeasures.map((m, mi) => {
                         const globalM   = mStartIdx + mi;
-                        const canDelete = pattern.measures.length > 1;
+                        const canDelete = pattern.measures.length > 2;
                         const menuOpen  = openBarMenu === m.id;
                         const isFlash   = flashBarId  === m.id;
                         return (
@@ -3111,34 +4193,54 @@ export default function DrumEditor() {
                       })}
                     </div>
                     {visibleInsts.map((inst, instIdx) => {
-                      const hitMap = allHitMaps.get(inst) ?? EMPTY_HIT_MAP;
                       const isFoc  = focusedInst === inst;
                       const varList = INST_VARIATIONS[inst];
                       return (
-                        <div key={inst} style={{ display: 'flex', height: ROW_H, borderBottom: instIdx < visibleInsts.length - 1 ? `1px solid ${staffColor}` : `1.5px solid ${barColor}`, background: (isFoc && drumPrefs.highlightActiveInst) ? (isLight ? 'rgba(0,0,0,0.025)' : 'rgba(255,255,255,0.018)') : 'transparent' }}>
-                          <div style={{ width: LABEL_W, flexShrink: 0, display: 'flex', flexDirection: 'column', alignItems: 'flex-start', justifyContent: 'center', paddingLeft: 12, paddingRight: 6, borderRight: `1px solid ${barColor}` }}>
+                        <div key={inst} style={{
+                          display: 'flex',
+                          height: ROW_H,
+                          marginBottom: rowGap,
+                          borderRadius: isWebDesktop ? 8 : 0,
+                          border: isWebDesktop ? (isLight ? '1px solid rgba(0,0,0,0.08)' : '1px solid rgba(255,255,255,0.08)') : 'none',
+                          borderBottom: isWebDesktop ? (isLight ? '1px solid rgba(0,0,0,0.08)' : '1px solid rgba(255,255,255,0.08)') : (instIdx < visibleInsts.length - 1 ? `1px solid ${staffColor}` : `1.5px solid ${barColor}`),
+                          background: (isFoc && drumPrefs.highlightActiveInst)
+                            ? (isLight ? 'rgba(0,0,0,0.025)' : 'rgba(255,255,255,0.018)')
+                            : (isWebDesktop ? 'var(--app-surface)' : 'transparent'),
+                          overflow: isWebDesktop ? 'hidden' : 'visible',
+                          width: '100%'
+                        }}>
+                          <div style={{
+                            width: LABEL_W,
+                            flexShrink: 0,
+                            display: 'flex',
+                            flexDirection: 'column',
+                            alignItems: 'flex-start',
+                            justifyContent: 'center',
+                            paddingLeft: 12,
+                            paddingRight: 6,
+                            borderRight: isWebDesktop ? (isLight ? '1px solid rgba(0,0,0,0.06)' : '1px solid rgba(255,255,255,0.06)') : `1px solid ${barColor}`,
+                            position: 'sticky',
+                            left: 0,
+                            zIndex: 10,
+                            background: (isFoc && drumPrefs.highlightActiveInst)
+                              ? (isLight ? '#eae9e6' : '#1b1b21')
+                              : (isWebDesktop ? 'var(--app-surface)' : 'var(--app-bg)'),
+                          }}>
                             <span style={{ fontSize: 8, fontWeight: 700, fontFamily: 'Manrope, sans-serif', color: (isFoc && drumPrefs.highlightActiveInst) ? 'var(--c-text-primary)' : 'var(--c-text-muted)', letterSpacing: '0.03em', textTransform: 'uppercase', whiteSpace: 'nowrap', transition: 'color 200ms' }}>{INST_LABEL[inst]}</span>
                             {varList && varList.length > 1 && (
                               <span style={{ fontSize: 6.5, fontFamily: 'Manrope, sans-serif', color: 'var(--c-text-muted)', opacity: 0.55, letterSpacing: '0.02em', whiteSpace: 'normal', lineHeight: 1.35, marginTop: 1, width: '100%', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>{varList.join(' · ')}</span>
                             )}
                           </div>
-                          <InstrumentRow inst={inst} mStartIdx={mStartIdx} rowMeasures={rowMeasures} spm={spm} stepsPerBeat={stepsPerBeat} STEP_W={STEP_W} MEASURE_W={MEASURE_W} hitMap={hitMap} noteColor={noteColor} staffColor={staffColor} barColor={barColor} altBg={altBg} showVariations={drumPrefs.showNoteVariations} gridEmphasis={drumPrefs.gridLinesEmphasis} accentFrom={accent.from} />
+                          <InstrumentRow inst={inst} mStartIdx={mStartIdx} rowMeasures={rowMeasures} spm={spm} stepsPerBeat={stepsPerBeat} STEP_W={STEP_W} MEASURE_W={MEASURE_W} noteColor={noteColor} staffColor={staffColor} barColor={barColor} altBg={altBg} showVariations={drumPrefs.showNoteVariations} gridEmphasis={drumPrefs.gridLinesEmphasis} accentFrom={accent.from} ROW_H={ROW_H} isLight={isLight} />
                         </div>
                       );
                     })}
                   </div>
                 );
               })}
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', paddingBottom: 32, paddingTop: 8 }}>
-                <button onClick={() => { pushUndo(); addMeasure(pattern.id); }} style={{ height: 36, padding: '0 24px', borderRadius: 999, background: 'transparent', border: 'var(--add-bar-border)', cursor: 'pointer', color: 'var(--c-text-secondary)', fontSize: 12, fontWeight: 600, display: 'flex', alignItems: 'center', gap: 8 }}
-                  onPointerEnter={e => { e.currentTarget.style.borderColor = accent.from + '70'; e.currentTarget.style.color = accent.from; }}
-                  onPointerLeave={e => { e.currentTarget.style.borderColor = ''; e.currentTarget.style.color = ''; }}>
-                  <span style={{ fontSize: 16 }}>+</span><span>Add Bar</span>
-                </button>
-              </div>
             </div>
-            {/* BPM + Play (hidden in landscape — controls are in the top bar) */}
-            <div style={{ position: 'fixed', right: 14, bottom: 'calc(env(safe-area-inset-bottom, 0px) + 90px)', zIndex: 60, display: isLandscape ? 'none' : 'flex', flexDirection: 'column', alignItems: 'center', gap: 8 }}>
+            {/* BPM + Play (hidden in landscape / desktop — controls are in the top bar) */}
+            <div style={{ position: 'fixed', right: 14, bottom: 'calc(env(safe-area-inset-bottom, 0px) + 90px)', zIndex: 60, display: (isWebDesktop || isLandscape) ? 'none' : 'flex', flexDirection: 'column', alignItems: 'center', gap: 8 }}>
               {/* Clear button — black bg, red trash icon */}
               <div style={{ position: 'relative' }}>
                 {showClearConfirm && (
@@ -3321,7 +4423,7 @@ export default function DrumEditor() {
                     </div>
                   );
                 })()}
-                <button onClick={() => setShowBpmPanel(s => !s)} style={{ width: 44, height: 44, borderRadius: '50%', border: 'none', background: showBpmPanel ? `${accent.from}22` : (isAmoled ? 'rgba(4,4,4,0.88)' : (isLight ? 'rgba(240,240,242,0.82)' : 'rgba(26,26,30,0.82)')), boxShadow: isLight ? '0 2px 12px rgba(0,0,0,0.10)' : '0 2px 12px rgba(0,0,0,0.50)', backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)', cursor: 'pointer', transition: 'all 160ms', display: 'flex', alignItems: 'center', justifyContent: 'center', outline: showBpmPanel ? `1.5px solid ${accent.from}66` : '1.5px solid rgba(255,255,255,0.10)' }}>
+                <button onClick={() => setShowBpmPanel(s => !s)} title="BPM & Swing" style={{ width: 44, height: 44, borderRadius: '50%', border: 'none', background: showBpmPanel ? `${accent.from}22` : (isAmoled ? 'rgba(4,4,4,0.88)' : (isLight ? 'rgba(240,240,242,0.82)' : 'rgba(26,26,30,0.82)')), boxShadow: isLight ? '0 2px 12px rgba(0,0,0,0.10)' : '0 2px 12px rgba(0,0,0,0.50)', backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)', cursor: 'pointer', transition: 'all 160ms', display: 'flex', alignItems: 'center', justifyContent: 'center', outline: showBpmPanel ? `1.5px solid ${accent.from}66` : '1.5px solid rgba(255,255,255,0.10)' }}>
                   <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
                     <path d="M9 4h6l1.5 12H7.5L9 4Z" stroke={showBpmPanel ? accent.from : 'var(--c-text-secondary)'} strokeWidth="1.7" strokeLinejoin="round" />
                     <line x1="12" y1="4" x2="17" y2="13" stroke={showBpmPanel ? accent.from : 'var(--c-text-secondary)'} strokeWidth="1.7" strokeLinecap="round" />
@@ -3329,37 +4431,549 @@ export default function DrumEditor() {
                   </svg>
                 </button>
               </div>
-              <button onClick={handlePlay} style={{ width: 44, height: 44, borderRadius: '50%', border: 'none', background: playing ? (isAmoled ? 'rgba(4,4,4,0.88)' : (isLight ? 'rgba(240,240,242,0.82)' : 'rgba(26,26,30,0.82)')) : `linear-gradient(135deg, ${accent.from}, ${accent.to})`, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: playing ? 13 : 14, color: playing ? 'var(--c-text-secondary)' : '#fff', boxShadow: playing ? '0 4px 20px rgba(0,0,0,0.40), 0 0 0 1.5px rgba(255,255,255,0.08)' : `0 4px 20px ${accent.from}55, 0 0 0 1.5px rgba(255,255,255,0.12)`, backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)', transition: 'all 170ms' }}>
+              <button onClick={handlePlay} title={playing ? "Stop" : "Play"} style={{ width: 44, height: 44, borderRadius: '50%', border: 'none', background: playing ? (isAmoled ? 'rgba(4,4,4,0.88)' : (isLight ? 'rgba(240,240,242,0.82)' : 'rgba(26,26,30,0.82)')) : `linear-gradient(135deg, ${accent.from}, ${accent.to})`, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: playing ? 13 : 14, color: playing ? 'var(--c-text-secondary)' : '#fff', boxShadow: playing ? '0 4px 20px rgba(0,0,0,0.40), 0 0 0 1.5px rgba(255,255,255,0.08)' : `0 4px 20px ${accent.from}55, 0 0 0 1.5px rgba(255,255,255,0.12)`, backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)', transition: 'all 170ms' }}>
                 {playing ? '⏹' : '▶'}
               </button>
             </div>
+            </div>
+
+            {isWebDesktop && (
+              <button
+                onClick={() => setIsRightPanelCollapsed(v => !v)}
+                title={isRightPanelCollapsed ? "Expand sidebar" : "Collapse sidebar"}
+                aria-label={isRightPanelCollapsed ? "Expand sidebar" : "Collapse sidebar"}
+                style={{
+                  position: 'absolute',
+                  top: '50%',
+                  right: isRightPanelCollapsed ? 0 : 320,
+                  transform: 'translateY(-50%)',
+                  zIndex: 99,
+                  width: 18,
+                  height: 64,
+                  background: isLight ? 'rgba(240, 240, 242, 0.95)' : 'rgba(20, 20, 24, 0.95)',
+                  border: isLight ? '1px solid rgba(0, 0, 0, 0.15)' : '1px solid rgba(255, 255, 255, 0.15)',
+                  borderRight: 'none',
+                  borderRadius: '8px 0 0 8px',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  color: 'var(--c-text-secondary)',
+                  transition: 'right 250ms cubic-bezier(0.2, 0.8, 0.2, 1), background-color 200ms, color 200ms',
+                  backdropFilter: 'blur(8px)',
+                  WebkitBackdropFilter: 'blur(8px)',
+                  boxShadow: isLight ? '-2px 0 8px rgba(0,0,0,0.06)' : '-2px 0 8px rgba(0,0,0,0.3)',
+                }}
+                onPointerOver={e => e.currentTarget.style.color = accent.from}
+                onPointerOut={e => e.currentTarget.style.color = 'var(--c-text-secondary)'}
+              >
+                {isRightPanelCollapsed ? (
+                  <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3.5" strokeLinecap="round" strokeLinejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
+                ) : (
+                  <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3.5" strokeLinecap="round" strokeLinejoin="round"><path d="M9 18l6-6-6-6"/></svg>
+                )}
+              </button>
+            )}
+
+            {/* Right Side Panel (Desktop only) */}
+            {isWebDesktop && (
+              <div style={{
+                width: isRightPanelCollapsed ? 0 : 320,
+                flexShrink: 0,
+                borderLeft: isRightPanelCollapsed ? 'none' : (isLight ? '1px solid #e4e4e7' : '1px solid #18181b'),
+                background: isLight ? '#f9f9fb' : '#000000',
+                display: 'flex',
+                flexDirection: 'column',
+                overflow: 'hidden',
+                transition: 'width 250ms cubic-bezier(0.2, 0.8, 0.2, 1)',
+              }}>
+                {/* Tab Switcher */}
+                <div style={{ display: 'flex', borderBottom: isLight ? '1px solid #e4e4e7' : '1px solid #18181b', padding: '12px 16px', gap: 8, flexShrink: 0 }}>
+                  {(['kit', 'mixer', 'fx'] as const).map(tab => {
+                    const active = sideTab === tab;
+                    return (
+                      <button key={tab} onClick={() => setSideTab(tab)} className="btn-smooth" title={`Switch to ${tab} panel`} aria-label={`Switch to ${tab} panel`} style={{
+                        flex: 1, padding: '6px 0', borderRadius: '8px', fontSize: '10px', fontWeight: 800, fontFamily: 'Manrope', textTransform: 'uppercase', letterSpacing: '0.08em', cursor: 'pointer',
+                        background: active ? (isLight ? '#f4f4f5' : '#18181b') : 'transparent',
+                        border: active ? (isLight ? '1px solid #e4e4e7' : '1px solid #27272a') : '1px solid transparent',
+                        color: active ? (isLight ? '#09090b' : '#ffffff') : (isLight ? '#71717a' : '#a1a1aa'), transition: 'all 160ms'
+                      }}>
+                        {tab}
+                      </button>
+                    );
+                  })}
+                </div>
+
+                {/* Tab Contents */}
+                <div style={{ flex: 1, overflowY: 'auto', padding: '16px 20px 24px', display: 'flex', flexDirection: 'column', gap: 16 }} className="no-scrollbar">
+                  
+                  {/* KIT TAB */}
+                  {sideTab === 'kit' && (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                      <div style={{
+                        padding: '16px',
+                        background: isLight ? 'rgba(0, 0, 0, 0.03)' : 'rgba(255, 255, 255, 0.03)',
+                        border: isLight ? '1px solid rgba(0, 0, 0, 0.08)' : '1px solid rgba(255, 255, 255, 0.08)',
+                        borderRadius: 12,
+                        display: 'flex',
+                        flexDirection: 'column',
+                        gap: 6
+                      }}>
+                        <span style={{ fontSize: 9.5, fontWeight: 800, color: 'var(--c-text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Active Drum Kit</span>
+                        <span style={{ fontSize: 13, fontWeight: 800, color: 'var(--c-text-primary)' }}>Acoustic — House Kit</span>
+                        <p style={{ margin: 0, fontSize: 11, color: 'var(--c-text-muted)', lineHeight: 1.45 }}>
+                          Premium multi-velocity studio kit featuring 5 velocity layers and 7 round-robin variations per instrument for natural acoustic expression.
+                        </p>
+                      </div>
+
+                      {kitType === 'house' && renderCollapsibleSection(
+                        'mic-position',
+                        'Mic Position',
+                        collapsedKitSections,
+                        (id) => setCollapsedKitSections(prev => ({ ...prev, [id]: !prev[id] })),
+                        <div style={{ display: 'flex', gap: 6 }}>
+                          {HOUSE_MICS.map(m => {
+                            const active = houseKitMic === m.id;
+                            return (
+                              <button key={m.id} className="btn-smooth"
+                                onClick={() => {
+                                  storeSetHouseKitMic(m.id);
+                                  setHouseKitMic(m.id);
+                                }}
+                                style={{ flex: 1, height: 28, borderRadius: 8, border: active ? `1.5px solid ${accent.from}66` : '1.5px solid rgba(255,255,255,0.1)', background: active ? `${accent.from}1a` : 'rgba(255,255,255,0.03)', color: active ? accent.from : 'var(--c-text-secondary)', fontSize: 11, fontWeight: 700, cursor: 'pointer' }}>
+                                {m.label}
+                              </button>
+                            );
+                          })}
+                        </div>
+                      )}
+
+                      {kitType === 'house' && renderCollapsibleSection(
+                        'sound-character',
+                        'Sound Character',
+                        collapsedKitSections,
+                        (id) => setCollapsedKitSections(prev => ({ ...prev, [id]: !prev[id] })),
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                          {((['kick', 'snare', 'tom10', 'tom12', 'tom14'] as HouseInstName[])).map(hInst => {
+                            const locked = houseInstVelOverride[hInst];
+                            return (
+                              <div key={hInst} style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                                <div style={{ display: 'flex', alignItems: 'center' }}>
+                                  <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--c-text-primary)', flex: 1 }}>{HOUSE_INST_LABELS[hInst]}</span>
+                                  {locked && (
+                                    <button onClick={() => storeSetInstVelOverride(hInst, undefined)} style={{ fontSize: 9.5, fontWeight: 700, color: 'var(--c-text-muted)', background: 'none', border: 'none', cursor: 'pointer' }}>AUTO</button>
+                                  )}
+                                </div>
+                                <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
+                                  {HOUSE_VEL_CONFIGS[hInst].map(v => {
+                                    const active = locked === v.id;
+                                    return (
+                                      <button key={v.id} className="btn-smooth"
+                                        onClick={() => storeSetInstVelOverride(hInst, active ? undefined : v.id)}
+                                        style={{ height: 24, padding: '0 8px', borderRadius: 6, border: active ? `1.5px solid ${accent.from}66` : '1.5px solid rgba(255,255,255,0.1)', background: active ? `${accent.from}1a` : 'rgba(255,255,255,0.03)', color: active ? accent.from : 'var(--c-text-secondary)', fontSize: 10, fontWeight: 700, cursor: 'pointer' }}>
+                                        {v.label}
+                                      </button>
+                                    );
+                                  })}
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      )}
+
+                      {kitType === 'house' && renderCollapsibleSection(
+                        'advanced-kit-options',
+                        'Advanced Kit Options',
+                        collapsedKitSections,
+                        (id) => setCollapsedKitSections(prev => ({ ...prev, [id]: !prev[id] })),
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                          <div>
+                            <span style={{ fontSize: 10.5, fontWeight: 600, color: 'var(--c-text-secondary)', display: 'block', marginBottom: 4 }}>Crash Cymbal Model</span>
+                            <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
+                              {HOUSE_CRASH_MODELS.map(m => {
+                                const active = houseCrashModel === m.id;
+                                return (
+                                  <button key={m.id} className="btn-smooth"
+                                    onClick={() => storeSetHouseCrashModel(m.id as HouseCrashModel)}
+                                    title={m.desc}
+                                    style={{ height: 24, padding: '0 8px', borderRadius: 6, border: active ? `1.5px solid ${accent.from}66` : '1.5px solid rgba(255,255,255,0.1)', background: active ? `${accent.from}1a` : 'rgba(255,255,255,0.03)', color: active ? accent.from : 'var(--c-text-secondary)', fontSize: 10, fontWeight: 700, cursor: 'pointer' }}>
+                                    {m.label}
+                                  </button>
+                                );
+                              })}
+                            </div>
+                          </div>
+
+                          <div>
+                            <span style={{ fontSize: 10.5, fontWeight: 600, color: 'var(--c-text-secondary)', display: 'block', marginBottom: 4 }}>Cymbal Pack</span>
+                            <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--c-text-primary)', padding: '2px 0' }}>
+                              Sabian Pack (Hi-hat, crash, ride — bright, versatile)
+                            </div>
+                          </div>
+
+                          <div style={{ display: 'flex', alignItems: 'center', marginTop: 4 }}>
+                            <span style={{ flex: 1, fontSize: 12, fontWeight: 600, color: 'var(--c-text-primary)' }}>Random Variations</span>
+                            <button onClick={() => updateDrumPrefs({ randomVariations: !drumPrefs.randomVariations })} style={{ width: 36, height: 20, borderRadius: 10, background: drumPrefs.randomVariations ? `linear-gradient(135deg,${accent.from},${accent.to})` : 'rgba(255,255,255,0.15)', border: 'none', cursor: 'pointer', position: 'relative', transition: 'background 220ms', flexShrink: 0 }}>
+                              <span style={{ position: 'absolute', top: 2.5, left: drumPrefs.randomVariations ? 18 : 2.5, width: 15, height: 15, borderRadius: '50%', background: '#fff', transition: 'left 200ms cubic-bezier(0.34,1.56,0.64,1)', display: 'block' }} />
+                            </button>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  {/* MIXER TAB */}
+                  {sideTab === 'mixer' && (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                      {renderCollapsibleSection(
+                        'master',
+                        'Master',
+                        collapsedMixerSections,
+                        (id) => setCollapsedMixerSections(prev => ({ ...prev, [id]: !prev[id] })),
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: 6, background: 'rgba(255,255,255,0.02)', padding: 12, borderRadius: 10, border: '1px solid rgba(255,255,255,0.05)' }}>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                            <span style={{ fontSize: 11, fontWeight: 700, color: 'white' }}>Master Volume</span>
+                            <span style={{ fontSize: 11, color: 'var(--c-text-muted)', fontWeight: 700 }}>{(masterVolume * 100).toFixed(1)}%</span>
+                          </div>
+                          <ElasticSlider
+                            min={0} max={1} step={0.005} value={masterVolume}
+                            onChange={setMasterVolume}
+                            accentColor={accent.from}
+                            style={{ width: '100%' }}
+                          />
+                        </div>
+                      )}
+
+                      {renderCollapsibleSection(
+                        'levels',
+                        'Levels',
+                        collapsedMixerSections,
+                        (id) => setCollapsedMixerSections(prev => ({ ...prev, [id]: !prev[id] })),
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                          {activeInstruments.map(inst => {
+                            const vol = volumeMap[inst] ?? 1;
+                            const muted = patternMuted.has(inst);
+                            const color = INSTRUMENT_COLOR[inst] ?? accent.from;
+                            return (
+                              <div key={inst} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '4px 0', opacity: muted ? 0.5 : 1 }}>
+                                <div style={{ width: 6, height: 6, borderRadius: '50%', background: color }} />
+                                <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--c-text-primary)', flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{INST_LABEL[inst]}</span>
+                                <ElasticSlider
+                                  min={0} max={1} step={0.01} value={vol}
+                                  onChange={v => setVolumeForInstrument(inst, v)}
+                                  accentColor={color}
+                                  style={{ width: 80 }}
+                                />
+                                <button onClick={() => togglePatternMute(pattern.id, inst)} style={{
+                                  width: 26, height: 26, borderRadius: 6, border: 'none', cursor: 'pointer',
+                                  background: muted ? 'rgba(255,255,255,0.05)' : `${color}18`,
+                                  color: muted ? 'var(--c-text-muted)' : color, display: 'flex', alignItems: 'center', justifyContent: 'center'
+                                }}>
+                                  <span className="material-symbols-outlined" style={{ fontSize: 14 }}>{muted ? 'volume_off' : 'volume_up'}</span>
+                                </button>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      )}
+
+                      {renderCollapsibleSection(
+                        'pan',
+                        'Pan',
+                        collapsedMixerSections,
+                        (id) => setCollapsedMixerSections(prev => ({ ...prev, [id]: !prev[id] })),
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                          <span style={{ fontSize: 9.5, color: 'var(--c-text-muted)', fontStyle: 'italic', marginBottom: 4, display: 'block' }}>
+                            Note: Stereo panning is simulated (Future Update)
+                          </span>
+                          {activeInstruments.map(inst => {
+                            const color = INSTRUMENT_COLOR[inst] ?? accent.from;
+                            return (
+                              <div key={`pan-${inst}`} style={{ display: 'flex', alignItems: 'center', gap: 8, opacity: 0.5 }}>
+                                <div style={{ width: 6, height: 6, borderRadius: '50%', background: color }} />
+                                <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--c-text-primary)', flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{INST_LABEL[inst]}</span>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                                  <span style={{ fontSize: 9, fontWeight: 700, color: 'var(--c-text-muted)' }}>L</span>
+                                  <input type="range" min="-50" max="50" defaultValue="0" disabled style={{ width: 75, accentColor: color, cursor: 'not-allowed' }} />
+                                  <span style={{ fontSize: 9, fontWeight: 700, color: 'var(--c-text-muted)' }}>R</span>
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      )}
+
+                      {renderCollapsibleSection(
+                        'room-send',
+                        'Room / Send',
+                        collapsedMixerSections,
+                        (id) => setCollapsedMixerSections(prev => ({ ...prev, [id]: !prev[id] })),
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                          {activeInstruments.map(inst => {
+                            const curFX = { ...DEFAULT_INST_FX, ...(instFX[inst] ?? {}) };
+                            const rev = curFX.reverb ?? 0;
+                            const color = INSTRUMENT_COLOR[inst] ?? accent.from;
+                            return (
+                              <div key={`rev-${inst}`} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                                <div style={{ width: 6, height: 6, borderRadius: '50%', background: color }} />
+                                <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--c-text-primary)', flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{INST_LABEL[inst]}</span>
+                                <ElasticSlider
+                                  min={0} max={1} step={0.01} value={rev}
+                                  onChange={v => setInstFX(inst, { ...curFX, reverb: v })}
+                                  accentColor={color}
+                                  style={{ width: 80 }}
+                                />
+                                <span style={{ fontSize: 10, fontWeight: 700, color: 'var(--c-text-muted)', width: 26, textAlign: 'right' }}>
+                                  {Math.round(rev * 100)}%
+                                </span>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      )}
+
+                      <button
+                        onClick={() => {
+                          setMasterVolume(1.0);
+                          activeInstruments.forEach(inst => {
+                            setVolumeForInstrument(inst, 1.0);
+                            if (patternMuted.has(inst)) {
+                              togglePatternMute(pattern.id, inst);
+                            }
+                          });
+                        }}
+                        className="btn-smooth bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/20 w-full mt-2"
+                        style={{
+                          display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px',
+                          fontSize: '10px', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.08em',
+                          padding: '8px 12px', borderRadius: '8px', cursor: 'pointer'
+                        }}
+                      >
+                        <span className="material-symbols-outlined" style={{ fontSize: '15px' }}>restart_alt</span>
+                        Reset Mix
+                      </button>
+                    </div>
+                  )}
+
+                  {/* FX TAB */}
+                  {sideTab === 'fx' && (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                      {renderCollapsibleSection(
+                        'global-fx',
+                        'Global FX',
+                        collapsedFxSections,
+                        (id) => setCollapsedFxSections(prev => ({ ...prev, [id]: !prev[id] })),
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                          <div>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
+                              <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--c-text-primary)' }}>Swing</span>
+                              <span style={{ fontSize: 11, fontWeight: 700, color: accent.from }}>{pattern.swing ?? 0}%</span>
+                            </div>
+                            <ElasticSlider
+                              min={0} max={100} step={1} value={pattern.swing ?? 0}
+                              onChange={v => updatePattern(pattern.id, { swing: v })}
+                              accentColor={accent.from}
+                              style={{ width: '100%' }}
+                            />
+                          </div>
+                        </div>
+                      )}
+
+                      {renderCollapsibleSection(
+                        'per-instrument-fx',
+                        'Per-Instrument FX',
+                        collapsedFxSections,
+                        (id) => setCollapsedFxSections(prev => ({ ...prev, [id]: !prev[id] })),
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                          <div>
+                            <label style={labelSt}>Instrument</label>
+                            <select value={fxInst} onChange={e => setFxInst(e.target.value as DrumInstrument)} style={{ ...inputSt, padding: '6px 10px', fontSize: 13, background: 'var(--app-surface-high)' }}>
+                              {activeInstruments.map(inst => <option key={inst} value={inst}>{INST_LABEL[inst]}</option>)}
+                            </select>
+                          </div>
+
+                          {INST_PRESETS[fxInst] && INST_PRESETS[fxInst]!.length > 0 && (
+                            <div>
+                              <span style={labelSt}>Character</span>
+                              <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginTop: 4 }}>
+                                {INST_PRESETS[fxInst]!.map(preset => {
+                                  const curFX = { ...DEFAULT_INST_FX, ...(instFX[fxInst] ?? {}) };
+                                  const active = Object.keys(preset.values).every(
+                                    k => Math.abs((curFX[k as keyof InstFX] ?? 0) - (preset.values[k as keyof InstFX] ?? 0)) < 0.05
+                                  );
+                                  const color = INSTRUMENT_COLOR[fxInst] ?? accent.from;
+                                  return (
+                                    <button key={preset.label} onClick={() => setInstFX(fxInst, { ...DEFAULT_INST_FX, ...preset.values })} title={`Apply "${preset.label}" FX character to ${INST_LABEL[fxInst] || fxInst}`} className="btn-smooth" style={{
+                                      padding: '4px 10px', borderRadius: 12, fontSize: 10.5, fontWeight: 700, cursor: 'pointer',
+                                      background: active ? color : 'rgba(255,255,255,0.03)',
+                                      border: active ? `1.5px solid ${color}` : '1.5px solid rgba(255,255,255,0.08)',
+                                      color: active ? '#fff' : 'var(--c-text-secondary)'
+                                    }}>{preset.label}</button>
+                                  );
+                                })}
+                              </div>
+                            </div>
+                          )}
+
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                            {(() => {
+                              const curFX = { ...DEFAULT_INST_FX, ...(instFX[fxInst] ?? {}) };
+                              const color = INSTRUMENT_COLOR[fxInst] ?? accent.from;
+                              type SliderDef = { key: keyof InstFX; label: string; min: number; max: number; step: number };
+                              const sliders: SliderDef[] = [
+                                { key: 'compress', label: 'Compress',  min: 0,   max: 1,   step: 0.01 },
+                                { key: 'attack',   label: 'Attack',    min: 0,   max: 1,   step: 0.01 },
+                                { key: 'gate',     label: 'Gate',      min: 0,   max: 1,   step: 0.01 },
+                                { key: 'eqLow',    label: 'Low 80Hz',  min: -12, max: 12,  step: 0.5  },
+                                { key: 'eqLowMid', label: 'Lo-Mid 350',min: -12, max: 12,  step: 0.5  },
+                                { key: 'eqMid',    label: 'Mid 2kHz',  min: -12, max: 12,  step: 0.5  },
+                                { key: 'eqHigh',   label: 'High 10k',  min: -12, max: 12,  step: 0.5  },
+                              ];
+                              return sliders.map(s => {
+                                const val = curFX[s.key] ?? 0;
+                                const isEQ = s.key.startsWith('eq');
+                                const dispVal = isEQ ? (val >= 0 ? `+${val.toFixed(1)}` : val.toFixed(1)) + 'dB' : `${Math.round(val * 100)}%`;
+                                const active = val !== 0;
+                                return (
+                                  <div key={s.key} style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                      <span style={{ fontSize: 11, fontWeight: 700, color: active ? 'white' : 'var(--c-text-secondary)' }}>{s.label}</span>
+                                      <span style={{ fontSize: 11, fontWeight: 700, color: active ? color : 'var(--c-text-muted)' }}>{dispVal}</span>
+                                    </div>
+                                    <ElasticSlider
+                                      min={s.min} max={s.max} step={s.step} value={val}
+                                      onChange={v => setInstFX(fxInst, { ...curFX, [s.key]: v })}
+                                      accentColor={color}
+                                      style={{ width: '100%' }}
+                                    />
+                                  </div>
+                                );
+                              });
+                            })()}
+                          </div>
+                        </div>
+                      )}
+
+                      {renderCollapsibleSection(
+                        'reverb-room',
+                        'Reverb / Room',
+                        collapsedFxSections,
+                        (id) => setCollapsedFxSections(prev => ({ ...prev, [id]: !prev[id] })),
+                        <div>
+                          {(() => {
+                            const curFX = { ...DEFAULT_INST_FX, ...(instFX[fxInst] ?? {}) };
+                            const color = INSTRUMENT_COLOR[fxInst] ?? accent.from;
+                            const reverbVal = curFX.reverb ?? 0;
+                            const saturateVal = curFX.saturate ?? 0;
+                            return (
+                              <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                    <span style={{ fontSize: 11, fontWeight: 700, color: reverbVal > 0 ? 'white' : 'var(--c-text-secondary)' }}>Reverb Send</span>
+                                    <span style={{ fontSize: 11, fontWeight: 700, color: reverbVal > 0 ? color : 'var(--c-text-muted)' }}>{Math.round(reverbVal * 100)}%</span>
+                                  </div>
+                                  <ElasticSlider
+                                    min={0} max={1} step={0.01} value={reverbVal}
+                                    onChange={v => setInstFX(fxInst, { ...curFX, reverb: v })}
+                                    accentColor={color}
+                                    style={{ width: '100%' }}
+                                  />
+                                </div>
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                    <span style={{ fontSize: 11, fontWeight: 700, color: saturateVal > 0 ? 'white' : 'var(--c-text-secondary)' }}>Saturation</span>
+                                    <span style={{ fontSize: 11, fontWeight: 700, color: saturateVal > 0 ? color : 'var(--c-text-muted)' }}>{Math.round(saturateVal * 100)}%</span>
+                                  </div>
+                                  <ElasticSlider
+                                    min={0} max={1} step={0.01} value={saturateVal}
+                                    onChange={v => setInstFX(fxInst, { ...curFX, saturate: v })}
+                                    accentColor={color}
+                                    style={{ width: '100%' }}
+                                  />
+                                </div>
+                              </div>
+                            );
+                          })()}
+                        </div>
+                      )}
+
+                      {renderCollapsibleSection(
+                        'humanize-groove-feel',
+                        'Humanize / Groove Feel',
+                        collapsedFxSections,
+                        (id) => setCollapsedFxSections(prev => ({ ...prev, [id]: !prev[id] })),
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                          <div style={{ display: 'flex', alignItems: 'center' }}>
+                            <span style={{ flex: 1, fontSize: 12, fontWeight: 600, color: 'var(--c-text-primary)' }}>Humanize Velocity</span>
+                            <button onClick={() => updateDrumPrefs({ humanizeVelocity: !drumPrefs.humanizeVelocity })} style={{ width: 36, height: 20, borderRadius: 10, background: drumPrefs.humanizeVelocity ? `linear-gradient(135deg,${accent.from},${accent.to})` : 'rgba(255,255,255,0.15)', border: 'none', cursor: 'pointer', position: 'relative', transition: 'background 220ms', flexShrink: 0 }}>
+                              <span style={{ position: 'absolute', top: 2.5, left: drumPrefs.humanizeVelocity ? 18 : 2.5, width: 15, height: 15, borderRadius: '50%', background: '#fff', transition: 'left 200ms cubic-bezier(0.34,1.56,0.64,1)', display: 'block' }} />
+                            </button>
+                          </div>
+                        </div>
+                      )}
+
+                      <button
+                        onClick={() => setInstFX(fxInst, { ...DEFAULT_INST_FX })}
+                        className="btn-smooth bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/20 w-full mt-2"
+                        style={{
+                          display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px',
+                          fontSize: '10px', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.08em',
+                          padding: '8px 12px', borderRadius: '8px', cursor: 'pointer'
+                        }}
+                      >
+                        <span className="material-symbols-outlined" style={{ fontSize: '15px' }}>restart_alt</span>
+                        Reset {INST_LABEL[fxInst]} FX
+                      </button>
+                    </div>
+                  )}
+
+                </div>
+              </div>
+            )}
+
           </div>
         )}
 
         {/* ═══ LIBRARY TAB ═════════════════════════════════════════════════ */}
         {activeTab === 'patterns' && (
-          <div onScroll={drumScrollHide} style={{ flex: 1, overflowY: 'auto', paddingTop: 12, paddingBottom: 100 }} className="no-scrollbar">
+          <div onScroll={drumScrollHide} className="flex-1 overflow-y-auto pt-3 pb-24 no-scrollbar">
 
             {/* ── Search ──────────────────────────────────────────────── */}
-            <div style={{ padding: '0 16px 12px' }}>
-              <div style={{ position: 'relative' }}>
-                <span className="material-symbols-outlined" style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', fontSize: 18, color: 'var(--c-text-muted)', pointerEvents: 'none' }}>search</span>
+            <div className="px-4 pb-3">
+              <div className="relative">
+                <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-[18px] text-zinc-500 pointer-events-none">search</span>
                 <input
                   value={libSearch}
                   onChange={e => handleLibSearchChange(e.target.value)}
                   placeholder="Search patterns, genres, or moods..."
-                  style={{ width: '100%', padding: '12px 14px 12px 38px', borderRadius: 12, background: 'var(--app-surface)', border: '1px solid rgba(128,128,128,0.10)', color: 'var(--c-text-primary)', fontSize: 13, fontFamily: 'Manrope,sans-serif', outline: 'none', boxSizing: 'border-box' }}
+                  className={`w-full py-2 pl-9 pr-4 rounded-xl border text-[13px] font-manrope outline-none transition-all ${
+                    isLight 
+                      ? 'bg-zinc-50 border-zinc-200 text-zinc-800 placeholder-zinc-400 focus:border-zinc-350 focus:bg-white' 
+                      : 'bg-zinc-950/20 border-zinc-900 text-white placeholder-zinc-600 focus:border-zinc-800 focus:bg-[#000000]'
+                  }`}
                 />
               </div>
             </div>
 
             {/* ── Category chips ──────────────────────────────────────── */}
-            <div className="no-scrollbar" style={{ display: 'flex', gap: 6, overflowX: 'auto', padding: '0 16px 12px' }}>
+            <div className="no-scrollbar flex gap-1.5 overflow-x-auto px-4 pb-3">
               {(['All', ...LIBRARY_CATEGORIES, 'My Grooves'] as (LibraryCategory | 'All' | 'My Grooves')[]).map(cat => {
                 const active = libCategory === cat;
                 return (
-                  <button key={cat} onClick={() => { setLibCategory(cat); if (cat === 'My Grooves') setLibGenre(''); }} className="btn-smooth"
-                    style={{ flexShrink: 0, padding: '7px 16px', borderRadius: 20, fontSize: 12, fontWeight: 700, fontFamily: 'Manrope,sans-serif', cursor: 'pointer', border: 'none', background: active ? `linear-gradient(135deg,${accent.from},${accent.to})` : (isLight ? 'rgba(0,0,0,0.05)' : 'rgba(255,255,255,0.06)'), color: active ? '#fff' : 'var(--c-text-secondary)', transition: 'all 150ms' }}>
+                  <button 
+                    key={cat} 
+                    onClick={() => { setLibCategory(cat); if (cat === 'My Grooves') setLibGenre(''); }} 
+                    className={`flex-shrink-0 px-4 py-1.5 rounded-full text-[10px] font-extrabold font-manrope uppercase tracking-widest transition-all cursor-pointer border ${
+                      active 
+                        ? (isLight 
+                            ? 'bg-blue-50 text-blue-600 border-blue-200' 
+                            : 'bg-blue-950/40 text-blue-400 border-blue-900/60') 
+                        : (isLight 
+                            ? 'bg-zinc-100/50 text-zinc-650 border-zinc-200/50 hover:bg-zinc-200/50 hover:text-black' 
+                            : 'bg-zinc-900/30 text-zinc-400 border-zinc-950 hover:bg-zinc-800/40 hover:text-white')
+                    }`}
+                  >
                     {cat}
                   </button>
                 );
@@ -3368,13 +4982,24 @@ export default function DrumEditor() {
 
             {/* ── Genre filter (not shown for My Grooves) ────────────── */}
             {libCategory !== 'My Grooves' && (
-              <div className="no-scrollbar" style={{ display: 'flex', gap: 5, overflowX: 'auto', padding: '0 16px 16px' }}>
+              <div className="no-scrollbar flex gap-1.5 overflow-x-auto px-4 pb-4">
                 {(['', ...LIBRARY_GENRES] as (LibraryGenre | '')[]).map(g => {
                   const label = g === '' ? 'All Genres' : g;
                   const active = libGenre === g;
                   return (
-                    <button key={label} onClick={() => setLibGenre(g)} className="btn-smooth"
-                      style={{ flexShrink: 0, padding: '4px 12px', borderRadius: 16, fontSize: 10.5, fontWeight: 700, fontFamily: 'Inter,sans-serif', letterSpacing: '0.04em', textTransform: 'uppercase', cursor: 'pointer', border: active ? `1.5px solid ${accent.from}` : '1.5px solid rgba(128,128,128,0.15)', background: active ? `${accent.from}15` : 'transparent', color: active ? accent.from : 'var(--c-text-muted)', transition: 'all 150ms' }}>
+                    <button 
+                      key={label} 
+                      onClick={() => setLibGenre(g)} 
+                      className={`flex-shrink-0 px-3 py-1 rounded-full text-[9px] font-extrabold tracking-widest uppercase transition-all cursor-pointer border ${
+                        active 
+                          ? (isLight 
+                              ? 'bg-blue-50/70 text-blue-600 border-blue-250' 
+                              : 'bg-blue-950/20 text-blue-400 border-blue-900/40') 
+                          : (isLight 
+                              ? 'bg-transparent text-zinc-650 border-zinc-200 hover:border-zinc-350 hover:text-black' 
+                              : 'bg-transparent text-zinc-450 border-zinc-900 hover:border-zinc-800 hover:text-white')
+                      }`}
+                    >
                       {label}
                     </button>
                   );
@@ -3414,19 +5039,28 @@ export default function DrumEditor() {
                 )}
 
                 {grooves.length === 0 ? (
-                  <div style={{ margin: '0 16px 24px', padding: '28px 20px', borderRadius: 14, background: 'var(--app-surface)', border: '1px dashed rgba(128,128,128,0.18)', textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8 }}>
-                    <EmptyStateLottie app="drumex" size={52} isLight={isLight} />
-                    <p style={{ margin: 0, fontSize: 13, fontWeight: 600, color: 'var(--c-text-secondary)', fontFamily: 'Manrope,sans-serif' }}>No grooves saved yet</p>
-                    <p style={{ margin: 0, fontSize: 11, color: 'var(--c-text-muted)' }}>Save any pattern to build your personal library</p>
+                  <div className={`mx-4 mb-6 p-7 border border-dashed rounded-xl flex flex-col items-center justify-center gap-3 text-center ${
+                    isLight ? 'bg-zinc-50 border-zinc-200' : 'bg-[#000000] border-zinc-900'
+                  }`}>
+                    <EmptyStateLottie app="drumex" size={44} isLight={isLight} />
+                    <div>
+                      <span className={`block text-xs font-extrabold uppercase tracking-widest ${isLight ? 'text-zinc-800' : 'text-white'}`}>No grooves saved yet</span>
+                      <span className="block text-[10px] text-zinc-500 font-extrabold uppercase tracking-wide mt-1">Save any pattern to build your personal library</span>
+                    </div>
                   </div>
                 ) : (
-                  <div style={{ padding: '0 16px', display: 'flex', flexDirection: 'column', gap: 10 }}>
+                  <div style={isWebDesktop ? { display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: 16, padding: '0 16px' } : { padding: '0 16px', display: 'flex', flexDirection: 'column', gap: 10 }}>
                     {filteredGrooves.map(g => {
                       const isPreviewPlaying = previewingGrooveId === g.id && drumScheduler.isPlaying;
                       const menuOpen = grooveMenuId === g.id;
                       const isRenaming = grooveRenameId === g.id;
                       return (
-                        <div key={g.id} style={{ background: 'var(--app-surface)', borderRadius: 14, overflow: 'hidden', border: '1px solid rgba(128,128,128,0.06)' }}>
+                        <div key={g.id} style={{
+                          background: isWebDesktop ? 'rgba(15, 15, 20, 0.45)' : 'var(--app-surface)',
+                          borderRadius: isWebDesktop ? 12 : 14,
+                          overflow: 'hidden',
+                          border: isWebDesktop ? '1px solid rgba(255, 255, 255, 0.08)' : '1px solid rgba(128,128,128,0.06)'
+                        }}>
                           {isRenaming ? (
                             <div style={{ padding: '12px 14px', display: 'flex', flexDirection: 'column', gap: 8 }}>
                               <input autoFocus value={grooveRenameName} onChange={e => setGrooveRenameName(e.target.value)}
@@ -3503,11 +5137,13 @@ export default function DrumEditor() {
 
             {/* ── Built-in Library Cards ──────────────────────────────── */}
             {libCategory !== 'My Grooves' && (
-              <div style={{ padding: '0 16px', display: 'flex', flexDirection: 'column', gap: 10 }}>
+              <div style={isWebDesktop ? { display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: 16, padding: '0 16px' } : { padding: '0 16px', display: 'flex', flexDirection: 'column', gap: 10 }}>
                 {filteredLibrary.length === 0 ? (
-                  <div style={{ padding: '28px 20px', borderRadius: 14, background: 'var(--app-surface)', textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8 }}>
-                    <EmptyStateLottie app="drumex" size={44} isLight={isLight} />
-                    <p style={{ margin: 0, fontSize: 13, fontWeight: 600, color: 'var(--c-text-secondary)', fontFamily: 'Manrope,sans-serif' }}>No patterns found</p>
+                  <div className={`p-7 border border-dashed rounded-xl flex flex-col items-center justify-center gap-3 text-center ${
+                    isLight ? 'bg-zinc-50 border-zinc-200' : 'bg-[#000000] border-zinc-900'
+                  }`}>
+                    <EmptyStateLottie app="drumex" size={36} isLight={isLight} />
+                    <span className={`block text-xs font-extrabold uppercase tracking-widest ${isLight ? 'text-zinc-800' : 'text-white'}`}>No patterns found</span>
                   </div>
                 ) : (<>
                   {filteredLibrary.slice(0, libVisible).map(lp => (
@@ -3538,7 +5174,7 @@ export default function DrumEditor() {
       <DrumNav activeTab={activeTab} setTab={handleSetTab} accent={accent} isLight={isLight} isAmoled={isAmoled} hidden={isWebDesktop || (isLandscape && inEditor)} />
 
       {/* ── Floating buttons (songs list only): import above + add ──────── */}
-      {!inEditor && activeTab === 'songs' && (
+      {!inEditor && activeTab === 'songs' && !isWebDesktop && (
         <div style={{ position: 'fixed', right: 20, bottom: 'calc(env(safe-area-inset-bottom, 0px) + 100px)', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 10, pointerEvents: 'none', zIndex: 50 }}>
           {/* Import JSON button */}
           <button
@@ -3560,12 +5196,14 @@ export default function DrumEditor() {
 
       {/* ── Save Groove sheet ────────────────────────────────────────────── */}
       {showSaveGroove && (
-        <div style={{ position: 'fixed', inset: 0, zIndex: 200 }} onClick={() => setShowSaveGroove(false)}>
-          <div style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.55)', backdropFilter: 'blur(3px)' }} />
-          <div onClick={e => e.stopPropagation()} style={{ position: 'absolute', bottom: 0, left: 0, right: 0, background: 'var(--app-surface)', borderRadius: '1.5rem 1.5rem 0 0', animation: 'sheet-up 400ms cubic-bezier(0.16, 1, 0.3, 1) both', paddingBottom: 'calc(env(safe-area-inset-bottom) + 24px)' }}>
-            <div style={{ display: 'flex', justifyContent: 'center', padding: '12px 0 4px' }}>
-              <div style={{ width: 36, height: 4, borderRadius: 9999, background: 'rgba(128,128,128,0.25)' }} />
-            </div>
+        <div style={isWebDesktop ? { position: 'fixed', inset: 0, zIndex: 200, display: 'flex', alignItems: 'center', justifyContent: 'center' } : { position: 'fixed', inset: 0, zIndex: 200 }} onClick={() => setShowSaveGroove(false)}>
+          <div style={isWebDesktop ? { position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(8px)', WebkitBackdropFilter: 'blur(8px)' } : { position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.55)', backdropFilter: 'blur(3px)' }} />
+          <div onClick={e => e.stopPropagation()} style={isWebDesktop ? { position: 'relative', width: '520px', maxWidth: '90vw', maxHeight: '85vh', background: '#0a0a0c', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '1.25rem', boxShadow: '0 20px 40px rgba(0,0,0,0.55)', overflowY: 'auto', display: 'flex', flexDirection: 'column', padding: '24px' } : { position: 'absolute', bottom: 0, left: 0, right: 0, background: 'var(--app-surface)', borderRadius: '1.5rem 1.5rem 0 0', animation: 'sheet-up 400ms cubic-bezier(0.16, 1, 0.3, 1) both', paddingBottom: 'calc(env(safe-area-inset-bottom) + 24px)' }}>
+            {!isWebDesktop && (
+              <div style={{ display: 'flex', justifyContent: 'center', padding: '12px 0 4px' }}>
+                <div style={{ width: 36, height: 4, borderRadius: 9999, background: 'rgba(128,128,128,0.25)' }} />
+              </div>
+            )}
             <div style={{ padding: '8px 20px 16px', display: 'flex', alignItems: 'center' }}>
               <span style={{ flex: 1, fontSize: 15, fontWeight: 700, color: 'var(--c-text-primary)', fontFamily: 'Manrope,sans-serif' }}>Save to Groove Library</span>
               <button onClick={() => setShowSaveGroove(false)} style={{ width: 28, height: 28, borderRadius: '50%', background: 'rgba(128,128,128,0.12)', border: 'none', cursor: 'pointer', color: 'var(--c-text-secondary)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
@@ -3616,12 +5254,14 @@ export default function DrumEditor() {
 
       {/* ── Quick Mixer sheet (EQ button in editor toolbar) ──────────────── */}
       {showMixerSheet && inEditor && (
-        <div style={{ position: 'fixed', inset: 0, zIndex: 200 }}>
-          <div onClick={() => setShowMixerSheet(false)} style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.5)', backdropFilter: 'blur(3px)' }} />
-          <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, background: 'var(--app-surface)', borderRadius: '1.5rem 1.5rem 0 0', animation: 'sheet-up 400ms cubic-bezier(0.16, 1, 0.3, 1) both', maxHeight: '80vh', overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
-            <div style={{ display: 'flex', justifyContent: 'center', padding: '12px 0 4px', flexShrink: 0 }}>
-              <div style={{ width: 36, height: 4, borderRadius: 9999, background: 'rgba(72,72,72,0.3)' }} />
-            </div>
+        <div style={isWebDesktop ? { position: 'fixed', inset: 0, zIndex: 200, display: 'flex', alignItems: 'center', justifyContent: 'center' } : { position: 'fixed', inset: 0, zIndex: 200 }}>
+          <div onClick={() => setShowMixerSheet(false)} style={isWebDesktop ? { position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(8px)', WebkitBackdropFilter: 'blur(8px)' } : { position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.5)', backdropFilter: 'blur(3px)' }} />
+          <div style={isWebDesktop ? { position: 'relative', width: '520px', maxWidth: '90vw', maxHeight: '80vh', background: '#0a0a0c', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '1.25rem', boxShadow: '0 20px 40px rgba(0,0,0,0.55)', overflow: 'hidden', display: 'flex', flexDirection: 'column', padding: '24px 0' } : { position: 'absolute', bottom: 0, left: 0, right: 0, background: 'var(--app-surface)', borderRadius: '1.5rem 1.5rem 0 0', animation: 'sheet-up 400ms cubic-bezier(0.16, 1, 0.3, 1) both', maxHeight: '80vh', overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
+            {!isWebDesktop && (
+              <div style={{ display: 'flex', justifyContent: 'center', padding: '12px 0 4px', flexShrink: 0 }}>
+                <div style={{ width: 36, height: 4, borderRadius: 9999, background: 'rgba(72,72,72,0.3)' }} />
+              </div>
+            )}
             <div style={{ display: 'flex', alignItems: 'center', padding: '4px 20px 10px', flexShrink: 0 }}>
               <span style={{ flex: 1, fontSize: 15, fontWeight: 700, color: 'var(--c-text-primary)' }}>Pattern Mixer</span>
               <span style={{ fontSize: 11, color: 'var(--c-text-muted)', background: 'rgba(128,128,128,0.10)', borderRadius: 6, padding: '3px 8px', fontWeight: 600 }}>{pattern.name}</span>
@@ -3691,13 +5331,14 @@ export default function DrumEditor() {
         ];
         const presets = INST_PRESETS[fxInst] ?? [];
         return (
-          <div style={{ position: 'fixed', inset: 0, zIndex: 200 }}>
-            <div onClick={() => setShowFXSheet(false)} style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.5)', backdropFilter: 'blur(3px)' }} />
-            <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, background: 'var(--app-surface)', borderRadius: '1.5rem 1.5rem 0 0', animation: 'sheet-up 400ms cubic-bezier(0.16, 1, 0.3, 1) both', maxHeight: '85vh', overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
-              {/* drag handle */}
-              <div style={{ display: 'flex', justifyContent: 'center', padding: '12px 0 4px', flexShrink: 0 }}>
-                <div style={{ width: 36, height: 4, borderRadius: 9999, background: 'rgba(72,72,72,0.3)' }} />
-              </div>
+          <div style={isWebDesktop ? { position: 'fixed', inset: 0, zIndex: 200, display: 'flex', alignItems: 'center', justifyContent: 'center' } : { position: 'fixed', inset: 0, zIndex: 200 }}>
+            <div onClick={() => setShowFXSheet(false)} style={isWebDesktop ? { position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(8px)', WebkitBackdropFilter: 'blur(8px)' } : { position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.5)', backdropFilter: 'blur(3px)' }} />
+            <div style={isWebDesktop ? { position: 'relative', width: '540px', maxWidth: '90vw', maxHeight: '85vh', background: '#0a0a0c', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '1.25rem', boxShadow: '0 20px 40px rgba(0,0,0,0.55)', overflow: 'hidden', display: 'flex', flexDirection: 'column', padding: '24px 0' } : { position: 'absolute', bottom: 0, left: 0, right: 0, background: 'var(--app-surface)', borderRadius: '1.5rem 1.5rem 0 0', animation: 'sheet-up 400ms cubic-bezier(0.16, 1, 0.3, 1) both', maxHeight: '85vh', overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
+              {!isWebDesktop && (
+                <div style={{ display: 'flex', justifyContent: 'center', padding: '12px 0 4px', flexShrink: 0 }}>
+                  <div style={{ width: 36, height: 4, borderRadius: 9999, background: 'rgba(72,72,72,0.3)' }} />
+                </div>
+              )}
               {/* header */}
               <div style={{ display: 'flex', alignItems: 'center', padding: '4px 20px 10px', flexShrink: 0, gap: 10 }}>
                 <span style={{ flex: 1, fontSize: 15, fontWeight: 700, color: 'var(--c-text-primary)' }}>Instrument FX</span>
@@ -3730,8 +5371,9 @@ export default function DrumEditor() {
                           k => Math.abs((curFX[k as keyof InstFX] ?? 0) - (preset.values[k as keyof InstFX] ?? 0)) < 0.05
                         );
                         return (
-                          <button key={preset.label}
+                           <button key={preset.label}
                             onClick={() => setInstFX(fxInst, merged)}
+                            title={`Apply "${preset.label}" FX character to ${INST_LABEL[fxInst] || fxInst}`}
                             style={{ padding: '6px 14px', borderRadius: 20, fontSize: 12, fontWeight: 700, fontFamily: 'Manrope', cursor: 'pointer', transition: 'all 140ms', background: isActive ? color : 'var(--app-surface-high)', color: isActive ? '#fff' : 'var(--c-text-secondary)', border: isActive ? `1.5px solid ${color}` : '1.5px solid rgba(128,128,128,0.15)' }}>
                             {preset.label}
                           </button>
@@ -3798,8 +5440,8 @@ export default function DrumEditor() {
       {showImportDrum && (
         <DrumImportModal
           accent={accent}
-          onImport={(name, artist, notes, pats, activeId) => {
-            importDrumSong(name, artist, notes, pats, activeId);
+          onImport={(name, artist, notes, pats, activeId, kitType) => {
+            importDrumSong(name, artist, notes, pats, activeId, kitType);
             setShowImportDrum(false);
           }}
           onClose={() => setShowImportDrum(false)}
@@ -3810,12 +5452,14 @@ export default function DrumEditor() {
       {showCreateForm && (() => {
         const activeFamilyEntry = KIT_FAMILY.find(f => f.id === createFamily) ?? KIT_FAMILY[0];
         return (
-          <div style={{ position: 'fixed', inset: 0, zIndex: 200 }}>
-            <div onClick={() => setShowCreateForm(false)} style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(4px)' }} />
-            <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, background: 'var(--app-surface)', borderRadius: '1.5rem 1.5rem 0 0', animation: 'sheet-up 400ms cubic-bezier(0.16, 1, 0.3, 1) both', maxHeight: '92vh', overflowY: 'auto', display: 'flex', flexDirection: 'column' }} className="no-scrollbar">
-              <div style={{ display: 'flex', justifyContent: 'center', padding: '12px 0 4px', flexShrink: 0 }}>
-                <div style={{ width: 36, height: 4, borderRadius: 9999, background: 'rgba(72,72,72,0.3)' }} />
-              </div>
+          <div style={isWebDesktop ? { position: 'fixed', inset: 0, zIndex: 200, display: 'flex', alignItems: 'center', justifyContent: 'center' } : { position: 'fixed', inset: 0, zIndex: 200 }}>
+            <div onClick={() => setShowCreateForm(false)} style={isWebDesktop ? { position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(8px)', WebkitBackdropFilter: 'blur(8px)' } : { position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(4px)' }} />
+            <div style={isWebDesktop ? { position: 'relative', width: '520px', maxWidth: '90vw', maxHeight: '85vh', background: '#0a0a0c', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '1.25rem', boxShadow: '0 20px 40px rgba(0,0,0,0.55)', overflowY: 'auto', display: 'flex', flexDirection: 'column', padding: '24px 0' } : { position: 'absolute', bottom: 0, left: 0, right: 0, background: 'var(--app-surface)', borderRadius: '1.5rem 1.5rem 0 0', animation: 'sheet-up 400ms cubic-bezier(0.16, 1, 0.3, 1) both', maxHeight: '92vh', overflowY: 'auto', display: 'flex', flexDirection: 'column' }} className="no-scrollbar">
+              {!isWebDesktop && (
+                <div style={{ display: 'flex', justifyContent: 'center', padding: '12px 0 4px', flexShrink: 0 }}>
+                  <div style={{ width: 36, height: 4, borderRadius: 9999, background: 'rgba(72,72,72,0.3)' }} />
+                </div>
+              )}
               <div style={{ padding: '4px 20px 20px', display: 'flex', flexDirection: 'column', gap: 16 }}>
                 <p style={{ color: 'var(--c-text-primary)', fontFamily: 'Manrope', fontWeight: 800, fontSize: 20, margin: 0 }}>New Beat</p>
 
@@ -3841,58 +5485,19 @@ export default function DrumEditor() {
                   </div>
                 </div>
 
-                {/* ── Drum Kit ── */}
-                <div>
-                  <label style={labelSt}>Drum Kit</label>
-                  <div className="no-scrollbar" style={{ display: 'flex', gap: 8, overflowX: 'auto', marginTop: 8 }}>
-                    {KIT_FAMILY.map(fam => {
-                      const isActive = fam.id === createFamily;
-                      return (
-                        <button key={fam.id} className="btn-smooth"
-                          onClick={() => {
-                            setCreateFamily(fam.id);
-                            setCreateVariant(fam.variations[0].kit);
-                          }}
-                          style={{ flexShrink: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6, padding: '10px 14px', borderRadius: 14, cursor: 'pointer', background: isActive ? `linear-gradient(135deg,${accent.from}22,${accent.to}12)` : 'var(--app-surface-high)', border: isActive ? `1.5px solid ${accent.from}55` : '1.5px solid transparent', transition: 'all 160ms' }}>
-                          <div style={{ width: 48, height: 48, borderRadius: 10, overflow: 'hidden', background: 'rgba(0,0,0,0.3)', flexShrink: 0 }}>
-                            <img src={KIT_IMAGE[fam.variations[0].kit]} alt={fam.label} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                          </div>
-                          <span style={{ fontSize: 11, fontWeight: 700, fontFamily: 'Manrope,sans-serif', color: isActive ? accent.from : 'var(--c-text-secondary)', whiteSpace: 'nowrap' }}>{fam.label}</span>
-                        </button>
-                      );
-                    })}
+                {/* ── Drum Kit Details (Read-only since only Acoustic House Kit is supported) ── */}
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+                  <div>
+                    <label style={labelSt}>Drum Kit</label>
+                    <div style={{ ...inputSt, display: 'flex', alignItems: 'center', background: isLight ? 'rgba(0,0,0,0.03)' : 'rgba(255,255,255,0.03)', border: isLight ? '1px solid rgba(0,0,0,0.08)' : '1px solid rgba(255,255,255,0.12)', color: 'var(--c-text-secondary)', cursor: 'default' }}>
+                      Acoustic
+                    </div>
                   </div>
-                </div>
-
-                {/* ── Variation chips ── */}
-                <div>
-                  <label style={labelSt}>Sound</label>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginTop: 8 }}>
-                    {activeFamilyEntry.variations.map(v => {
-                      const isSel = createVariant === v.kit;
-                      const kitImg = KIT_IMAGE[v.kit];
-                      return (
-                        <button key={v.kit} className="btn-smooth"
-                          onClick={() => {
-                            setCreateVariant(v.kit);
-                            loadDrumSamples(v.kit);
-                          }}
-                          style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '11px 14px', borderRadius: 12, cursor: 'pointer', background: isSel ? `linear-gradient(135deg,${accent.from}18,${accent.to}10)` : 'var(--app-bg)', border: isSel ? `1.5px solid ${accent.from}55` : '1.5px solid rgba(128,128,128,0.12)', transition: 'all 150ms' }}>
-                          <div style={{ width: 52, height: 52, borderRadius: 10, flexShrink: 0, overflow: 'hidden', background: 'rgba(0,0,0,0.25)', display: 'flex', alignItems: 'center', justifyContent: 'center', border: isSel ? `1.5px solid ${accent.from}55` : '1.5px solid rgba(128,128,128,0.08)', transition: 'all 150ms' }}>
-                            {kitImg ? (
-                              <img src={kitImg} alt={v.label} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                            ) : (
-                              <span className="material-symbols-outlined" style={{ fontSize: 22, color: 'var(--c-text-muted)' }}>music_note</span>
-                            )}
-                          </div>
-                          <div style={{ flex: 1, textAlign: 'left' }}>
-                            <div style={{ fontSize: 13.5, fontWeight: 700, color: isSel ? accent.from : 'var(--c-text-primary)', fontFamily: 'Manrope,sans-serif', transition: 'color 150ms' }}>{v.label}</div>
-                            <div style={{ fontSize: 11, color: 'var(--c-text-muted)', marginTop: 1 }}>{v.desc}</div>
-                          </div>
-                          {isSel && <span className="material-symbols-outlined" style={{ fontSize: 18, color: accent.from, flexShrink: 0 }}>check_circle</span>}
-                        </button>
-                      );
-                    })}
+                  <div>
+                    <label style={labelSt}>Sound</label>
+                    <div style={{ ...inputSt, display: 'flex', alignItems: 'center', background: isLight ? 'rgba(0,0,0,0.03)' : 'rgba(255,255,255,0.03)', border: isLight ? '1px solid rgba(0,0,0,0.08)' : '1px solid rgba(255,255,255,0.12)', color: 'var(--c-text-secondary)', cursor: 'default' }}>
+                      House Kit
+                    </div>
                   </div>
                 </div>
 

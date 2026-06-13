@@ -2384,6 +2384,112 @@ function _renderZones() {
   }
 })();
 
+function _renderStageLayout() {
+  const svg = document.getElementById('stage-layout-svg');
+  if (!svg) return;
+  // Clear existing content (createElementNS-built nodes — no sanitizer needed)
+  while (svg.firstChild) svg.removeChild(svg.firstChild);
+
+  const canvasEl = document.getElementById('stage-canvas');
+  const W = canvasEl ? canvasEl.clientWidth  : 800;
+  const H = canvasEl ? canvasEl.clientHeight : 500;
+  svg.setAttribute('viewBox', `0 0 ${W} ${H}`);
+  svg.removeAttribute('preserveAspectRatio');
+
+  const SVG_NS = 'http://www.w3.org/2000/svg';
+  const mk = (tag, attrs) => {
+    const el = document.createElementNS(SVG_NS, tag);
+    for (const k in attrs) el.setAttribute(k, attrs[k]);
+    return el;
+  };
+
+  // 1. Dashed Performance Boundary (8% margin)
+  const bX = W * 0.08;
+  const bY = H * 0.08;
+  const bW = W * 0.84;
+  const bH = H * 0.84;
+
+  svg.appendChild(mk('rect', {
+    x: bX, y: bY, width: bW, height: bH,
+    fill: 'none', stroke: 'var(--stage-layout-stroke)',
+    'stroke-width': '1.2', 'stroke-dasharray': '6 6',
+    rx: '4', ry: '4'
+  }));
+
+  // 2. Center Crosshairs (dashed line)
+  const cx = W / 2;
+  const cy = H / 2;
+  // Vertical center line
+  svg.appendChild(mk('line', {
+    x1: cx, y1: bY, x2: cx, y2: bY + bH,
+    stroke: 'var(--stage-layout-stroke-dim)', 'stroke-width': '0.8',
+    'stroke-dasharray': '2 4'
+  }));
+  // Horizontal center line
+  svg.appendChild(mk('line', {
+    x1: bX, y1: cy, x2: bX + bW, y2: cy,
+    stroke: 'var(--stage-layout-stroke-dim)', 'stroke-width': '0.8',
+    'stroke-dasharray': '2 4'
+  }));
+
+  // 3. Zone Separators (Vertical dashed lines at 35% and 65% width)
+  const sep1X = W * 0.35;
+  const sep2X = W * 0.65;
+  svg.appendChild(mk('line', {
+    x1: sep1X, y1: bY, x2: sep1X, y2: bY + bH,
+    stroke: 'var(--stage-layout-stroke-dim)', 'stroke-width': '0.8',
+    'stroke-dasharray': '2 4'
+  }));
+  svg.appendChild(mk('line', {
+    x1: sep2X, y1: bY, x2: sep2X, y2: bY + bH,
+    stroke: 'var(--stage-layout-stroke-dim)', 'stroke-width': '0.8',
+    'stroke-dasharray': '2 4'
+  }));
+
+  // 4. Subtle Bare Text Labels (no background pills)
+  const labels = [
+    { text: 'BACK', x: W * 0.5, y: bY + 14 },
+    { text: 'FRONT', x: W * 0.5, y: bY + bH - 14 },
+    { text: 'LEFT', x: W * 0.21, y: cy },
+    { text: 'CENTER', x: W * 0.5, y: cy - 12 }, // offset slightly from center point
+    { text: 'RIGHT', x: W * 0.79, y: cy }
+  ];
+
+  labels.forEach(l => {
+    const t = mk('text', {
+      x: l.x, y: l.y,
+      'text-anchor': 'middle', 'dominant-baseline': 'middle',
+      'font-family': "'Manrope', sans-serif",
+      'font-weight': '800', 'font-size': '9px',
+      fill: 'var(--stage-layout-label)',
+      'letter-spacing': '0.2em',
+      style: 'pointer-events: none; user-select: none; transition: fill 0.2s;'
+    });
+    t.textContent = l.text;
+    svg.appendChild(t);
+  });
+}
+window._renderStageLayout = _renderStageLayout;
+
+(function _wireStageLayoutResize() {
+  if (typeof ResizeObserver === 'undefined') return;
+  const attach = () => {
+    const el = document.getElementById('stage-canvas');
+    if (!el) { setTimeout(attach, 200); return; }
+    let raf = 0;
+    new ResizeObserver(() => {
+      if (raf) return;
+      raf = requestAnimationFrame(() => { raf = 0; _renderStageLayout(); });
+    }).observe(el);
+  };
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', attach);
+  } else {
+    attach();
+  }
+})();
+
+
 
 // ─── E. CABLE LENGTH ESTIMATOR ─────────────────────
 let scCableLengthVisible = false;
@@ -2715,7 +2821,6 @@ function _initProfessionalTools() {
       const menu = document.createElement('div');
       menu.id = 'sc-tools-menu';
       menu.appendChild(mkFabBtn('btn-sc-measure', 'straighten', 'Measure', scActivateMeasure));
-      menu.appendChild(mkFabBtn('btn-sc-zones', 'grid_4x4', 'Zones', scToggleZones));
       menu.appendChild(mkFabBtn('btn-sc-cable', 'cable', 'Length', scToggleCableLength));
       menu.appendChild(mkFabBtn('btn-sc-hist', 'history', 'History', openTimelinePanel));
 

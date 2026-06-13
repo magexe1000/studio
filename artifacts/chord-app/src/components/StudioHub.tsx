@@ -207,7 +207,20 @@ export default function StudioHub() {
       ? { from: `hsl(${settings.customAccentHue ?? 220}, 75%, 65%)`, mid: `hsl(${settings.customAccentHue ?? 220}, 80%, 55%)`, to: `hsl(${((settings.customAccentHue ?? 220) + 25) % 360}, 85%, 42%)` }
       : (ACCENT_COLORS[hubAccentKey] ?? ACCENT_COLORS.blue),
   [hubAccentKey, settings.customAccentHue]);
-  const isHubLight = (settings.perApp?.hub?.theme ?? settings.theme ?? 'dark') === 'light';
+  const isHubLight = (() => {
+    const hubTheme = settings.perApp?.hub?.theme ?? settings.theme ?? 'dark';
+    if (hubTheme === 'light') return true;
+    if (hubTheme === 'system') {
+      return typeof window !== 'undefined' && window.matchMedia('(prefers-color-scheme: light)').matches;
+    }
+    if (hubTheme === 'dynamic') {
+      const h = new Date().getHours();
+      const lightStart = settings.dynamicLightStart ?? 7;
+      const lightEnd   = settings.dynamicLightEnd   ?? 20;
+      return h >= lightStart && h < lightEnd;
+    }
+    return false;
+  })();
 
   const [tab, setTab]       = useState<HubTab>('home');
 
@@ -1051,8 +1064,8 @@ function AppRow({
           gap: 12,
           width: '100%',
           padding: '10px 14px',
-          background: pressed ? 'rgba(255, 255, 255, 0.04)' : 'rgba(255, 255, 255, 0.01)',
-          border: '1px solid rgba(255, 255, 255, 0.06)',
+          background: pressed ? 'var(--hub-card-pressed-bg, rgba(255, 255, 255, 0.04))' : 'var(--hub-card-bg, rgba(255, 255, 255, 0.01))',
+          border: '1px solid var(--hub-card-border, rgba(255, 255, 255, 0.06))',
           borderRadius: '10px',
           cursor: 'pointer',
           textAlign: 'left',
@@ -1065,22 +1078,22 @@ function AppRow({
       >
         <div style={{
           width: 32, height: 32, borderRadius: 8, flexShrink: 0,
-          background: 'rgba(255, 255, 255, 0.04)',
-          border: '1px solid rgba(255, 255, 255, 0.08)',
+          background: 'var(--hub-card-icon-bg, rgba(255, 255, 255, 0.04))',
+          border: '1px solid var(--hub-card-icon-border, rgba(255, 255, 255, 0.08))',
           display: 'flex', alignItems: 'center', justifyContent: 'center',
-          color: '#ffffff',
+          color: 'var(--c-text-primary)',
         }}>
           <Logo size={18} />
         </div>
         <div style={{ flex: 1, minWidth: 0 }}>
-          <p style={{ fontSize: 13, fontWeight: 700, color: '#ffffff', margin: 0, letterSpacing: '-0.01em' }}>
+          <p style={{ fontSize: 13, fontWeight: 700, color: 'var(--c-text-primary)', margin: 0, letterSpacing: '-0.01em' }}>
             {name}
           </p>
-          <p style={{ fontSize: 10, color: '#a1a1aa', margin: '2px 0 0', fontWeight: 500 }}>
+          <p style={{ fontSize: 10, color: 'var(--c-text-secondary)', margin: '2px 0 0', fontWeight: 500 }}>
             {desc}
           </p>
         </div>
-        <span className="material-symbols-outlined" style={{ fontSize: 16, color: '#71717a', flexShrink: 0 }}>
+        <span className="material-symbols-outlined" style={{ fontSize: 16, color: 'var(--c-text-muted)', flexShrink: 0 }}>
           chevron_right
         </span>
       </button>

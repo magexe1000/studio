@@ -77,18 +77,18 @@ function DockItem({
               transform: 'translateX(-50%)',
               padding: '6px 12px',
               borderRadius: '8px',
-              background: 'rgba(10, 10, 12, 0.85)',
+              background: isLight ? 'rgba(255, 255, 255, 0.95)' : 'rgba(10, 10, 12, 0.85)',
               backdropFilter: 'blur(12px)',
               WebkitBackdropFilter: 'blur(12px)',
-              border: '1px solid rgba(255, 255, 255, 0.12)',
-              color: '#ffffff',
+              border: isLight ? '1px solid rgba(0, 0, 0, 0.08)' : '1px solid rgba(255, 255, 255, 0.12)',
+              color: isLight ? '#09090b' : '#ffffff',
               fontSize: '12px',
               fontWeight: 700,
               fontFamily: 'Manrope, sans-serif',
               whiteSpace: 'nowrap',
               pointerEvents: 'none',
               zIndex: 1000,
-              boxShadow: '0 8px 24px rgba(0,0,0,0.4)',
+              boxShadow: isLight ? '0 8px 24px rgba(0,0,0,0.08)' : '0 8px 24px rgba(0,0,0,0.4)',
             }}
           >
             {label}
@@ -113,17 +113,17 @@ function DockItem({
           cursor: 'pointer',
           outline: 'none',
           background: isActive
-            ? '#ffffff'
+            ? (isLight ? '#09090b' : '#ffffff')
             : isLight
               ? 'rgba(0, 0, 0, 0.05)'
               : 'rgba(255, 255, 255, 0.06)',
           color: isActive
-            ? '#09090b'
+            ? (isLight ? '#ffffff' : '#09090b')
             : isLight
               ? 'rgba(0, 0, 0, 0.7)'
               : 'rgba(255, 255, 255, 0.7)',
           boxShadow: (isActive && !reduceMotion)
-            ? '0 4px 12px rgba(255, 255, 255, 0.15)'
+            ? (isLight ? '0 4px 12px rgba(0, 0, 0, 0.15)' : '0 4px 12px rgba(255, 255, 255, 0.15)')
             : 'none',
           transformOrigin: 'bottom center',
           transition: reduceMotion
@@ -203,19 +203,7 @@ export default function WebAppSectionDock({
     }
   };
 
-  const isLight = (() => {
-    if (activeVis.theme === 'light') return true;
-    if (activeVis.theme === 'system') {
-      return typeof window !== 'undefined' && window.matchMedia('(prefers-color-scheme: light)').matches;
-    }
-    if (activeVis.theme === 'dynamic') {
-      const h = new Date().getHours();
-      const lightStart = settings.dynamicLightStart ?? 7;
-      const lightEnd   = settings.dynamicLightEnd   ?? 20;
-      return h >= lightStart && h < lightEnd;
-    }
-    return false;
-  })();
+  const isLight = settings.theme === 'light' || (settings.theme === 'system' && typeof window !== 'undefined' && window.matchMedia('(prefers-color-scheme: light)').matches);
 
   const amoledBg = activeVis.amoledMode
     ? 'rgba(4, 4, 4, 0.9)'

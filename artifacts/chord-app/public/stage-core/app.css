@@ -24,6 +24,12 @@
   --hot-dark:    #4a1600;
   --hot-10:      rgba(255,116,57,0.10);
   --hot-20:      rgba(255,116,57,0.20);
+  --dock-safe-gap: 130px;
+}
+@media (min-width: 768px) {
+  :root {
+    --dock-safe-gap: 146px;
+  }
 }
 /* ── Stage canvas: GPU-composited layer, instant zoom (no transition lag) ── */
 #stage-canvas {
@@ -49,15 +55,109 @@
   font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
   display: inline-block; line-height: 1; text-transform: none; letter-spacing: normal;
 }
+:root {
+  --stage-layout-stroke: rgba(255, 255, 255, 0.12);
+  --stage-layout-stroke-dim: rgba(255, 255, 255, 0.06);
+  --stage-layout-label: rgba(255, 255, 255, 0.24);
+  --stage-layout-label-hover: rgba(255, 255, 255, 0.45);
+}
+html[data-theme="light"] {
+  --stage-layout-stroke: rgba(0, 0, 0, 0.10);
+  --stage-layout-stroke-dim: rgba(0, 0, 0, 0.04);
+  --stage-layout-label: rgba(0, 0, 0, 0.24);
+  --stage-layout-label-hover: rgba(0, 0, 0, 0.45);
+}
+html[data-amoled="1"] {
+  --stage-layout-stroke: rgba(255, 255, 255, 0.14);
+  --stage-layout-stroke-dim: rgba(255, 255, 255, 0.07);
+  --stage-layout-label: rgba(255, 255, 255, 0.26);
+  --stage-layout-label-hover: rgba(255, 255, 255, 0.48);
+}
+
 .stage-grid {
-  background-image:
-    linear-gradient(rgba(72, 72, 71, 0.22) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(72, 72, 71, 0.22) 1px, transparent 1px),
-    linear-gradient(rgba(72, 72, 71, 0.09) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(72, 72, 71, 0.09) 1px, transparent 1px);
-  background-size: 80px 80px, 80px 80px, 20px 20px, 20px 20px;
+  background-image: radial-gradient(rgba(255, 255, 255, 0.08) 1.5px, transparent 1.5px);
+  background-size: 40px 40px;
+}
+html[data-theme="light"] .stage-grid {
+  background-image: radial-gradient(rgba(0, 0, 0, 0.08) 1.5px, transparent 1.5px);
 }
 .stage-grid.grid-off { background-image: none; }
+
+/* Setup Hub grid layout */
+.sc-hub-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 12px;
+}
+@media (min-width: 768px) {
+  .sc-hub-grid {
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+  }
+}
+.sc-hub-badge-wrap {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+.sc-hub-badge {
+  font-family: 'Inter', sans-serif;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 4px 8px;
+  border-radius: 20px;
+  background: rgba(255, 255, 255, 0.04);
+  color: #acabaa;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  white-space: nowrap;
+}
+html[data-theme="light"] .sc-hub-badge {
+  background: rgba(0, 0, 0, 0.05) !important;
+  color: #555 !important;
+  border-color: rgba(0, 0, 0, 0.08) !important;
+}
+
+/* Desktop side-by-side sub-sections layout */
+.sc-desktop-split {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+@media (min-width: 1024px) {
+  .sc-desktop-split {
+    flex-direction: row;
+    align-items: flex-start;
+    gap: 24px;
+  }
+  .sc-left-panel {
+    flex: 1.3;
+    min-width: 0;
+  }
+  .sc-right-panel {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+  }
+}
+
+/* Glassmorphic Help Card for Empty Stage */
+.sc-help-card {
+  transition: background 0.3s, border-color 0.3s;
+}
+html[data-theme="light"] .sc-help-card {
+  background: rgba(242, 241, 239, 0.90) !important;
+  border-color: rgba(0, 0, 0, 0.12) !important;
+  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.15) !important;
+}
+html[data-amoled="1"] .sc-help-card {
+  background: rgba(0, 0, 0, 0.85) !important;
+  border-color: rgba(255, 255, 255, 0.12) !important;
+}
+
+
 .technical-grid {
   background-image:
     linear-gradient(to right, rgba(72, 72, 71, 0.05) 1px, transparent 1px),
@@ -83,8 +183,18 @@
 }
 .stage-element:hover .el-box { border-color: rgba(255,255,255,0.13); }
 .stage-element.selected .el-box {
-  border-color: var(--el-color, var(--accent));
-  box-shadow: 0 0 0 1px var(--el-color, var(--accent)), 0 0 14px var(--accent-22);
+  border-color: transparent;
+  box-shadow: none;
+}
+.stage-element.selected .el-icon img,
+.stage-element.selected .el-icon svg,
+.stage-element.selected .el-icon i[data-lucide],
+.stage-element.selected .el-icon span {
+  filter: drop-shadow(1px 0 0 var(--el-color, var(--accent)))
+          drop-shadow(-1px 0 0 var(--el-color, var(--accent)))
+          drop-shadow(0 1px 0 var(--el-color, var(--accent)))
+          drop-shadow(0 -1px 0 var(--el-color, var(--accent)))
+          drop-shadow(0 0 4px var(--accent-50));
 }
 .stage-element .el-icon {
   width: 44px; height: 44px;
@@ -113,24 +223,22 @@
 .stage-element.selected .el-label { color: var(--el-color, var(--accent)); }
 /* Resize toolbar shown on selection */
 .el-resize-bar {
-  display: flex; position: absolute; top: 50%; left: calc(100% + 6px);
-  transform: translateY(-50%) translateX(4px) scale(0.92);
-  background: rgba(14,14,14,0.92); border: 1px solid rgba(255,255,255,0.08);
+  display: flex; position: absolute;
+  background: var(--studio-surface-elevated, rgba(14,14,14,0.95));
+  border: 1px solid var(--studio-border, rgba(255,255,255,0.08));
   border-radius: 20px;
-  flex-direction: column; align-items: center; gap: 1px; padding: 4px 3px; z-index: 100; white-space: nowrap;
+  flex-direction: row; align-items: center; gap: 4px; padding: 3px 6px; z-index: 100; white-space: nowrap;
   opacity: 0; pointer-events: none;
   backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
-  box-shadow: 0 2px 12px rgba(0,0,0,0.5);
-  transition: opacity 0.22s cubic-bezier(0.4,0,0.2,1), transform 0.22s cubic-bezier(0.34,1.56,0.64,1);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.25);
+  transition: opacity 0.15s ease;
 }
 .stage-element.selected .el-resize-bar {
   opacity: 1; pointer-events: auto;
-  transform: translateY(-50%) translateX(0) scale(1);
 }
 .stage-element.dragging .el-resize-bar {
   opacity: 0 !important; pointer-events: none !important;
-  transform: translateY(-50%) translateX(6px) scale(0.88);
-  transition: opacity 0.12s ease, transform 0.12s ease;
+  transition: opacity 0.1s ease;
 }
 .el-resize-bar button {
   width: 24px; height: 24px; background: transparent; border: none; color: rgba(255,255,255,0.6);
@@ -143,6 +251,21 @@
 .el-resize-bar .el-scale-display {
   font-size: 8px; font-family: 'Manrope', sans-serif; font-weight: 700; color: rgba(255,255,255,0.35); min-width: 20px; text-align: center;
   line-height: 1; padding: 1px 0;
+}
+html[data-theme="light"] .el-resize-bar {
+  background: var(--studio-surface-elevated, rgba(255, 255, 255, 0.95));
+  border: 1px solid var(--studio-border, rgba(0, 0, 0, 0.1));
+  box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+}
+html[data-theme="light"] .el-resize-bar button {
+  color: rgba(0, 0, 0, 0.6);
+}
+html[data-theme="light"] .el-resize-bar button:hover {
+  background: rgba(0, 0, 0, 0.05);
+  color: var(--accent);
+}
+html[data-theme="light"] .el-resize-bar .el-scale-display {
+  color: rgba(0, 0, 0, 0.45);
 }
 .draggable-item {
   user-select: none;
@@ -181,7 +304,10 @@
 input[type=number]::-webkit-inner-spin-button,
 input[type=number]::-webkit-outer-spin-button { -webkit-appearance: none; }
 input[type=number] { -moz-appearance: textfield; }
-#drop-zone-hint { pointer-events: none; transition: opacity 0.25s cubic-bezier(0.16,1,0.3,1); }
+#drop-zone-hint {
+  pointer-events: none;
+  transition: opacity 220ms cubic-bezier(0.16, 1, 0.3, 1), transform 220ms cubic-bezier(0.16, 1, 0.3, 1);
+}
 .conn-line { pointer-events: none; }
 @keyframes status-pulse {
   0%,100% { opacity:1; transform:scale(1); }
@@ -722,7 +848,7 @@ select option { background: #0e0e0e; color: #fff; }
   #lib-flyout { display: none !important; }
 
   /* Canvas fills full width, sits directly below header — category bar floats over it */
-  #canvas-container { left: 0 !important; top: 64px !important; }
+  #canvas-container { left: 0 !important; top: 0 !important; bottom: 0 !important; }
 
   /* Toolbar: canvas is always flex-centered in the full-width container,
      so position:absolute + left:50% always matches the canvas center exactly */

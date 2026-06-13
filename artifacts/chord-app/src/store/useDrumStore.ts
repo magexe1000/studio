@@ -41,7 +41,6 @@ export const HOUSE_CRASH_MODELS: { id: HouseCrashModel; label: string; desc: str
 export type CymbalPack = 'default' | 'zildjian-k';
 export const CYMBAL_PACKS: { id: CymbalPack; label: string; desc: string }[] = [
   { id: 'default',     label: 'Sabian Pack',         desc: 'Hi-hat, crash, ride — bright, versatile'            },
-  { id: 'zildjian-k',  label: 'Zildjian K Custom',   desc: 'Dark crash, splash, ride — warm, complex overtones' },
 ];
 
 export const DRUM_INSTRUMENTS: DrumInstrument[] = [
@@ -77,16 +76,16 @@ export const INSTRUMENT_NAME: Record<DrumInstrument, string> = {
 };
 
 export const INSTRUMENT_COLOR: Record<DrumInstrument, string> = {
-  crash:          '#c084fc',
-  ride:           '#a78bfa',
-  'hihat-open':   '#34d399',
-  'hihat-closed': '#4ade80',
-  'hihat-foot':   '#86efac',
-  snare:          '#fb923c',
-  'tom-high':     '#f59e0b',
-  'tom-mid':      '#fbbf24',
-  'tom-floor':    '#f97316',
-  kick:           '#679cff',
+  crash:          '#a1a1aa',
+  ride:           '#71717a',
+  'hihat-open':   '#d4d4d8',
+  'hihat-closed': '#e4e4e7',
+  'hihat-foot':   '#a1a1aa',
+  snare:          '#ffffff',
+  'tom-high':     '#e4e4e7',
+  'tom-mid':      '#d4d4d8',
+  'tom-floor':    '#a1a1aa',
+  kick:           '#ffffff',
 };
 
 // Display order: high pitch → low pitch (hi-hat top, kick bottom)
@@ -154,33 +153,11 @@ export const DEFAULT_INST_FX: InstFX = {
 export interface KitVariation { kit: KitType; label: string; desc: string; }
 export interface KitFamilyEntry { id: string; label: string; variations: KitVariation[]; }
 export const KIT_FAMILY: KitFamilyEntry[] = [
-  { id: 'ultra', label: 'Ultra HD', variations: [
+  { id: 'acoustic', label: 'Acoustic', variations: [
     {
       kit: 'house',
       label: 'House Kit',
       desc: 'Premium multi-velocity studio kit — 5 velocity layers × 7 round-robin variations per instrument. Choose mic position (Blend / Close / OH / Room) in kit settings.',
-    },
-  ]},
-  { id: 'acoustic', label: 'Acoustic', variations: [
-    {
-      kit: 'ludwig',
-      label: 'Warm',
-      desc: 'Pearl Master Studio — 10-ply maple shells, recorded by Enoe (CC-BY-3.0). Multi-mic, unprocessed natural tone.',
-    },
-    {
-      kit: 'rmm',
-      label: 'Punchy',
-      desc: 'Real Music Media Open Source Drum Kit — commercial-grade studio recording released to the public domain. 20+ velocity layers.',
-    },
-    {
-      kit: 'chrome',
-      label: 'Bright',
-      desc: 'Chrome Web Audio Acoustic Kit — real acoustic recording by Chris Wilson (cwilso / Google). Used in the original Web Audio API demo.',
-    },
-    {
-      kit: 'jazz',
-      label: 'Soft',
-      desc: 'Pearl Master Studio (brush character) — snare-03 variant, soft hi-hat, generous early-room reflections for intimate jazz feel.',
     },
   ]},
 ];
@@ -263,7 +240,7 @@ export interface DrumSong {
 function uid() { return `${Date.now()}-${Math.random().toString(36).slice(2, 7)}`; }
 export function emptyMeasure(): DrumMeasure { return { id: `m-${uid()}`, hits: {} }; }
 function defaultPattern(): DrumPattern {
-  return { id: `p-${uid()}`, name: 'Pattern 1', bpm: 120, timeSignature: [4, 4], subdivision: 16, measures: [emptyMeasure()], swing: 0 };
+  return { id: `p-${uid()}`, name: 'Pattern 1', bpm: 120, timeSignature: [4, 4], subdivision: 16, measures: [emptyMeasure(), emptyMeasure()], swing: 0 };
 }
 
 export function stepsPerMeasure(p: DrumPattern): number {
@@ -323,6 +300,7 @@ export interface DrumPrefs {
   loopPlayback:         boolean;
   metronome:            boolean;
   countIn:              boolean;
+  metronomeSound:       string; // 'classic' | 'wood' | 'studio' | 'digital' | 'rim'
   // Interaction
   showNoteVariations:   boolean;
   highlightActiveInst:  boolean;
@@ -343,6 +321,7 @@ export const DEFAULT_DRUM_PREFS: DrumPrefs = {
   loopPlayback:         true,
   metronome:            false,
   countIn:              false,
+  metronomeSound:       'classic',
   showNoteVariations:   true,
   highlightActiveInst:  true,
   gridLinesEmphasis:    true,
@@ -393,7 +372,7 @@ interface DrumStore {
   updateDrumSong:      (id: string, patch: Partial<Pick<DrumSong, 'name' | 'artist' | 'notes' | 'patterns' | 'activePatternId' | 'kitType'>>) => void;
 
   restorePatterns:  (patterns: DrumPattern[], activePatternId: string | null) => void;
-  importDrumSong:   (name: string, artist: string, notes: string, patterns: DrumPattern[], activePatternId: string) => string;
+  importDrumSong:   (name: string, artist: string, notes: string, patterns: DrumPattern[], activePatternId: string, kitType?: KitType | null) => string;
 
   grooves:             GrooveEntry[];
   saveGroove:          (name: string, tag: GrooveTag) => string;
@@ -452,7 +431,7 @@ export const useDrumStore = create<DrumStore>()(
       setMasterVolume: vol => set({ masterVolume: Math.max(0, Math.min(1, vol)) }),
 
       setKitType: (kit, soundMap) =>
-        set({ kitType: kit, soundMap, activeInstruments: KIT_INSTRUMENTS[kit] }),
+        set({ kitType: 'house', soundMap, activeInstruments: KIT_INSTRUMENTS['house'] }),
 
       toggleInstrument: inst =>
         set(s => ({
@@ -480,7 +459,7 @@ export const useDrumStore = create<DrumStore>()(
           bpm: src?.bpm ?? 120,
           timeSignature: src?.timeSignature ?? [4, 4],
           subdivision: src?.subdivision ?? 16,
-          measures: [emptyMeasure()],
+          measures: [emptyMeasure(), emptyMeasure()],
           swing: src?.swing ?? 0,
         };
         set(st => ({ patterns: [...st.patterns, p], activePatternId: p.id }));
@@ -595,10 +574,8 @@ export const useDrumStore = create<DrumStore>()(
         set(s => ({
           patterns: s.patterns.map(p => {
             if (p.id !== patternId) return p;
-            const measures = p.measures.filter(m => m.id !== measureId);
-            const finalMeasures = measures.length > 0 ? measures : [emptyMeasure()];
-            // Re-clamp loopRange so deleting a bar inside the active section
-            // loop never leaves stale out-of-range indices in storage / UI.
+            if (p.measures.length <= 2) return p;
+            const finalMeasures = p.measures.filter(m => m.id !== measureId);
             const loopRange = p.loopRange
               ? clampLoopRange(p.loopRange, finalMeasures.length)
               : p.loopRange;
@@ -678,6 +655,7 @@ export const useDrumStore = create<DrumStore>()(
       createBlankDrumSong: (name, artist, bpm, notes, kitType) => {
         const p = defaultPattern();
         p.bpm = Math.max(40, Math.min(280, bpm));
+        const normalizedKit = kitType && kitType !== 'house' ? 'house' : (kitType ?? 'house');
         const song: DrumSong = {
           id: `ds-${uid()}`,
           name: name.trim() || 'Untitled Beat',
@@ -685,21 +663,29 @@ export const useDrumStore = create<DrumStore>()(
           notes: notes.trim(),
           patterns: [p],
           activePatternId: p.id,
-          kitType: kitType ?? get().kitType,
+          kitType: normalizedKit,
           createdAt: Date.now(),
           updatedAt: Date.now(),
         };
-        set(st => ({ drumSongs: [song, ...st.drumSongs] }));
+        set(st => ({
+          drumSongs: [song, ...st.drumSongs],
+          patterns: song.patterns,
+          activePatternId: song.activePatternId,
+          kitType: song.kitType,
+          cymbalPack: 'default',
+        }));
         return song.id;
       },
 
       loadDrumSong: id => {
         const song = get().drumSongs.find(s => s.id === id);
         if (!song) return;
+        const kit = song.kitType && song.kitType !== 'house' ? 'house' : (song.kitType ?? 'house');
         set({
           patterns: JSON.parse(JSON.stringify(song.patterns)),
           activePatternId: song.activePatternId,
-          kitType: song.kitType,
+          kitType: kit,
+          cymbalPack: 'default',
           instFX: {},
         });
       },
@@ -787,7 +773,8 @@ export const useDrumStore = create<DrumStore>()(
         return dup.id;
       },
 
-      importDrumSong: (name, artist, notes, patterns, activePatternId) => {
+      importDrumSong: (name, artist, notes, patterns, activePatternId, kitType) => {
+        const normalizedKit = kitType && kitType !== 'house' ? 'house' : (kitType ?? 'house');
         const song: DrumSong = {
           id: `ds-${uid()}`,
           name: name.trim() || 'Imported Beat',
@@ -795,11 +782,17 @@ export const useDrumStore = create<DrumStore>()(
           notes: notes.trim(),
           patterns: JSON.parse(JSON.stringify(patterns)),
           activePatternId,
-          kitType: get().kitType,
+          kitType: normalizedKit,
           createdAt: Date.now(),
           updatedAt: Date.now(),
         };
-        set(st => ({ drumSongs: [song, ...st.drumSongs] }));
+        set(st => ({
+          drumSongs: [song, ...st.drumSongs],
+          patterns: song.patterns,
+          activePatternId: song.activePatternId,
+          kitType: song.kitType,
+          cymbalPack: 'default',
+        }));
         return song.id;
       },
 
@@ -818,7 +811,7 @@ export const useDrumStore = create<DrumStore>()(
       }),
 
       setHouseCrashModel: (model) => set({ houseCrashModel: model }),
-      setCymbalPack: (pack) => set({ cymbalPack: pack }),
+      setCymbalPack: (pack) => set({ cymbalPack: 'default' }),
 
       updateDrumPrefs: (patch) =>
         set(s => ({ drumPrefs: { ...s.drumPrefs, ...patch } })),
@@ -840,10 +833,11 @@ export const useDrumStore = create<DrumStore>()(
           kitType?: KitType | null;
           [k: string]: unknown;
         };
-        const kitType = s.kitType ?? 'house';
+        const kitType = s.kitType && s.kitType !== 'house' ? 'house' : (s.kitType ?? 'house');
         const migratedPatterns = migratePatterns(s.patterns ?? [defaultPattern()]);
         const migratedSongs = (s.drumSongs ?? []).map(song => ({
           ...song,
+          kitType: song.kitType && song.kitType !== 'house' ? 'house' : (song.kitType ?? 'house'),
           patterns: migratePatterns(song.patterns ?? []),
         }));
         // Remove folded instruments from activeInstruments
@@ -851,6 +845,8 @@ export const useDrumStore = create<DrumStore>()(
           .filter((i: DrumInstrument) => i !== 'hihat-open' && i !== 'hihat-foot' && i !== 'ride');
         return {
           ...s,
+          kitType,
+          cymbalPack: 'default',
           patterns: migratedPatterns,
           drumSongs: migratedSongs,
           activeInstruments: filtered.length > 0 ? filtered : KIT_INSTRUMENTS[kitType],

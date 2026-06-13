@@ -196,7 +196,7 @@ const TRANSLATIONS = {
     libWireless:'Wireless', libBoundary:'Boundary', libDrumClip:'Drum Clip', libMicStand:'Mic Stand',
     // Library — People
     libPerformer:'Performer', libVocalist:'Vocalist', libGuitarist:'Guitarist',
-    libBassist:'Bassist', libDrummer:'Drummer', libKeyboardist:'Keyboardist', libTech:'Tech',
+    libBassist:'Bassist', libDrummer:'Drummer', libKeyboardist:'Keyboardist', libSaxophonist:'Saxophonist', libTech:'Tech',
     // Library — Drums
     libDrumKit:'Drum Kit', libEDrums:'E-Drums', libPercussion:'Percussion', libCajon:'Cajón',
     // Library — Instruments
@@ -351,7 +351,7 @@ const TRANSLATIONS = {
     libWireless:'Inalámbrico', libBoundary:'PZM', libDrumClip:'Clip de batería', libMicStand:'Pedestal',
     // Library — People
     libPerformer:'Músico', libVocalist:'Vocalista', libGuitarist:'Guitarrista',
-    libBassist:'Bajista', libDrummer:'Baterista', libKeyboardist:'Tecladista', libTech:'Técnico',
+    libBassist:'Bajista', libDrummer:'Baterista', libKeyboardist:'Tecladista', libSaxophonist:'Saxofonista', libTech:'Técnico',
     // Library — Drums
     libDrumKit:'Batería', libEDrums:'Batería elec.', libPercussion:'Percusión', libCajon:'Cajón',
     // Library — Instruments
@@ -440,12 +440,13 @@ const library = {
   ],
   people: [
     { name: 'Performer',   nameKey:'libPerformer',   icon: 'cx-person',        type: 'Person' },
-    { name: 'Vocalist',    nameKey:'libVocalist',    icon: 'cx-person',        type: 'Person' },
-    { name: 'Guitarist',   nameKey:'libGuitarist',   icon: 'cx-person',        type: 'Person' },
-    { name: 'Bassist',     nameKey:'libBassist',     icon: 'cx-person',        type: 'Person' },
-    { name: 'Drummer',     nameKey:'libDrummer',     icon: 'cx-person',        type: 'Person' },
-    { name: 'Keyboardist', nameKey:'libKeyboardist', icon: 'cx-person',        type: 'Person' },
-    { name: 'Tech',        nameKey:'libTech',        icon: 'cx-person',        type: 'Person' },
+    { name: 'Vocalist',    nameKey:'libVocalist',    icon: 'cx-vocalist',      type: 'Person' },
+    { name: 'Guitarist',   nameKey:'libGuitarist',   icon: 'cx-guitarist',     type: 'Person' },
+    { name: 'Bassist',     nameKey:'libBassist',     icon: 'cx-bassist',       type: 'Person' },
+    { name: 'Drummer',     nameKey:'libDrummer',     icon: 'cx-drummer',       type: 'Person' },
+    { name: 'Keyboardist', nameKey:'libKeyboardist', icon: 'cx-keyboardist',   type: 'Person' },
+    { name: 'Saxophonist', nameKey:'libSaxophonist', icon: 'cx-saxophonist',   type: 'Person' },
+    { name: 'Tech',        nameKey:'libTech',        icon: 'cx-tech',          type: 'Person' },
   ],
   drums: [
     { name: 'Drum Kit',    nameKey:'libDrumKit',     icon: 'drum',              type: 'Acoustic Drums' },
@@ -511,61 +512,68 @@ const library = {
 // ══════════════════════════════════════════════════════════
 const ICON_IMAGES = {
   // ── Mics ──────────────────────────────────────────────
-  'mic':                '/stage-core/icons/mic-sm58.svg',
-  'mic-2':              '/stage-core/icons/mic-condenser.svg',
-  'cx-wireless':        '/stage-core/icons/wireless-handheld.svg',
-  'cx-boundary':        '/stage-core/icons/boundary-mic.svg',
-  'cx-drum-clip':       '/stage-core/icons/drum-clip.svg',
+  'mic':                '/stage-core/icons/mic-sm58.png',
+  'mic-2':              '/stage-core/icons/mic-condenser.png',
+  'cx-wireless':        '/stage-core/icons/wireless-handheld.png',
+  'cx-boundary':        '/stage-core/icons/boundary-mic.png',
+  'cx-drum-clip':       '/stage-core/icons/drum-clip.png',
   'cx-mic-stand':       '/stage-core/icons/mic-stand.svg',
   // ── Drums ─────────────────────────────────────────────
-  'drum':               '/stage-core/icons/drum-kit.svg',
-  'cx-edrum':           '/stage-core/icons/edrum.svg',
-  'cx-percussion':      '/stage-core/icons/percussion.svg',
+  'drum':               '/stage-core/icons/drum-kit.png',
+  'cx-edrum':           '/stage-core/icons/edrum.png',
+  'cx-percussion':      '/stage-core/icons/percussion.png',
   'cx-cajon':           '/stage-core/icons/cajon.svg',
   'cx-shaker':          '/stage-core/icons/shaker.svg',
   'cx-tambourine':      '/stage-core/icons/tambourine.svg',
   // ── Instruments ───────────────────────────────────────
-  'guitar':             '/stage-core/icons/acoustic-guitar.svg',
-  'cx-elec-guitar':     '/stage-core/icons/elec-guitar.svg',
-  'cx-bass-guitar':     '/stage-core/icons/bass-guitar.svg',
-  'piano':              '/stage-core/icons/keyboard.svg',
-  'cx-synth':           '/stage-core/icons/synth.svg',
-  'cx-trumpet':         '/stage-core/icons/trumpet.svg',
-  'cx-violin':          '/stage-core/icons/violin.svg',
+  'guitar':             '/stage-core/icons/acoustic-guitar.png',
+  'cx-elec-guitar':     '/stage-core/icons/elec-guitar.png',
+  'cx-bass-guitar':     '/stage-core/icons/bass-guitar.png',
+  'piano':              '/stage-core/icons/keyboard.png',
+  'cx-synth':           '/stage-core/icons/synth.png',
+  'cx-trumpet':         '/stage-core/icons/trumpet.png',
+  'cx-violin':          '/stage-core/icons/violin.png',
   // ── Amps ──────────────────────────────────────────────
-  'cx-guitar-amp':      '/stage-core/icons/guitar-amp.svg',
-  'cx-bass-amp':        '/stage-core/icons/bass-amp.svg',
-  'cx-amp-cab':         '/stage-core/icons/amp-cab.svg',
-  'cx-bass-cab':        '/stage-core/icons/bass-cab.svg',
+  'cx-guitar-amp':      '/stage-core/icons/guitar-amp.png',
+  'cx-bass-amp':        '/stage-core/icons/bass-amp.png',
+  'cx-amp-cab':         '/stage-core/icons/amp-cab.png',
+  'cx-bass-cab':        '/stage-core/icons/bass-cab.png',
   // ── Audio / Monitors ──────────────────────────────────
-  'cx-wedge':           '/stage-core/icons/wedge.svg',
-  'volume-2':           '/stage-core/icons/main-pa.svg',
-  'disc':               '/stage-core/icons/stage-sub.svg',
-  'headphones':         '/stage-core/icons/iem-pack.svg',
-  'speaker':            '/stage-core/icons/drum-fill.svg',
+  'cx-wedge':           '/stage-core/icons/wedge.png',
+  'volume-2':           '/stage-core/icons/main-pa.png',
+  'disc':               '/stage-core/icons/stage-sub.png',
+  'headphones':         '/stage-core/icons/iem-pack.png',
+  'speaker':            '/stage-core/icons/drum-fill.png',
   'disc-2':             '/stage-core/icons/drum-sub.svg',
-  'megaphone':          '/stage-core/icons/side-fill.svg',
+  'megaphone':          '/stage-core/icons/side-fill.png',
   'radio':              '/stage-core/icons/delay-tower.svg',
-  'cx-front-fill':      '/stage-core/icons/front-fill.svg',
+  'cx-front-fill':      '/stage-core/icons/front-fill.png',
   'headset':            '/stage-core/icons/headphone-amp.svg',
   // ── Utilities ─────────────────────────────────────────
-  'sliders-vertical':   '/stage-core/icons/foh-console.svg',
-  'sliders-horizontal': '/stage-core/icons/mon-console.svg',
-  'server':             '/stage-core/icons/amp-rack.svg',
-  'cpu':                '/stage-core/icons/effects-rack.svg',
-  'cx-wireless-rack':   '/stage-core/icons/wireless-rack.svg',
+  'sliders-vertical':   '/stage-core/icons/foh-console.png',
+  'sliders-horizontal': '/stage-core/icons/mon-console.png',
+  'server':             '/stage-core/icons/amp-rack.png',
+  'cpu':                '/stage-core/icons/effects-rack.png',
+  'cx-wireless-rack':   '/stage-core/icons/wireless-rack.png',
   'laptop':             '/stage-core/icons/laptop.svg',
-  'cx-di-box':          '/stage-core/icons/di-box.svg',
+  'cx-di-box':          '/stage-core/icons/di-box.png',
   'repeat-2':           '/stage-core/icons/loop-station.svg',
   'play-circle':        '/stage-core/icons/playback.svg',
-  'box':                '/stage-core/icons/stage-box.svg',
-  'grid-3x3':           '/stage-core/icons/patch-bay.svg',
-  'zap':                '/stage-core/icons/power-distro.svg',
-  'git-branch':         '/stage-core/icons/splitter.svg',
+  'box':                '/stage-core/icons/stage-box.png',
+  'grid-3x3':           '/stage-core/icons/patch-bay.png',
+  'zap':                '/stage-core/icons/power-distro.png',
+  'git-branch':         '/stage-core/icons/splitter.png',
   'network':            '/stage-core/icons/router.svg',
-  'cx-outlet':          '/stage-core/icons/outlet.svg',
+  'cx-outlet':          '/stage-core/icons/outlet.webp',
   // ── People ────────────────────────────────────────────
-  'cx-person':          '/stage-core/icons/person.svg',
+  'cx-person':          '/stage-core/icons/person.png',
+  'cx-vocalist':        '/stage-core/icons/vocalist.png',
+  'cx-guitarist':       '/stage-core/icons/guitarist.png',
+  'cx-bassist':         '/stage-core/icons/bassist.png',
+  'cx-drummer':         '/stage-core/icons/drummer.png',
+  'cx-keyboardist':     '/stage-core/icons/keyboardist.png',
+  'cx-saxophonist':     '/stage-core/icons/saxophonist.png',
+  'cx-tech':            '/stage-core/icons/tech.png',
 };
 function iconHtml(icon, size, extra) {
   const src = ICON_IMAGES[icon];
@@ -808,6 +816,43 @@ const CUSTOM_ICONS = {
   'cx-person': `
     <circle cx="12" cy="5.5" r="3.5"/>
     <path d="M6 22 Q6 14 12 14 Q18 14 18 22"/>`,
+
+  'cx-vocalist': `
+    <circle cx="12" cy="5.5" r="3.5"/>
+    <path d="M6 22 Q6 14 12 14 Q18 14 18 22"/>
+    <line x1="12" y1="14" x2="12" y2="24"/>
+    <circle cx="12" cy="11" r="1.5" fill="currentColor"/>`,
+
+  'cx-guitarist': `
+    <circle cx="12" cy="5.5" r="3.5"/>
+    <path d="M6 22 Q6 14 12 14 Q18 14 18 22"/>
+    <path d="M7 16 L17 12 L18 14 L8 18 Z" fill="currentColor"/>`,
+
+  'cx-bassist': `
+    <circle cx="12" cy="5.5" r="3.5"/>
+    <path d="M6 22 Q6 14 12 14 Q18 14 18 22"/>
+    <path d="M7 17 L18 12 L19 14 L8 19 Z" fill="currentColor"/>`,
+
+  'cx-drummer': `
+    <circle cx="12" cy="5.5" r="3.5"/>
+    <path d="M6 22 Q6 14 12 14 Q18 14 18 22"/>
+    <rect x="6" y="16" width="12" height="6" rx="1" fill="none" stroke="currentColor"/>
+    <ellipse cx="12" cy="16" rx="6" ry="1" fill="currentColor"/>`,
+
+  'cx-keyboardist': `
+    <circle cx="12" cy="5.5" r="3.5"/>
+    <path d="M6 22 Q6 14 12 14 Q18 14 18 22"/>
+    <rect x="4" y="15" width="16" height="3" fill="currentColor"/>`,
+
+  'cx-saxophonist': `
+    <circle cx="12" cy="5.5" r="3.5"/>
+    <path d="M6 22 Q6 14 12 14 Q18 14 18 22"/>
+    <path d="M12 9 Q10 11 10 16 Q13 18 14 16 L13 14" fill="none" stroke="currentColor"/>`,
+
+  'cx-tech': `
+    <circle cx="12" cy="5.5" r="3.5"/>
+    <path d="M6 22 Q6 14 12 14 Q18 14 18 22"/>
+    <rect x="9" y="14" width="6" height="7" rx="0.5" fill="currentColor"/>`,
 };
 
 // ── Lucide helper: defers icon scan to after paint, optional scope ────────────
@@ -972,6 +1017,30 @@ if (_redoBtn) _redoBtn.addEventListener('click', redo);
 // ══════════════════════════════════════════════════════════
 //  VIEW SWITCHING
 // ══════════════════════════════════════════════════════════
+function updateSetupHubCounts() {
+  const riderBadge = document.getElementById('hub-counter-rider');
+  const setlistBadge = document.getElementById('hub-counter-setlist');
+  const gearBadge = document.getElementById('hub-counter-gear');
+  const membersBadge = document.getElementById('hub-counter-members');
+
+  if (riderBadge) {
+    const activeChannels = state.elements.length;
+    riderBadge.textContent = activeChannels === 1 ? '1 Channel' : `${activeChannels} Channels`;
+  }
+  if (setlistBadge) {
+    const songCount = state.setlist.length;
+    setlistBadge.textContent = songCount === 1 ? '1 Song' : `${songCount} Songs`;
+  }
+  if (gearBadge) {
+    const gearCount = state.gear.length;
+    gearBadge.textContent = gearCount === 1 ? '1 Item' : `${gearCount} Items`;
+  }
+  if (membersBadge) {
+    const memberCount = state.members.length;
+    membersBadge.textContent = memberCount === 1 ? '1 Member' : `${memberCount} Members`;
+  }
+}
+
 function switchView(view) {
   // Map React-facing view names to internal iframe view names
   if (view === 'Preferences') view = 'Assistant';
@@ -1019,13 +1088,18 @@ function switchView(view) {
   document.querySelectorAll('.mob-tab').forEach(b => {
     b.classList.toggle('active', b.dataset.view === view);
   });
-  if (view === 'Editor') { renderElements(); lcIcons(); renderScenesBar(); }
-  else { const _sb = document.getElementById('sc-scenes-bar'); if (_sb) _sb.style.display = 'none'; }
-  if (view === 'Rider') refreshRider();
-  if (view === 'Setlist') renderSetlist();
-  if (view === 'Gear') { renderGear(); lcIcons(); }
-  if (view === 'Members') { renderMembersView(); lcIcons(); }
-  if (view === 'Export') { if (prevView !== 'Export') state.prevView = prevView || 'Editor'; refreshExport(); }
+  try {
+    if (view === 'Editor') { renderElements(); lcIcons(); renderScenesBar(); }
+    else { const _sb = document.getElementById('sc-scenes-bar'); if (_sb) _sb.style.display = 'none'; }
+    if (view === 'SetupHub') updateSetupHubCounts();
+    if (view === 'Rider') refreshRider();
+    if (view === 'Setlist') renderSetlist();
+    if (view === 'Gear') { renderGear(); lcIcons(); }
+    if (view === 'Members') { renderMembersView(); lcIcons(); }
+    if (view === 'Export') { if (prevView !== 'Export') state.prevView = prevView || 'Editor'; refreshExport(); }
+  } catch (err) {
+    console.error("Error refreshing view content for: " + view, err);
+  }
   // Notify the React wrapper of view changes (shows/hides its back button)
   try { if (window.__onViewChange) window.__onViewChange(view); } catch(e) {}
   // Desktop: show category top bar only on Editor view
@@ -1343,6 +1417,193 @@ function closeItemSheet(goBackToChips) {
   }
 }
 
+const boundsCache = {};
+
+function getAssetAlphaBounds(src, callback) {
+  if (!src) { callback({ left: 0, top: 0, right: 1, bottom: 1, width: 1, height: 1 }); return; }
+  if (boundsCache[src]) {
+    callback(boundsCache[src]);
+    return;
+  }
+  const img = new Image();
+  img.crossOrigin = "Anonymous";
+  img.onload = () => {
+    try {
+      const canvas = document.createElement('canvas');
+      const ctx = canvas.getContext('2d');
+      const maxDim = 100;
+      let w = img.width;
+      let h = img.height;
+      if (w > maxDim || h > maxDim) {
+        const ratio = Math.min(maxDim / w, maxDim / h);
+        w = Math.round(w * ratio);
+        h = Math.round(h * ratio);
+      }
+      canvas.width = w;
+      canvas.height = h;
+      ctx.drawImage(img, 0, 0, w, h);
+      const imgData = ctx.getImageData(0, 0, w, h);
+      const data = imgData.data;
+      
+      let minX = w, maxX = 0, minY = h, maxY = 0;
+      let hasAlpha = false;
+      for (let y = 0; y < h; y++) {
+        for (let x = 0; x < w; x++) {
+          const idx = (y * w + x) * 4;
+          const alpha = data[idx + 3];
+          if (alpha > 10) {
+            hasAlpha = true;
+            if (x < minX) minX = x;
+            if (x > maxX) maxX = x;
+            if (y < minY) minY = y;
+            if (y > maxY) maxY = y;
+          }
+        }
+      }
+      
+      let result;
+      if (!hasAlpha) {
+        result = { left: 0, top: 0, right: 1, bottom: 1, width: 1, height: 1 };
+      } else {
+        result = {
+          left: minX / w,
+          top: minY / h,
+          right: maxX / w,
+          bottom: maxY / h,
+          width: (maxX - minX) / w,
+          height: (maxY - minY) / h
+        };
+      }
+      boundsCache[src] = result;
+      callback(result);
+    } catch (e) {
+      const fallback = { left: 0, top: 0, right: 1, bottom: 1, width: 1, height: 1 };
+      boundsCache[src] = fallback;
+      callback(fallback);
+    }
+  };
+  img.onerror = () => {
+    const fallback = { left: 0, top: 0, right: 1, bottom: 1, width: 1, height: 1 };
+    boundsCache[src] = fallback;
+    callback(fallback);
+  };
+  img.src = src;
+}
+
+function isPointerInBounds(e, dom, el) {
+  const icon = dom.querySelector('.el-icon img');
+  if (!icon) return true;
+  
+  const src = icon.getAttribute('src');
+  const bounds = boundsCache[src];
+  if (!bounds) return true;
+  
+  const rect = icon.getBoundingClientRect();
+  const imgW = icon.offsetWidth || 44;
+  const imgH = icon.offsetHeight || 44;
+  
+  const cx = rect.left + rect.width / 2;
+  const cy = rect.top + rect.height / 2;
+  
+  const rx = e.clientX - cx;
+  const ry = e.clientY - cy;
+  
+  const angleRad = (el.rotation || 0) * Math.PI / 180;
+  
+  const rxUn = rx * Math.cos(-angleRad) - ry * Math.sin(-angleRad);
+  const ryUn = rx * Math.sin(-angleRad) + ry * Math.cos(-angleRad);
+  
+  const lx = rxUn + imgW / 2;
+  const ly = ryUn + imgH / 2;
+  
+  const px = lx / imgW;
+  const py = ly / imgH;
+  
+  return px >= bounds.left && px <= bounds.right && py >= bounds.top && py <= bounds.bottom;
+}
+
+function repositionResizeBar(wrap) {
+  const bar = wrap.querySelector('.el-resize-bar');
+  if (!bar) return;
+  if (!wrap.classList.contains('selected')) return;
+
+  const canvas = document.getElementById('stage-canvas') || document.body;
+  const canvasRect = canvas.getBoundingClientRect();
+
+  const elId = wrap.id.replace('elem-', '');
+  const elementObj = state.elements.find(e => e.id === elId);
+  if (!elementObj) return;
+
+  const elContent = wrap.querySelector('.el-content');
+  const w = elContent ? elContent.offsetWidth : 60;
+  const h = elContent ? elContent.offsetHeight : 60;
+  const scale = elementObj.scale / 100;
+
+  let bounds = { left: 0, top: 0, right: 1, bottom: 1, width: 1, height: 1 };
+  if (wrap.dataset.bounds) {
+    try {
+      bounds = JSON.parse(wrap.dataset.bounds);
+    } catch {}
+  }
+
+  const tightW = w * bounds.width * scale;
+  const tightH = h * bounds.height * scale;
+
+  const tightCenterX = w * (bounds.left + bounds.width / 2 - 0.5) * scale;
+  const tightCenterY = h * (bounds.top + bounds.height / 2 - 0.5) * scale;
+
+  const barW = 140;
+  const barH = 32;
+
+  let localX = tightCenterX - barW / 2;
+  let localY = (tightCenterY - tightH / 2) - barH - 8;
+
+  const absX = elementObj.x + localX;
+  const absY = elementObj.y + localY;
+
+  const pad = 12;
+  let finalAbsX = Math.max(pad, Math.min(canvasRect.width - barW - pad, absX));
+  let finalAbsY = absY;
+
+  if (finalAbsY < pad) {
+    finalAbsY = elementObj.y + (tightCenterY + tightH / 2) + 8;
+  }
+
+  const relX = finalAbsX - elementObj.x;
+  const relY = finalAbsY - elementObj.y;
+
+  bar.style.position = 'absolute';
+  bar.style.top = '0px';
+  bar.style.left = '0px';
+  bar.style.transform = `translate(${relX}px, ${relY}px)`;
+}
+
+function getDefaultScale(item) {
+  const isMobile = window.innerWidth < 768;
+  const baseScale = isMobile ? 65 : 100;
+  if (!item) return baseScale;
+  const type = (item.type || '').toLowerCase();
+  const name = (item.name || '').toLowerCase();
+  const icon = (item.icon || '').toLowerCase();
+
+  if (type.includes('drum') || icon.includes('drum')) {
+    return isMobile ? 80 : 125;
+  }
+  if (type.includes('person') || icon.includes('person') || icon.includes('performer') || icon.includes('vocalist') || icon.includes('bassist') || icon.includes('drummer') || icon.includes('guitarist') || icon.includes('keyboardist') || icon.includes('saxophonist') || icon.includes('tech')) {
+    return isMobile ? 78 : 120;
+  }
+  if (type.includes('mic') || type.includes('stand') || icon.includes('mic') || name.includes('sm58') || name.includes('wireless') || name.includes('condenser')) {
+    return isMobile ? 55 : 85;
+  }
+  if (type.includes('guitar') || icon.includes('guitar') || name.includes('guitar') || icon.includes('bass')) {
+    return isMobile ? 75 : 115;
+  }
+  if (type.includes('amplifier') || type.includes('cabinet') || type.includes('cab') || type.includes('speaker') || type.includes('wedge') || type.includes('fill') || type.includes('pa') || icon.includes('amp') || icon.includes('cab') || icon.includes('wedge') || icon.includes('speaker') || icon.includes('volume') || name.includes('amp') || name.includes('cab')) {
+    return isMobile ? 75 : 115;
+  }
+  return isMobile ? 65 : 100;
+}
+
 // ── Mobile: add library item directly to center of stage ──────
 function addItemToStage(item) {
   const rect = stageCanvas.getBoundingClientRect();
@@ -1356,7 +1617,7 @@ function addItemToStage(item) {
   const el = {
     id: 'el-' + state.nextId++, name: item.name, label: displayName.toUpperCase(),
     icon: item.icon, type: item.type, x, y, rotation: 0,
-    scale: window.innerWidth < 768 ? 65 : 100,
+    scale: getDefaultScale(item),
     channelId: 'CH-' + channelNum, source: 'SL01', output: 'FOH',
     phantom: false, notes: '', color: item.color || '#7aafff', roles: [],
     ...(isCustom ? { isCustom: true, emoji: item.emoji, ...(item.imageData ? { imageData: item.imageData } : {}) } : {}),
@@ -1600,7 +1861,7 @@ function handleDrop(e) {
     type: raw.type,
     x, y,
     rotation: 0,
-    scale: window.innerWidth < 768 ? 65 : 100,
+    scale: getDefaultScale(raw),
     channelId: 'CH-' + channelNum,
     source: 'SL01',
     output: 'FOH',
@@ -1802,6 +2063,7 @@ function renderElements() {
   updateStatusBar();
   // Scope to the layer only — never scan the full document (very slow)
   lcIcons(layer);
+  updateDropHint();
 }
 
 function createElementDOM(el) {
@@ -1827,16 +2089,37 @@ function createElementDOM(el) {
       <span class="el-scale-display">${el.scale}%</span>
       <button title="Smaller" data-action="smaller"><span class="material-symbols-outlined" style="font-size:15px;">remove</span></button>
       <button title="Rotate" data-action="rotate"><span class="material-symbols-outlined" style="font-size:15px;">rotate_left</span></button>
-      <div style="width:16px;height:1px;background:rgba(255,255,255,0.08);margin:2px 0;"></div>
+      <div style="width:1px;height:16px;background:rgba(255,255,255,0.08);margin:0 2px;"></div>
       <button title="Remove" data-action="remove" style="color:rgba(255,113,108,0.7);">
         <span class="material-symbols-outlined" style="font-size:15px;">delete</span>
       </button>
     </div>`);
 
+  const src = el.imageData || ICON_IMAGES[el.icon];
+  if (src) {
+    getAssetAlphaBounds(src, (bounds) => {
+      wrap.dataset.bounds = JSON.stringify(bounds);
+      if (state.selectedId === el.id) {
+        repositionResizeBar(wrap);
+      }
+    });
+  }
+
   // Click to select / drag (pointer events – mouse & trackpad only; touch uses touchstart below)
   wrap.addEventListener('pointerdown', e => {
     if (e.pointerType === 'touch') return; // handled by touchstart
     if (e.button !== 0) return;
+    if (!isPointerInBounds(e, wrap, el)) {
+      const prevPE = wrap.style.pointerEvents;
+      wrap.style.pointerEvents = 'none';
+      const behind = document.elementFromPoint(e.clientX, e.clientY);
+      wrap.style.pointerEvents = prevPE;
+      if (behind && behind !== wrap) {
+        const newEvent = new MouseEvent(e.type, e);
+        behind.dispatchEvent(newEvent);
+        return;
+      }
+    }
     e.stopPropagation();
     if (state.connectMode) { handleConnectClick(el.id); return; }
     // Ctrl/Cmd+click is handled by features.js capture-phase listener — skip here
@@ -1850,6 +2133,25 @@ function createElementDOM(el) {
   });
   // Touch: select + drag on mobile (or fire connect in connect mode)
   wrap.addEventListener('touchstart', e => {
+    if (e.touches.length !== 1) return;
+    const touch = e.touches[0];
+    if (!isPointerInBounds(touch, wrap, el)) {
+      const prevPE = wrap.style.pointerEvents;
+      wrap.style.pointerEvents = 'none';
+      const behind = document.elementFromPoint(touch.clientX, touch.clientY);
+      wrap.style.pointerEvents = prevPE;
+      if (behind && behind !== wrap) {
+        const newEvent = new TouchEvent(e.type, {
+          touches: Array.from(e.touches),
+          targetTouches: Array.from(e.targetTouches),
+          changedTouches: Array.from(e.changedTouches),
+          bubbles: true,
+          cancelable: true
+        });
+        behind.dispatchEvent(newEvent);
+        return;
+      }
+    }
     e.stopPropagation();
     // In connect mode, a tap means "pick this element for the connection",
     // NOT drag it. Mirrors the mouse path in the pointerdown handler above.
@@ -1858,8 +2160,8 @@ function createElementDOM(el) {
       return;
     }
     selectElement(el.id);
-    if (!e.target.closest('.el-resize-bar') && e.touches.length === 1) {
-      startTouchDragElement(e.touches[0], el);
+    if (!e.target.closest('.el-resize-bar')) {
+      startTouchDragElement(touch, el);
     }
   }, { passive: true });
 
@@ -1879,6 +2181,7 @@ function createElementDOM(el) {
     if (iconWrap) iconWrap.style.transform = `rotate(${el.rotation}deg)`;
     document.getElementById('input-rotation').value = el.rotation;
     pushHistory();
+    repositionResizeBar(wrap);
   });
   const removeBtn = wrap.querySelector('[data-action="remove"]');
   removeBtn.addEventListener('mousedown', e => { e.stopPropagation(); removeSelected(); });
@@ -1899,6 +2202,7 @@ function scaleElementBy(el, delta) {
     if (disp) disp.textContent = el.scale + '%';
     clearTimeout(_scaleAnimTid);
     _scaleAnimTid = setTimeout(() => dom.classList.remove('scaling'), 250);
+    repositionResizeBar(dom);
   }
   document.getElementById('input-scale').value = el.scale;
   // Debounce: only push one history snapshot after rapid clicks settle
@@ -2096,6 +2400,7 @@ function startDragElement(e, el) {
     _propPeek(false);
     var _tb2 = document.getElementById('bottom-toolbar');
     if (_tb2) _tb2.classList.remove('tb-dragging');
+    repositionResizeBar(wrap);
   };
 
   wrap.addEventListener('pointermove', onMove);
@@ -2135,6 +2440,8 @@ function startTouchDragElement(touch, el) {
     var _tb2 = document.getElementById('bottom-toolbar');
     if (_tb2) _tb2.classList.remove('tb-dragging');
     pushHistory();
+    const dom = document.getElementById('elem-' + el.id);
+    if (dom) repositionResizeBar(dom);
   };
   window.addEventListener('touchmove', onMove, { passive: false });
   window.addEventListener('touchend', onEnd);
@@ -2152,7 +2459,10 @@ function selectElement(id) {
   state.selectedId = id;
   document.querySelectorAll('.stage-element').forEach(d => d.classList.remove('selected'));
   const dom = document.getElementById('elem-' + id);
-  if (dom) dom.classList.add('selected');
+  if (dom) {
+    dom.classList.add('selected');
+    repositionResizeBar(dom);
+  }
   updatePropertiesPanel();
   updateStatusBar(); // refresh SEL stat
   // Selecting a different element always resets the dismissed flag and peeks
@@ -2330,7 +2640,12 @@ function removeSelected() {
 }
 
 function updateDropHint() {
-  document.getElementById('drop-zone-hint').style.opacity = '0';
+  const hint = document.getElementById('drop-zone-hint');
+  if (!hint) return;
+  const show = state.elements.length === 0;
+  hint.style.opacity = show ? '1' : '0';
+  hint.style.transform = show ? 'translate(-50%, -50%) scale(1)' : 'translate(-50%, -44%) scale(0.96)';
+  hint.style.pointerEvents = show ? 'auto' : 'none';
 }
 
 // ══════════════════════════════════════════════════════════
@@ -3240,6 +3555,29 @@ function cycleColor(id) {
   saveProject();
 }
 
+function renderAvatarGroup() {
+  const container = document.getElementById('members-avatar-group');
+  if (!container) return;
+  if (state.members.length === 0) {
+    container.style.display = 'none';
+    return;
+  }
+  container.style.display = 'flex';
+  const maxAvatars = 5;
+  const visibleMembers = state.members.slice(0, maxAvatars);
+  const overflow = state.members.length - maxAvatars;
+
+  let html = visibleMembers.map((m, idx) => {
+    const letter = m.name ? m.name.charAt(0).toUpperCase() : '?';
+    return `<div class="sc-avatar" style="background:${m.color};color:#fff;z-index:${visibleMembers.length - idx};" title="${m.name}">${letter}</div>`;
+  }).join('');
+
+  if (overflow > 0) {
+    html += `<div class="sc-avatar sc-avatar-more" style="background:#27272a;color:#a1a1aa;z-index:0;">+${overflow}</div>`;
+  }
+  container.innerHTML = DOMPurify.sanitize(html);
+}
+
 function renderMembersView() {
   const grid = document.getElementById('members-grid');
   const empty = document.getElementById('members-empty');
@@ -3263,6 +3601,8 @@ function renderMembersView() {
   if (maxWarn) maxWarn.style.display = state.members.length >= 8 ? 'block' : 'none';
   if (addBtn) { addBtn.disabled = state.members.length >= 8; addBtn.style.opacity = state.members.length >= 8 ? '0.35' : '1'; addBtn.style.cursor = state.members.length >= 8 ? 'not-allowed' : 'pointer'; }
 
+  renderAvatarGroup();
+
   if (state.members.length === 0) {
     grid.style.display = 'none';
     if (empty) empty.style.display = 'flex';
@@ -3273,36 +3613,50 @@ function renderMembersView() {
 
   grid.innerHTML = DOMPurify.sanitize(state.members.map(m => {
     const assigned = state.elements.filter(el => el.memberId === m.id);
-    const colorIdx = MEMBER_COLORS.indexOf(m.color);
-    const nextColor = MEMBER_COLORS[(colorIdx + 1) % MEMBER_COLORS.length];
+    
+    let role = state.lang === 'es' ? 'Artista' : 'Performer';
+    if (assigned.length > 0) {
+      const names = assigned.map(el => (el.name || '').toLowerCase());
+      if (names.some(n => n.includes('drum'))) role = state.lang === 'es' ? 'Baterista' : 'Drummer';
+      else if (names.some(n => n.includes('guitar'))) role = state.lang === 'es' ? 'Guitarrista' : 'Guitarist';
+      else if (names.some(n => n.includes('bass'))) role = state.lang === 'es' ? 'Bajista' : 'Bassist';
+      else if (names.some(n => n.includes('vocal') || n.includes('mic'))) role = state.lang === 'es' ? 'Vocalista' : 'Vocalist';
+      else if (names.some(n => n.includes('key') || n.includes('piano'))) role = state.lang === 'es' ? 'Tecladista' : 'Keyboardist';
+      else role = assigned[0].name || (state.lang === 'es' ? 'Artista' : 'Performer');
+    }
+
     const itemsHtml = assigned.length > 0
       ? assigned.map(el => `
-          <div style="display:flex;align-items:center;gap:8px;padding:7px 14px;border-bottom:1px solid rgba(255,255,255,0.03);">
-            <div style="width:8px;height:8px;background:${el.color || m.color};flex-shrink:0;"></div>
-            <span style="font-size:11px;color:#d4d4d4;font-weight:600;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${el.label || el.name || '—'}</span>
-            ${el.channelId ? `<span style="font-size:9px;font-weight:700;font-family:'Manrope',sans-serif;color:#7aafff;letter-spacing:0.05em;">CH&nbsp;${el.channelId}</span>` : ''}
+          <div style="display:flex;align-items:center;gap:8px;padding:8px 14px;border-bottom:1px solid rgba(255,255,255,0.04);">
+            <div style="width:6px;height:6px;border-radius:50%;background:${el.color || m.color};flex-shrink:0;"></div>
+            <span style="font-size:11px;color:#d4d4d4;font-weight:500;font-family:'Inter',sans-serif;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${el.label || el.name || '—'}</span>
+            ${el.channelId ? `<span style="font-size:9px;font-weight:700;font-family:'Manrope',sans-serif;color:#3b82f6;letter-spacing:0.05em;">CH&nbsp;${el.channelId}</span>` : ''}
           </div>`).join('')
-      : `<div style="padding:16px 14px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.15em;color:#2a2a2a;text-align:center;">${T('noStageAssign')}</div>`;
+      : `<div style="padding:16px 14px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.15em;color:#5a5a59;text-align:center;">${T('noStageAssign')}</div>`;
+
+    const avatarLetter = m.name ? m.name.charAt(0).toUpperCase() : '?';
 
     return `
-    <div style="background:#0e0e0e;border:1px solid #1a1a1a;border-left:4px solid ${m.color};display:flex;flex-direction:column;transition:border-color 0.2s;">
-      <!-- Card header -->
-      <div style="display:flex;align-items:center;gap:10px;padding:16px 14px 14px;border-bottom:1px solid #111;">
-        <button onclick="cycleColor('${m.id}')" title="Change color (current: ${m.color})"
-          style="width:20px;height:20px;border-radius:50%;background:${m.color};border:2px solid rgba(255,255,255,0.08);cursor:pointer;flex-shrink:0;transition:transform 0.15s;outline:none;"
-          onmouseover="this.style.transform='scale(1.2)';this.title='Next: ${nextColor}'" onmouseout="this.style.transform='scale(1)'"></button>
-        <span style="flex:1;font-family:'Manrope',sans-serif;font-size:14px;font-weight:800;text-transform:uppercase;color:#fff;letter-spacing:0.05em;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${m.name}</span>
-        ${assigned.length > 0 ? `<span style="font-size:9px;font-weight:800;font-family:'Manrope',sans-serif;color:${m.color};background:${m.color}1a;padding:2px 8px;letter-spacing:0.1em;">${assigned.length}&nbsp;elem</span>` : ''}
-        <button onclick="removeMember('${m.id}')" title="Remove ${m.name}"
-          style="color:#2a2a2a;background:none;border:none;cursor:pointer;font-size:18px;padding:0 2px;line-height:1;flex-shrink:0;transition:color 0.15s;"
-          onmouseover="this.style.color='#ff716c'" onmouseout="this.style.color='#2a2a2a'">×</button>
+    <div class="sc-member-card">
+      <div class="sc-member-card-hdr">
+        <div class="sc-member-avatar" style="background:${m.color};" onclick="cycleColor('${m.id}')" title="${state.lang === 'es' ? 'Haz clic para cambiar color' : 'Click to cycle color'}">
+          ${avatarLetter}
+        </div>
+        <div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:2px;">
+          <span class="sc-member-name" title="${m.name}">${m.name}</span>
+          <span class="sc-member-role">${role}</span>
+        </div>
+        <button onclick="removeMember('${m.id}')" title="${state.lang === 'es' ? 'Eliminar ' + m.name : 'Remove ' + m.name}" class="sc-member-del-btn">
+          <span class="material-symbols-outlined" style="font-size:16px;">delete</span>
+        </button>
       </div>
-      <!-- Assignment list -->
-      <div style="flex:1;">
-        <div style="padding:6px 14px 4px;font-size:8px;font-weight:700;text-transform:uppercase;letter-spacing:0.2em;color:#2a2a2a;">
+      <div class="sc-member-assignments">
+        <div class="sc-member-assignments-lbl">
           ${assigned.length > 0 ? T('assignedElems') : T('assignments')}
         </div>
-        ${itemsHtml}
+        <div class="sc-member-assignments-list">
+          ${itemsHtml}
+        </div>
       </div>
     </div>`;
   }).join(''));
@@ -3347,7 +3701,9 @@ function refreshRider() {
     emptyRow.appendChild(emptyTd);
     tbody.appendChild(emptyRow);
   } else {
-    var sorted = [...elems].sort(function(a, b) { return (a.channelId || '').localeCompare(b.channelId || ''); });
+    var sorted = [...elems].sort(function(a, b) {
+      return String(a.channelId ?? '').localeCompare(String(b.channelId ?? ''), undefined, {numeric: true, sensitivity: 'base'});
+    });
     while (tbody.firstChild) tbody.removeChild(tbody.firstChild);
     sorted.forEach(function(el, i) {
       var chNum = 'CH-' + String(i + 1).padStart(2, '0');
@@ -3588,22 +3944,26 @@ function renderRiderNeeds() {
     const activePresets = (isEs ? (nt.presetsEs || nt.presets) : nt.presets);
     const presets = activePresets.map(p =>
       `<button onclick="applyNeedPreset('${need.id}',this.textContent)" title="${p}"
-        style="padding:3px 8px;font-size:10px;font-family:'Manrope',sans-serif;background:var(--rn-chip-bg);color:var(--rn-muted);border:1px solid var(--rn-border);cursor:pointer;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:160px;">${p}</button>`
+        style="padding:3px 8px;font-size:10px;font-family:'Manrope',sans-serif;background:var(--rn-chip-bg);color:var(--rn-muted);border:1px solid var(--rn-border);border-radius:4px;cursor:pointer;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:160px;transition:all 0.2s;"
+        onmouseover="this.style.color='var(--rn-text)';this.style.borderColor='var(--rn-text)'"
+        onmouseout="this.style.color='var(--rn-muted)';this.style.borderColor='var(--rn-border)'">${p}</button>`
     ).join('');
     return `
-    <div style="border-left:3px solid ${nt.color};background:var(--rn-card-bg);">
+    <div style="border:1px solid var(--rn-border);background:var(--rn-card-bg);color:var(--rn-text);border-radius:8px;margin-bottom:8px;overflow:hidden;transition:border-color 0.2s;">
       <div style="display:flex;align-items:center;gap:8px;padding:10px 12px 6px;">
         <select onchange="updateNeedType('${need.id}',this.value)"
-          style="flex:1;padding:5px 8px;font-family:'Manrope',sans-serif;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;background:var(--rn-input-bg);color:${nt.color};border:1px solid var(--rn-border);cursor:pointer;">
+          style="flex:1;padding:5px 8px;font-family:'Manrope',sans-serif;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;background:var(--rn-input-bg);color:var(--rn-text);border:1px solid var(--rn-border);border-radius:4px;cursor:pointer;">
           ${typeOptions}
         </select>
         <button onclick="removeRiderNeed('${need.id}')"
-          style="width:24px;height:24px;display:flex;align-items:center;justify-content:center;background:none;border:1px solid rgba(255,116,57,0.3);color:#ff7439;cursor:pointer;font-size:14px;flex-shrink:0;">×</button>
+          style="width:24px;height:24px;display:flex;align-items:center;justify-content:center;background:none;border:1px solid var(--rn-border);color:var(--rn-muted);cursor:pointer;font-size:14px;flex-shrink:0;border-radius:4px;transition:all 0.2s;"
+          onmouseover="this.style.color='#f43f5e';this.style.borderColor='#f43f5e';this.style.background='rgba(244,63,94,0.05)'"
+          onmouseout="this.style.color='var(--rn-muted)';this.style.borderColor='var(--rn-border)';this.style.background='none'">×</button>
       </div>
       ${presets ? `<div style="display:flex;flex-wrap:wrap;gap:4px;padding:0 12px 8px;">${presets}</div>` : ''}
       <div style="padding:0 12px 10px;">
         <textarea rows="2" onchange="updateNeedValue('${need.id}',this.value)"
-          style="width:100%;resize:none;background:var(--rn-input-bg);color:var(--rn-text);border:1px solid var(--rn-border);padding:7px 10px;font-family:'Inter';font-size:12px;line-height:1.5;box-sizing:border-box;">${need.value}</textarea>
+          style="width:100%;resize:none;background:var(--rn-input-bg);color:var(--rn-text);border:1px solid var(--rn-border);border-radius:4px;padding:7px 10px;font-family:'Inter';font-size:12px;line-height:1.5;box-sizing:border-box;">${need.value}</textarea>
       </div>
     </div>`;
   }).join(''));
@@ -4530,22 +4890,58 @@ async function applySmartSort() {
 //  CUSTOM CONFIRM (replaces browser confirm() blocked in iframes)
 // ══════════════════════════════════════════════════════════
 let _confirmCb = null;
-function showConfirm(message, onOk) {
+function showConfirm(message, onOk, options = {}) {
   _confirmCb = onOk;
-  document.getElementById('confirm-msg').textContent = message;
+  const title = options.title || (state.lang === 'es' ? 'Confirmar' : 'Confirm');
+  const okText = options.okText || (state.lang === 'es' ? 'Confirmar' : 'Confirm');
+  const cancelText = options.cancelText || (state.lang === 'es' ? 'Cancelar' : 'Cancel');
+  const isDestructive = options.isDestructive || false;
+
+  const titleEl = document.getElementById('confirm-title');
+  if (titleEl) titleEl.textContent = title;
+  
+  const msgEl = document.getElementById('confirm-msg');
+  if (msgEl) msgEl.textContent = message;
+  
+  const okBtn = document.getElementById('confirm-ok-btn');
+  if (okBtn) {
+    okBtn.textContent = okText;
+    if (isDestructive) {
+      okBtn.style.background = 'var(--hot)';
+    } else {
+      okBtn.style.background = 'var(--accent)';
+    }
+  }
+  
+  const cancelBtn = document.getElementById('confirm-cancel-btn');
+  if (cancelBtn) {
+    cancelBtn.textContent = cancelText;
+    cancelBtn.focus();
+  }
+
   const el = document.getElementById('confirm-modal');
-  el.style.display = 'flex';
-  lcIcons();
+  if (el) el.style.display = 'flex';
+  if (typeof lcIcons === 'function') lcIcons();
 }
+
 function doConfirm(ok) {
-  document.getElementById('confirm-modal').style.display = 'none';
+  const el = document.getElementById('confirm-modal');
+  if (el) el.style.display = 'none';
   if (ok && typeof _confirmCb === 'function') _confirmCb();
   _confirmCb = null;
 }
 
-// ══════════════════════════════════════════════════════════
-//  PRESETS
-// ══════════════════════════════════════════════════════════
+// Close confirm modal on Escape key
+document.addEventListener('keydown', function(e) {
+  if (e.key === 'Escape') {
+    const el = document.getElementById('confirm-modal');
+    if (el && el.style.display !== 'none') {
+      doConfirm(false);
+    }
+  }
+});
+
+
 const PRESETS_KEY = 'stagecorePresets_v1';
 
 function getPresets() {
@@ -4769,9 +5165,9 @@ document.addEventListener('keydown', function(e) {
 // ══════════════════════════════════════════════════════════
 const GEAR_CATS = ['Instruments','Microphones','Audio','Cables','Power','Outboard','Stands','Misc'];
 const GEAR_CAT_COLORS = {
-  'Instruments':'#7aafff','Microphones':'#ff7439','Audio':'#c5ffc9',
-  'Cables':'#ffcc44','Power':'#ff716c','Outboard':'#bf99ff',
-  'Stands':'#adaaaa','Misc':'#484847'
+  'Instruments':'#a3a3a3','Microphones':'#a3a3a3','Audio':'#a3a3a3',
+  'Cables':'#a3a3a3','Power':'#a3a3a3','Outboard':'#a3a3a3',
+  'Stands':'#a3a3a3','Misc':'#a3a3a3'
 };
 
 let _gearNextId = 1;
@@ -4875,7 +5271,7 @@ function renderGear() {
       var rowCls = 'gear-item-row' + (g.packed ? ' packed' : '') + (isNew ? ' gear-new' : '') + (isFiltering && !isNew ? ' gear-filter-in' : '');
       return catHdr + `<div class="${rowCls}" data-gear-id="${g.id}">
         <div class="gear-item-check${g.packed ? ' checked' : ''}" onclick="toggleGearPacked(${g.id})" data-check-id="${g.id}">
-          ${g.packed ? '<span class="material-symbols-outlined" style="font-size:15px;color:#002e00;">check</span>' : ''}
+          ${g.packed ? '<span class="material-symbols-outlined" style="font-size:15px;color:#ffffff;">check</span>' : ''}
         </div>
         <div class="gear-item-info">
           <p class="gear-item-name${g.packed ? ' struck' : ''}">${escapeHtml(g.name)}</p>
@@ -5173,15 +5569,18 @@ function removeScene(idx) {
   if (state.scenes.length <= 1) return; // keep at least one
   if (idx < 0 || idx >= state.scenes.length) return;
   const sceneName = state.scenes[idx].name;
-  const msg = state.lang === 'es'
-    ? '¿Eliminar "' + sceneName + '"? Esta acción no se puede deshacer.'
-    : 'Delete "' + sceneName + '"? This cannot be undone.';
-  showConfirm(msg, () => {
-    // If removing the active scene, switch to a neighbour first
+  
+  const title = state.lang === 'es' ? '¿Eliminar escena?' : 'Delete scene?';
+  const body = state.lang === 'es' 
+    ? 'Esto eliminará esta escena de tu plano de escenario. Esta acción no se puede deshacer.'
+    : 'This will remove this scene from your stage plot. This action cannot be undone.';
+  const deleteBtnText = state.lang === 'es' ? 'Eliminar' : 'Delete';
+  const cancelBtnText = state.lang === 'es' ? 'Cancelar' : 'Cancel';
+  
+  showConfirm(body, () => {
     const wasActive = (idx === state.currentSceneIdx);
     if (!wasActive) _persistCurrentScene();
     state.scenes.splice(idx, 1);
-    // Renumber default names if they look like "Scene N"
     state.scenes.forEach((s, i) => {
       if (/^Scene\s+\d+$/.test(s.name)) s.name = 'Scene ' + (i + 1);
     });
@@ -5189,18 +5588,17 @@ function removeScene(idx) {
     if (wasActive) target = Math.max(0, idx - 1);
     else if (idx < state.currentSceneIdx) target = state.currentSceneIdx - 1;
     state.currentSceneIdx = -1; // force load
-    _loadScene(target);
+    switchScene(target);
     renderAll();
     renderScenesBar();
     saveProject();
-  });
+  }, { title: title, okText: deleteBtnText, cancelText: cancelBtnText, isDestructive: true });
 }
 
 function renderScenesBar() {
   const bar = document.getElementById('sc-scenes-bar');
   if (!bar) return;
   _ensureScenes();
-  // Only show on Editor view
   if (state.currentView !== 'Editor') {
     bar.style.display = 'none';
     return;
@@ -5211,61 +5609,26 @@ function renderScenesBar() {
     return `
       <button onclick="switchScene(${i})" title="${s.name}"
         oncontextmenu="event.preventDefault();renameScenePrompt(${i});return false;"
-        style="display:inline-flex;align-items:center;gap:4px;height:20px;padding:0 7px;
-               border-radius:5px;border:1px solid ${active ? 'var(--accent)' : 'rgba(255,255,255,0.10)'};
-               background:${active ? 'var(--accent-12)' : 'rgba(255,255,255,0.04)'};
-               color:${active ? 'var(--accent)' : '#a0a0a0'};
-               font-family:'Manrope',sans-serif;font-size:8.5px;font-weight:800;
-               text-transform:uppercase;letter-spacing:0.08em;cursor:pointer;
-               transition:background 0.15s,color 0.15s,border-color 0.15s;">
+        class="sc-scene-btn ${active ? 'active' : ''}">
         <span>${s.name}</span>
-        ${state.scenes.length > 1 ? `<span onclick="event.stopPropagation();removeScene(${i})"
-           style="opacity:0.5;font-size:11px;line-height:1;cursor:pointer;margin-left:1px;"
-           onmouseover="this.style.opacity='1'" onmouseout="this.style.opacity='0.5'">×</span>` : ''}
+        ${state.scenes.length > 1 ? `<span onclick="event.stopPropagation();removeScene(${i})" class="sc-scene-close">×</span>` : ''}
       </button>`;
   }).join('');
+  
   const addHtml = state.scenes.length < SCENES_MAX
-    ? `<button onclick="addScene()" title="${state.lang === 'es' ? 'Añadir escena' : 'Add scene'}"
-         style="display:inline-flex;align-items:center;justify-content:center;
-                width:20px;height:20px;border-radius:5px;
-                border:1px dashed var(--accent);background:transparent;color:var(--accent);
-                cursor:pointer;transition:background 0.15s;"
-         onmouseover="this.style.background='var(--accent-12)'"
-         onmouseout="this.style.background='transparent'">
-         <span class="material-symbols-outlined" style="font-size:13px;line-height:1;">add</span>
+    ? `<button onclick="addScene()" title="${state.lang === 'es' ? 'Añadir escena' : 'Add scene'}" class="sc-scene-add-btn">
+         <span class="material-symbols-outlined" style="font-size:14px;line-height:1;">add</span>
        </button>`
     : '';
+
   bar.innerHTML = DOMPurify.sanitize(
-    `<span style="font-family:'Manrope',sans-serif;font-size:7px;font-weight:800;
-                  text-transform:uppercase;letter-spacing:0.18em;color:#5a5a5a;
-                  margin-right:4px;">${state.lang === 'es' ? 'Escenas' : 'Scenes'}</span>` +
+    `<span class="sc-scene-label">${state.lang === 'es' ? 'Escenas' : 'Scenes'}</span>` +
     tabsHtml + addHtml
   );
   requestAnimationFrame(positionScenesBar);
 }
 
-function positionScenesBar() {
-  const bar = document.getElementById('sc-scenes-bar');
-  const canvas = document.getElementById('stage-canvas');
-  const container = document.getElementById('canvas-container');
-  if (!bar || !canvas || !container || bar.style.display === 'none') return;
-  if (state.gigMode) return;
-  const cRect = canvas.getBoundingClientRect();
-  const kRect = container.getBoundingClientRect();
-  const barH = bar.offsetHeight || 36;
-  const top = cRect.top - kRect.top - barH - 6;
-  const left = cRect.left - kRect.left;
-  bar.style.top = Math.max(4, top) + 'px';
-  bar.style.left = left + 'px';
-}
-
-// Reposition scenes bar whenever the stage canvas resizes (orientation change, panel open/close)
-(function _initScenesBarResizeObserver() {
-  if (typeof ResizeObserver === 'undefined') return;
-  const canvas = document.getElementById('stage-canvas');
-  if (!canvas) return;
-  new ResizeObserver(() => positionScenesBar()).observe(canvas);
-})();
+function positionScenesBar() {}
 
 function renameScenePrompt(idx) {
   _ensureScenes();
@@ -6309,7 +6672,7 @@ function refreshExportInputList() {
   }
   if (empty) empty.style.display = 'none';
 
-  const sorted = [...state.elements].sort((a, b) => a.channelId.localeCompare(b.channelId));
+  const sorted = [...state.elements].sort((a, b) => String(a.channelId ?? '').localeCompare(String(b.channelId ?? ''), undefined, {numeric: true, sensitivity: 'base'}));
   const rowsHtml = sorted.map((el, i) => {
     const micDI = Ttype(el.type || el.name) || '—';
     const source = TSource(el.source) || el.source || '—';
@@ -7852,7 +8215,7 @@ function _addCustomItemToStage(item) {
   const el = {
     id: 'el-' + state.nextId++, name: item.name, label: item.name.toUpperCase(),
     icon: item.emoji, type: 'Custom', x, y, rotation: 0,
-    scale: window.innerWidth < 768 ? 65 : 100,
+    scale: getDefaultScale(item),
     channelId: 'CH-' + channelNum, source: 'SL01', output: 'FOH',
     phantom: false, notes: '', color: item.color || '#7aafff', roles: [],
     isCustom: true, emoji: item.emoji,

@@ -19,9 +19,10 @@ import FourStringDiagram from '../components/FourStringDiagram';
 import { WebEmptyState } from '../components/WebDesignSystem';
 import type { GuitarChordData } from '../data/chords';
 
-function RelatedPlayBtn({ guitar, accent }: {
+function RelatedPlayBtn({ guitar, accent, isLight }: {
   guitar: GuitarChordData;
   accent: { from: string; to: string; mid: string };
+  isLight?: boolean;
 }) {
   const [playing, setPlaying] = useState(false);
   const handlePlay = useCallback((e: React.MouseEvent) => {
@@ -39,7 +40,7 @@ function RelatedPlayBtn({ guitar, accent }: {
       onClick={handlePlay}
       style={{
         width: 24, height: 24, borderRadius: '50%',
-        background: playing ? `${accent.from}30` : 'rgba(255,255,255,0.07)',
+        background: playing ? `${accent.from}30` : (isLight ? 'rgba(0,0,0,0.06)' : 'rgba(255,255,255,0.07)'),
         border: 'none', cursor: 'pointer', display: 'flex',
         alignItems: 'center', justifyContent: 'center', padding: 0,
         transition: 'background 200ms ease',
@@ -455,11 +456,8 @@ export default function LibraryPanel() {
   const { ref: genreScrollRef, fadeClass: genreFadeClass } = useScrollFade();
   const accent = ACCENT_COLORS[settings.perApp?.chords?.accentColor ?? settings.accentColor] ?? ACCENT_COLORS.blue;
   const t = useT();
-  const activeTheme = settings.perApp?.chords?.theme ?? settings.theme;
-  const isDark = activeTheme === 'dark' ||
-    (activeTheme === 'system' && typeof window !== 'undefined' &&
-     !window.matchMedia('(prefers-color-scheme: light)').matches);
-  const isLight = !isDark;
+  const isLight = settings.theme === 'light' || (settings.theme === 'system' && typeof window !== 'undefined' && window.matchMedia('(prefers-color-scheme: light)').matches);
+  const isDark = !isLight;
 
   const scrollRef = useRef<HTMLDivElement>(null);
   useScrollHide(scrollRef);
@@ -626,7 +624,7 @@ export default function LibraryPanel() {
     };
 
     return (
-      <div className="flex-1 overflow-y-auto no-scrollbar p-6" style={{ background: '#050505' }}>
+      <div className="flex-1 overflow-y-auto no-scrollbar p-6" style={{ background: 'var(--app-bg)' }}>
         <div className="max-w-xl mx-auto space-y-6">
           {/* Header & Title */}
           <div className="flex justify-between items-start">
@@ -634,10 +632,10 @@ export default function LibraryPanel() {
               <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-zinc-500 mb-1" style={{ fontFamily: 'Manrope' }}>
                 {t.chord.instruments[settings.instrument]}
               </p>
-              <h2 className="text-3xl font-extrabold tracking-tighter text-white" style={{ fontFamily: 'Manrope' }}>
+              <h2 className="text-3xl font-extrabold tracking-tighter text-[var(--c-text-primary)]" style={{ fontFamily: 'Manrope' }}>
                 {chord.name.replace(/\s/g, '')}
               </h2>
-              <p className="text-xs text-zinc-400 mt-1" style={{ fontFamily: 'Inter' }}>
+              <p className="text-xs text-[var(--c-text-secondary)] mt-1" style={{ fontFamily: 'Inter' }}>
                 {notesStr} ({typeStr})
               </p>
             </div>
@@ -645,7 +643,11 @@ export default function LibraryPanel() {
             <div className="flex gap-2">
               <button
                 onClick={handlePlayChord}
-                className="w-10 h-10 rounded-full flex items-center justify-center cursor-pointer transition-all border border-zinc-800 hover:border-zinc-700 bg-zinc-950/40 text-white"
+                className={`w-10 h-10 rounded-full flex items-center justify-center cursor-pointer transition-all border ${
+                  isLight 
+                    ? 'border-zinc-200 hover:border-zinc-300 bg-zinc-100 hover:bg-zinc-200/80 text-zinc-700' 
+                    : 'border-zinc-800 hover:border-zinc-700 bg-zinc-950/40 text-zinc-300'
+                }`}
                 title="Play chord"
               >
                 <span className="material-symbols-outlined" style={{ fontSize: '20px', fontVariationSettings: chordPlaying ? "'FILL' 1" : "'FILL' 0" }}>
@@ -654,7 +656,11 @@ export default function LibraryPanel() {
               </button>
               <button
                 onClick={() => toggleFavorite(chord.id)}
-                className={`w-10 h-10 rounded-full flex items-center justify-center cursor-pointer transition-all border border-zinc-800 hover:border-zinc-700 bg-zinc-950/40 ${favorite ? 'text-rose-500' : 'text-zinc-400'}`}
+                className={`w-10 h-10 rounded-full flex items-center justify-center cursor-pointer transition-all border ${
+                  isLight 
+                    ? `border-zinc-200 hover:border-zinc-300 bg-zinc-100 hover:bg-zinc-200/80 ${favorite ? 'text-rose-500' : 'text-zinc-500'}` 
+                    : `border-zinc-800 hover:border-zinc-700 bg-zinc-950/40 ${favorite ? 'text-rose-500' : 'text-zinc-400'}`
+                }`}
                 title="Toggle favorite"
               >
                 <span className="material-symbols-outlined" style={{ fontSize: '20px', fontVariationSettings: favorite ? "'FILL' 1" : "'FILL' 0" }}>
@@ -663,7 +669,11 @@ export default function LibraryPanel() {
               </button>
               <button
                 onClick={handleAddToProgression}
-                className="h-10 px-4 rounded-full flex items-center justify-center gap-1.5 cursor-pointer transition-all border border-zinc-800 hover:border-zinc-700 bg-zinc-950/40 text-xs font-bold text-white uppercase tracking-wider"
+                className={`h-10 px-4 rounded-full flex items-center justify-center gap-1.5 cursor-pointer transition-all border ${
+                  isLight 
+                    ? 'border-zinc-200 hover:border-zinc-300 bg-zinc-100 hover:bg-zinc-200/80 text-zinc-750' 
+                    : 'border-zinc-800 hover:border-zinc-700 bg-zinc-950/40 text-zinc-300'
+                } text-xs font-bold uppercase tracking-wider`}
                 style={{ fontFamily: 'Manrope' }}
               >
                 <span className="material-symbols-outlined text-sm">add</span>
@@ -673,7 +683,7 @@ export default function LibraryPanel() {
           </div>
 
           {/* Diagram Container */}
-          <div className="border border-zinc-900 bg-zinc-950/20 rounded-2xl p-6 flex justify-center items-center">
+          <div className={`border rounded-2xl p-6 flex justify-center items-center ${isLight ? 'bg-white border-zinc-200/80 shadow-[0_2px_8px_rgba(0,0,0,0.02)]' : 'border-zinc-900 bg-zinc-950/20'}`}>
             {renderDetailDiagram()}
           </div>
 
@@ -688,15 +698,19 @@ export default function LibraryPanel() {
                   <button
                     key={related.id}
                     onClick={() => handleChordClick(related.id)}
-                    className="block text-left p-4 rounded-xl border border-zinc-900 bg-zinc-950/40 hover:border-zinc-800 transition-all cursor-pointer w-full relative"
+                    className={`block text-left p-4 rounded-xl border transition-all cursor-pointer w-full relative ${
+                      isLight 
+                        ? 'border-zinc-200 bg-white hover:border-zinc-300 shadow-[0_2px_8px_rgba(0,0,0,0.02)]' 
+                        : 'border-zinc-900 bg-zinc-950/40 hover:border-zinc-800'
+                    }`}
                   >
                     <div style={{ position: 'absolute', top: 10, right: 10, zIndex: 2 }}>
-                      <RelatedPlayBtn guitar={related.guitar} accent={accent} />
+                      <RelatedPlayBtn guitar={related.guitar} accent={accent} isLight={isLight} />
                     </div>
-                    <span className="font-bold text-white text-xs block mb-2" style={{ fontFamily: 'Manrope' }}>
+                    <span className="font-bold text-[var(--c-text-primary)] text-xs block mb-2" style={{ fontFamily: 'Manrope' }}>
                       {related.name}
                     </span>
-                    <div className="bg-black/40 rounded-lg p-3">
+                    <div className={`${isLight ? 'bg-zinc-100' : 'bg-black/40'} rounded-lg p-3`}>
                       <ChordDiagram data={related.guitar} accentFrom={accent.from} />
                     </div>
                   </button>
@@ -710,15 +724,19 @@ export default function LibraryPanel() {
             <h3 className="text-[9.5px] font-extrabold uppercase tracking-widest text-zinc-500" style={{ fontFamily: 'Inter' }}>
               {t.chord.harmonicContext}
             </h3>
-            <div className="border border-zinc-900 bg-zinc-950/20 rounded-xl divide-y divide-zinc-900/60">
+            <div className={`border rounded-xl divide-y ${
+              isLight 
+                ? 'border-zinc-200 bg-zinc-50/50 divide-zinc-200/80' 
+                : 'border-zinc-900 bg-zinc-950/20 divide-zinc-900/60'
+            }`}>
               <div className="flex justify-between items-center p-3 text-xs">
-                <span className="text-zinc-400 font-medium">Interval Spacing</span>
-                <span className="text-white font-bold">{chord.intervals.join(' - ')}</span>
+                <span className="text-[var(--c-text-secondary)] font-medium">Interval Spacing</span>
+                <span className="text-[var(--c-text-primary)] font-bold">{chord.intervals.join(' - ')}</span>
               </div>
               {settings.instrument === 'guitar' && (
                 <div className="flex justify-between items-center p-3 text-xs">
-                  <span className="text-zinc-400 font-medium">Fingering</span>
-                  <span className="text-white font-bold">{chord.guitar.frets.map(f => f === -1 ? 'x' : f === 0 ? 'O' : f).join(' - ')}</span>
+                  <span className="text-[var(--c-text-secondary)] font-medium">Fingering</span>
+                  <span className="text-[var(--c-text-primary)] font-bold">{chord.guitar.frets.map(f => f === -1 ? 'x' : f === 0 ? 'O' : f).join(' - ')}</span>
                 </div>
               )}
             </div>
@@ -730,21 +748,21 @@ export default function LibraryPanel() {
 
   if (isWebDesktop) {
     return (
-      <div className="flex w-full h-full overflow-hidden bg-[#050505]" style={{ position: 'relative' }}>
+      <div className="flex w-full h-full overflow-hidden bg-[var(--app-bg)]" style={{ position: 'relative' }}>
         {/* Left Column: Categories / Search / Discover list */}
-        <div style={{ width: '300px', display: 'flex', flexDirection: 'column', borderRight: '1px solid rgba(255, 255, 255, 0.08)', height: '100%', overflow: 'hidden' }}>
+        <div style={{ width: '300px', display: 'flex', flexDirection: 'column', borderRight: `1px solid ${isLight ? 'rgba(0,0,0,0.08)' : 'rgba(255,255,255,0.08)'}`, height: '100%', overflow: 'hidden' }}>
           
           {/* Tabs header: Explore / Discover */}
-          <div style={{ padding: '12px 16px', borderBottom: '1px solid rgba(255, 255, 255, 0.08)', flexShrink: 0 }}>
-            <div className="flex p-0.5 rounded-lg gap-1 bg-zinc-950/80 border border-zinc-900">
+          <div style={{ padding: '12px 16px', borderBottom: `1px solid ${isLight ? 'rgba(0,0,0,0.08)' : 'rgba(255,255,255,0.08)'}`, flexShrink: 0 }}>
+            <div className={`flex p-0.5 rounded-lg gap-1 border ${isLight ? 'bg-zinc-200/50 border-zinc-200/80' : 'bg-zinc-950/80 border-zinc-900'}`}>
               {(['explore', 'discover'] as const).map(tab => (
                 <button
                   key={tab}
                   onClick={() => { setMainTab(tab); setQuery(''); setActiveType(null); }}
                   className={`flex-1 py-1.5 text-[10.5px] uppercase font-bold tracking-wider rounded-md border-none outline-none cursor-pointer transition-all ${
                     mainTab === tab 
-                      ? 'bg-white text-black font-extrabold' 
-                      : 'text-zinc-500 hover:text-zinc-300 bg-transparent'
+                      ? (isLight ? 'bg-white text-zinc-900 shadow-sm font-extrabold' : 'bg-white text-black font-extrabold') 
+                      : (isLight ? 'text-zinc-500 hover:text-zinc-900 bg-transparent' : 'text-zinc-500 hover:text-zinc-200 bg-transparent')
                   }`}
                   style={{ fontFamily: 'Manrope' }}
                 >
@@ -768,7 +786,11 @@ export default function LibraryPanel() {
                       value={query}
                       onChange={e => setQuery(e.target.value)}
                       placeholder={t.library.searchPlaceholder}
-                      className="w-full py-1.5 pl-8 pr-3 text-xs outline-none bg-zinc-950/60 border border-zinc-900 rounded-lg text-white"
+                      className={`w-full py-1.5 pl-8 pr-3 text-xs outline-none rounded-lg border ${
+                        isLight 
+                          ? 'bg-zinc-100/80 border-zinc-200/80 text-zinc-900 placeholder-zinc-400' 
+                          : 'bg-zinc-950/60 border-zinc-900 text-white'
+                      }`}
                       style={{ fontFamily: 'Inter' }}
                     />
                   </div>
@@ -793,8 +815,8 @@ export default function LibraryPanel() {
                             onClick={() => handleChordClick(chord.id)}
                             className={`w-full px-3 py-2 rounded-lg text-left text-xs font-semibold truncate transition-all outline-none border-none cursor-pointer flex justify-between items-center ${
                               isActive 
-                                ? 'bg-zinc-100 text-[#030303] font-bold' 
-                                : 'text-zinc-400 hover:text-zinc-200 hover:bg-zinc-900/30'
+                                ? (isLight ? 'bg-zinc-200 text-zinc-900 font-bold' : 'bg-zinc-100 text-[#030303] font-bold') 
+                                : (isLight ? 'text-zinc-600 hover:text-zinc-900 hover:bg-zinc-200/40' : 'text-zinc-400 hover:text-zinc-200 hover:bg-zinc-900/30')
                             }`}
                             style={{ fontFamily: 'Manrope' }}
                           >
@@ -811,11 +833,11 @@ export default function LibraryPanel() {
                     <div style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '2px 4px 6px' }}>
                       <button
                         onClick={goBack}
-                        className="w-6 h-6 rounded-full flex items-center justify-center border border-zinc-800 bg-zinc-950/40 text-white cursor-pointer hover:border-zinc-700"
+                        className="w-6 h-6 rounded-full flex items-center justify-center border border-zinc-800 bg-zinc-950/40 text-zinc-300 cursor-pointer hover:border-zinc-700"
                       >
                         <span className="material-symbols-outlined" style={{ fontSize: '14px' }}>arrow_back</span>
                       </button>
-                      <span style={{ fontSize: '10px', fontWeight: 800, textTransform: 'uppercase', color: 'white' }}>
+                      <span style={{ fontSize: '10px', fontWeight: 800, textTransform: 'uppercase', color: 'var(--c-text-primary)' }}>
                         {activeCat.label} ({filteredByType.length})
                       </span>
                     </div>
@@ -827,8 +849,8 @@ export default function LibraryPanel() {
                           onClick={() => handleChordClick(chord.id)}
                           className={`w-full px-3 py-2 rounded-lg text-left text-xs font-semibold truncate transition-all outline-none border-none cursor-pointer flex justify-between items-center ${
                             isActive 
-                              ? 'bg-zinc-100 text-[#030303] font-bold' 
-                              : 'text-zinc-400 hover:text-zinc-200 hover:bg-zinc-900/30'
+                              ? (isLight ? 'bg-zinc-200 text-zinc-900 font-bold' : 'bg-zinc-100 text-[#030303] font-bold') 
+                              : (isLight ? 'text-zinc-600 hover:text-zinc-900 hover:bg-zinc-200/40' : 'text-zinc-400 hover:text-zinc-200 hover:bg-zinc-900/30')
                           }`}
                           style={{ fontFamily: 'Manrope' }}
                         >
@@ -872,7 +894,11 @@ export default function LibraryPanel() {
                       value={discoverQuery}
                       onChange={e => setDiscoverQuery(e.target.value)}
                       placeholder="Search songs..."
-                      className="w-full py-1.5 pl-8 pr-3 text-xs outline-none bg-zinc-950/60 border border-zinc-900 rounded-lg text-white"
+                      className={`w-full py-1.5 pl-8 pr-3 text-xs outline-none rounded-lg border ${
+                        isLight 
+                          ? 'bg-zinc-100/80 border-zinc-200/80 text-zinc-900 placeholder-zinc-400' 
+                          : 'bg-zinc-950/60 border-zinc-900 text-white'
+                      }`}
                       style={{ fontFamily: 'Inter' }}
                     />
                   </div>
@@ -882,10 +908,10 @@ export default function LibraryPanel() {
                 <div style={{ padding: '0 4px' }} className="flex flex-wrap gap-1">
                   <button
                     onClick={() => setActiveGenre(null)}
-                    className={`px-2 py-1 rounded-full font-bold text-[9px] uppercase tracking-wider transition-all border-none outline-none cursor-pointer ${
+                    className={`px-2 py-1 rounded-full font-bold text-[9px] uppercase tracking-wider transition-all border outline-none cursor-pointer ${
                       !activeGenre 
-                        ? 'bg-white text-black' 
-                        : 'bg-zinc-900/60 text-zinc-400 hover:text-zinc-200'
+                        ? (isLight ? 'bg-zinc-900 text-white border-zinc-900' : 'bg-white text-black border-white') 
+                        : (isLight ? 'bg-zinc-200/65 text-zinc-600 border-zinc-200/80 hover:text-zinc-900 hover:bg-zinc-200' : 'bg-zinc-900/60 text-zinc-400 border-zinc-900 hover:text-zinc-200')
                     }`}
                     style={{ fontFamily: 'Manrope' }}
                   >
@@ -899,8 +925,8 @@ export default function LibraryPanel() {
                         onClick={() => setActiveGenre(isActive ? null : key as Genre)}
                         className={`px-2 py-1 rounded-full font-bold text-[9px] uppercase tracking-wider transition-all border outline-none cursor-pointer ${
                           isActive 
-                            ? 'bg-zinc-800 text-white border-zinc-700' 
-                            : 'bg-transparent text-zinc-500 border-zinc-900 hover:text-zinc-400'
+                            ? (isLight ? 'bg-zinc-900 text-white border-zinc-900' : 'bg-zinc-800 text-white border-zinc-700') 
+                            : (isLight ? 'bg-transparent text-zinc-600 border-zinc-200/80 hover:text-zinc-900 hover:border-zinc-300' : 'bg-transparent text-zinc-500 border-zinc-900 hover:text-zinc-400')
                         }`}
                         style={{ fontFamily: 'Manrope' }}
                       >
@@ -926,7 +952,7 @@ export default function LibraryPanel() {
                         >
                           <div>
                             <div className="flex justify-between items-start gap-1">
-                              <span style={{ fontSize: '12px', fontWeight: 'bold', color: 'white', fontFamily: 'Manrope' }} className="truncate">
+                              <span style={{ fontSize: '12px', fontWeight: 'bold', color: 'var(--c-text-primary)', fontFamily: 'Manrope' }} className="truncate">
                                 {song.title}
                               </span>
                               <span style={{ fontSize: '8px', color: meta.color, background: `${meta.color}15`, border: `1px solid ${meta.color}30`, padding: '1px 4px', borderRadius: '4px', textTransform: 'uppercase', fontWeight: 800 }}>
@@ -948,8 +974,8 @@ export default function LibraryPanel() {
                                   disabled={!displayId}
                                   className={`px-2 py-0.5 rounded text-[10px] font-bold border-none outline-none ${
                                     displayId 
-                                      ? 'bg-zinc-800 text-zinc-200 hover:bg-zinc-100 hover:text-black cursor-pointer' 
-                                      : 'bg-zinc-900/40 text-zinc-600 cursor-not-allowed'
+                                      ? 'bg-[var(--app-surface-hover)] text-[var(--c-text-primary)] hover:bg-[var(--c-accent)] hover:text-white cursor-pointer' 
+                                      : 'bg-[var(--app-surface)] text-[var(--c-text-muted)] cursor-not-allowed'
                                   }`}
                                   style={{ fontFamily: 'Manrope' }}
                                 >
@@ -969,13 +995,13 @@ export default function LibraryPanel() {
         </div>
 
         {/* Right Column: Chord Detail, Category Grid, or Empty State */}
-        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', height: '100%', overflow: 'hidden', position: 'relative', background: '#050505' }}>
+        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', height: '100%', overflow: 'hidden', position: 'relative', background: 'var(--app-bg)' }}>
           {chord ? (
             renderChordDetail()
           ) : showSearch && searchResults.length > 0 ? (
             <div className="flex-1 overflow-y-auto no-scrollbar p-6">
               <div className="mb-6">
-                <h3 className="text-sm font-extrabold text-white uppercase tracking-wider" style={{ fontFamily: 'Manrope' }}>
+                <h3 className="text-sm font-extrabold text-[var(--c-text-primary)] uppercase tracking-wider" style={{ fontFamily: 'Manrope' }}>
                   Search Results Catalog
                 </h3>
                 <p className="text-xs text-zinc-500 mt-1" style={{ fontFamily: 'Inter' }}>
@@ -990,7 +1016,7 @@ export default function LibraryPanel() {
                     className="p-4 rounded-xl border border-zinc-900 bg-zinc-950/40 hover:border-zinc-800 transition-all text-left cursor-pointer flex flex-col justify-between h-[120px]"
                   >
                     <div>
-                      <span className="font-bold text-white text-xs block" style={{ fontFamily: 'Manrope' }}>
+                      <span className="font-bold text-[var(--c-text-primary)] text-xs block" style={{ fontFamily: 'Manrope' }}>
                         {c.name}
                       </span>
                       <span className="text-[10px] text-zinc-500 block mt-1" style={{ fontFamily: 'Inter' }}>
@@ -1007,7 +1033,7 @@ export default function LibraryPanel() {
           ) : activeType && activeType !== 'all' && filteredByType.length > 0 ? (
             <div className="flex-1 overflow-y-auto no-scrollbar p-6">
               <div className="mb-6">
-                <h3 className="text-sm font-extrabold text-white uppercase tracking-wider" style={{ fontFamily: 'Manrope' }}>
+                <h3 className="text-sm font-extrabold text-[var(--c-text-primary)] uppercase tracking-wider" style={{ fontFamily: 'Manrope' }}>
                   {activeCat?.label || 'Chords'} Catalog
                 </h3>
                 <p className="text-xs text-zinc-500 mt-1" style={{ fontFamily: 'Inter' }}>
@@ -1022,7 +1048,7 @@ export default function LibraryPanel() {
                     className="p-4 rounded-xl border border-zinc-900 bg-zinc-950/40 hover:border-zinc-800 transition-all text-left cursor-pointer flex flex-col justify-between h-[120px]"
                   >
                     <div>
-                      <span className="font-bold text-white text-xs block" style={{ fontFamily: 'Manrope' }}>
+                      <span className="font-bold text-[var(--c-text-primary)] text-xs block" style={{ fontFamily: 'Manrope' }}>
                         {c.name}
                       </span>
                       <span className="text-[10px] text-zinc-500 block mt-1" style={{ fontFamily: 'Inter' }}>

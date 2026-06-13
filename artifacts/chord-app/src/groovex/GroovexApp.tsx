@@ -62,7 +62,7 @@ export default function GroovexApp() {
   return (
     <div className="groovex-root" style={{
       height: '100dvh', display: 'flex', flexDirection: 'column',
-      background: isWebDesktop ? '#050505' : 'var(--gx-bg)',
+      background: 'var(--app-bg)',
       fontFamily: 'Manrope, sans-serif',
       paddingTop: 'env(safe-area-inset-top)',
       overflow: 'hidden',
@@ -101,30 +101,6 @@ export default function GroovexApp() {
         </header>
       )}
 
-      {isWebDesktop && view === 'player' && (
-        <header style={{
-          display: 'flex', alignItems: 'center',
-          padding: '20px 24px 4px', flexShrink: 0,
-          background: 'var(--gx-bg)',
-        }}>
-          <button
-            onClick={handleBack}
-            className="btn-smooth"
-            aria-label="Back"
-            style={{
-              width: '32px', height: '32px', borderRadius: '50%',
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              background: 'var(--gx-surface-high)',
-              border: '1px solid rgba(128,128,128,0.15)',
-              cursor: 'pointer', padding: 0,
-              transition: 'background 500ms cubic-bezier(0.4,0,0.2,1)',
-            }}
-          >
-            <span className="material-symbols-outlined" style={{ color: 'var(--c-text-primary)', fontSize: 18 }}>arrow_back</span>
-          </button>
-        </header>
-      )}
-
       <div 
         style={{ 
           display: 'flex', 
@@ -135,14 +111,14 @@ export default function GroovexApp() {
           overflow: 'hidden' 
         }}
       >
-        {isWebDesktop && view !== 'player' && (
+        {isWebDesktop && (
           <WebAppSectionDock 
             app="groovex" 
-            activeSection={view} 
+            activeSection={view === 'player' ? 'library' : view} 
             onChangeSection={navigate} 
           />
         )}
-        <div style={{ flex: 1, overflow: 'hidden', position: 'relative', paddingTop: isWebDesktop ? '20px' : '0px', paddingBottom: isWebDesktop ? '96px' : '0px', display: 'flex', flexDirection: 'column' }}>
+        <div style={{ flex: 1, overflow: 'hidden', position: 'relative', paddingTop: isWebDesktop ? '20px' : '0px', paddingBottom: '0px', display: 'flex', flexDirection: 'column' }}>
           <Suspense fallback={null}>
             <div key={view} className={viewAnim} style={{ height: '100%', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
               {view === 'library' && <GroovexLibrary />}
@@ -169,19 +145,7 @@ function GroovexNav({ view, setView, hasActiveSong }: {
 }) {
   const { settings } = useChordStore();
   const groovexVis = settings.perApp?.groovex ?? { theme: 'dark', accentColor: 'blue', amoledMode: false };
-  const isLight = (() => {
-    if (groovexVis.theme === 'light') return true;
-    if (groovexVis.theme === 'system') {
-      return typeof window !== 'undefined' && window.matchMedia('(prefers-color-scheme: light)').matches;
-    }
-    if (groovexVis.theme === 'dynamic') {
-      const h = new Date().getHours();
-      const lightStart = settings.dynamicLightStart ?? 7;
-      const lightEnd   = settings.dynamicLightEnd   ?? 20;
-      return h >= lightStart && h < lightEnd;
-    }
-    return false;
-  })();
+  const isLight = settings.theme === 'light' || (settings.theme === 'system' && typeof window !== 'undefined' && window.matchMedia('(prefers-color-scheme: light)').matches);
   const accent = ACCENT_COLORS[groovexVis.accentColor as keyof typeof ACCENT_COLORS] ?? ACCENT_COLORS.blue;
   const amoledBg = groovexVis.amoledMode
     ? 'rgba(0,0,0,0.96)'

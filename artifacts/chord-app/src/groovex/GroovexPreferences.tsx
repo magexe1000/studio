@@ -8,6 +8,7 @@ import { APP_VERSION_LABEL } from '../lib/appVersion';
 import { useScrollHide } from '../lib/navScroll';
 import { useIsWebDesktop } from '../hooks/useIsWebDesktop';
 import { WebSettingsSection, WebPreferenceRow } from '../components/WebDesignSystem';
+import { useChordStore } from '../store/useChordStore';
 
 export default function GroovexPreferences() {
   const t = useT();
@@ -57,13 +58,16 @@ export default function GroovexPreferences() {
     return SONG_CATALOG.find(s => s.id === songId);
   }
 
+  const { settings } = useChordStore();
+  const isLight = settings.theme === 'light' || (settings.theme === 'system' && typeof window !== 'undefined' && window.matchMedia('(prefers-color-scheme: light)').matches);
+
   return (
-    <div ref={scrollRef} className="spring-in bg-[#050505] w-full" style={{ height: '100%', overflowY: 'auto', overflowX: 'hidden' }}>
+    <div ref={scrollRef} className="spring-in w-full" style={{ height: '100%', overflowY: 'auto', overflowX: 'hidden', background: 'var(--app-bg)' }}>
       <div style={{ maxWidth: 600, margin: isWebDesktop ? '0' : '0 auto', padding: isWebDesktop ? '24px' : '0 20px', paddingBottom: 'var(--content-bottom-pad)' }}>
 
         {isWebDesktop ? (
           <div className="mb-6">
-            <h2 style={{ fontSize: '18px', fontWeight: 800, letterSpacing: '-0.02em', color: 'white', fontFamily: 'Manrope' }}>
+            <h2 style={{ fontSize: '18px', fontWeight: 800, letterSpacing: '-0.02em', color: 'var(--c-text-primary)', fontFamily: 'Manrope' }}>
               {t.groovex.audioEngine}
             </h2>
             <p style={{ color: 'var(--c-text-secondary)', fontFamily: 'Inter', fontSize: '11px', marginTop: '2px' }}>
@@ -126,7 +130,7 @@ export default function GroovexPreferences() {
                   <p style={{ fontSize: 11, color: 'var(--c-text-secondary)', margin: '0 0 4px', fontFamily: 'Inter' }}>
                     {t.groovex.songUnit(cacheInfo.songCount)} • {cacheInfo.stemCount} stems
                   </p>
-                  <p style={{ fontSize: 16, fontWeight: 700, color: 'white', margin: 0 }}>
+                  <p style={{ fontSize: 16, fontWeight: 700, color: 'var(--c-text-primary)', margin: 0 }}>
                     {formatBytes(cacheInfo.totalBytes)}
                   </p>
                 </div>
@@ -148,9 +152,10 @@ export default function GroovexPreferences() {
                       <button
                         onClick={() => setConfirmDeleteAll(false)}
                         style={{
-                          padding: '6px 12px', borderRadius: 8, border: 'none', cursor: 'pointer',
-                          background: 'rgba(255,255,255,0.08)', color: 'white',
+                          padding: '6px 12px', borderRadius: 8, cursor: 'pointer',
+                          background: isLight ? 'rgba(0,0,0,0.06)' : 'rgba(255,255,255,0.08)', color: 'var(--c-text-primary)',
                           fontSize: 11, fontWeight: 700, fontFamily: 'Inter',
+                          border: isLight ? '1px solid rgba(0,0,0,0.08)' : 'none',
                         }}
                       >
                         {t.groovex.cancel}
@@ -189,11 +194,11 @@ export default function GroovexPreferences() {
                         style={{
                           display: 'flex', alignItems: 'center', gap: 12,
                           padding: '8px 10px',
-                          background: 'rgba(255,255,255,0.02)',
+                          background: isLight ? 'rgba(0,0,0,0.02)' : 'rgba(255,255,255,0.02)',
                           borderRadius: 8,
                           opacity: isDeleting ? 0.4 : 1,
                           transition: 'opacity 200ms ease',
-                          border: '1px solid rgba(255,255,255,0.04)',
+                          border: isLight ? '1px solid rgba(0,0,0,0.06)' : '1px solid rgba(255,255,255,0.04)',
                         }}
                       >
                         <span className="material-symbols-outlined" style={{
@@ -202,7 +207,7 @@ export default function GroovexPreferences() {
                         }}>album</span>
                         <div style={{ flex: 1, minWidth: 0 }}>
                           <p style={{
-                            fontSize: 12, fontWeight: 700, color: 'white',
+                            fontSize: 12, fontWeight: 700, color: 'var(--c-text-primary)',
                             margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
                           }}>
                             {meta?.title ?? sc.songId}
@@ -278,7 +283,7 @@ export default function GroovexPreferences() {
               style={{
                 background: 'rgba(127,41,39,0.2)', border: '1px solid rgba(238,125,119,0.3)',
                 color: '#ee7d77', fontSize: 12, fontWeight: 700, padding: '10px 20px',
-                borderRadius: 9999, cursor: 'pointer',
+                borderRadius: 8, cursor: 'pointer',
                 transition: 'background 150ms ease',
               }}
             >
@@ -318,6 +323,9 @@ function PrefCard({ title, icon, children, isWebDesktop }: { title: string; icon
 function SliderRow({ label, value, onChange, displayValue, isWebDesktop }: {
   label: string; value: number; onChange: (v: number) => void; displayValue: string; isWebDesktop?: boolean;
 }) {
+  const { settings } = useChordStore();
+  const isLight = settings.theme === 'light' || (settings.theme === 'system' && typeof window !== 'undefined' && window.matchMedia('(prefers-color-scheme: light)').matches);
+
   if (isWebDesktop) {
     return (
       <WebPreferenceRow label={label} desc={`Current level: ${displayValue}`}>
@@ -327,7 +335,7 @@ function SliderRow({ label, value, onChange, displayValue, isWebDesktop }: {
             value={value}
             onChange={onChange}
             accentColor="var(--gx-accent, #679cff)"
-            trackColor="rgba(255,255,255,0.08)"
+            trackColor={isLight ? "rgba(0,0,0,0.08)" : "rgba(255,255,255,0.08)"}
           />
         </div>
       </WebPreferenceRow>
@@ -355,6 +363,9 @@ function SliderRow({ label, value, onChange, displayValue, isWebDesktop }: {
 function ToggleRow({ label, value, onChange, isWebDesktop }: {
   label: string; value: boolean; onChange: (v: boolean) => void; isWebDesktop?: boolean;
 }) {
+  const { settings } = useChordStore();
+  const isLight = settings.theme === 'light' || (settings.theme === 'system' && typeof window !== 'undefined' && window.matchMedia('(prefers-color-scheme: light)').matches);
+
   if (isWebDesktop) {
     return (
       <WebPreferenceRow label={label}>
@@ -362,7 +373,7 @@ function ToggleRow({ label, value, onChange, isWebDesktop }: {
           onClick={() => onChange(!value)}
           style={{
             width: 44, height: 24, borderRadius: 9999, border: 'none', cursor: 'pointer',
-            background: value ? 'rgba(103,156,255,0.25)' : 'rgba(255,255,255,0.08)',
+            background: value ? 'rgba(103,156,255,0.25)' : (isLight ? 'rgba(0,0,0,0.08)' : 'rgba(255,255,255,0.08)'),
             position: 'relative', padding: 2, transition: 'background 150ms ease',
           }}
         >
@@ -384,7 +395,7 @@ function ToggleRow({ label, value, onChange, isWebDesktop }: {
         onClick={() => onChange(!value)}
         style={{
           width: 44, height: 24, borderRadius: 9999, border: 'none', cursor: 'pointer',
-          background: value ? 'rgba(103,156,255,0.25)' : 'var(--gx-surface-high)',
+          background: value ? 'rgba(103,156,255,0.25)' : (isLight ? 'rgba(0,0,0,0.08)' : 'var(--gx-surface-high)'),
           position: 'relative', padding: 2, transition: 'background 150ms ease',
         }}
       >

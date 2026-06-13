@@ -140,19 +140,7 @@ export default function BottomNav() {
     amoledMode:  settings.amoledMode  ?? false,
   };
   const accent    = ACCENT_COLORS[activeVis.accentColor] ?? ACCENT_COLORS.blue;
-  const isLight = (() => {
-    if (activeVis.theme === 'light') return true;
-    if (activeVis.theme === 'system') {
-      return typeof window !== 'undefined' && window.matchMedia('(prefers-color-scheme: light)').matches;
-    }
-    if (activeVis.theme === 'dynamic') {
-      const h = new Date().getHours();
-      const lightStart = settings.dynamicLightStart ?? 7;
-      const lightEnd   = settings.dynamicLightEnd   ?? 20;
-      return h >= lightStart && h < lightEnd;
-    }
-    return false;
-  })();
+  const isLight = settings.theme === 'light' || (settings.theme === 'system' && typeof window !== 'undefined' && window.matchMedia('(prefers-color-scheme: light)').matches);
   const amoledBg = isLight
     ? activeVis.amoledMode
       ? 'rgba(255, 255, 255, 0.92)'

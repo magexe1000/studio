@@ -314,12 +314,29 @@ export function WebButton({
   style?: React.CSSProperties;
   disabled?: boolean;
 }) {
+  const [isLight, setIsLight] = React.useState(false);
+  React.useEffect(() => {
+    const checkLight = () => {
+      setIsLight(document.documentElement.classList.contains('light'));
+    };
+    checkLight();
+    const observer = new MutationObserver(checkLight);
+    observer.observe(document.documentElement, { attributes: true, attributeFilter: ['class'] });
+    return () => observer.disconnect();
+  }, []);
+
   const baseClass = "px-3 py-1.5 rounded-lg text-xs font-bold tracking-wide transition-all border outline-none cursor-pointer flex items-center justify-center gap-1.5 disabled:opacity-50 disabled:cursor-not-allowed";
-  const variantClass = variant === 'primary' 
-    ? "bg-zinc-100 text-black border-transparent hover:bg-zinc-200" 
-    : variant === 'danger'
-      ? "bg-red-950/20 text-red-400 border-red-900/40 hover:bg-red-950/40 hover:border-red-900"
-      : "bg-transparent text-zinc-300 border-zinc-900 hover:border-zinc-800 hover:text-white";
+  const variantClass = isLight
+    ? variant === 'primary'
+      ? "bg-zinc-950 text-white border-transparent hover:bg-zinc-850"
+      : variant === 'danger'
+        ? "bg-red-50 text-red-600 border-red-200 hover:bg-red-100"
+        : "bg-transparent text-zinc-700 border-zinc-200 hover:border-zinc-350 hover:text-black"
+    : variant === 'primary' 
+      ? "bg-zinc-100 text-black border-transparent hover:bg-zinc-200" 
+      : variant === 'danger'
+        ? "bg-red-950/20 text-red-400 border-red-900/40 hover:bg-red-950/40 hover:border-red-900"
+        : "bg-transparent text-zinc-300 border-zinc-900 hover:border-zinc-800 hover:text-white";
   return (
     <button
       onClick={onClick}

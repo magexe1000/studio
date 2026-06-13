@@ -1202,10 +1202,14 @@ export default function App() {
   // Derive per-app visual settings, with a safe fallback for old persisted data
   const appKey   = (settings.appMode ?? 'hub') as AppKey;
   const perAppRaw = settings.perApp;
-  const activeVis = perAppRaw?.[appKey] ?? {
+  const activeVisRaw = perAppRaw?.[appKey] ?? {
     theme:       settings.theme       ?? 'dark',
     accentColor: settings.accentColor ?? 'blue',
     amoledMode:  settings.amoledMode  ?? false,
+  };
+  const activeVis = {
+    ...activeVisRaw,
+    theme: settings.theme ?? 'dark',
   };
   const rawAccent = ACCENT_COLORS[activeVis.accentColor] ?? ACCENT_COLORS.blue;
   const accent = activeVis.accentColor === 'custom'
@@ -1693,7 +1697,7 @@ export default function App() {
   return (
     <SidebarProvider>
       <SidebarHoverSync hoverShowSidebar={hoverShowSidebar} />
-      <div style={{ display: 'flex', width: '100vw', height: '100dvh', overflow: 'hidden', background: '#000000' }}>
+      <div style={{ display: 'flex', width: '100vw', height: '100dvh', overflow: 'hidden', background: 'var(--app-bg)' }}>
         {isWebDesktop && (
           <div
             onMouseEnter={handleSidebarMouseEnter}
@@ -1931,7 +1935,7 @@ export default function App() {
                           onChangeSection={setActivePanel} 
                         />
                       )}
-                      <div className="flex-1 overflow-hidden relative" style={{ contain: 'strict', paddingBottom: isWebDesktop ? '96px' : '0px' }}>
+                      <div className="flex-1 overflow-hidden relative" style={{ contain: 'strict' }}>
                         {ALL_PANELS.map(panel => {
                           const isVisible = activePanel === panel;
                           if (!isVisible) return null;

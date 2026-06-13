@@ -553,14 +553,19 @@ html[data-theme="light"] #layer-panel .layer-row.on::before { background: #fff; 
 /* Unify the canvas background — body, html and the canvas container all use the same dark
    base so there is no visible seam between the React header above and the iframe content */
 html, body {
-  background: #0e0e0e !important;
+  background: #050505 !important;
 }
 #canvas-container {
-  background: #0e0e0e !important;
+  background: #050505 !important;
 }
 /* stage-viewport no longer needs the 52px top push — the toolbar floats above the canvas rect */
 #stage-viewport {
-  padding-top: 24px !important;
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: center !important;
+  justify-content: flex-start !important;
+  padding-top: 10px !important;
+  padding-bottom: 20px !important;
   /* Smooth slide when vtools panel opens/closes */
   transition: transform 300ms cubic-bezier(0.34, 1.1, 0.64, 1) !important;
 }
@@ -600,30 +605,48 @@ html, body {
   bottom: 0;
   overflow-y: auto;
   overflow-x: hidden;
-  background: #0e0e0e;
+  background: #050505 !important;
 }
 .sc-hub-card {
   width: 100%;
   display: flex;
   align-items: center;
-  gap: 14px;
-  padding: 17px 18px;
-  background: rgba(255,255,255,0.04);
-  border: 1px solid rgba(255,255,255,0.07);
-  border-radius: 16px;
+  gap: 16px;
+  padding: 20px 22px;
+  background: #09090b;
+  border: 1px solid #27272a;
+  border-radius: 12px;
   cursor: pointer;
   text-align: left;
   -webkit-tap-highlight-color: transparent;
-  transition: background 130ms ease, transform 110ms ease, border-color 130ms ease;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
   outline: none;
 }
-.sc-hub-card:hover  { background: rgba(255,255,255,0.07); border-color: rgba(255,255,255,0.12); }
-.sc-hub-card:active { transform: scale(0.97); background: rgba(255,255,255,0.10); }
+.sc-hub-card:hover {
+  background: #121214;
+  border-color: var(--accent, #3b82f6);
+  transform: translateY(-2px);
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.5), 0 8px 10px -6px rgba(0, 0, 0, 0.5);
+}
+.sc-hub-card:hover .sc-hub-chevron {
+  color: var(--accent, #3b82f6);
+  transform: translateX(4px);
+}
+.sc-hub-card:active {
+  transform: translateY(0) scale(0.98);
+}
 .sc-hub-icon {
-  width: 48px; height: 48px;
-  border-radius: 13px;
+  width: 44px; height: 44px;
+  border-radius: 10px;
   display: flex; align-items: center; justify-content: center;
   flex-shrink: 0;
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  transition: all 0.2s;
+}
+.sc-hub-card:hover .sc-hub-icon {
+  border-color: var(--accent, #3b82f6);
+  color: #ffffff;
 }
 .sc-hub-text { flex: 1; min-width: 0; }
 .sc-hub-title {
@@ -635,9 +658,9 @@ html, body {
 .sc-hub-sub {
   font-family: 'Manrope', sans-serif;
   font-size: 12px; font-weight: 500;
-  color: #5a5a59; margin: 0;
+  color: #a1a1aa; margin: 0;
 }
-.sc-hub-chevron { font-size: 20px !important; color: rgba(255,255,255,0.18); flex-shrink: 0; }
+.sc-hub-chevron { font-size: 20px !important; color: rgba(255,255,255,0.18); flex-shrink: 0; transition: all 0.2s; }
 
 /* ── Back button inside each setup section ─────────────────────────── */
 .sc-back-btn {
@@ -675,10 +698,10 @@ html, body {
 
 /* ═══════════ GEAR BENTO REDESIGN ═══════════ */
 .gear-bento-stat {
-  background: #1f2020;
-  border-radius: 14px;
+  background: #080808;
+  border-radius: 12px;
   padding: 16px 18px;
-  border: 1px solid rgba(72,72,72,0.15);
+  border: 1px solid rgba(255,255,255,0.06);
   transition: background 0.15s;
 }
 .gear-bento-label {
@@ -698,7 +721,7 @@ html, body {
   cursor: default;
 }
 .gear-item-row:not(:last-child) {
-  border-bottom: 1px solid rgba(255,255,255,0.04);
+  border-bottom: 1px solid rgba(255,255,255,0.06);
 }
 .gear-item-row:hover { background: rgba(255,255,255,0.025); }
 .gear-item-row.packed { opacity: 0.38; }
@@ -709,7 +732,7 @@ html, body {
   cursor: pointer; flex-shrink: 0; transition: all 0.25s cubic-bezier(0.34,1.56,0.64,1);
 }
 .gear-item-check.checked {
-  border-color: #c5ffc9; background: #c5ffc9;
+  border-color: var(--accent); background: var(--accent);
 }
 .gear-item-check.animate-check {
   animation: gear-pop 0.35s cubic-bezier(0.34,1.56,0.64,1);
@@ -840,11 +863,11 @@ html[data-theme="light"] .gear-empty-sub { color: #bbb !important; }
 
 /* Clean dark background for all setup sub-views */
 #view-Rider, #view-Setlist, #view-Gear, #view-Members {
-  background: #0e0e0e !important;
+  background: #050505 !important;
 }
 
-/* Hide the ← Setup back buttons — swipe gesture handles navigation */
-.sc-back-btn { display: none !important; }
+/* Show the ← Setup back buttons */
+.sc-back-btn { display: inline-flex !important; }
 
 
 /* ── Smooth theme / AMOLED / accent background transitions ─────── */
@@ -862,7 +885,7 @@ header,
    SHARED SUB-VIEW COMPONENT SYSTEM
    ═══════════════════════════════════════════════════════════════════ */
 
-.sc-section-wrap { max-width: 680px; margin: 0 auto; }
+.sc-section-wrap { max-width: 1280px; margin: 0 auto; }
 
 .sc-section-title {
   font-family: 'Manrope', sans-serif;
@@ -872,7 +895,7 @@ header,
 
 /* Stat card */
 .sc-stat-card {
-  background: rgba(255,255,255,0.03);
+  background: #080808;
   border: 1px solid rgba(255,255,255,0.06);
   border-radius: 10px; padding: 12px 14px;
 }
@@ -888,7 +911,7 @@ header,
 
 /* Generic content card */
 .sc-card {
-  background: rgba(255,255,255,0.03);
+  background: #080808;
   border: 1px solid rgba(255,255,255,0.06);
   border-radius: 12px; padding: 16px 18px;
 }
@@ -978,7 +1001,7 @@ header,
 .rd-draft-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--accent); animation: rd-pulse 2.2s ease-in-out infinite; flex-shrink: 0; }
 @keyframes rd-pulse { 0%,100%{opacity:1} 50%{opacity:0.35} }
 .rd-stats-row { display: flex; align-items: center; gap: 10px; margin-bottom: 14px; flex-wrap: wrap; }
-.rd-stat-block { background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.06); border-radius: 10px; padding: 10px 14px; display: flex; flex-direction: column; gap: 3px; }
+.rd-stat-block { background: #080808; border: 1px solid rgba(255,255,255,0.06); border-radius: 10px; padding: 10px 14px; display: flex; flex-direction: column; gap: 3px; }
 .rd-stat-label { font-family: 'Manrope', sans-serif; font-size: 8px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.18em; color: #484847; }
 .rd-stat-val { font-family: 'Manrope', sans-serif; font-size: 20px; font-weight: 900; line-height: 1; }
 .rd-actions { display: flex; gap: 6px; margin-left: auto; }
@@ -987,14 +1010,14 @@ header,
 .rd-btn--accent { background: var(--accent); color: #0e0e0e; }
 .rd-btn--hot { background: var(--hot); color: #fff; }
 .rd-btn--ghost { background: rgba(255,255,255,0.05); color: #adaaaa; border: 1px solid rgba(255,255,255,0.09) !important; }
-.rd-card { background: #191a1a; border-radius: 14px; padding: 20px; margin-bottom: 12px; border: 1px solid rgba(255,255,255,0.04); }
+.rd-card { background: #080808; border-radius: 12px; padding: 20px; margin-bottom: 12px; border: 1px solid rgba(255,255,255,0.06); }
 .rd-card-header { display: flex; align-items: center; gap: 10px; margin-bottom: 16px; }
-.rd-card-icon { font-size: 18px !important; color: var(--accent, #7aafff); }
+.rd-card-icon { font-size: 18px !important; color: #a3a3a3; }
 .rd-card-title { font-family: 'Manrope', sans-serif; font-size: 13px; font-weight: 800; color: #e7e5e4; margin: 0; text-transform: uppercase; letter-spacing: 0.12em; }
 .rd-card .sc-table-scroll { background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.05); border-radius: 10px; }
 .rd-notes-textarea { font-family: 'Inter', sans-serif; font-size: 13px; color: #5a5a59; line-height: 1.65; background: transparent; border: none; width: 100%; box-sizing: border-box; resize: vertical; min-height: 96px; outline: none; padding: 0; }
 .rd-notes-textarea:focus { color: #8a8a89; }
-.rd-notes-textarea::placeholder { color: #333; }
+.rd-notes-textarea::placeholder { color: #484847; }
 .rd-input-table { border-collapse: collapse; font-family: 'Inter', sans-serif; font-size: 11px; min-width: 600px; width: 100%; }
 .rd-input-table thead tr { background: rgba(255,255,255,0.03); border-bottom: 1px solid rgba(255,255,255,0.06); }
 .rd-input-table th { padding: 8px 10px; font-size: 9px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.12em; color: #767575; text-align: left; white-space: nowrap; }
@@ -1010,9 +1033,9 @@ header,
 .rd-input-table .rd-del-btn:hover { color: #ee7d77; }
 .rd-config-grid { display: flex; flex-direction: column; gap: 12px; }
 .rd-config-label { font-family: 'Inter', sans-serif; font-size: 9px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.2em; color: #767575; margin-bottom: 6px; display: block; }
-.rd-config-select { width: 100%; background: #131313; border: 1px solid rgba(255,255,255,0.06); border-radius: 10px; padding: 11px 14px; color: #e7e5e4; font-family: 'Manrope', sans-serif; font-size: 12px; font-weight: 500; appearance: none; outline: none; cursor: pointer; transition: border-color 0.15s; }
+.rd-config-select { width: 100%; background: #050505; border: 1px solid rgba(255,255,255,0.08); border-radius: 10px; padding: 11px 14px; color: #e7e5e4; font-family: 'Manrope', sans-serif; font-size: 12px; font-weight: 500; appearance: none; outline: none; cursor: pointer; transition: border-color 0.15s; }
 .rd-config-select:focus { border-color: var(--accent); }
-.rd-config-check-row { display: flex; align-items: center; justify-content: space-between; padding: 10px 14px; background: #1f2020; border-radius: 10px; cursor: pointer; border: 1px solid transparent; transition: border-color 0.15s, background 0.12s; }
+.rd-config-check-row { display: flex; align-items: center; justify-content: space-between; padding: 10px 14px; background: #080808; border-radius: 10px; cursor: pointer; border: 1px solid rgba(255,255,255,0.06); transition: border-color 0.15s, background 0.12s; }
 .rd-config-check-row:hover { border-color: rgba(0,122,255,0.2); }
 .rd-config-check-row span { font-family: 'Manrope', sans-serif; font-size: 12px; font-weight: 500; color: #e7e5e4; }
 .rd-config-checkbox { width: 16px; height: 16px; border-radius: 4px; border: 2px solid #484848; background: transparent; display: flex; align-items: center; justify-content: center; flex-shrink: 0; transition: all 0.15s; }
@@ -1024,7 +1047,7 @@ header,
 .rd-mix-del { background: none; border: none; cursor: pointer; color: rgba(238,125,119,0.5); font-size: 14px; transition: color 0.12s; }
 .rd-mix-del:hover { color: #ee7d77; }
 .rd-drop-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
-.rd-drop-item { background: #1f2020; padding: 10px 14px; border-radius: 10px; display: flex; align-items: center; justify-content: space-between; border: 1px solid rgba(255,255,255,0.06); cursor: pointer; transition: border-color 0.15s; }
+.rd-drop-item { background: #080808; padding: 10px 14px; border-radius: 10px; display: flex; align-items: center; justify-content: space-between; border: 1px solid rgba(255,255,255,0.06); cursor: pointer; transition: border-color 0.15s; }
 .rd-drop-item.active { border-color: rgba(0,122,255,0.3); }
 .rd-drop-item span.rd-drop-label { font-family: 'Manrope', sans-serif; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em; color: #e7e5e4; }
 .rd-drop-item.active span.rd-drop-label { color: #e7e5e4; }
@@ -1112,9 +1135,9 @@ textarea.sng-input { line-height:1.5; }
 
 /* ── Big stacked stat cards ── */
 .sl-big-stat {
-  background: rgba(255,255,255,0.03);
+  background: #080808;
   border: 1px solid rgba(255,255,255,0.06);
-  border-radius: 16px; padding: 18px 20px;
+  border-radius: 12px; padding: 18px 20px;
   position: relative; overflow: hidden;
   cursor: pointer;
   transition: transform 180ms cubic-bezier(0.34,1.2,0.64,1),
@@ -1163,9 +1186,9 @@ textarea.sng-input { line-height:1.5; }
 
 /* ── Song list container ── */
 .sl-song-container {
-  background: rgba(255,255,255,0.02);
+  background: #080808;
   border: 1px solid rgba(255,255,255,0.06);
-  border-radius: 16px; overflow: hidden; margin-bottom: 12px;
+  border-radius: 12px; overflow: hidden; margin-bottom: 12px;
 }
 
 /* ── Song row card layout ── */
@@ -1225,32 +1248,22 @@ textarea.sng-input { line-height:1.5; }
 /* ── "Add New Track" pill button ── */
 .sl-add-btn {
   display: flex; align-items: center; justify-content: center; gap: 8px;
-  width: 100%; padding: 15px 20px;
-  font-family: 'Manrope', sans-serif; font-size: 13px;
+  width: 100%; padding: 10px 20px;
+  font-family: 'Manrope', sans-serif; font-size: 11px;
   font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em;
-  background: linear-gradient(135deg, var(--accent), var(--hot)); color: #fff;
-  border: none; border-radius: 100px; cursor: pointer;
+  background: transparent; color: #a1a1aa;
+  border: 1.5px dashed rgba(255, 255, 255, 0.15); border-radius: 9999px; cursor: pointer;
   -webkit-tap-highlight-color: transparent; margin-bottom: 20px;
-  position: relative; overflow: hidden;
-  transition: transform 200ms cubic-bezier(0.34,1.4,0.64,1),
-              filter 200ms ease,
-              box-shadow 200ms ease;
-  box-shadow: 0 4px 22px var(--accent-40);
+  transition: all 150ms ease;
+}
+.sl-add-btn:hover {
+  background: rgba(255, 255, 255, 0.04);
+  border-color: rgba(255, 255, 255, 0.3);
+  color: #ffffff;
 }
 .sl-add-btn:active {
-  transform: scale(0.95);
-  filter: brightness(0.88);
-  box-shadow: 0 1px 6px var(--accent-20);
-}
-/* ripple layer */
-.sl-add-btn::after {
-  content: ''; position: absolute; inset: 0; border-radius: inherit;
-  background: rgba(255,255,255,0.18);
-  transform: scale(0); opacity: 0;
-  transition: transform 0ms, opacity 0ms;
-}
-.sl-add-btn:active::after {
-  animation: sl-ripple 400ms ease-out forwards;
+  transform: scale(0.98);
+  background: rgba(255, 255, 255, 0.06);
 }
 
 /* ── Setlist Insights card rows ── */
@@ -1505,6 +1518,23 @@ html[data-theme="light"] .sc-hub-title  { color: #0e0e0e !important; }
 html[data-theme="light"] .sc-hub-sub    { color: #777 !important; }
 html[data-theme="light"] .sc-hub-chevron { color: rgba(0,0,0,0.22) !important; }
 
+html {
+  --rn-card-bg: #050505;
+  --rn-chip-bg: #09090b;
+  --rn-input-bg: #09090b;
+  --rn-border: rgba(255, 255, 255, 0.08);
+  --rn-text: #ffffff;
+  --rn-muted: #a1a1aa;
+}
+html[data-theme="light"] {
+  --rn-card-bg: #ffffff;
+  --rn-chip-bg: #f3f3f5;
+  --rn-input-bg: #f9f9fb;
+  --rn-border: rgba(0, 0, 0, 0.08);
+  --rn-text: #1a1a1a;
+  --rn-muted: #71717a;
+}
+
 /* ── Setup sub-sections (Rider / Setlist / Gear / Members) ──
    Same warm off-white as the shell header so the page reads as one
    continuous surface with no horizontal seam at the top. */
@@ -1513,6 +1543,70 @@ html[data-theme="light"] #view-Setlist,
 html[data-theme="light"] #view-Gear,
 html[data-theme="light"] #view-Members {
   background: #f2f1ef !important;
+}
+
+html[data-theme="light"] .sc-stat-card,
+html[data-theme="light"] .sc-card,
+html[data-theme="light"] .sl-big-stat,
+html[data-theme="light"] .rd-card,
+html[data-theme="light"] .rd-stat-block,
+html[data-theme="light"] .rd-config-check-row,
+html[data-theme="light"] .rd-drop-item,
+html[data-theme="light"] #gear-list-container,
+html[data-theme="light"] #view-Rider [style*="background:#080808"],
+html[data-theme="light"] #view-Rider [style*="background: #080808"] {
+  background: #ffffff !important;
+  border-color: rgba(0,0,0,0.08) !important;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.02) !important;
+}
+
+html[data-theme="light"] .sc-stat-val,
+html[data-theme="light"] .sc-stat-val span,
+html[data-theme="light"] .rd-stat-val,
+html[data-theme="light"] .gear-bento-val {
+  color: #0e0e0e !important;
+}
+
+html[data-theme="light"] .sc-stat-label,
+html[data-theme="light"] .rd-stat-label,
+html[data-theme="light"] .gear-bento-label {
+  color: #888 !important;
+}
+
+html[data-theme="light"] input[style*="background:rgba(255,255,255"],
+html[data-theme="light"] input[style*="background: rgba(255,255,255"],
+html[data-theme="light"] input[style*="background:rgba(0,0,0,0.04)"] {
+  background: #f5f5f7 !important;
+  border-color: rgba(0,0,0,0.10) !important;
+  color: #1a1a1a !important;
+}
+
+html[data-theme="light"] button[style*="background:rgba(255,255,255"],
+html[data-theme="light"] button[style*="background: rgba(255,255,255"] {
+  background: rgba(0,0,0,0.05) !important;
+  border-color: rgba(0,0,0,0.10) !important;
+  color: #1a1a1a !important;
+}
+
+html[data-theme="light"] [style*="color:#d4d4d4"],
+html[data-theme="light"] [style*="color: #d4d4d4"] {
+  color: #1a1a1a !important;
+}
+
+html[data-theme="light"] [style*="color:#5a5a59"],
+html[data-theme="light"] [style*="color: #5a5a59"] {
+  color: #71717a !important;
+}
+
+html[data-theme="light"] [style*="border-bottom:1px solid rgba(255,255,255,0.04)"],
+html[data-theme="light"] [style*="border-bottom: 1px solid rgba(255,255,255,0.04)"] {
+  border-bottom-color: rgba(0,0,0,0.06) !important;
+}
+
+html[data-theme="light"] #view-Rider [style*="background:#050505"],
+html[data-theme="light"] #view-Rider [style*="background: #050505"] {
+  background: #ffffff !important;
+  border-color: rgba(0,0,0,0.08) !important;
 }
 /* Rider Input List wrapper — uses inline background:#191a1a + a faint white
    border. In light mode that becomes an opaque black slab over a black-ish
@@ -1703,9 +1797,9 @@ html[data-theme="light"] .sc-dial-chip {
   z-index: 201;
   display: flex;
   flex-direction: column;
-  background: rgba(16,16,20,0.97);
-  border: 1px solid rgba(255,255,255,0.10);
-  border-radius: 18px;
+  background: #080808;
+  border: 1px solid rgba(255,255,255,0.06);
+  border-radius: 12px;
   overflow: hidden;
   /* starts off-screen ↓ and scaled down */
   transform: translateY(18px) scale(0.93);
@@ -1789,10 +1883,11 @@ html[data-theme="light"] .sc-dial-chip {
 .sc-item-btn-icon {
   width: 28px; height: 28px;
   border-radius: 8px;
-  background: rgba(122,175,255,0.12);
+  background: rgba(255,255,255,0.03);
+  border: 1px solid rgba(255,255,255,0.06);
   display: flex; align-items: center; justify-content: center;
   flex-shrink: 0;
-  color: #7aafff;
+  color: #acabaa;
 }
 .sc-item-btn-name {
   flex: 1;
@@ -1831,19 +1926,21 @@ html[data-theme="light"] .sc-item-btn-icon { background: rgba(0,122,255,0.10) !i
 
 /* ── Canvas bg: controlled by CSS so data-theme (set before first paint) determines initial color,
       eliminating the flash. JS updateCanvasBg() still overrides via inline style for user swatches. ── */
-#stage-canvas { background-color: #0e0e0e; }
-html[data-theme="light"] #stage-canvas { background-color: #ffffff; }
+#stage-canvas {
+  background-color: #0e0e0e;
+  border-radius: 12px;
+  border: 1px solid rgba(255,255,255,0.08);
+}
+html[data-theme="light"] #stage-canvas {
+  background-color: #ffffff;
+  border: 1px solid rgba(0,0,0,0.08) !important;
+  border-radius: 12px !important;
+}
 
 /* ── Light mode: stage canvas uses dark grid lines and a visible border ── */
-html[data-theme="light"] #stage-canvas {
-  border: 2px solid rgba(0,0,0,0.45) !important;
-}
 html[data-theme="light"] .stage-grid {
-  background-image:
-    linear-gradient(rgba(0,0,0,0.14) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(0,0,0,0.14) 1px, transparent 1px),
-    linear-gradient(rgba(0,0,0,0.06) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(0,0,0,0.06) 1px, transparent 1px) !important;
+  background-image: radial-gradient(rgba(0, 0, 0, 0.08) 1.5px, transparent 1.5px) !important;
+  background-size: 40px 40px !important;
 }
 html[data-theme="light"] .stage-grid.grid-off {
   background-image: none !important;
@@ -1871,16 +1968,14 @@ html[data-amoled="1"] .scrollable-view { background: #000 !important; }
 html[data-amoled="1"] #view-Assistant { background: #000 !important; }
 html[data-amoled="1"] #canvas-container { background: #000 !important; }
 html[data-amoled="1"] #stage-viewport { background: #000 !important; }
-html[data-amoled="1"] #stage-canvas { background-color: #000 !important; }
-html[data-amoled="1"] .stage-grid {
-  background-image:
-    linear-gradient(rgba(255,255,255,0.18) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(255,255,255,0.18) 1px, transparent 1px),
-    linear-gradient(rgba(255,255,255,0.07) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(255,255,255,0.07) 1px, transparent 1px) !important;
-}
 html[data-amoled="1"] #stage-canvas {
-  border-color: rgba(255,255,255,0.15) !important;
+  background-color: #000000 !important;
+  border: 1px solid rgba(255,255,255,0.08) !important;
+  border-radius: 12px !important;
+}
+html[data-amoled="1"] .stage-grid {
+  background-image: radial-gradient(rgba(255, 255, 255, 0.08) 1.5px, transparent 1.5px) !important;
+  background-size: 40px 40px !important;
 }
 html[data-amoled="1"] #view-SetupHub,
 html[data-amoled="1"] #view-Rider,
@@ -1928,59 +2023,87 @@ html[data-amoled="1"] #el-properties-panel { background: #000 !important; }
 
 <!-- ═══════════ SETUP HUB — card list ═══════════ -->
 <div id="view-SetupHub" class="view-page" style="display:none;">
-  <div style="padding:20px 16px 110px;">
+  <div style="max-width:1120px; margin:0 auto; padding:40px 24px 110px;">
 
     <!-- Section heading -->
-    <div style="margin-bottom:28px;">
-      <h1 data-i18n="setupTitle" style="font-family:'Manrope',sans-serif;font-size:2.8rem;font-weight:800;color:#f2f2f2;margin:0 0 4px;letter-spacing:-0.04em;line-height:1;">Setup</h1>
-      <p data-i18n="setupSubtitle" style="font-family:'Manrope',sans-serif;font-size:13px;color:#5a5a59;margin:0;font-weight:500;">Your show documents &amp; band info</p>
+    <div style="margin-bottom:32px; border-bottom:1px solid rgba(255,255,255,0.06); padding-bottom:18px;">
+      <h1 data-i18n="setupTitle" style="font-family:'Manrope',sans-serif;font-size:2.4rem;font-weight:800;color:#ffffff;margin:0 0 6px;letter-spacing:-0.03em;line-height:1;">Setup</h1>
+      <p data-i18n="setupSubtitle" style="font-family:'Manrope',sans-serif;font-size:13px;color:#a1a1aa;margin:0;font-weight:500;">Your show documents &amp; band info</p>
     </div>
 
-    <!-- Cards -->
-    <div style="display:flex;flex-direction:column;gap:10px;">
+<!-- Cards -->
+    <div class="sc-hub-grid">
 
       <button class="sc-hub-card" onclick="switchView('Rider')">
-        <div class="sc-hub-icon" style="background:var(--accent-20);">
-          <span class="material-symbols-outlined" style="font-size:23px;color:var(--accent);">cable</span>
+        <div class="sc-hub-card-top">
+          <div class="sc-hub-icon">
+            <span class="material-symbols-outlined" style="font-size:20px;">cable</span>
+          </div>
+          <span class="material-symbols-outlined sc-hub-chevron">chevron_right</span>
         </div>
-        <div class="sc-hub-text">
-          <p class="sc-hub-title" data-i18n="navRider">Rider</p>
-          <p class="sc-hub-sub" data-i18n="setupRiderSub">Channel list, mic inputs &amp; tech requirements</p>
+        <div class="sc-hub-card-bottom">
+          <div>
+            <p class="sc-hub-title" data-i18n="navRider">Rider</p>
+            <p class="sc-hub-sub" data-i18n="setupRiderSub">Channel list, mic inputs &amp; tech requirements</p>
+          </div>
+          <div class="sc-hub-badge-wrap">
+            <span class="sc-hub-badge" id="hub-counter-rider">0 Channels</span>
+          </div>
         </div>
-        <span class="material-symbols-outlined sc-hub-chevron">chevron_right</span>
       </button>
 
       <button class="sc-hub-card" onclick="switchView('Setlist')">
-        <div class="sc-hub-icon" style="background:var(--accent-10);">
-          <span class="material-symbols-outlined" style="font-size:23px;color:var(--accent);">format_list_numbered</span>
+        <div class="sc-hub-card-top">
+          <div class="sc-hub-icon">
+            <span class="material-symbols-outlined" style="font-size:20px;">format_list_numbered</span>
+          </div>
+          <span class="material-symbols-outlined sc-hub-chevron">chevron_right</span>
         </div>
-        <div class="sc-hub-text">
-          <p class="sc-hub-title" data-i18n="navSetlist">Setlist</p>
-          <p class="sc-hub-sub" data-i18n="setupSetlistSub">Song order, timing &amp; performance flow</p>
+        <div class="sc-hub-card-bottom">
+          <div>
+            <p class="sc-hub-title" data-i18n="navSetlist">Setlist</p>
+            <p class="sc-hub-sub" data-i18n="setupSetlistSub">Song order, timing &amp; performance flow</p>
+          </div>
+          <div class="sc-hub-badge-wrap">
+            <span class="sc-hub-badge" id="hub-counter-setlist">0 Songs</span>
+          </div>
         </div>
-        <span class="material-symbols-outlined sc-hub-chevron">chevron_right</span>
       </button>
 
       <button class="sc-hub-card" onclick="switchView('Gear')">
-        <div class="sc-hub-icon" style="background:var(--accent-10);">
-          <span class="material-symbols-outlined" style="font-size:23px;color:var(--accent);">checklist</span>
+        <div class="sc-hub-card-top">
+          <div class="sc-hub-icon">
+            <span class="material-symbols-outlined" style="font-size:20px;">checklist</span>
+          </div>
+          <span class="material-symbols-outlined sc-hub-chevron">chevron_right</span>
         </div>
-        <div class="sc-hub-text">
-          <p class="sc-hub-title" data-i18n="navGear">Gear</p>
-          <p class="sc-hub-sub" data-i18n="setupGearSub">Instruments, amps &amp; load-in checklist</p>
+        <div class="sc-hub-card-bottom">
+          <div>
+            <p class="sc-hub-title" data-i18n="navGear">Gear</p>
+            <p class="sc-hub-sub" data-i18n="setupGearSub">Instruments, amps &amp; load-in checklist</p>
+          </div>
+          <div class="sc-hub-badge-wrap">
+            <span class="sc-hub-badge" id="hub-counter-gear">0 Items</span>
+          </div>
         </div>
-        <span class="material-symbols-outlined sc-hub-chevron">chevron_right</span>
       </button>
 
       <button class="sc-hub-card" onclick="switchView('Members')">
-        <div class="sc-hub-icon" style="background:var(--accent-10);">
-          <span class="material-symbols-outlined" style="font-size:23px;color:var(--accent);">badge</span>
+        <div class="sc-hub-card-top">
+          <div class="sc-hub-icon">
+            <span class="material-symbols-outlined" style="font-size:20px;">badge</span>
+          </div>
+          <span class="material-symbols-outlined sc-hub-chevron">chevron_right</span>
         </div>
-        <div class="sc-hub-text">
-          <p class="sc-hub-title" data-i18n="navMembers">Members</p>
-          <p class="sc-hub-sub" data-i18n="setupMembersSub">Band roster, roles &amp; contact info</p>
+        <div class="sc-hub-card-bottom">
+          <div>
+            <p class="sc-hub-title" data-i18n="navMembers">Members</p>
+            <p class="sc-hub-sub" data-i18n="setupMembersSub">Band roster, roles &amp; contact info</p>
+          </div>
+          <div class="sc-hub-badge-wrap">
+            <span class="sc-hub-badge" id="hub-counter-members">0 Members</span>
+          </div>
         </div>
-        <span class="material-symbols-outlined sc-hub-chevron">chevron_right</span>
       </button>
 
     </div>
@@ -2021,53 +2144,620 @@ html[data-amoled="1"] #el-properties-panel { background: #000 !important; }
 <!-- ═══════════════ CUSTOM CONFIRM MODAL ═══════════════ -->
 <!-- Modern confirm modal — themed via CSS vars below -->
 <style>
+
+  /* ── Modern confirm modal & scenes-bar & avatar-group & desktop layout styles ── */
   #confirm-modal {
-    --sc-cf-bg:           #1a1a1c;
-    --sc-cf-border:       rgba(255,255,255,0.07);
-    --sc-cf-title:        #f5f4f2;
-    --sc-cf-msg:          #a8a6a5;
-    --sc-cf-cancel-bg:    rgba(255,255,255,0.05);
-    --sc-cf-cancel-bg-h:  rgba(255,255,255,0.09);
-    --sc-cf-cancel-fg:    #e7e5e4;
+    --sc-cf-bg:           #09090b;
+    --sc-cf-border:       #27272a;
+    --sc-cf-title:        #fafafa;
+    --sc-cf-msg:          #a1a1aa;
+    --sc-cf-cancel-bg:    rgba(255,255,255,0.03);
+    --sc-cf-cancel-bg-h:  rgba(255,255,255,0.06);
+    --sc-cf-cancel-fg:    #e4e4e7;
     --sc-cf-cancel-bd:    rgba(255,255,255,0.08);
-    --sc-cf-icon-tint:    rgba(239,68,68,0.13);
-    --sc-cf-overlay:      rgba(8,8,10,0.55);
-    --sc-cf-shadow:       0 30px 80px rgba(0,0,0,0.55), 0 8px 24px rgba(0,0,0,0.32);
+    --sc-cf-shadow:       0 20px 25px -5px rgba(0,0,0,0.5), 0 10px 10px -5px rgba(0,0,0,0.5);
   }
   [data-theme="light"] #confirm-modal {
     --sc-cf-bg:           #ffffff;
-    --sc-cf-border:       rgba(0,0,0,0.06);
-    --sc-cf-title:        #1a1a1a;
-    --sc-cf-msg:          #6e6d6b;
-    --sc-cf-cancel-bg:    rgba(0,0,0,0.04);
-    --sc-cf-cancel-bg-h:  rgba(0,0,0,0.08);
-    --sc-cf-cancel-fg:    #1a1a1a;
+    --sc-cf-border:       #e4e4e7;
+    --sc-cf-title:        #18181b;
+    --sc-cf-msg:          #71717a;
+    --sc-cf-cancel-bg:    rgba(0,0,0,0.03);
+    --sc-cf-cancel-bg-h:  rgba(0,0,0,0.06);
+    --sc-cf-cancel-fg:    #27272a;
     --sc-cf-cancel-bd:    rgba(0,0,0,0.08);
-    --sc-cf-icon-tint:    rgba(239,68,68,0.10);
-    --sc-cf-overlay:      rgba(20,20,24,0.32);
-    --sc-cf-shadow:       0 24px 60px rgba(0,0,0,0.18), 0 6px 18px rgba(0,0,0,0.08);
+    --sc-cf-shadow:       0 20px 25px -5px rgba(0,0,0,0.1), 0 10px 10px -5px rgba(0,0,0,0.04);
   }
   @keyframes sc-cf-fade {
     from { opacity: 0; }
     to   { opacity: 1; }
   }
   @keyframes sc-cf-pop {
-    from { opacity: 0; transform: scale(0.92) translateY(8px); }
+    from { opacity: 0; transform: scale(0.96) translateY(4px); }
     to   { opacity: 1; transform: scale(1)    translateY(0);    }
   }
+
+  /* Scenes Bar styling overrides */
+  .sc-scene-label {
+    font-family: 'Manrope', sans-serif;
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    color: var(--scenes-fg-inactive);
+    margin-right: 6px;
+    margin-left: 4px;
+  }
+
+  .sc-scene-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    height: 26px;
+    padding: 0 12px;
+    border-radius: 9999px;
+    border: 1px solid rgba(255,255,255,0.08);
+    background: transparent;
+    color: var(--scenes-fg-inactive);
+    font-family: 'Manrope', sans-serif;
+    font-size: 11px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 150ms ease;
+  }
+
+  html[data-theme="light"] .sc-scene-btn {
+    border-color: rgba(0,0,0,0.08);
+  }
+
+  .sc-scene-btn:hover {
+    background: rgba(255,255,255,0.04);
+    color: #ffffff;
+    border-color: rgba(255,255,255,0.16);
+  }
+
+  html[data-theme="light"] .sc-scene-btn:hover {
+    background: rgba(0,0,0,0.03);
+    color: #18181b;
+    border-color: rgba(0,0,0,0.16);
+  }
+
+  .sc-scene-btn.active {
+    background: #ffffff;
+    border-color: #ffffff;
+    color: #09090b;
+  }
+
+  html[data-theme="light"] .sc-scene-btn.active {
+    background: #18181b;
+    border-color: #18181b;
+    color: #ffffff;
+  }
+
+  .sc-scene-close {
+    opacity: 0.5;
+    font-size: 12px;
+    line-height: 1;
+    cursor: pointer;
+    margin-left: 4px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 12px;
+    height: 12px;
+    transition: color 120ms ease, opacity 120ms ease;
+  }
+
+  .sc-scene-close:hover {
+    opacity: 1;
+    color: var(--hot) !important;
+  }
+
+  .sc-scene-add-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 26px;
+    height: 26px;
+    border-radius: 9999px;
+    border: 1px dashed rgba(255,255,255,0.2);
+    background: transparent;
+    color: var(--scenes-fg-inactive);
+    cursor: pointer;
+    transition: all 150ms ease;
+  }
+
+  html[data-theme="light"] .sc-scene-add-btn {
+    border-color: rgba(0,0,0,0.2);
+  }
+
+  .sc-scene-add-btn:hover {
+    border-style: solid;
+    border-color: var(--accent);
+    background: rgba(255,255,255,0.04);
+    color: var(--accent);
+  }
+
+  html[data-theme="light"] .sc-scene-add-btn:hover {
+    border-style: solid;
+    border-color: var(--accent);
+    background: rgba(0,0,0,0.03);
+    color: var(--accent);
+  }
+
+  /* Avatar Group */
+  .sc-avatar-group {
+    display: flex;
+    align-items: center;
+  }
+
+  .sc-avatar-group .sc-avatar {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    border: 2px solid #050505;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: 'Manrope', sans-serif;
+    font-size: 13px;
+    font-weight: 700;
+    margin-left: -8px;
+    transition: transform 200ms cubic-bezier(0.2, 0.8, 0.2, 1), margin 200ms cubic-bezier(0.2, 0.8, 0.2, 1);
+    position: relative;
+    cursor: pointer;
+    box-sizing: border-box;
+  }
+
+  .sc-avatar-group .sc-avatar:first-child {
+    margin-left: 0;
+  }
+
+  html[data-theme="light"] .sc-avatar-group .sc-avatar {
+    border-color: #ffffff;
+  }
+
+  .sc-avatar-group .sc-avatar:hover {
+    transform: translateY(-4px) scale(1.1);
+    z-index: 10;
+  }
+
+  .sc-avatar-group .sc-avatar.sc-avatar-more {
+    background: #27272a;
+    color: #a1a1aa;
+  }
+
+  html[data-theme="light"] .sc-avatar-group .sc-avatar.sc-avatar-more {
+    background: #f4f4f5;
+    color: #71717a;
+  }
+
+  /* Bento grid styling overrides */
+  .sc-hub-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
+  @media (min-width: 640px) {
+    .sc-hub-grid {
+      grid-template-columns: repeat(2, 1fr);
+    }
+  }
+  @media (min-width: 1024px) {
+    .sc-hub-grid {
+      grid-template-columns: repeat(4, 1fr);
+      gap: 20px;
+    }
+  }
+
+  .sc-hub-card {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    justify-content: space-between;
+    min-height: 185px;
+    padding: 24px;
+    background: #09090b;
+    border: 1px solid #27272a;
+    border-radius: 12px;
+    cursor: pointer;
+    text-align: left;
+    transition: all 250ms cubic-bezier(0.16, 1, 0.3, 1);
+    position: relative;
+    overflow: hidden;
+    outline: none;
+    box-sizing: border-box;
+  }
+
+  html[data-theme="light"] .sc-hub-card {
+    background: #ffffff;
+    border-color: #e4e4e7;
+  }
+
+  .sc-hub-card:hover {
+    background: #18181b;
+    border-color: rgba(255,255,255,0.2);
+    transform: translateY(-4px);
+    box-shadow: 0 12px 30px rgba(0,0,0,0.6);
+  }
+
+  html[data-theme="light"] .sc-hub-card:hover {
+    background: #f4f4f5;
+    border-color: rgba(0,0,0,0.15);
+    box-shadow: 0 12px 30px rgba(0,0,0,0.06);
+  }
+
+  .sc-hub-card-top {
+    display: flex;
+    width: 100%;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 16px;
+  }
+
+  .sc-hub-card-bottom {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    width: 100%;
+  }
+
+  .sc-hub-icon {
+    width: 40px;
+    height: 40px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    color: #fafafa;
+    transition: all 200ms ease;
+  }
+
+  html[data-theme="light"] .sc-hub-icon {
+    background: rgba(0, 0, 0, 0.02);
+    border-color: rgba(0, 0, 0, 0.08);
+    color: #18181b;
+  }
+
+  .sc-hub-card:hover .sc-hub-icon {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: #ffffff;
+  }
+
+  .sc-hub-chevron {
+    color: #71717a;
+    transition: all 200ms ease;
+  }
+
+  .sc-hub-card:hover .sc-hub-chevron {
+    color: #fafafa;
+    transform: translateX(2px);
+  }
+
+  html[data-theme="light"] .sc-hub-card:hover .sc-hub-chevron {
+    color: #18181b;
+  }
+
+  .sc-hub-title {
+    font-family: 'Manrope', sans-serif;
+    font-size: 18px;
+    font-weight: 700;
+    color: #fafafa;
+    margin: 0;
+    letter-spacing: -0.01em;
+  }
+
+  html[data-theme="light"] .sc-hub-title {
+    color: #18181b;
+  }
+
+  .sc-hub-sub {
+    font-family: 'Inter', sans-serif;
+    font-size: 12px;
+    font-weight: 400;
+    color: #a1a1aa;
+    margin: 0;
+    line-height: 1.5;
+  }
+
+  html[data-theme="light"] .sc-hub-sub {
+    color: #71717a;
+  }
+
+  .sc-hub-badge-wrap {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+    margin-top: 8px;
+  }
+
+  .sc-hub-badge {
+    font-family: 'Inter', sans-serif;
+    font-size: 11px;
+    font-weight: 600;
+    padding: 4px 10px;
+    border-radius: 9999px;
+    background: rgba(255, 255, 255, 0.04);
+    color: #a1a1aa;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+  }
+
+  html[data-theme="light"] .sc-hub-badge {
+    background: rgba(0, 0, 0, 0.03);
+    color: #71717a;
+    border-color: rgba(0, 0, 0, 0.08);
+  }
+
+  /* Sub-sections Roster / Roster card redesign */
+  .sc-member-card {
+    background: #09090b;
+    border: 1px solid #27272a;
+    border-radius: 12px;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    transition: all 200ms ease;
+  }
+  
+  html[data-theme="light"] .sc-member-card {
+    background: #ffffff;
+    border-color: #e4e4e7;
+  }
+  
+  .sc-member-card:hover {
+    border-color: rgba(255,255,255,0.16);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+  }
+  
+  html[data-theme="light"] .sc-member-card:hover {
+    border-color: rgba(0,0,0,0.12);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+  }
+  
+  .sc-member-card-hdr {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 16px;
+    border-bottom: 1px solid rgba(255,255,255,0.06);
+  }
+  
+  html[data-theme="light"] .sc-member-card-hdr {
+    border-bottom-color: rgba(0,0,0,0.06);
+  }
+  
+  .sc-member-avatar {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: 'Manrope', sans-serif;
+    font-size: 14px;
+    font-weight: 700;
+    color: #ffffff;
+    cursor: pointer;
+    transition: transform 150ms ease;
+    flex-shrink: 0;
+  }
+  
+  .sc-member-avatar:hover {
+    transform: scale(1.1);
+  }
+  
+  .sc-member-name {
+    font-family: 'Manrope', sans-serif;
+    font-size: 14px;
+    font-weight: 700;
+    color: #fafafa;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  
+  html[data-theme="light"] .sc-member-name {
+    color: #18181b;
+  }
+  
+  .sc-member-role {
+    font-family: 'Inter', sans-serif;
+    font-size: 11px;
+    font-weight: 500;
+    color: #71717a;
+    text-transform: capitalize;
+  }
+  
+  .sc-member-del-btn {
+    color: #71717a;
+    background: none;
+    border: none;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 6px;
+    border-radius: 6px;
+    transition: all 150ms ease;
+    flex-shrink: 0;
+  }
+  
+  .sc-member-del-btn:hover {
+    background: rgba(239,68,68,0.1);
+    color: #ef4444;
+  }
+  
+  .sc-member-assignments {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    padding: 12px 16px 16px;
+  }
+  
+  .sc-member-assignments-lbl {
+    font-family: 'Inter', sans-serif;
+    font-size: 9px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.15em;
+    color: #71717a;
+    margin-bottom: 8px;
+  }
+  
+  .sc-member-assignments-list {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  /* Desktop sub-sections wrapper styling override */
+  .view-page.scrollable-view {
+    background: #050505 !important;
+  }
+  html[data-theme="light"] .view-page.scrollable-view {
+    background: #fafafa !important;
+  }
+  html[data-amoled="1"] .view-page.scrollable-view {
+    background: #000000 !important;
+  }
+
+  .sc-section-wrap {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 24px;
+  }
+
+  .sc-section-title {
+    font-family: 'Manrope', sans-serif;
+    font-size: 2.2rem;
+    font-weight: 800;
+    color: #fafafa;
+    letter-spacing: -0.03em;
+    margin: 0 0 4px;
+  }
+
+  html[data-theme="light"] .sc-section-title {
+    color: #18181b;
+  }
+
+  .rd-input-table {
+    border-collapse: collapse;
+    font-family: 'Inter', sans-serif;
+    font-size: 12px;
+    width: 100%;
+  }
+
+  .rd-input-table thead tr {
+    background: rgba(255, 255, 255, 0.02) !important;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08) !important;
+  }
+
+  html[data-theme="light"] .rd-input-table thead tr {
+    background: rgba(0, 0, 0, 0.02) !important;
+    border-bottom-color: rgba(0, 0, 0, 0.08) !important;
+  }
+
+  .rd-input-table th {
+    padding: 12px 16px !important;
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: #71717a !important;
+  }
+
+  .rd-input-table td {
+    padding: 12px 16px !important;
+    color: #e4e4e7 !important;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.04) !important;
+  }
+
+  html[data-theme="light"] .rd-input-table td {
+    color: #18181b !important;
+    border-bottom-color: rgba(0, 0, 0, 0.04) !important;
+  }
+
+  .rd-card, .sc-card {
+    background: #09090b !important;
+    border: 1px solid #27272a !important;
+    border-radius: 12px !important;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2) !important;
+    padding: 20px !important;
+    margin-top: 0 !important;
+    margin-bottom: 16px !important;
+  }
+
+  html[data-theme="light"] .rd-card, html[data-theme="light"] .sc-card {
+    background: #ffffff !important;
+    border-color: #e4e4e7 !important;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.03) !important;
+  }
+
+  .sl-song-row {
+    background: #09090b !important;
+    border: 1px solid #27272a !important;
+    border-radius: 8px !important;
+    margin-bottom: 8px !important;
+    padding: 12px 16px !important;
+    display: flex !important;
+    align-items: center !important;
+    gap: 12px !important;
+    transition: all 150ms ease !important;
+  }
+
+  html[data-theme="light"] .sl-song-row {
+    background: #ffffff !important;
+    border-color: #e4e4e7 !important;
+  }
+
+  .sl-song-row:hover {
+    border-color: rgba(255,255,255,0.16) !important;
+    background: #18181b !important;
+  }
+
+  html[data-theme="light"] .sl-song-row:hover {
+    border-color: rgba(0,0,0,0.12) !important;
+    background: #f4f4f5 !important;
+  }
+
+  .gear-item-row {
+    background: #09090b !important;
+    border: 1px solid #27272a !important;
+    border-radius: 8px !important;
+    margin-bottom: 6px !important;
+    padding: 12px 16px !important;
+    transition: all 150ms ease !important;
+  }
+
+  html[data-theme="light"] .gear-item-row {
+    background: #ffffff !important;
+    border-color: #e4e4e7 !important;
+  }
+
+  .gear-item-row:hover {
+    border-color: rgba(255,255,255,0.16) !important;
+    background: #18181b !important;
+  }
+
+  html[data-theme="light"] .gear-item-row:hover {
+    border-color: rgba(0,0,0,0.12) !important;
+    background: #f4f4f5 !important;
+  }
+
 </style>
-<div id="confirm-modal" style="display:none;position:absolute;inset:0;z-index:9999;align-items:center;justify-content:center;background:var(--sc-cf-overlay);backdrop-filter:blur(14px) saturate(1.2);-webkit-backdrop-filter:blur(14px) saturate(1.2);padding:20px;animation:sc-cf-fade 180ms ease-out;">
-  <div style="width:100%;max-width:360px;background:var(--sc-cf-bg);border:1px solid var(--sc-cf-border);border-radius:20px;box-shadow:var(--sc-cf-shadow);overflow:hidden;animation:sc-cf-pop 240ms cubic-bezier(0.34,1.4,0.5,1);">
-    <div style="padding:28px 24px 6px;display:flex;flex-direction:column;align-items:center;text-align:center;">
-      <div style="width:52px;height:52px;border-radius:50%;background:var(--sc-cf-icon-tint);display:flex;align-items:center;justify-content:center;margin-bottom:18px;">
-        <i data-lucide="alert-triangle" style="width:24px;height:24px;color:var(--hot);"></i>
-      </div>
-      <h3 style="font-family:'Manrope',sans-serif;font-size:17px;font-weight:700;color:var(--sc-cf-title);margin:0 0 8px;letter-spacing:-0.01em;">Confirm</h3>
-      <p id="confirm-msg" style="font-family:'Inter',sans-serif;font-size:14px;color:var(--sc-cf-msg);line-height:1.55;margin:0;max-width:300px;"></p>
+<div id="confirm-modal" onclick="if(event.target===this)doConfirm(false)" style="display:none;position:absolute;inset:0;z-index:9999;align-items:center;justify-content:center;background:rgba(0,0,0,0.45);backdrop-filter:blur(3px);-webkit-backdrop-filter:blur(3px);padding:20px;animation:sc-cf-fade 150ms ease-out;">
+  <div style="width:100%;max-width:320px;background:var(--sc-cf-bg);border:1px solid var(--sc-cf-border);border-radius:12px;box-shadow:var(--sc-cf-shadow);overflow:hidden;animation:sc-cf-pop 180ms cubic-bezier(0.16,1,0.3,1);padding:20px;display:flex;flex-direction:column;gap:16px;">
+    <div style="display:flex;flex-direction:column;gap:6px;text-align:left;">
+      <h3 id="confirm-title" style="font-family:'Manrope',sans-serif;font-size:16px;font-weight:700;color:var(--sc-cf-title);margin:0;letter-spacing:-0.01em;">Confirm</h3>
+      <p id="confirm-msg" style="font-family:'Inter',sans-serif;font-size:13px;color:var(--sc-cf-msg);line-height:1.5;margin:0;"></p>
     </div>
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;padding:22px 22px 22px;">
-      <button onclick="doConfirm(false)" style="padding:13px 16px;font-family:'Manrope',sans-serif;font-size:14px;font-weight:700;background:var(--sc-cf-cancel-bg);color:var(--sc-cf-cancel-fg);border:1px solid var(--sc-cf-cancel-bd);border-radius:12px;cursor:pointer;transition:background 160ms ease;" onmouseover="this.style.background='var(--sc-cf-cancel-bg-h)'" onmouseout="this.style.background='var(--sc-cf-cancel-bg)'">Cancel</button>
-      <button onclick="doConfirm(true)" style="padding:13px 16px;font-family:'Manrope',sans-serif;font-size:14px;font-weight:700;background:var(--hot);color:#fff;border:none;border-radius:12px;cursor:pointer;box-shadow:0 4px 14px rgba(239,68,68,0.30);transition:box-shadow 160ms ease, transform 120ms ease;" onmouseover="this.style.boxShadow='0 6px 20px rgba(239,68,68,0.45)';this.style.transform='translateY(-1px)'" onmouseout="this.style.boxShadow='0 4px 14px rgba(239,68,68,0.30)';this.style.transform='translateY(0)'">Confirm</button>
+    <div style="display:flex;justify-content:end;gap:8px;margin-top:4px;">
+      <button id="confirm-cancel-btn" onclick="doConfirm(false)" style="padding:8px 14px;font-family:'Manrope',sans-serif;font-size:12px;font-weight:600;background:var(--sc-cf-cancel-bg);color:var(--sc-cf-cancel-fg);border:1px solid var(--sc-cf-cancel-bd);border-radius:6px;cursor:pointer;transition:all 120ms ease;">Cancel</button>
+      <button id="confirm-ok-btn" onclick="doConfirm(true)" style="padding:8px 14px;font-family:'Manrope',sans-serif;font-size:12px;font-weight:600;background:var(--accent);color:#fff;border:none;border-radius:6px;cursor:pointer;transition:all 120ms ease;">Confirm</button>
     </div>
   </div>
 </div>
@@ -2287,15 +2977,7 @@ html[data-amoled="1"] #el-properties-panel { background: #000 !important; }
   <div id="desktop-el-tray"></div>
 
   <!-- MAIN CANVAS -->
-  <main id="canvas-container" class="absolute bg-surface-container-low overflow-hidden" style="left:0;right:0;top:64px;bottom:32px;">
-
-    <!-- SCENES BAR — overlays top-left of the stage canvas (Editor view only) -->
-    <div id="sc-scenes-bar"
-         style="display:none;position:absolute;top:8px;left:8px;transform:none;
-                z-index:30;align-items:center;gap:6px;padding:2px 0;
-                background:none;border:none;box-shadow:none;
-                max-width:calc(100vw - 24px);overflow-x:auto;flex-wrap:nowrap;
-                transition:opacity 220ms ease;"></div>
+  <main id="canvas-container" class="absolute bg-surface-container-low overflow-hidden" style="left:0;right:0;top:0;bottom:0;">
 
     <!-- ══════════ VERTICAL STAGE TOOLBAR ══════════ -->
     <div id="sc-vtools">
@@ -2361,11 +3043,23 @@ html[data-amoled="1"] #el-properties-panel { background: #000 !important; }
     </div>
 
     <!-- Stage Viewport -->
-    <div id="stage-viewport" class="w-full h-full flex items-center justify-center" style="padding:20px 16px;"
+    <div id="stage-viewport" class="w-full h-full flex flex-col items-center justify-start" style="padding:10px 16px 20px 16px;gap:8px;"
          ondragover="event.preventDefault()" ondrop="handleDrop(event)">
-      <div id="stage-canvas" class="stage-grid relative" style="width:100%;max-width:min(1080px,calc(100vw - 32px),calc((100vh - 40px) * 16 / 9));aspect-ratio:16/9;border:2px solid rgba(72,72,71,0.12);overflow:visible;">
+
+      <!-- SCENES BAR — sits naturally above the stage canvas (Editor view only) -->
+      <div id="sc-scenes-bar"
+           style="display:none;align-items:center;justify-content:center;gap:6px;padding:2px 0;
+                  background:none;border:none;box-shadow:none;
+                  overflow-x:auto;flex-wrap:nowrap;width:100%;
+                  max-width:min(1080px,calc(100vw - 32px),calc((100vh - var(--dock-safe-gap, 40px)) * 16 / 9));
+                  margin-bottom:4px;z-index:30;
+                  transition:opacity 220ms ease;"></div>
+      <div id="stage-canvas" class="stage-grid relative" style="width:100%;max-width:min(1080px,calc(100vw - 32px),calc((100vh - var(--dock-safe-gap, 40px)) * 16 / 9));aspect-ratio:16/9;border:1px solid rgba(255,255,255,0.08);border-radius:12px;overflow:visible;">
 
         <!-- mode-pill lives outside canvas, see #mode-pill in body -->
+
+        <!-- Permanent Stage Layout SVG overlay -->
+        <svg id="stage-layout-svg" class="absolute inset-0 w-full h-full" style="pointer-events:none;z-index:0;overflow:visible;"></svg>
 
         <!-- SVG Connection Layer -->
         <svg id="connections-svg" class="absolute inset-0 w-full h-full" style="pointer-events:none;z-index:10;overflow:visible;"></svg>
@@ -2389,11 +3083,11 @@ html[data-amoled="1"] #el-properties-panel { background: #000 !important; }
           </div>
         </div>
 
-        <!-- Drop hint -->
-        <div id="drop-zone-hint" class="absolute inset-0 flex items-center justify-center opacity-0 transition-opacity" style="z-index:0;">
-          <div class="text-center">
-            <span class="material-symbols-outlined text-on-surface-variant" style="font-size:48px;opacity:0.2;">drag_indicator</span>
-            <p class="text-on-surface-variant font-headline font-bold uppercase tracking-widest mt-2" style="font-size:11px;opacity:0.3;font-family:'Manrope',sans-serif;" data-i18n="dragHere">Drag elements here</p>
+        <!-- Empty Stage Help Hint -->
+        <div id="drop-zone-hint" class="absolute pointer-events-none" style="top:50%;left:50%;transform:translate(-50%, -50%) scale(1);z-index:5;opacity:0;">
+          <div class="flex items-center gap-2" style="background:rgba(12,12,16,0.78);border:1px solid rgba(255,255,255,0.08);border-radius:99px;padding:6px 14px;backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);box-shadow:0 8px 32px rgba(0,0,0,0.5);white-space:nowrap;">
+            <span class="material-symbols-outlined" style="font-size:15px;color:rgba(255,255,255,0.4);">info</span>
+            <span class="font-body" style="font-size:11.5px;font-weight:600;color:rgba(255,255,255,0.55);font-family:'Manrope',sans-serif;letter-spacing:0.01em;">Drag elements from the sidebar to build your stage plot.</span>
           </div>
         </div>
 
@@ -2679,7 +3373,7 @@ html[data-amoled="1"] #el-properties-panel { background: #000 !important; }
 <!-- ═══════════════════════ RIDER VIEW ═══════════════════════ -->
 <div id="view-Rider" class="view-page scrollable-view" style="padding-top:16px;padding-left:18px;padding-right:18px;padding-bottom:64px;display:none;">
   <button class="sc-back-btn" onclick="switchView('SetupHub')">
-    <span class="material-symbols-outlined" style="font-size:18px;">arrow_back_ios</span><span data-i18n="backToSetup">Setup</span>
+    <span class="material-symbols-outlined" style="font-size:18px;">arrow_back</span><span data-i18n="backToSetup">Setup</span>
   </button>
   <div class="sc-section-wrap">
 
@@ -2688,85 +3382,92 @@ html[data-amoled="1"] #el-properties-panel { background: #000 !important; }
       <h1 data-i18n="riderTitle" style="font-family:'Manrope',sans-serif;font-size:2rem;font-weight:900;color:#e7e5e4;margin:0;letter-spacing:-0.04em;line-height:1;">Rider</h1>
     </div>
 
-    <!-- Input List section -->
-    <div style="margin-bottom:20px;">
-      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
-        <h2 style="font-family:'Manrope',sans-serif;font-size:1.5rem;font-weight:900;color:#e7e5e4;margin:0;letter-spacing:-0.04em;">Input List</h2>
-        <div style="display:flex;gap:6px;align-items:center;">
-          <span style="font-family:'Inter',sans-serif;font-size:9px;color:#484847;text-transform:uppercase;letter-spacing:0.1em;">Auto-synced from stage</span>
+    <div class="sc-desktop-split">
+      <div class="sc-left-panel">
+        <!-- Input List section -->
+        <div style="margin-bottom:20px;">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
+            <h2 style="font-family:'Manrope',sans-serif;font-size:1.5rem;font-weight:900;color:#e7e5e4;margin:0;letter-spacing:-0.04em;">Input List</h2>
+            <div style="display:flex;gap:6px;align-items:center;">
+              <span style="font-family:'Inter',sans-serif;font-size:9px;color:#484847;text-transform:uppercase;letter-spacing:0.1em;">Auto-synced from stage</span>
+            </div>
+          </div>
+
+          <div style="background:#080808;border-radius:12px;overflow:hidden;border:1px solid rgba(255,255,255,0.06);">
+            <div style="overflow-x:auto;-webkit-overflow-scrolling:touch;max-height:520px;overflow-y:auto;">
+              <table class="rd-input-table">
+                <thead>
+                  <tr>
+                    <th style="min-width:50px;">CH#</th>
+                    <th style="min-width:100px;">Source Name</th>
+                    <th style="min-width:90px;">Type</th>
+                    <th style="min-width:100px;">Input Source</th>
+                    <th style="min-width:56px;">Output</th>
+                    <th style="min-width:44px;text-align:center;">+48V</th>
+                    <th style="min-width:60px;">Notes</th>
+                  </tr>
+                </thead>
+                <tbody id="rider-table-body">
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <!-- Stats row -->
+          <div class="rd-stats-row" style="margin-top:10px;">
+            <div class="rd-stat-block">
+              <span class="rd-stat-label">Channels</span>
+              <span id="rider-ch-count" class="rd-stat-val" style="color:var(--accent);">0 / 32</span>
+            </div>
+            <div class="rd-stat-block">
+              <span class="rd-stat-label">Elements</span>
+              <span id="rider-el-count" class="rd-stat-val" style="color:var(--hot);">0</span>
+            </div>
+          </div>
         </div>
       </div>
 
-      <div style="background:#191a1a;border-radius:14px;overflow:hidden;border:1px solid rgba(255,255,255,0.04);">
-        <div style="overflow-x:auto;-webkit-overflow-scrolling:touch;max-height:320px;overflow-y:auto;">
-          <table class="rd-input-table">
-            <thead>
-              <tr>
-                <th style="min-width:50px;">CH#</th>
-                <th style="min-width:100px;">Source Name</th>
-                <th style="min-width:90px;">Type</th>
-                <th style="min-width:100px;">Input Source</th>
-                <th style="min-width:56px;">Output</th>
-                <th style="min-width:44px;text-align:center;">+48V</th>
-                <th style="min-width:60px;">Notes</th>
-              </tr>
-            </thead>
-            <tbody id="rider-table-body">
-            </tbody>
-          </table>
+      <div class="sc-right-panel">
+        <!-- Technical Requirements card -->
+        <div class="rd-card" style="margin-top:0;">
+          <div class="rd-card-header">
+            <span class="material-symbols-outlined rd-card-icon">checklist</span>
+            <h3 class="rd-card-title" style="flex:1;">Technical Requirements</h3>
+            <button onclick="addRiderNeed()" class="rd-btn rd-btn--ghost" style="padding:6px 12px;font-size:9px;">
+              <span class="material-symbols-outlined" style="font-size:13px;">add</span>Add Need
+            </button>
+          </div>
+          <div id="rider-needs-list" style="display:flex;flex-direction:column;gap:8px;"></div>
         </div>
-      </div>
 
-      <!-- Stats row -->
-      <div class="rd-stats-row" style="margin-top:10px;">
-        <div class="rd-stat-block">
-          <span class="rd-stat-label">Channels</span>
-          <span id="rider-ch-count" class="rd-stat-val" style="color:var(--accent);">0 / 32</span>
-        </div>
-        <div class="rd-stat-block">
-          <span class="rd-stat-label">Elements</span>
-          <span id="rider-el-count" class="rd-stat-val" style="color:var(--hot);">0</span>
-        </div>
-      </div>
-    </div>
-
-    <!-- Config cards row -->
-    <!-- Technical Requirements card -->
-    <div class="rd-card">
-      <div class="rd-card-header">
-        <span class="material-symbols-outlined rd-card-icon">checklist</span>
-        <h3 class="rd-card-title" style="flex:1;">Technical Requirements</h3>
-        <button onclick="addRiderNeed()" class="rd-btn rd-btn--ghost" style="padding:6px 12px;font-size:9px;">
-          <span class="material-symbols-outlined" style="font-size:13px;">add</span>Add Need
-        </button>
-      </div>
-      <div id="rider-needs-list" style="display:flex;flex-direction:column;gap:8px;"></div>
-    </div>
-
-    <!-- Technical Notes card -->
-    <div class="rd-card">
-      <div class="rd-card-header">
-        <span class="material-symbols-outlined rd-card-icon">description</span>
-        <h3 class="rd-card-title" data-i18n="techNotesTitle">Technical Notes</h3>
-      </div>
-      <textarea id="rider-notes-text" class="rd-notes-textarea"
-        placeholder="Add technical notes, venue requirements, hospitality requests…"
-        oninput="if(typeof markAutosaveDirty==='function')markAutosaveDirty()"
-      >Artist provides all instruments, IEM transmitters, and playback rack. Venue supplies microphones, stands, and XLR cabling. PA must sustain 105 dB continuous at FOH.
+        <!-- Technical Notes card -->
+        <div class="rd-card">
+          <div class="rd-card-header">
+            <span class="material-symbols-outlined rd-card-icon">description</span>
+            <h3 class="rd-card-title" data-i18n="techNotesTitle">Technical Notes</h3>
+          </div>
+          <textarea id="rider-notes-text" class="rd-notes-textarea"
+            placeholder="Add technical notes, venue requirements, hospitality requests…"
+            oninput="if(typeof markAutosaveDirty==='function')markAutosaveDirty()"
+          >Artist provides all instruments, IEM transmitters, and playback rack. Venue supplies microphones, stands, and XLR cabling. PA must sustain 105 dB continuous at FOH.
 
 Front-fills mandatory for the first 3 rows. All wireless systems must be frequency-coordinated before load-in.</textarea>
-    </div>
+        </div>
 
-    <!-- Live Stage Plot Preview -->
-    <div style="margin-bottom:6px;">
-      <h3 style="font-family:'Manrope',sans-serif;font-size:1.2rem;font-weight:900;color:#e7e5e4;margin:0 0 12px;letter-spacing:-0.03em;">Stage Plot Visualization</h3>
-    </div>
-    <div class="rd-stage-preview">
-      <div class="rd-stage-preview-inner" id="rider-stage-preview-slot"></div>
-      <div class="rd-stage-preview-grad"></div>
-      <div class="rd-stage-preview-badge">
-        <span class="rd-live-dot"></span>
-        <span>Live Edit Mode</span>
+        <!-- Live Stage Plot Preview -->
+        <div>
+          <div style="margin-bottom:6px;">
+            <h3 style="font-family:'Manrope',sans-serif;font-size:1.2rem;font-weight:900;color:#e7e5e4;margin:0 0 12px;letter-spacing:-0.03em;">Stage Plot Visualization</h3>
+          </div>
+          <div class="rd-stage-preview">
+            <div class="rd-stage-preview-inner" id="rider-stage-preview-slot"></div>
+            <div class="rd-stage-preview-grad"></div>
+            <div class="rd-stage-preview-badge">
+              <span class="rd-live-dot"></span>
+              <span>Live Edit Mode</span>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
 
@@ -2776,7 +3477,7 @@ Front-fills mandatory for the first 3 rows. All wireless systems must be frequen
 <!-- ═══════════════════════ SETLIST VIEW ═══════════════════════ -->
 <div id="view-Setlist" class="view-page scrollable-view" style="padding-top:16px;padding-left:18px;padding-right:18px;padding-bottom:64px;display:none;">
   <button class="sc-back-btn" onclick="switchView('SetupHub')">
-    <span class="material-symbols-outlined" style="font-size:18px;">arrow_back_ios</span><span data-i18n="backToSetup">Setup</span>
+    <span class="material-symbols-outlined" style="font-size:18px;">arrow_back</span><span data-i18n="backToSetup">Setup</span>
   </button>
   <div class="sc-section-wrap">
 
@@ -2786,72 +3487,80 @@ Front-fills mandatory for the first 3 rows. All wireless systems must be frequen
       <p style="font-family:'Manrope',sans-serif;font-size:11px;color:#484847;margin:3px 0 0;"><span id="sl-rev">Rev 1.0</span>&nbsp;·&nbsp;<span id="sl-date-val"></span></p>
     </div>
 
-    <!-- ── Big stat cards (stacked) ── -->
-    <div class="sl-big-stat" style="margin-bottom:10px;">
-      <p class="sl-big-stat-label" data-i18n="slSongsCount">Songs Count</p>
-      <p id="sl-stat-count" class="sl-big-stat-val">0</p>
-    </div>
+    <div class="sc-desktop-split">
+      <div class="sc-left-panel">
+        <!-- ── "Current Arrangement" header + action buttons ── -->
+        <div style="display:flex;align-items:flex-end;justify-content:space-between;gap:10px;margin-bottom:14px;">
+          <h2 data-i18n="slCurrentArrangement" style="font-family:'Manrope',sans-serif;font-size:1.55rem;font-weight:800;color:#e0e0e0;margin:0;letter-spacing:-0.025em;line-height:1.15;">Current<br>Arrangement</h2>
+          <div style="display:flex;gap:6px;flex-shrink:0;padding-bottom:2px;">
+            <button onclick="openBatchImport()" class="sl-refine-btn" title="Import">
+              <span class="material-symbols-outlined" style="font-size:14px;">playlist_add</span>
+            </button>
+            <button onclick="openSectionsModal()" class="sl-refine-btn">
+              <span class="material-symbols-outlined" style="font-size:14px;">view_agenda</span><span data-i18n="slSections">Sections</span>
+            </button>
+          </div>
+        </div>
 
-    <div class="sl-big-stat" style="margin-bottom:10px;">
-      <p class="sl-big-stat-label" data-i18n="slTotalDuration">Total Duration</p>
-      <p id="sl-stat-duration" class="sl-big-stat-val" style="color:var(--hot);">0:00</p>
-    </div>
+        <!-- ── Song list ── -->
+        <div class="sl-song-container">
+          <div id="setlist-body"></div>
+        </div>
 
-    <div class="sl-big-stat" style="margin-bottom:20px;">
-      <p class="sl-big-stat-label" data-i18n="slAvgEnergy">Avg Energy</p>
-      <p id="sl-stat-energy" class="sl-big-stat-val" style="color:var(--accent);">—</p>
-    </div>
-
-    <!-- Segments stat card (revealed by app.js) -->
-    <div id="sl-stat-segments-block" style="display:none;margin-bottom:10px;">
-      <div class="sl-big-stat">
-        <p class="sl-big-stat-label" data-i18n="slSegments">Segments</p>
-        <p id="sl-stat-segments" class="sl-big-stat-val" style="color:#c8a2ff;">0</p>
-      </div>
-    </div>
-    <!-- Hidden compat div -->
-    <div id="sl-stat-segments-wrap" style="display:none;"></div>
-
-    <!-- Segments pills bar -->
-    <div id="segments-bar" style="display:none;flex-wrap:wrap;gap:7px;margin-bottom:16px;padding:10px 14px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.06);border-radius:10px;"></div>
-
-    <!-- ── "Current Arrangement" header + action buttons ── -->
-    <div style="display:flex;align-items:flex-end;justify-content:space-between;gap:10px;margin-bottom:14px;">
-      <h2 data-i18n="slCurrentArrangement" style="font-family:'Manrope',sans-serif;font-size:1.55rem;font-weight:800;color:#e0e0e0;margin:0;letter-spacing:-0.025em;line-height:1.15;">Current<br>Arrangement</h2>
-      <div style="display:flex;gap:6px;flex-shrink:0;padding-bottom:2px;">
-        <button onclick="openBatchImport()" class="sl-refine-btn" title="Import">
-          <span class="material-symbols-outlined" style="font-size:14px;">playlist_add</span>
-        </button>
-        <button onclick="openSectionsModal()" class="sl-refine-btn">
-          <span class="material-symbols-outlined" style="font-size:14px;">view_agenda</span><span data-i18n="slSections">Sections</span>
+        <!-- ── Add New Track pill ── -->
+        <button onclick="addSong()" class="sl-add-btn">
+          <span class="material-symbols-outlined" style="font-size:16px;">add_circle</span><span data-i18n="slAddNewTrack">Add New Track</span>
         </button>
       </div>
-    </div>
 
-    <!-- ── Song list ── -->
-    <div class="sl-song-container">
-      <div id="setlist-body"></div>
-    </div>
+      <div class="sc-right-panel">
+        <!-- ── Big stat cards ── -->
+        <div style="display:flex;flex-direction:column;gap:10px;">
+          <div class="sl-big-stat" style="margin-bottom:0;">
+            <p class="sl-big-stat-label" data-i18n="slSongsCount">Songs Count</p>
+            <p id="sl-stat-count" class="sl-big-stat-val">0</p>
+          </div>
 
-    <!-- ── Add New Track pill ── -->
-    <button onclick="addSong()" class="sl-add-btn">
-      <span class="material-symbols-outlined" style="font-size:16px;">add_circle</span><span data-i18n="slAddNewTrack">Add New Track</span>
-    </button>
+          <div class="sl-big-stat" style="margin-bottom:0;">
+            <p class="sl-big-stat-label" data-i18n="slTotalDuration">Total Duration</p>
+            <p id="sl-stat-duration" class="sl-big-stat-val" style="color:var(--hot);">0:00</p>
+          </div>
 
-    <!-- ── Setlist Insights ── -->
-    <div class="sc-card">
-      <p class="sc-card-title" data-i18n="slSetlistInsights" style="margin-bottom:14px;">Setlist Insights</p>
-      <div class="sl-insight-row">
-        <span class="sl-insight-label" data-i18n="slTempoStability">Tempo Stability</span>
-        <span class="sl-insight-val" id="insight-tempo">—</span>
-      </div>
-      <div class="sl-insight-row">
-        <span class="sl-insight-label" data-i18n="slKeyVariety">Key Variety</span>
-        <span class="sl-insight-val" id="insight-keys">—</span>
-      </div>
-      <div class="sl-insight-row">
-        <span class="sl-insight-label" data-i18n="slTransitionFluidity">Transition Fluidity</span>
-        <span class="sl-insight-val" id="insight-flow">—</span>
+          <div class="sl-big-stat" style="margin-bottom:0;">
+            <p class="sl-big-stat-label" data-i18n="slAvgEnergy">Avg Energy</p>
+            <p id="sl-stat-energy" class="sl-big-stat-val" style="color:var(--accent);">—</p>
+          </div>
+
+          <!-- Segments stat card (revealed by app.js) -->
+          <div id="sl-stat-segments-block" style="display:none;margin-bottom:0;">
+            <div class="sl-big-stat" style="margin-bottom:0;">
+              <p class="sl-big-stat-label" data-i18n="slSegments">Segments</p>
+              <p id="sl-stat-segments" class="sl-big-stat-val" style="color:#c8a2ff;">0</p>
+            </div>
+          </div>
+        </div>
+        <!-- Hidden compat div -->
+        <div id="sl-stat-segments-wrap" style="display:none;"></div>
+
+        <!-- Segments pills bar -->
+        <div id="segments-bar" style="display:none;flex-wrap:wrap;gap:7px;margin-bottom:16px;padding:10px 14px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.06);border-radius:10px;"></div>
+
+        <!-- ── Setlist Insights ── -->
+        <div class="sc-card" style="margin-top:0;">
+          <p class="sc-card-title" data-i18n="slSetlistInsights" style="margin-bottom:14px;">Setlist Insights</p>
+          <div class="sl-insight-row">
+            <span class="sl-insight-label" data-i18n="slTempoStability">Tempo Stability</span>
+            <span class="sl-insight-val" id="insight-tempo">—</span>
+          </div>
+          <div class="sl-insight-row">
+            <span class="sl-insight-label" data-i18n="slKeyVariety">Key Variety</span>
+            <span class="sl-insight-val" id="insight-keys">—</span>
+          </div>
+          <div class="sl-insight-row">
+            <span class="sl-insight-label" data-i18n="slTransitionFluidity">Transition Fluidity</span>
+            <span class="sl-insight-val" id="insight-flow">—</span>
+          </div>
+        </div>
       </div>
     </div>
 
@@ -2860,7 +3569,7 @@ Front-fills mandatory for the first 3 rows. All wireless systems must be frequen
 
 <!-- ═══════════════ ADD SONG BOTTOM SHEET ═══════════════ -->
 <div id="song-modal" style="display:none;position:absolute;inset:0;z-index:9000;align-items:flex-end;justify-content:center;background:rgba(0,0,0,0.65);" onclick="if(event.target===this)closeSongModal()">
-  <div id="song-sheet" style="width:100%;max-width:540px;background:#1c1c1c;border-radius:20px 20px 0 0;box-shadow:0 -12px 60px rgba(0,0,0,0.9);transform:translateY(100%);transition:transform 320ms cubic-bezier(0.32,0.72,0,1);padding-bottom:max(env(safe-area-inset-bottom,0px),16px);">
+  <div id="song-sheet" style="width:100%;max-width:540px;background:#050505;border:1px solid rgba(255,255,255,0.08);border-radius:12px 12px 0 0;box-shadow:0 -12px 60px rgba(0,0,0,0.9);transform:translateY(100%);transition:transform 320ms cubic-bezier(0.32,0.72,0,1);padding-bottom:max(env(safe-area-inset-bottom,0px),16px);">
     <!-- Drag pill -->
     <div style="display:flex;justify-content:center;padding:10px 0 2px;">
       <div style="width:34px;height:4px;border-radius:2px;background:rgba(255,255,255,0.14);"></div>
@@ -3068,60 +3777,66 @@ Front-fills mandatory for the first 3 rows. All wireless systems must be frequen
 <!-- ═══════════════════════ GEAR VIEW ═══════════════════════ -->
 <div id="view-Gear" class="view-page scrollable-view" style="padding-top:16px;padding-left:18px;padding-right:18px;padding-bottom:64px;display:none;">
   <button class="sc-back-btn" onclick="switchView('SetupHub')">
-    <span class="material-symbols-outlined" style="font-size:18px;">arrow_back_ios</span><span data-i18n="backToSetup">Setup</span>
+    <span class="material-symbols-outlined" style="font-size:18px;">arrow_back</span><span data-i18n="backToSetup">Setup</span>
   </button>
   <div class="sc-section-wrap">
 
     <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:20px;">
       <h1 class="sc-section-title" data-i18n="gearTitle" style="margin:0;">Gear</h1>
-      <button onclick="openGearModal()" style="flex-shrink:0;display:inline-flex;align-items:center;gap:6px;padding:10px 20px;font-family:'Manrope',sans-serif;font-size:11px;font-weight:700;letter-spacing:0.04em;border-radius:100px;border:none;cursor:pointer;background:linear-gradient(135deg,var(--accent),var(--hot));color:#fff;box-shadow:0 4px 16px rgba(0,0,0,0.3);-webkit-tap-highlight-color:transparent;transition:transform 0.12s,box-shadow 0.2s;" onpointerdown="this.style.transform='scale(0.95)'" onpointerup="this.style.transform='scale(1)'">
+      <button onclick="openGearModal()" style="flex-shrink:0;display:inline-flex;align-items:center;gap:6px;padding:8px 16px;font-family:'Manrope',sans-serif;font-size:11px;font-weight:700;letter-spacing:0.04em;border-radius:8px;border:1px solid rgba(255,255,255,0.1);cursor:pointer;background:rgba(255,255,255,0.05);color:#fff;-webkit-tap-highlight-color:transparent;transition:transform 0.12s, background 0.15s;" onpointerdown="this.style.transform='scale(0.95)'" onpointerup="this.style.transform='scale(1)'" onmouseover="this.style.background='rgba(255,255,255,0.1)'" onmouseout="this.style.background='rgba(255,255,255,0.05)'">
         <span class="material-symbols-outlined" style="font-size:16px;">add</span><span data-i18n="gearAddItem">Add Item</span>
       </button>
     </div>
 
-    <div id="gear-stats-row" style="display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-bottom:24px;">
-      <div class="gear-bento-stat">
-        <p class="gear-bento-label" data-i18n="gearTotalItems">Total Items</p>
-        <div style="display:flex;align-items:flex-end;justify-content:space-between;">
-          <span id="gear-stat-total" class="gear-bento-val">0</span>
-          <span class="material-symbols-outlined" style="font-size:22px;color:var(--accent);margin-bottom:2px;">inventory_2</span>
+    <div class="sc-desktop-split">
+      <div class="sc-left-panel">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
+          <p data-i18n="gearActiveInventory" style="font-family:'Manrope',sans-serif;font-size:15px;font-weight:700;color:#e7e5e4;margin:0;letter-spacing:-0.01em;">Active Inventory</p>
+          <div id="gear-search-wrap" style="position:relative;">
+            <span class="material-symbols-outlined" style="position:absolute;left:10px;top:50%;transform:translateY(-50%);font-size:16px;color:#484847;">search</span>
+            <input id="gear-search" type="text" placeholder="Search gear..." oninput="renderGear()"
+              style="background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);border-radius:10px;padding:8px 12px 8px 32px;font-family:'Inter',sans-serif;font-size:12px;color:#e7e5e4;outline:none;width:140px;transition:border-color 0.15s,width 0.2s;"
+              onfocus="this.style.borderColor='rgba(103,156,255,0.4)';this.style.width='180px'" onblur="this.style.borderColor='rgba(255,255,255,0.08)';this.style.width='140px'" />
+          </div>
         </div>
-      </div>
-      <div class="gear-bento-stat">
-        <p class="gear-bento-label" data-i18n="gearPacked">Packed</p>
-        <div style="display:flex;align-items:flex-end;justify-content:space-between;">
-          <span id="gear-stat-packed" class="gear-bento-val" style="color:#c5ffc9;">0</span>
-          <span class="material-symbols-outlined" style="font-size:22px;color:#c5ffc9;margin-bottom:2px;">done_all</span>
-        </div>
-      </div>
-      <div class="gear-bento-stat">
-        <p class="gear-bento-label" data-i18n="gearRemaining">Remaining</p>
-        <div style="display:flex;align-items:flex-end;justify-content:space-between;">
-          <span id="gear-stat-remaining" class="gear-bento-val" style="color:var(--hot);">0</span>
-          <span class="material-symbols-outlined" style="font-size:22px;color:var(--hot);margin-bottom:2px;">pending_actions</span>
-        </div>
-      </div>
-      <div class="gear-bento-stat">
-        <p class="gear-bento-label" data-i18n="gearTotalUnits">Total Units</p>
-        <div style="display:flex;align-items:flex-end;justify-content:space-between;">
-          <span id="gear-stat-units" class="gear-bento-val" style="color:var(--accent);">0</span>
-          <span class="material-symbols-outlined" style="font-size:22px;color:var(--accent);margin-bottom:2px;">layers</span>
-        </div>
-      </div>
-    </div>
 
-    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
-      <p data-i18n="gearActiveInventory" style="font-family:'Manrope',sans-serif;font-size:15px;font-weight:700;color:#e7e5e4;margin:0;letter-spacing:-0.01em;">Active Inventory</p>
-      <div id="gear-search-wrap" style="position:relative;">
-        <span class="material-symbols-outlined" style="position:absolute;left:10px;top:50%;transform:translateY(-50%);font-size:16px;color:#484847;">search</span>
-        <input id="gear-search" type="text" placeholder="Search gear..." oninput="renderGear()"
-          style="background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);border-radius:10px;padding:8px 12px 8px 32px;font-family:'Inter',sans-serif;font-size:12px;color:#e7e5e4;outline:none;width:140px;transition:border-color 0.15s,width 0.2s;"
-          onfocus="this.style.borderColor='rgba(103,156,255,0.4)';this.style.width='180px'" onblur="this.style.borderColor='rgba(255,255,255,0.08)';this.style.width='140px'" />
+        <div id="gear-list-container" style="background:#080808;border-radius:12px;overflow:hidden;border:1px solid rgba(255,255,255,0.08);">
+          <div id="gear-body"></div>
+        </div>
       </div>
-    </div>
 
-    <div id="gear-list-container" style="background:rgba(255,255,255,0.025);border-radius:14px;overflow:hidden;border:1px solid rgba(255,255,255,0.06);">
-      <div id="gear-body"></div>
+      <div class="sc-right-panel">
+        <div id="gear-stats-row" style="display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-bottom:0;">
+          <div class="gear-bento-stat">
+            <p class="gear-bento-label" data-i18n="gearTotalItems">Total Items</p>
+            <div style="display:flex;align-items:flex-end;justify-content:space-between;">
+              <span id="gear-stat-total" class="gear-bento-val">0</span>
+              <span class="material-symbols-outlined" style="font-size:22px;color:var(--accent);margin-bottom:2px;">inventory_2</span>
+            </div>
+          </div>
+          <div class="gear-bento-stat">
+            <p class="gear-bento-label" data-i18n="gearPacked">Packed</p>
+            <div style="display:flex;align-items:flex-end;justify-content:space-between;">
+              <span id="gear-stat-packed" class="gear-bento-val" style="color:#c5ffc9;">0</span>
+              <span class="material-symbols-outlined" style="font-size:22px;color:#c5ffc9;margin-bottom:2px;">done_all</span>
+            </div>
+          </div>
+          <div class="gear-bento-stat">
+            <p class="gear-bento-label" data-i18n="gearRemaining">Remaining</p>
+            <div style="display:flex;align-items:flex-end;justify-content:space-between;">
+              <span id="gear-stat-remaining" class="gear-bento-val" style="color:var(--hot);">0</span>
+              <span class="material-symbols-outlined" style="font-size:22px;color:var(--hot);margin-bottom:2px;">pending_actions</span>
+            </div>
+          </div>
+          <div class="gear-bento-stat">
+            <p class="gear-bento-label" data-i18n="gearTotalUnits">Total Units</p>
+            <div style="display:flex;align-items:flex-end;justify-content:space-between;">
+              <span id="gear-stat-units" class="gear-bento-val" style="color:var(--accent);">0</span>
+              <span class="material-symbols-outlined" style="font-size:22px;color:var(--accent);margin-bottom:2px;">layers</span>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
 
   </div>
@@ -3129,7 +3844,7 @@ Front-fills mandatory for the first 3 rows. All wireless systems must be frequen
 
 <!-- ═══════════════ ADD GEAR MODAL ═══════════════ -->
 <div id="gear-modal" style="display:none;position:absolute;inset:0;z-index:9000;align-items:center;justify-content:center;background:rgba(0,0,0,0.85);backdrop-filter:blur(8px);">
-  <div style="width:480px;max-width:92vw;background:rgba(30,32,32,0.95);backdrop-filter:blur(20px);border:1px solid rgba(72,72,72,0.15);border-radius:20px;box-shadow:0 24px 80px rgba(0,0,0,0.6);overflow:hidden;">
+  <div style="width:480px;max-width:92vw;background:#050505;border:1px solid rgba(255,255,255,0.08);border-radius:12px;box-shadow:0 24px 80px rgba(0,0,0,0.6);overflow:hidden;">
     <div style="display:flex;align-items:center;justify-content:space-between;padding:22px 24px 18px;">
       <h2 style="font-family:'Manrope',sans-serif;font-size:17px;font-weight:800;color:#e7e5e4;margin:0;letter-spacing:-0.02em;">Add Gear Item</h2>
       <button onclick="closeGearModal()" style="color:#484847;background:none;border:none;cursor:pointer;font-size:22px;line-height:1;width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;transition:all 0.12s;" onmouseover="this.style.background='rgba(255,255,255,0.06)';this.style.color='#ff716c'" onmouseout="this.style.background='none';this.style.color='#484847'">×</button>
@@ -3176,58 +3891,69 @@ Front-fills mandatory for the first 3 rows. All wireless systems must be frequen
 <!-- ═══════════════════════ MEMBERS VIEW ═══════════════════════ -->
 <div id="view-Members" class="view-page scrollable-view" style="padding-top:16px;padding-left:18px;padding-right:18px;padding-bottom:64px;display:none;">
   <button class="sc-back-btn" onclick="switchView('SetupHub')">
-    <span class="material-symbols-outlined" style="font-size:18px;">arrow_back_ios</span><span data-i18n="backToSetup">Setup</span>
+    <span class="material-symbols-outlined" style="font-size:18px;">arrow_back</span><span data-i18n="backToSetup">Setup</span>
   </button>
   <div class="sc-section-wrap">
 
     <!-- Header -->
-    <div style="margin-bottom:12px;">
-      <h1 class="sc-section-title" data-i18n="membersTitle">Members</h1>
+    <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;margin-bottom:24px;border-bottom:1px solid rgba(255,255,255,0.06);padding-bottom:18px;">
+      <div>
+        <h1 class="sc-section-title" data-i18n="membersTitle" style="margin:0;">Members</h1>
+        <p style="font-family:'Manrope',sans-serif;font-size:12px;color:#a1a1aa;margin:4px 0 0;">Band roster, roles &amp; contact info</p>
+      </div>
+      <!-- Avatar Group Preview -->
+      <div id="members-avatar-group" class="sc-avatar-group"></div>
     </div>
 
-    <!-- Add member — full-width card -->
-    <div class="sc-card" style="margin-bottom:14px;padding:12px 14px;">
-      <p class="sc-stat-label" style="margin-bottom:8px;">Add Member</p>
-      <div style="display:flex;gap:8px;">
-        <input id="member-name-input" type="text" placeholder="Enter a name..." maxlength="24"
-          style="flex:1;min-width:0;padding:10px 12px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.09);border-radius:8px;color:#fff;font-family:'Inter';font-size:13px;outline:none;transition:border-color 0.15s;"
-          onfocus="this.style.borderColor='#c8a2ff'" onblur="this.style.borderColor='rgba(255,255,255,0.09)'"
-          onkeydown="if(event.key==='Enter'){event.stopPropagation();addMember();}"/>
-        <button onclick="addMember()" id="btn-add-member"
-          style="padding:10px 16px;font-family:'Manrope',sans-serif;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.07em;background:#c8a2ff;color:#0a0a0a;border:none;border-radius:8px;cursor:pointer;flex-shrink:0;"
-          onmouseover="this.style.opacity='0.82'" onmouseout="this.style.opacity='1'">+ Add</button>
-      </div>
-      <p id="members-max-warn" style="display:none;font-size:10px;color:var(--hot);font-weight:600;margin:6px 0 0;">Maximum 8 members reached.</p>
-    </div>
+    <div class="sc-desktop-split">
+      <div class="sc-left-panel">
+        <!-- Member cards grid -->
+        <div id="members-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:10px;"></div>
 
-    <!-- Stats 2×2 -->
-    <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin-bottom:16px;">
-      <div class="sc-stat-card">
-        <p class="sc-stat-label">Members</p>
-        <p id="members-stat-count" class="sc-stat-val" style="color:#fff;">0<span style="color:#484847;font-size:13px;font-weight:500;">/8</span></p>
+        <!-- Empty state -->
+        <div id="members-empty" style="display:flex;flex-direction:column;align-items:center;justify-content:center;padding:60px 0;gap:10px;text-align:center;">
+          <div style="font-family:'Manrope',sans-serif;font-size:64px;font-weight:900;color:#fff;opacity:0.03;line-height:1;user-select:none;">BAND</div>
+          <p style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.25em;color:#5a5a59;margin:0;">No members yet</p>
+          <p style="font-size:12px;color:#8a8a89;margin:0;">Enter a name and tap Add to get started.</p>
+        </div>
       </div>
-      <div class="sc-stat-card">
-        <p class="sc-stat-label">Assigned</p>
-        <p id="members-stat-assigned" class="sc-stat-val" style="color:#c8a2ff;">0</p>
-      </div>
-      <div class="sc-stat-card">
-        <p class="sc-stat-label">Stage Elements</p>
-        <p id="members-stat-elements" class="sc-stat-val" style="color:var(--accent);">0</p>
-      </div>
-      <div class="sc-stat-card">
-        <p class="sc-stat-label">Unassigned</p>
-        <p id="members-stat-unassigned" class="sc-stat-val" style="color:var(--hot);">0</p>
-      </div>
-    </div>
 
-    <!-- Member cards grid -->
-    <div id="members-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:10px;"></div>
+      <div class="sc-right-panel">
+        <!-- Add member — full-width card -->
+        <div class="sc-card" style="margin-bottom:14px;padding:12px 14px;margin-top:0;">
+          <p class="sc-stat-label" style="margin-bottom:8px;">Add Member</p>
+          <div style="display:flex;gap:8px;">
+            <input id="member-name-input" type="text" placeholder="Enter a name..." maxlength="24"
+              style="flex:1;min-width:0;padding:10px 12px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.09);border-radius:8px;color:#fff;font-family:'Inter';font-size:13px;outline:none;transition:border-color 0.15s;"
+              onfocus="this.style.borderColor='#c8a2ff'" onblur="this.style.borderColor='rgba(255,255,255,0.09)'"
+              onkeydown="if(event.key==='Enter'){event.stopPropagation();addMember();}"/>
+            <button onclick="addMember()" id="btn-add-member"
+              style="padding:10px 16px;font-family:'Manrope',sans-serif;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.07em;background:rgba(255,255,255,0.05);color:#fff;border:1px solid rgba(255,255,255,0.1);border-radius:8px;cursor:pointer;flex-shrink:0;transition: background 0.15s;"
+              onmouseover="this.style.background='rgba(255,255,255,0.1)'" onmouseout="this.style.background='rgba(255,255,255,0.05)'">+ Add</button>
+          </div>
+          <p id="members-max-warn" style="display:none;font-size:10px;color:var(--hot);font-weight:600;margin:6px 0 0;">Maximum 8 members reached.</p>
+        </div>
 
-    <!-- Empty state -->
-    <div id="members-empty" style="display:flex;flex-direction:column;align-items:center;justify-content:center;padding:60px 0;gap:10px;text-align:center;">
-      <div style="font-family:'Manrope',sans-serif;font-size:64px;font-weight:900;color:#fff;opacity:0.03;line-height:1;user-select:none;">BAND</div>
-      <p style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.25em;color:#2a2a2a;margin:0;">No members yet</p>
-      <p style="font-size:12px;color:#222;margin:0;">Enter a name and tap Add to get started.</p>
+        <!-- Stats 2×2 -->
+        <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin-bottom:16px;">
+          <div class="sc-stat-card">
+            <p class="sc-stat-label">Members</p>
+            <p id="members-stat-count" class="sc-stat-val" style="color:#fff;">0<span style="color:#484847;font-size:13px;font-weight:500;">/8</span></p>
+          </div>
+          <div class="sc-stat-card">
+            <p class="sc-stat-label">Assigned</p>
+            <p id="members-stat-assigned" class="sc-stat-val" style="color:#c8a2ff;">0</p>
+          </div>
+          <div class="sc-stat-card">
+            <p class="sc-stat-label">Stage Elements</p>
+            <p id="members-stat-elements" class="sc-stat-val" style="color:var(--accent);">0</p>
+          </div>
+          <div class="sc-stat-card">
+            <p class="sc-stat-label">Unassigned</p>
+            <p id="members-stat-unassigned" class="sc-stat-val" style="color:var(--hot);">0</p>
+          </div>
+        </div>
+      </div>
     </div>
 
   </div>
@@ -4119,6 +4845,9 @@ window.addEventListener('message', function(e) {
         page.classList.add(dir === 'right' ? 'sc-slide-left' : 'sc-slide-right');
         setTimeout(function () {
           page.classList.remove('sc-slide-left', 'sc-slide-right');
+          /* Double check to ensure it's not trapped at opacity: 0 */
+          page.style.opacity = '1';
+          page.style.transform = 'none';
         }, 280);
       }
     }

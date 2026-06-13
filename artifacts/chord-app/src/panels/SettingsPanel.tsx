@@ -33,14 +33,15 @@ export default function SettingsPanel() {
     { label: 'DADGAD',                    value: 'DADGAD' },
   ];
 
+  const isLight = settings.theme === 'light' || (settings.theme === 'system' && typeof window !== 'undefined' && window.matchMedia('(prefers-color-scheme: light)').matches);
   const isWebDesktop = useIsWebDesktop();
 
   if (isWebDesktop) {
     return (
-      <div className="flex flex-col h-full overflow-hidden bg-[#050505] p-6">
+      <div className="flex flex-col h-full overflow-hidden bg-[var(--app-bg)] p-6">
         {/* Page title */}
         <div className="mb-6">
-          <h2 style={{ fontSize: '18px', fontWeight: 800, letterSpacing: '-0.02em', color: 'white', fontFamily: 'Manrope' }}>
+          <h2 style={{ fontSize: '18px', fontWeight: 800, letterSpacing: '-0.02em', color: 'var(--c-text-primary)', fontFamily: 'Manrope' }}>
             {t.settings.title}
           </h2>
           <p style={{ color: 'var(--c-text-secondary)', fontFamily: 'Inter', fontSize: '11px', marginTop: '2px' }}>
@@ -55,7 +56,11 @@ export default function SettingsPanel() {
               <select
                 value={settings.tuning}
                 onChange={e => updateSettings({ tuning: e.target.value })}
-                className="bg-zinc-900 text-zinc-200 border border-zinc-800 rounded px-2 py-1 text-xs outline-none cursor-pointer hover:border-zinc-700 transition-colors"
+                className={`rounded px-2 py-1 text-xs outline-none cursor-pointer transition-colors border ${
+                  isLight
+                    ? 'bg-zinc-200 text-zinc-800 border-zinc-300 hover:border-zinc-400'
+                    : 'bg-zinc-900 text-zinc-200 border-zinc-800 hover:border-zinc-700'
+                }`}
                 style={{ fontFamily: 'Inter' }}
               >
                 {tunings.map(tun => (
@@ -111,8 +116,8 @@ export default function SettingsPanel() {
                           onClick={() => updateSettings({ defaultTab: value })}
                           className={`w-9 h-9 flex items-center justify-center rounded-lg border cursor-pointer transition-all ${
                             active 
-                              ? 'bg-zinc-800 text-white border-zinc-700' 
-                              : 'bg-transparent text-zinc-500 border-zinc-900 hover:text-zinc-300'
+                              ? (isLight ? 'bg-zinc-300 text-black border-zinc-400' : 'bg-zinc-800 text-white border-zinc-700')
+                              : (isLight ? 'bg-transparent text-zinc-500 border-zinc-200 hover:text-black hover:border-zinc-300' : 'bg-transparent text-zinc-500 border-zinc-900 hover:text-zinc-300')
                           }`}
                         >
                           <Icon active={active} />
