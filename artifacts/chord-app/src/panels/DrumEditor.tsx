@@ -1,6 +1,25 @@
 import {
   memo, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState,
 } from 'react';
+import { createPortal } from 'react-dom';
+
+const MetronomeIcon = ({ size = 16 }: { size?: number }) => (
+  <svg 
+    viewBox="0 0 24 24" 
+    fill="none" 
+    stroke="currentColor" 
+    strokeWidth="2" 
+    strokeLinecap="round" 
+    strokeLinejoin="round" 
+    style={{ width: size, height: size, display: 'block' }}
+  >
+    <path d="M12 2L5 21h14L12 2z" />
+    <path d="M12 7v10" strokeWidth="1.5" opacity="0.5" />
+    <path d="M12 17L15 8" strokeWidth="2" />
+    <circle cx="15" cy="8" r="1.5" fill="currentColor" />
+  </svg>
+);
+
 import ElasticSlider from '../components/ElasticSlider';
 import { useChordStore, ACCENT_COLORS } from '../store/useChordStore';
 import EmptyStateLottie from '../components/lottie/EmptyStateLottie';
@@ -76,10 +95,10 @@ const INST_LABEL: Record<DrumInstrument, string> = {
   'tom-floor': 'Floor Tom', crash: 'Cymbal', ride: 'Ride',
 };
 const KIT_LABEL: Record<KitType, string> = {
-  ludwig: 'Pearl Master Studio',  jazz: 'Pearl Master (Brushed)', rock: 'Rock Kit',   vintage: "Vintage '60s",
-  studio: 'Studio A',             r8:   'Roland R8',    linn: 'LinnDrum',   funk: 'Funk Kit',
-  cr78:   'Roland CR-78',         tr808:'Roland TR-808', techno:'Techno Kit', stark:'Stark Industrial',
-  rmm:    'Real Music Media OSDK', chrome:'Chrome Acoustic', house: 'House Kit',
+  ludwig: 'Acoustic — House Kit',  jazz: 'Acoustic — House Kit', rock: 'Acoustic — House Kit',   vintage: "Acoustic — House Kit",
+  studio: 'Acoustic — House Kit',             r8:   'Acoustic — House Kit',    linn: 'Acoustic — House Kit',   funk: 'Acoustic — House Kit',
+  cr78:   'Acoustic — House Kit',         tr808:'Acoustic — House Kit', techno:'Acoustic — House Kit', stark:'Acoustic — House Kit',
+  rmm:    'Acoustic — House Kit', chrome:'Acoustic — House Kit', house: 'Acoustic — House Kit',
 };
 
 // ── Per-instrument character presets ─────────────────────────────────────────
@@ -1401,14 +1420,14 @@ function DrumExportModal({ patterns, song, accent, onClose }: {
 // ── DrumImportModal ─────────────────────────────────────────────────────────
 function DrumImportModal({ accent, onImport, onClose }: {
   accent: { from: string; to: string };
-  onImport: (name: string, artist: string, notes: string, patterns: DrumPattern[], activePatternId: string) => void;
+  onImport: (name: string, artist: string, notes: string, patterns: DrumPattern[], activePatternId: string, kitType?: string | null) => void;
   onClose: () => void;
 }) {
   type Stage = 'idle' | 'preview' | 'error';
   const [stage, setStage]     = useState<Stage>('idle');
   const [errorMsg, setErrorMsg] = useState('');
   const [dragOver, setDragOver] = useState(false);
-  const [preview, setPreview]   = useState<{ name: string; artist: string; notes: string; patterns: DrumPattern[]; activePatternId: string } | null>(null);
+  const [preview, setPreview]   = useState<{ name: string; artist: string; notes: string; patterns: DrumPattern[]; activePatternId: string; kitType?: string | null } | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const parseFile = (file: File) => {
@@ -1437,7 +1456,8 @@ function DrumImportModal({ accent, onImport, onClose }: {
         const songName   = (raw.song?.name   ?? '').trim() || 'Imported Beat';
         const artist     = (raw.song?.artist ?? '').trim();
         const notes      = (raw.song?.notes  ?? '').trim();
-        setPreview({ name: songName, artist, notes, patterns: reconstructed, activePatternId: reconstructed[0].id });
+        const kitType    = raw.song?.kitType || 'house';
+        setPreview({ name: songName, artist, notes, patterns: reconstructed, activePatternId: reconstructed[0].id, kitType });
         setStage('preview');
       } catch (err) {
         setErrorMsg(err instanceof Error ? err.message : 'Could not parse file.'); setStage('error');
@@ -1514,7 +1534,7 @@ function DrumImportModal({ accent, onImport, onClose }: {
                   <span style={{ fontSize: 11, color: 'var(--c-text-muted)' }}>{p.bpm} BPM · {p.measures.length} bar{p.measures.length !== 1 ? 's' : ''}</span>
                 </div>
               ))}
-              <button onClick={() => { onImport(preview.name, preview.artist, preview.notes, preview.patterns, preview.activePatternId); onClose(); }}
+              <button onClick={() => { onImport(preview.name, preview.artist, preview.notes, preview.patterns, preview.activePatternId, preview.kitType); onClose(); }}
                 className="btn-smooth"
                 style={{ padding: '15px', borderRadius: 9999, background: `linear-gradient(135deg,${accent.from},${accent.to})`, border: 'none', cursor: 'pointer', color: '#fff', fontSize: 15, fontWeight: 800, fontFamily: 'Manrope,sans-serif', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, boxShadow: `0 6px 24px ${accent.to}50` }}>
                 <span className="material-symbols-outlined" style={{ fontSize: 20 }}>add_circle</span>
@@ -1676,8 +1696,8 @@ export default function DrumEditor() {
   const accent = ACCENT_COLORS[(settings.perApp?.drums?.accentColor ?? settings.accentColor) as keyof typeof ACCENT_COLORS] ?? ACCENT_COLORS.blue;
   const spm    = stepsPerMeasure(pattern);
   const stepsPerBeat = pattern.subdivision / pattern.timeSignature[1];
-  const kit    = kitType ?? 'ludwig';
-  const ALL_INSTS = KIT_INSTRUMENTS[kit] ?? KIT_INSTRUMENTS.ludwig;
+  const kit    = kitType ?? 'house';
+  const ALL_INSTS = KIT_INSTRUMENTS[kit] ?? KIT_INSTRUMENTS.house;
 
   // ── Theme — use per-app drums theme, fall back to global ─────────────────
   const drumsVis = settings.perApp?.drums ?? { theme: settings.theme ?? 'dark', amoledMode: settings.amoledMode ?? false };
@@ -1746,6 +1766,53 @@ export default function DrumEditor() {
   const [showBpmPanel,   setShowBpmPanel]   = useState(false);
   const [showBpmPopover, setShowBpmPopover] = useState(false);
   const [bpmInputVal, setBpmInputVal]       = useState(() => pattern.bpm.toString());
+  const [songOpenUp, setSongOpenUp]         = useState(false);
+  const metronomeBtnRef = useRef<HTMLButtonElement | null>(null);
+  const renameBtnRef = useRef<HTMLButtonElement | null>(null);
+  const deleteBtnRef = useRef<HTMLButtonElement | null>(null);
+  const [popoverCoords, setPopoverCoords] = useState<{ top: number; left: number; position: 'above' | 'below' } | null>(null);
+
+  const updatePopoverPosition = useCallback(() => {
+    if (!showBpmPopover || !metronomeBtnRef.current) return;
+    const rect = metronomeBtnRef.current.getBoundingClientRect();
+    const popoverWidth = 260;
+    const popoverHeight = 230; // approximate height
+    const padding = 12;
+
+    let left = rect.left + rect.width / 2 - popoverWidth / 2;
+    left = Math.max(padding, Math.min(window.innerWidth - popoverWidth - padding, left));
+
+    let position: 'above' | 'below' = 'below';
+    let top = rect.bottom + 8;
+
+    if (top + popoverHeight + padding > window.innerHeight && rect.top - popoverHeight - 8 - padding > 0) {
+      position = 'above';
+      top = rect.top - popoverHeight - 8;
+    }
+
+    setPopoverCoords({ top, left, position });
+  }, [showBpmPopover]);
+
+  useEffect(() => {
+    if (!showBpmPopover) return;
+    updatePopoverPosition();
+    window.addEventListener('resize', updatePopoverPosition, { passive: true });
+    window.addEventListener('scroll', updatePopoverPosition, { capture: true, passive: true });
+    
+    const handleEscape = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        setShowBpmPopover(false);
+        metronomeBtnRef.current?.focus();
+      }
+    };
+    window.addEventListener('keydown', handleEscape);
+
+    return () => {
+      window.removeEventListener('resize', updatePopoverPosition);
+      window.removeEventListener('scroll', updatePopoverPosition);
+      window.removeEventListener('keydown', handleEscape);
+    };
+  }, [showBpmPopover, updatePopoverPosition]);
 
   useEffect(() => {
     setBpmInputVal(pattern.bpm.toString());
@@ -1804,7 +1871,7 @@ export default function DrumEditor() {
   const [showHamburger,     setShowHamburger]     = useState(false);
   const [hamburgerClosing,  setHamburgerClosing]  = useState(false);
   const [showSoundCharacter, setShowSoundCharacter] = useState(false);
-  const [expandedCats,   setExpandedCats]   = useState<Set<string>>(() => new Set(['ultrahd']));
+  const [expandedCats,   setExpandedCats]   = useState<Set<string>>(() => new Set(['acoustic']));
   const [focusedInst,    setFocusedInst]    = useState<DrumInstrument | null>(null);
   const [sideTab,        setSideTab]        = useState<'kit' | 'mixer' | 'fx'>('kit');
   const [isRightPanelCollapsed, setIsRightPanelCollapsed] = useState(false);
@@ -1814,7 +1881,7 @@ export default function DrumEditor() {
   const [createArtist,   setCreateArtist]   = useState('');
   const [createBpm,      setCreateBpm]      = useState('120');
   const [createNotes,    setCreateNotes]    = useState('');
-  const [createFamily,   setCreateFamily]   = useState<string>('ultrahd');
+  const [createFamily,   setCreateFamily]   = useState<string>('acoustic');
   const [createVariant,  setCreateVariant]  = useState<KitType>('house');
   const [showSaveForm,     setShowSaveForm]     = useState(false);
   const [saveName,         setSaveName]         = useState('');
@@ -1825,6 +1892,17 @@ export default function DrumEditor() {
   const [songKitFilter,    setSongKitFilter]    = useState('all');
   const [songSort,         setSongSort]         = useState<'recent' | 'name' | 'bpm'>('recent');
   const [songMenuId,       setSongMenuId]       = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!songMenuId) return;
+    const handleEscape = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        setSongMenuId(null);
+      }
+    };
+    window.addEventListener('keydown', handleEscape);
+    return () => window.removeEventListener('keydown', handleEscape);
+  }, [songMenuId]);
   const [editingSong,      setEditingSong]      = useState<DrumSong | null>(null);
   const [editingName,      setEditingName]      = useState('');
   const [editingArtist,    setEditingArtist]    = useState('');
@@ -2519,7 +2597,7 @@ export default function DrumEditor() {
   const resolveCell = (clientX: number, clientY: number) => {
     const el = scrollRef.current; if (!el) return null;
     const rect = el.getBoundingClientRect();
-    let cx = clientX - rect.left - LABEL_W;
+    let cx = clientX - rect.left - LABEL_W + el.scrollLeft;
     const cy   = clientY - rect.top + el.scrollTop;
     if (cx < 0) return null;
     const sysIdx   = Math.floor(cy / sysHRef.current);
@@ -2937,6 +3015,14 @@ export default function DrumEditor() {
             {/* Center Group: Transport Controls */}
             <div style={{ display: 'flex', alignItems: 'center', gap: 12, flex: '0 0 auto' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 12, background: isLight ? 'rgba(0,0,0,0.02)' : 'rgba(255,255,255,0.02)', border: isLight ? '1px solid rgba(0,0,0,0.08)' : '1px solid rgba(255,255,255,0.08)', borderRadius: '12px', padding: '4px 12px', height: 40 }}>
+                {/* Undo */}
+                <button onClick={handleUndo} disabled={historyCount === 0} title="Undo (Ctrl+Z)" aria-label="Undo" className="btn-smooth"
+                  style={{ height: 28, width: 28, borderRadius: 6, background: 'transparent', border: 'none', cursor: historyCount > 0 ? 'pointer' : 'default', display: 'flex', alignItems: 'center', justifyContent: 'center', color: historyCount > 0 ? 'var(--c-text-secondary)' : 'var(--c-text-muted)', opacity: historyCount > 0 ? 1 : 0.35, transition: 'all 150ms' }}>
+                  <span className="material-symbols-outlined" style={{ fontSize: 18 }}>undo</span>
+                </button>
+
+                <div style={{ width: 1, height: 18, background: 'rgba(255,255,255,0.08)' }} />
+
                 {/* Play/Stop */}
                 <button onClick={handlePlay} className="btn-smooth" title={playing ? "Stop Playback" : "Start Playback"} aria-label={playing ? "Stop" : "Play"} style={{
                   width: 28, height: 28, borderRadius: '50%', border: 'none',
@@ -2949,21 +3035,11 @@ export default function DrumEditor() {
 
                 <div style={{ width: 1, height: 18, background: 'rgba(255,255,255,0.08)' }} />
 
-                {/* Swing slider */}
-                <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                  <span style={{ fontSize: 10, fontWeight: 800, color: 'var(--c-text-secondary)', letterSpacing: '0.04em' }}>SWING</span>
-                  <input
-                    type="range"
-                    min={SWING_MIN}
-                    max={SWING_MAX}
-                    step={1}
-                    value={pattern.swing ?? 0}
-                    onPointerDown={() => pushUndo()}
-                    onChange={e => updatePattern(pattern.id, { swing: clampSwing(Number(e.target.value)) })}
-                    style={{ width: 70, height: 16, accentColor: accent.from, cursor: 'pointer' }}
-                  />
-                  <span style={{ fontSize: 11, fontWeight: 700, color: (pattern.swing ?? 0) > 0 ? accent.from : 'var(--c-text-muted)', minWidth: 28 }}>{pattern.swing ?? 0}%</span>
-                </div>
+                {/* Redo */}
+                <button onClick={handleRedo} disabled={redoStack.current.length === 0} title="Redo (Ctrl+Y)" aria-label="Redo" className="btn-smooth"
+                  style={{ height: 28, width: 28, borderRadius: 6, background: 'transparent', border: 'none', cursor: redoStack.current.length > 0 ? 'pointer' : 'default', display: 'flex', alignItems: 'center', justifyContent: 'center', color: redoStack.current.length > 0 ? 'var(--c-text-secondary)' : 'var(--c-text-muted)', opacity: redoStack.current.length > 0 ? 1 : 0.35, transition: 'all 150ms' }}>
+                  <span className="material-symbols-outlined" style={{ fontSize: 18 }}>redo</span>
+                </button>
 
                 <div style={{ width: 1, height: 18, background: 'rgba(255,255,255,0.08)' }} />
 
@@ -2978,19 +3054,10 @@ export default function DrumEditor() {
 
                 <div style={{ width: 1, height: 18, background: 'rgba(255,255,255,0.08)' }} />
 
-                {/* Loop toggle */}
-                <button onClick={() => { setLooping(l => { const n = !l; updateDrumPrefs({ loopPlayback: n }); return n; }); }} className="btn-smooth" style={{
-                  width: 24, height: 24, borderRadius: 6, border: 'none',
-                  background: looping ? `${accent.from}1a` : 'transparent',
-                  cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  color: looping ? accent.from : 'var(--c-text-secondary)', transition: 'all 150ms'
-                }} title="Loop Playback" aria-label="Loop Playback">
-                  <span className="material-symbols-outlined" style={{ fontSize: 16 }}>repeat</span>
-                </button>
-
-                {/* Tempo & Metronome Popover */}
+                {/* Tempo & Metronome */}
                 <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
                   <button 
+                    ref={metronomeBtnRef}
                     onClick={() => setShowBpmPopover(s => !s)} 
                     className="btn-smooth" 
                     style={{
@@ -3009,10 +3076,10 @@ export default function DrumEditor() {
                     title="Tempo & Metronome" 
                     aria-label="Tempo and Metronome"
                   >
-                    <span className="material-symbols-outlined" style={{ fontSize: 18 }}>metronome</span>
+                    <MetronomeIcon size={16} />
                   </button>
 
-                  {showBpmPopover && (
+                  {showBpmPopover && createPortal(
                     <>
                       {/* Click-away overlay */}
                       <div 
@@ -3032,10 +3099,9 @@ export default function DrumEditor() {
                       />
                       {/* Popover Card */}
                       <div style={{
-                        position: 'absolute',
-                        bottom: 'calc(100% + 10px)',
-                        left: '50%',
-                        transform: 'translateX(-50%)',
+                        position: 'fixed',
+                        top: popoverCoords?.top ?? 0,
+                        left: popoverCoords?.left ?? 0,
                         background: isLight ? '#ffffff' : '#18181b',
                         border: isLight ? '1px solid rgba(0,0,0,0.1)' : '1px solid rgba(255,255,255,0.1)',
                         borderRadius: 12,
@@ -3043,6 +3109,7 @@ export default function DrumEditor() {
                         boxShadow: '0 8px 32px rgba(0,0,0,0.5)',
                         backdropFilter: 'blur(20px)',
                         minWidth: 260,
+                        width: 260,
                         zIndex: 999,
                         display: 'flex',
                         flexDirection: 'column',
@@ -3194,7 +3261,8 @@ export default function DrumEditor() {
                           </div>
                         </div>
                       </div>
-                    </>
+                    </>,
+                    document.body
                   )}
                 </div>
               </div>
@@ -3203,17 +3271,7 @@ export default function DrumEditor() {
             {/* Right Group: Actions */}
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 12, flex: '1 1 0%', minWidth: 0 }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                {/* Undo / Redo */}
-                <button onClick={handleUndo} disabled={historyCount === 0} title="Undo (Ctrl+Z)" aria-label="Undo" className="btn-smooth"
-                  style={{ height: 30, width: 30, borderRadius: 8, background: 'transparent', border: 'none', cursor: historyCount > 0 ? 'pointer' : 'default', display: 'flex', alignItems: 'center', justifyContent: 'center', color: historyCount > 0 ? 'var(--c-text-secondary)' : 'var(--c-text-muted)', opacity: historyCount > 0 ? 1 : 0.35 }}>
-                  <span className="material-symbols-outlined" style={{ fontSize: 18 }}>undo</span>
-                </button>
-                <button onClick={handleRedo} disabled={redoStack.current.length === 0} title="Redo (Ctrl+Y)" aria-label="Redo" className="btn-smooth"
-                  style={{ height: 30, width: 30, borderRadius: 8, background: 'transparent', border: 'none', cursor: redoStack.current.length > 0 ? 'pointer' : 'default', display: 'flex', alignItems: 'center', justifyContent: 'center', color: redoStack.current.length > 0 ? 'var(--c-text-secondary)' : 'var(--c-text-muted)', opacity: redoStack.current.length > 0 ? 1 : 0.35 }}>
-                  <span className="material-symbols-outlined" style={{ fontSize: 18 }}>redo</span>
-                </button>
 
-                <div style={{ width: 1, height: 18, background: 'rgba(255,255,255,0.08)', margin: '0 2px' }} />
 
                 {/* Add Bar */}
                 <button onClick={handleAddBar} title="Add new measure (bar)" aria-label="Add Bar" className="btn-smooth" style={{
@@ -3606,9 +3664,7 @@ export default function DrumEditor() {
                       }`}
                     >
                       <option value="all">All Kits</option>
-                      {Object.entries(KIT_LABEL).map(([val, lbl]) => (
-                        <option key={val} value={val}>{lbl}</option>
-                      ))}
+                      <option value="house">Acoustic — House Kit</option>
                     </select>
                   </div>
                   
@@ -3673,7 +3729,7 @@ export default function DrumEditor() {
                   const activePat  = song.patterns.find((p: any) => p.id === song.activePatternId) ?? song.patterns[0];
                   const bpm        = activePat?.bpm ?? 120;
                   return (
-                    <div key={song.id} className={`border rounded-xl overflow-hidden transition-all duration-300 ${
+                    <div key={song.id} className={`border rounded-xl transition-all duration-300 ${
                       isLight 
                         ? 'bg-zinc-50 border-zinc-200 hover:border-zinc-300' 
                         : 'bg-[#000000] border-zinc-900 hover:border-zinc-800'
@@ -3751,7 +3807,17 @@ export default function DrumEditor() {
                           {/* Menu button (···) */}
                           <div className="absolute right-2 top-2 z-10">
                             <button 
-                              onClick={(e) => { e.stopPropagation(); setSongMenuId(songMenuId === song.id ? null : song.id); }}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                if (songMenuId === song.id) {
+                                  setSongMenuId(null);
+                                } else {
+                                  const rect = e.currentTarget.getBoundingClientRect();
+                                  const spaceBelow = window.innerHeight - rect.bottom;
+                                  setSongOpenUp(spaceBelow < 120);
+                                  setSongMenuId(song.id);
+                                }
+                              }}
                               className={`w-7 h-7 rounded-lg flex items-center justify-center border transition-all cursor-pointer ${
                                 songMenuId === song.id 
                                   ? (isLight ? 'bg-zinc-100 border-zinc-350 text-black' : 'bg-zinc-900 border-zinc-800 text-white')
@@ -3763,33 +3829,68 @@ export default function DrumEditor() {
                             
                             {/* Dropdown Menu */}
                             {songMenuId === song.id && (
-                              <div className={`absolute right-0 top-8 z-20 w-32 py-1 rounded-lg border shadow-lg ${
-                                isLight ? 'bg-white border-zinc-200' : 'bg-[#080808] border-zinc-900'
-                              }`}>
-                                <button 
-                                  onClick={(e) => { e.stopPropagation(); handleStartEdit(song); setSongMenuId(null); }}
-                                  className={`w-full text-left px-3 py-1.5 text-[10px] font-bold flex items-center gap-1.5 transition-colors ${
-                                    isLight ? 'text-zinc-700 hover:bg-zinc-50 hover:text-black' : 'text-zinc-300 hover:bg-zinc-900 hover:text-white'
-                                  }`}
-                                >
-                                  <span className="material-symbols-outlined text-[13px]">edit</span>
-                                  Rename
-                                </button>
-                                <button 
-                                  onClick={(e) => { e.stopPropagation(); setDeletingId(song.id); setSongMenuId(null); }}
-                                  className="w-full text-left px-3 py-1.5 text-[10px] font-bold flex items-center gap-1.5 transition-colors text-red-400 hover:bg-red-500/10"
-                                >
-                                  <span className="material-symbols-outlined text-[13px]">delete</span>
-                                  Delete
-                                </button>
-                              </div>
+                              <>
+                                {/* Click-away overlay */}
+                                <div 
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    setSongMenuId(null);
+                                  }} 
+                                  style={{
+                                    position: 'fixed',
+                                    top: 0,
+                                    left: 0,
+                                    right: 0,
+                                    bottom: 0,
+                                    zIndex: 15,
+                                    cursor: 'default',
+                                  }}
+                                />
+                                <div className={`absolute right-0 z-20 w-32 py-1 rounded-lg border shadow-lg ${
+                                  songOpenUp ? 'bottom-8' : 'top-8'
+                                } ${
+                                  isLight ? 'bg-white border-zinc-200' : 'bg-[#080808] border-zinc-900'
+                                }`}>
+                                  <button 
+                                    ref={renameBtnRef}
+                                    autoFocus
+                                    onKeyDown={(e) => {
+                                      if (e.key === 'ArrowDown' || e.key === 'Tab') {
+                                        e.preventDefault();
+                                        deleteBtnRef.current?.focus();
+                                      }
+                                    }}
+                                    onClick={(e) => { e.stopPropagation(); handleStartEdit(song); setSongMenuId(null); }}
+                                    className={`w-full text-left px-3 py-1.5 text-[10px] font-bold flex items-center gap-1.5 transition-colors ${
+                                      isLight ? 'text-zinc-700 hover:bg-zinc-50 hover:text-black' : 'text-zinc-300 hover:bg-zinc-900 hover:text-white'
+                                    }`}
+                                  >
+                                    <span className="material-symbols-outlined text-[13px]">edit</span>
+                                    Rename
+                                  </button>
+                                  <button 
+                                    ref={deleteBtnRef}
+                                    onKeyDown={(e) => {
+                                      if (e.key === 'ArrowUp' || (e.key === 'Tab' && e.shiftKey)) {
+                                        e.preventDefault();
+                                        renameBtnRef.current?.focus();
+                                      }
+                                    }}
+                                    onClick={(e) => { e.stopPropagation(); setDeletingId(song.id); setSongMenuId(null); }}
+                                    className="w-full text-left px-3 py-1.5 text-[10px] font-bold flex items-center gap-1.5 transition-colors text-red-400 hover:bg-red-500/10"
+                                  >
+                                    <span className="material-symbols-outlined text-[13px]">delete</span>
+                                    Delete
+                                  </button>
+                                </div>
+                              </>
                             )}
                           </div>
                           
                           {/* Card click area */}
                           <button 
                             onClick={() => handleLoadSong(song)} 
-                            className="w-full text-left p-4 flex items-start gap-3.5 bg-transparent border-none cursor-pointer transition-all hover:bg-zinc-500/5 flex-1"
+                            className="w-full text-left p-4 flex items-start gap-3.5 bg-transparent border-none cursor-pointer transition-all hover:bg-zinc-500/5 flex-1 rounded-xl"
                           >
                             <div className={`w-11 h-11 rounded-lg overflow-hidden flex-shrink-0 flex items-center justify-center border ${
                               isLight ? 'border-zinc-200 bg-zinc-100' : 'border-zinc-900 bg-zinc-950'
@@ -4317,53 +4418,21 @@ export default function DrumEditor() {
                   {/* KIT TAB */}
                   {sideTab === 'kit' && (
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-                      {renderCollapsibleSection(
-                        'drum-kit',
-                        'Drum Kit',
-                        collapsedKitSections,
-                        (id) => setCollapsedKitSections(prev => ({ ...prev, [id]: !prev[id] })),
-                        <div>
-                          <select value={KIT_FAMILY.find(fam => fam.variations.some(v => v.kit === kitType))?.id || createFamily} onChange={e => {
-                            const famId = e.target.value;
-                            setCreateFamily(famId);
-                            const variant = KIT_FAMILY.find(f => f.id === famId)?.variations[0].kit;
-                            if (variant) {
-                              setKitType(variant, KIT_DEFAULTS[variant].soundMap);
-                              loadDrumSamples(variant);
-                              if (activeDrumSongId) updateDrumSong(activeDrumSongId, { kitType: variant });
-                            }
-                          }} style={{ ...inputSt, padding: '6px 10px', fontSize: 13, background: 'var(--app-surface-high)' }}>
-                            {KIT_FAMILY.map(fam => <option key={fam.id} value={fam.id}>{fam.label}</option>)}
-                          </select>
-                        </div>
-                      )}
-
-                      {renderCollapsibleSection(
-                        'kit-variant',
-                        'Kit Variant',
-                        collapsedKitSections,
-                        (id) => setCollapsedKitSections(prev => ({ ...prev, [id]: !prev[id] })),
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                          {KIT_FAMILY.find(f => f.id === (KIT_FAMILY.find(fam => fam.variations.some(v => v.kit === kitType))?.id || createFamily))?.variations.map(v => {
-                            const isSel = kitType === v.kit;
-                            return (
-                              <button key={v.kit} onClick={() => {
-                                setKitType(v.kit, KIT_DEFAULTS[v.kit].soundMap);
-                                loadDrumSamples(v.kit);
-                                if (activeDrumSongId) updateDrumSong(activeDrumSongId, { kitType: v.kit });
-                              }} className="btn-smooth" style={{
-                                display: 'flex', alignItems: 'center', padding: '8px 10px', borderRadius: 8, cursor: 'pointer',
-                                background: isSel ? `${accent.from}15` : 'rgba(255,255,255,0.03)',
-                                border: isSel ? `1px solid ${accent.from}55` : '1px solid rgba(255,255,255,0.08)',
-                                textAlign: 'left', width: '100%'
-                              }}>
-                                <span style={{ fontSize: 12, fontWeight: 700, color: isSel ? accent.from : 'var(--c-text-primary)', flex: 1 }}>{v.label}</span>
-                                {isSel && <span className="material-symbols-outlined" style={{ fontSize: 14, color: accent.from }}>check_circle</span>}
-                              </button>
-                            );
-                          })}
-                        </div>
-                      )}
+                      <div style={{
+                        padding: '16px',
+                        background: isLight ? 'rgba(0, 0, 0, 0.03)' : 'rgba(255, 255, 255, 0.03)',
+                        border: isLight ? '1px solid rgba(0, 0, 0, 0.08)' : '1px solid rgba(255, 255, 255, 0.08)',
+                        borderRadius: 12,
+                        display: 'flex',
+                        flexDirection: 'column',
+                        gap: 6
+                      }}>
+                        <span style={{ fontSize: 9.5, fontWeight: 800, color: 'var(--c-text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Active Drum Kit</span>
+                        <span style={{ fontSize: 13, fontWeight: 800, color: 'var(--c-text-primary)' }}>Acoustic — House Kit</span>
+                        <p style={{ margin: 0, fontSize: 11, color: 'var(--c-text-muted)', lineHeight: 1.45 }}>
+                          Premium multi-velocity studio kit featuring 5 velocity layers and 7 round-robin variations per instrument for natural acoustic expression.
+                        </p>
+                      </div>
 
                       {kitType === 'house' && renderCollapsibleSection(
                         'mic-position',

@@ -154,33 +154,11 @@ export const DEFAULT_INST_FX: InstFX = {
 export interface KitVariation { kit: KitType; label: string; desc: string; }
 export interface KitFamilyEntry { id: string; label: string; variations: KitVariation[]; }
 export const KIT_FAMILY: KitFamilyEntry[] = [
-  { id: 'ultra', label: 'Ultra HD', variations: [
+  { id: 'acoustic', label: 'Acoustic', variations: [
     {
       kit: 'house',
       label: 'House Kit',
       desc: 'Premium multi-velocity studio kit — 5 velocity layers × 7 round-robin variations per instrument. Choose mic position (Blend / Close / OH / Room) in kit settings.',
-    },
-  ]},
-  { id: 'acoustic', label: 'Acoustic', variations: [
-    {
-      kit: 'ludwig',
-      label: 'Warm',
-      desc: 'Pearl Master Studio — 10-ply maple shells, recorded by Enoe (CC-BY-3.0). Multi-mic, unprocessed natural tone.',
-    },
-    {
-      kit: 'rmm',
-      label: 'Punchy',
-      desc: 'Real Music Media Open Source Drum Kit — commercial-grade studio recording released to the public domain. 20+ velocity layers.',
-    },
-    {
-      kit: 'chrome',
-      label: 'Bright',
-      desc: 'Chrome Web Audio Acoustic Kit — real acoustic recording by Chris Wilson (cwilso / Google). Used in the original Web Audio API demo.',
-    },
-    {
-      kit: 'jazz',
-      label: 'Soft',
-      desc: 'Pearl Master Studio (brush character) — snare-03 variant, soft hi-hat, generous early-room reflections for intimate jazz feel.',
     },
   ]},
 ];
@@ -395,7 +373,7 @@ interface DrumStore {
   updateDrumSong:      (id: string, patch: Partial<Pick<DrumSong, 'name' | 'artist' | 'notes' | 'patterns' | 'activePatternId' | 'kitType'>>) => void;
 
   restorePatterns:  (patterns: DrumPattern[], activePatternId: string | null) => void;
-  importDrumSong:   (name: string, artist: string, notes: string, patterns: DrumPattern[], activePatternId: string) => string;
+  importDrumSong:   (name: string, artist: string, notes: string, patterns: DrumPattern[], activePatternId: string, kitType?: KitType | null) => string;
 
   grooves:             GrooveEntry[];
   saveGroove:          (name: string, tag: GrooveTag) => string;
@@ -678,6 +656,7 @@ export const useDrumStore = create<DrumStore>()(
       createBlankDrumSong: (name, artist, bpm, notes, kitType) => {
         const p = defaultPattern();
         p.bpm = Math.max(40, Math.min(280, bpm));
+        const normalizedKit = kitType && kitType !== 'house' ? 'house' : (kitType ?? 'house');
         const song: DrumSong = {
           id: `ds-${uid()}`,
           name: name.trim() || 'Untitled Beat',
@@ -685,7 +664,7 @@ export const useDrumStore = create<DrumStore>()(
           notes: notes.trim(),
           patterns: [p],
           activePatternId: p.id,
-          kitType: kitType ?? get().kitType,
+          kitType: normalizedKit,
           createdAt: Date.now(),
           updatedAt: Date.now(),
         };
@@ -696,10 +675,11 @@ export const useDrumStore = create<DrumStore>()(
       loadDrumSong: id => {
         const song = get().drumSongs.find(s => s.id === id);
         if (!song) return;
+        const kit = song.kitType && song.kitType !== 'house' ? 'house' : (song.kitType ?? 'house');
         set({
           patterns: JSON.parse(JSON.stringify(song.patterns)),
           activePatternId: song.activePatternId,
-          kitType: song.kitType,
+          kitType: kit,
           instFX: {},
         });
       },
@@ -787,7 +767,8 @@ export const useDrumStore = create<DrumStore>()(
         return dup.id;
       },
 
-      importDrumSong: (name, artist, notes, patterns, activePatternId) => {
+      importDrumSong: (name, artist, notes, patterns, activePatternId, kitType) => {
+        const normalizedKit = kitType && kitType !== 'house' ? 'house' : (kitType ?? 'house');
         const song: DrumSong = {
           id: `ds-${uid()}`,
           name: name.trim() || 'Imported Beat',
@@ -795,7 +776,7 @@ export const useDrumStore = create<DrumStore>()(
           notes: notes.trim(),
           patterns: JSON.parse(JSON.stringify(patterns)),
           activePatternId,
-          kitType: get().kitType,
+          kitType: normalizedKit,
           createdAt: Date.now(),
           updatedAt: Date.now(),
         };
@@ -840,10 +821,11 @@ export const useDrumStore = create<DrumStore>()(
           kitType?: KitType | null;
           [k: string]: unknown;
         };
-        const kitType = s.kitType ?? 'house';
+        const kitType = s.kitType && s.kitType !== 'house' ? 'house' : (s.kitType ?? 'house');
         const migratedPatterns = migratePatterns(s.patterns ?? [defaultPattern()]);
         const migratedSongs = (s.drumSongs ?? []).map(song => ({
           ...song,
+          kitType: song.kitType && song.kitType !== 'house' ? 'house' : (song.kitType ?? 'house'),
           patterns: migratePatterns(song.patterns ?? []),
         }));
         // Remove folded instruments from activeInstruments
@@ -851,6 +833,7 @@ export const useDrumStore = create<DrumStore>()(
           .filter((i: DrumInstrument) => i !== 'hihat-open' && i !== 'hihat-foot' && i !== 'ride');
         return {
           ...s,
+          kitType,
           patterns: migratedPatterns,
           drumSongs: migratedSongs,
           activeInstruments: filtered.length > 0 ? filtered : KIT_INSTRUMENTS[kitType],
