@@ -1538,6 +1538,7 @@ function repositionResizeBar(wrap) {
   const w = elContent ? elContent.offsetWidth : 60;
   const h = elContent ? elContent.offsetHeight : 60;
   const scale = elementObj.scale / 100;
+  const zoom = state.zoom || 1;
 
   let bounds = { left: 0, top: 0, right: 1, bottom: 1, width: 1, height: 1 };
   if (wrap.dataset.bounds) {
@@ -1545,6 +1546,10 @@ function repositionResizeBar(wrap) {
       bounds = JSON.parse(wrap.dataset.bounds);
     } catch {}
   }
+
+  const isMobile = window.innerWidth < 768;
+  const targetOnScreenScale = isMobile ? 0.82 : 1.0;
+  const scaleCorrection = targetOnScreenScale / (scale * zoom);
 
   const tightW = w * bounds.width * scale;
   const tightH = h * bounds.height * scale;
@@ -1568,14 +1573,16 @@ function repositionResizeBar(wrap) {
   if (finalAbsY < pad) {
     finalAbsY = elementObj.y + (tightCenterY + tightH / 2) + 8;
   }
+  // Clamp Y to prevent going off the bottom
+  finalAbsY = Math.max(pad, Math.min(canvasRect.height - barH - pad, finalAbsY));
 
-  const relX = finalAbsX - elementObj.x;
-  const relY = finalAbsY - elementObj.y;
+  const relX = (finalAbsX - elementObj.x) / (scale * zoom);
+  const relY = (finalAbsY - elementObj.y) / (scale * zoom);
 
   bar.style.position = 'absolute';
   bar.style.top = '0px';
   bar.style.left = '0px';
-  bar.style.transform = `translate(${relX}px, ${relY}px)`;
+  bar.style.transform = `translate(${relX}px, ${relY}px) scale(${scaleCorrection})`;
 }
 
 function getDefaultScale(item) {
@@ -3426,6 +3433,10 @@ function applyZoom() {
   stageCanvas.style.transform = `scale(${state.zoom})`;
   stageCanvas.style.transformOrigin = 'center center';
   updateStatusBar();
+  const selectedDom = document.querySelector('.stage-element.selected');
+  if (selectedDom) {
+    repositionResizeBar(selectedDom);
+  }
 }
 
 
@@ -5375,6 +5386,393 @@ let _asState = 'off';        // 'off' | 'on' | 'saving'
 let _asPresetId = null;
 let _asPresetName = null;
 let _asTimer = null;
+let _mobileScenesOpen = false;
+
+function scOpenMobileScenes() {
+  const backdrop = _createScenesBackdrop();
+  const sheet = _createScenesSheet();
+  
+  backdrop.style.display = 'block';
+  sheet.style.display = 'flex';
+  
+  setTimeout(() => {
+    sheet.classList.add('open');
+  }, 10);
+  
+  _mobileScenesOpen = true;
+  renderMobileScenesList();
+}
+
+function closeScenesSheet() {
+  const sheet = document.getElementById('sc-scenes-sheet');
+  const backdrop = document.getElementById('sc-scenes-backdrop');
+  if (sheet) {
+    sheet.classList.remove('open');
+    setTimeout(() => {
+      sheet.style.display = 'none';
+      if (backdrop) backdrop.style.display = 'none';
+    }, 300);
+  }
+  _mobileScenesOpen = false;
+}
+
+function _createScenesBackdrop() {
+  let backdrop = document.getElementById('sc-scenes-backdrop');
+  if (!backdrop) {
+    backdrop = document.createElement('div');
+    backdrop.id = 'sc-scenes-backdrop';
+    backdrop.style.cssText = 'display:none;position:absolute;inset:0;background:rgba(0,0,0,0.5);z-index:8999;transition:opacity 0.2s;';
+    backdrop.onclick = closeScenesSheet;
+    document.body.appendChild(backdrop);
+  }
+  return backdrop;
+}
+
+function _createScenesSheet() {
+  let sheet = document.getElementById('sc-scenes-sheet');
+  if (!sheet) {
+    sheet = document.createElement('div');
+    sheet.id = 'sc-scenes-sheet';
+    sheet.innerHTML = DOMPurify.sanitize(`
+      <div id="sc-scenes-sheet-header">
+        <span id="sc-scenes-sheet-title">Scenes</span>
+        <button id="sc-scenes-sheet-close" onclick="closeScenesSheet()">
+          <span class="material-symbols-outlined" style="font-size:18px;">close</span>
+        </button>
+      </div>
+      <div id="sc-scenes-list-container"></div>
+      <button id="sc-scenes-add-sheet-btn" class="sc-btn sc-btn-primary" onclick="addSceneFromSheet()">
+        <span class="material-symbols-outlined" style="font-size:14px;">add</span>
+        <span id="sc-add-scene-label">Add Scene</span>
+      </button>
+    `);
+    document.body.appendChild(sheet);
+    
+    let style = document.getElementById('sc-scenes-sheet-styles');
+    if (!style) {
+      style = document.createElement('style');
+      style.id = 'sc-scenes-sheet-styles';
+      style.textContent = `
+        #sc-scenes-sheet {
+          position: absolute;
+          bottom: 0;
+          left: 0;
+          right: 0;
+          height: auto;
+          max-height: 70%;
+          z-index: 9000;
+          display: flex;
+          flex-direction: column;
+          background: var(--studio-surface-elevated, rgba(14,14,18,0.98));
+          border-top: 1px solid var(--studio-border, rgba(255,255,255,0.09));
+          border-top-left-radius: 20px;
+          border-top-right-radius: 20px;
+          overflow: hidden;
+          backdrop-filter: blur(20px);
+          -webkit-backdrop-filter: blur(20px);
+          box-shadow: 0 -8px 40px rgba(0,0,0,0.80);
+          font-family: 'Manrope', sans-serif;
+          transform: translateY(100%);
+          transition: transform 300ms cubic-bezier(0.16, 1, 0.3, 1);
+        }
+        #sc-scenes-sheet.open {
+          transform: translateY(0);
+        }
+        #sc-scenes-sheet-header {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          padding: 16px 20px;
+          border-bottom: 1px solid rgba(255,255,255,0.08);
+        }
+        #sc-scenes-sheet-title {
+          font-size: 11px;
+          font-weight: 700;
+          text-transform: uppercase;
+          letter-spacing: 0.12em;
+          color: var(--accent);
+        }
+        #sc-scenes-sheet-close {
+          background: none;
+          border: none;
+          cursor: pointer;
+          color: rgba(255,255,255,0.6);
+          padding: 4px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+        }
+        #sc-scenes-list-container {
+          flex: 1;
+          overflow-y: auto;
+          padding: 12px 20px;
+          display: flex;
+          flex-direction: column;
+          gap: 8px;
+        }
+        .sc-scene-sheet-row {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          padding: 10px 12px;
+          background: rgba(255,255,255,0.03);
+          border: 1px solid rgba(255,255,255,0.05);
+          border-radius: 10px;
+          transition: all 0.15s;
+          cursor: pointer;
+        }
+        .sc-scene-sheet-row.active {
+          border-color: var(--accent);
+          background: var(--accent-08);
+        }
+        .sc-scene-sheet-name-input {
+          background: transparent;
+          border: none;
+          color: #fff;
+          font-family: 'Manrope', sans-serif;
+          font-size: 12px;
+          font-weight: 700;
+          outline: none;
+          flex: 1;
+          padding: 4px 0;
+          cursor: text;
+        }
+        .sc-scene-sheet-row.active .sc-scene-sheet-name-input {
+          color: var(--accent);
+        }
+        .sc-scene-sheet-actions {
+          display: flex;
+          align-items: center;
+          gap: 6px;
+        }
+        .sc-scene-sheet-btn {
+          background: none;
+          border: none;
+          color: rgba(255,255,255,0.55);
+          cursor: pointer;
+          padding: 6px;
+          border-radius: 6px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          transition: all 0.12s;
+        }
+        .sc-scene-sheet-btn:hover {
+          color: #fff;
+          background: rgba(255,255,255,0.08);
+        }
+        .sc-scene-sheet-btn.delete {
+          color: rgba(255,113,108,0.7);
+        }
+        .sc-scene-sheet-btn.delete:hover {
+          background: rgba(255,113,108,0.12);
+          color: #ff716c;
+        }
+        #sc-scenes-add-sheet-btn {
+          margin: 10px 20px 20px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          gap: 6px;
+          padding: 10px;
+          border-radius: 10px;
+          font-family: 'Manrope', sans-serif;
+          font-size: 9px;
+          font-weight: 700;
+          text-transform: uppercase;
+          letter-spacing: 0.12em;
+        }
+        html[data-theme="light"] #sc-scenes-sheet {
+          background: rgba(255, 255, 255, 0.98);
+          border-top-color: rgba(0, 0, 0, 0.1);
+          box-shadow: 0 -8px 40px rgba(0,0,0,0.15);
+        }
+        html[data-theme="light"] #sc-scenes-sheet-header {
+          border-bottom-color: rgba(0, 0, 0, 0.08);
+        }
+        html[data-theme="light"] #sc-scenes-sheet-close {
+          color: rgba(0, 0, 0, 0.6);
+        }
+        html[data-theme="light"] .sc-scene-sheet-row {
+          background: rgba(0, 0, 0, 0.03);
+          border-color: rgba(0, 0, 0, 0.05);
+        }
+        html[data-theme="light"] .sc-scene-sheet-row.active {
+          border-color: var(--accent);
+          background: var(--accent-08);
+        }
+        html[data-theme="light"] .sc-scene-sheet-name-input {
+          color: #000;
+        }
+        html[data-theme="light"] .sc-scene-sheet-row.active .sc-scene-sheet-name-input {
+          color: var(--accent);
+        }
+        html[data-theme="light"] .sc-scene-sheet-btn {
+          color: rgba(0, 0, 0, 0.55);
+        }
+        html[data-theme="light"] .sc-scene-sheet-btn:hover {
+          color: #000;
+          background: rgba(0, 0, 0, 0.08);
+        }
+        html[data-amoled="1"] #sc-scenes-sheet {
+          background: #000000;
+          border-top-color: rgba(255, 255, 255, 0.14);
+          box-shadow: none;
+        }
+      `;
+      document.head.appendChild(style);
+    }
+  }
+  return sheet;
+}
+
+function renderMobileScenesList() {
+  const container = document.getElementById('sc-scenes-list-container');
+  if (!container) return;
+  _ensureScenes();
+  let html = '';
+  state.scenes.forEach((s, idx) => {
+    const isActive = idx === state.currentSceneIdx;
+    const canDelete = state.scenes.length > 1;
+    html += `
+      <div class="sc-scene-sheet-row ${isActive ? 'active' : ''}" onclick="switchScene(${idx})">
+        <input type="text" class="sc-scene-sheet-name-input" value="${s.name}" 
+          onclick="event.stopPropagation()" 
+          onchange="renameSceneInline(${idx}, this.value)" 
+          onblur="renameSceneInline(${idx}, this.value)" />
+        <div class="sc-scene-sheet-actions" onclick="event.stopPropagation()">
+          <button class="sc-scene-sheet-btn" onclick="duplicateScene(${idx})" title="${state.lang === 'es' ? 'Duplicar' : 'Duplicate'}">
+            <span class="material-symbols-outlined" style="font-size:16px;">content_copy</span>
+          </button>
+          ${canDelete ? `
+            <button class="sc-scene-sheet-btn delete" onclick="removeSceneFromSheet(${idx})" title="${state.lang === 'es' ? 'Eliminar' : 'Delete'}">
+              <span class="material-symbols-outlined" style="font-size:16px;">delete</span>
+            </button>
+          ` : ''}
+        </div>
+      </div>
+    `;
+  });
+  container.innerHTML = DOMPurify.sanitize(html);
+  const addBtnLabel = document.getElementById('sc-add-scene-label');
+  if (addBtnLabel) {
+    addBtnLabel.textContent = state.lang === 'es' ? 'Añadir escena' : 'Add Scene';
+  }
+  const addBtn = document.getElementById('sc-scenes-add-sheet-btn');
+  if (addBtn) {
+    if (state.scenes.length >= SCENES_MAX) {
+      addBtn.style.opacity = '0.4';
+      addBtn.style.pointerEvents = 'none';
+    } else {
+      addBtn.style.opacity = '1';
+      addBtn.style.pointerEvents = 'auto';
+    }
+  }
+}
+
+function addSceneFromSheet() {
+  addScene();
+  if (_mobileScenesOpen) renderMobileScenesList();
+}
+
+function removeSceneFromSheet(idx) {
+  removeScene(idx);
+}
+
+function renameSceneInline(idx, name) {
+  _ensureScenes();
+  if (idx < 0 || idx >= state.scenes.length) return;
+  const v = String(name).trim().slice(0, 24);
+  if (!v) return;
+  state.scenes[idx].name = v;
+  renderScenesBar();
+  saveProject();
+}
+
+function duplicateScene(idx) {
+  _ensureScenes();
+  if (state.scenes.length >= SCENES_MAX) {
+    showToast(state.lang === 'es' ? 'Máximo 3 escenas' : 'Max 3 scenes');
+    return;
+  }
+  _persistCurrentScene();
+  const source = state.scenes[idx];
+  const copy = {
+    id: 's' + Date.now(),
+    name: source.name + ' (Copy)',
+    elements: JSON.parse(JSON.stringify(source.elements)),
+    connections: JSON.parse(JSON.stringify(source.connections)),
+    nextId: source.nextId || 1
+  };
+  state.scenes.push(copy);
+  _loadScene(state.scenes.length - 1);
+  renderAll();
+  renderScenesBar();
+  saveProject();
+}
+
+function renderScenesBar() {
+  const bar = document.getElementById('sc-scenes-bar');
+  if (!bar) return;
+  _ensureScenes();
+  if (_mobileScenesOpen) {
+    renderMobileScenesList();
+  }
+  if (state.currentView !== 'Editor') {
+    bar.style.display = 'none';
+    return;
+  }
+  bar.style.display = 'flex';
+  const tabsHtml = state.scenes.map((s, i) => {
+    const active = (i === state.currentSceneIdx);
+    return `
+      <button onclick="switchScene(${i})" title="${s.name}"
+        oncontextmenu="event.preventDefault();renameScenePrompt(${i});return false;"
+        class="sc-scene-btn ${active ? 'active' : ''}">
+        <span>${s.name}</span>
+        ${state.scenes.length > 1 ? `<span onclick="event.stopPropagation();removeScene(${i})" class="sc-scene-close">×</span>` : ''}
+      </button>`;
+  }).join('');
+  
+  const addHtml = state.scenes.length < SCENES_MAX
+    ? `<button onclick="addScene()" title="${state.lang === 'es' ? 'Añadir escena' : 'Add scene'}" class="sc-scene-add-btn">
+         <span class="material-symbols-outlined" style="font-size:14px;line-height:1;">add</span>
+       </button>`
+    : '';
+
+  bar.innerHTML = DOMPurify.sanitize(
+    `<span class="sc-scene-label">${state.lang === 'es' ? 'Escenas' : 'Scenes'}</span>` +
+    tabsHtml + addHtml
+  );
+  requestAnimationFrame(positionScenesBar);
+}
+
+function positionScenesBar() {}
+
+function renameScenePrompt(idx) {
+  _ensureScenes();
+  if (idx < 0 || idx >= state.scenes.length) return;
+  const cur = state.scenes[idx].name;
+  const nv = window.prompt(state.lang === 'es' ? 'Nombre de la escena:' : 'Scene name:', cur);
+  if (nv == null) return;
+  const v = String(nv).trim().slice(0, 24);
+  if (!v) return;
+  state.scenes[idx].name = v;
+  renderScenesBar();
+  saveProject();
+}
+
+// Expose for inline onclick handlers
+window.switchScene = switchScene;
+window.addScene = addScene;
+window.removeScene = removeScene;
+window.renameScenePrompt = renameScenePrompt;
+window.scOpenMobileScenes = scOpenMobileScenes;
+window.closeScenesSheet = closeScenesSheet;
+window.renameSceneInline = renameSceneInline;
+window.duplicateScene = duplicateScene;
+window.addSceneFromSheet = addSceneFromSheet;
+window.removeSceneFromSheet = removeSceneFromSheet;
 
 function setAutosaveUI(mode) {
   const dot = document.getElementById('autosave-dot');
@@ -7121,6 +7519,11 @@ window.stageGoBack = function() {
   const cm = document.getElementById('confirm-modal');
   if (cm && cm.style.display !== 'none') {
     doConfirm(false);
+    return true;
+  }
+  // 12.5 Mobile Scenes sheet
+  if (typeof _mobileScenesOpen !== 'undefined' && _mobileScenesOpen) {
+    closeScenesSheet();
     return true;
   }
   // 13. Layouts/presets panel
