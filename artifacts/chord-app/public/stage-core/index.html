@@ -2748,6 +2748,105 @@ html[data-amoled="1"] #el-properties-panel { background: #000 !important; }
     background: #f4f4f5 !important;
   }
 
+  /* ── Android/Mobile Layout Regression Fixes ── */
+  @media (max-width: 767px) {
+    /* Center stage viewport vertically and adjust padding to fit bottom nav safely */
+    #stage-viewport {
+      justify-content: center !important;
+      padding-bottom: calc(env(safe-area-inset-bottom) + 76px) !important;
+    }
+
+    /* Force scrolling bottom padding on setup views to prevent overlap with bottom navigation */
+    .view-page.scrollable-view, #view-SetupHub {
+      padding-bottom: calc(env(safe-area-inset-bottom) + 96px) !important;
+    }
+
+    /* Hide the redundant duplicate back button in the content */
+    .sc-back-btn {
+      display: none !important;
+    }
+
+    /* Collapse Setup Hub card heights and paddings */
+    .sc-hub-card {
+      min-height: 0 !important;
+      padding: 16px !important;
+    }
+
+    .sc-section-wrap {
+      padding: 12px 0 !important;
+    }
+
+    /* Responsive card layout for input table to avoid horizontal overflow */
+    .rd-input-table,
+    .rd-input-table thead,
+    .rd-input-table tbody,
+    .rd-input-table th,
+    .rd-input-table td,
+    .rd-input-table tr {
+      display: block !important;
+      width: 100% !important;
+    }
+    
+    .rd-input-table thead tr {
+      position: absolute !important;
+      top: -9999px !important;
+      left: -9999px !important;
+    }
+    
+    .rd-input-table tbody tr {
+      background: rgba(255, 255, 255, 0.01) !important;
+      border: 1px solid rgba(255, 255, 255, 0.06) !important;
+      border-radius: 8px !important;
+      margin-bottom: 12px !important;
+      padding: 8px 12px !important;
+    }
+
+    html[data-theme="light"] .rd-input-table tbody tr {
+      background: rgba(0, 0, 0, 0.01) !important;
+      border-color: rgba(0, 0, 0, 0.06) !important;
+    }
+    
+    .rd-input-table td {
+      border: none !important;
+      border-bottom: 1px dashed rgba(255, 255, 255, 0.04) !important;
+      position: relative !important;
+      padding: 6px 0 6px 120px !important;
+      text-align: left !important;
+      white-space: normal !important;
+      min-height: 28px !important;
+    }
+
+    .rd-input-table td:last-child {
+      border-bottom: none !important;
+    }
+
+    html[data-theme="light"] .rd-input-table td {
+      border-bottom-color: rgba(0, 0, 0, 0.04) !important;
+    }
+    
+    .rd-input-table td::before {
+      position: absolute !important;
+      left: 0 !important;
+      width: 110px !important;
+      white-space: nowrap !important;
+      text-overflow: ellipsis !important;
+      overflow: hidden !important;
+      font-weight: 700 !important;
+      color: #71717a !important;
+      content: attr(data-label) !important;
+      font-size: 10px !important;
+      text-transform: uppercase !important;
+      letter-spacing: 0.05em !important;
+    }
+
+    /* Stack card grid inside SetupHub */
+    .sc-desktop-split {
+      display: flex !important;
+      flex-direction: column !important;
+      gap: 16px !important;
+    }
+  }
+
 </style>
 <div id="confirm-modal" onclick="if(event.target===this)doConfirm(false)" style="display:none;position:absolute;inset:0;z-index:9999;align-items:center;justify-content:center;background:rgba(0,0,0,0.45);backdrop-filter:blur(3px);-webkit-backdrop-filter:blur(3px);padding:20px;animation:sc-cf-fade 150ms ease-out;">
   <div style="width:100%;max-width:320px;background:var(--sc-cf-bg);border:1px solid var(--sc-cf-border);border-radius:12px;box-shadow:var(--sc-cf-shadow);overflow:hidden;animation:sc-cf-pop 180ms cubic-bezier(0.16,1,0.3,1);padding:20px;display:flex;flex-direction:column;gap:16px;">
