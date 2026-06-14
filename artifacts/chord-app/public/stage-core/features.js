@@ -2270,118 +2270,20 @@ function scZoomToFit() {
 let scZonesVisible = false;
 
 function scToggleZones() {
-  scZonesVisible = !scZonesVisible;
-  const btn = document.getElementById('btn-sc-zones');
-  if (btn) btn.classList.toggle('active', scZonesVisible);
-  _renderZones();
-  _scToast(scZonesVisible ? 'Zones on' : 'Zones off');
+  // Disabled in v3.6.29
 }
 
 function _renderZones() {
   const svg = document.getElementById('sc-zones-svg');
   if (!svg) return;
-  // Clear existing content (createElementNS-built nodes — no sanitizer needed)
   while (svg.firstChild) svg.removeChild(svg.firstChild);
-  if (!scZonesVisible) return;
-
-  const SVG_NS = 'http://www.w3.org/2000/svg';
-  const mk = (tag, attrs) => {
-    const el = document.createElementNS(SVG_NS, tag);
-    for (const k in attrs) el.setAttribute(k, attrs[k]);
-    return el;
-  };
-
-  // Use real canvas pixel dimensions so SVG text is never distorted
-  const canvasEl = document.getElementById('stage-canvas');
-  const W = canvasEl ? canvasEl.clientWidth  : 800;
-  const H = canvasEl ? canvasEl.clientHeight : 500;
-  svg.setAttribute('viewBox', `0 0 ${W} ${H}`);
-  svg.removeAttribute('preserveAspectRatio');
-
-  // BACK(top 25%) | middle 50% split L/C/R | FRONT(bottom 25%)
-  const bH = H * 0.25, fH = H * 0.25;
-  const midY = bH, midH = H - bH - fH;
-  const lW = W * 0.25, rW = W * 0.25;
-  const cX = lW, cW = W - lW - rW;
-
-  // Theme-aware stroke colors so the dashed zone borders stay clearly
-  // visible on every background — dark, AMOLED black, and light alike.
-  const isLight = document.documentElement.getAttribute('data-theme') === 'light';
-  const accent = isLight ? 'rgba(30, 90, 200, 0.95)'  : 'rgba(170, 205, 255, 0.95)';
-  const dim    = isLight ? 'rgba(30, 90, 200, 0.55)'  : 'rgba(170, 205, 255, 0.65)';
-
-  const zones = [
-    { x: 0,      y: 0,    w: W,   h: bH,   label: 'BACK',   anchor: 'tl' },
-    { x: 0,      y: H-fH, w: W,   h: fH,   label: 'FRONT',  anchor: 'bl' },
-    { x: 0,      y: midY, w: lW,  h: midH, label: 'LEFT',   anchor: 'tl' },
-    { x: W - rW, y: midY, w: rW,  h: midH, label: 'RIGHT',  anchor: 'tr' },
-    { x: cX,     y: midY, w: cW,  h: midH, label: 'CENTER', anchor: 'tc' },
-  ];
-
-  // Dashed zone borders
-  zones.forEach(z => {
-    svg.appendChild(mk('rect', {
-      x: z.x + 0.5, y: z.y + 0.5, width: z.w - 1, height: z.h - 1,
-      fill: 'none', stroke: dim, 'stroke-width': '1',
-      'stroke-dasharray': '3 4', rx: '2', ry: '2',
-    }));
-  });
-
-  // Center stage origin marker (small cross at exact stage center)
-  const ocx = W / 2, ocy = H / 2;
-  const ocs = Math.max(6, Math.min(12, H * 0.018));
-  svg.appendChild(mk('line', { x1: ocx-ocs, y1: ocy, x2: ocx+ocs, y2: ocy, stroke: dim, 'stroke-width': '0.8' }));
-  svg.appendChild(mk('line', { x1: ocx, y1: ocy-ocs, x2: ocx, y2: ocy+ocs, stroke: dim, 'stroke-width': '0.8' }));
-  svg.appendChild(mk('circle', { cx: ocx, cy: ocy, r: '2', fill: accent, 'fill-opacity': '0.6' }));
-
-  // Label chips
-  const chipH  = Math.max(14, Math.min(18, Math.round(H * 0.035)));
-  const chipFs = Math.round(chipH * 0.55);
-  const chipPad = Math.round(chipH * 0.55);
-  const inset  = 8;
-  zones.forEach(z => {
-    const tw = z.label.length * (chipFs * 0.62) + chipPad * 2;
-    let cxp, cyp;
-    if (z.anchor === 'tl')      { cxp = z.x + inset;             cyp = z.y + inset; }
-    else if (z.anchor === 'tr') { cxp = z.x + z.w - tw - inset;  cyp = z.y + inset; }
-    else if (z.anchor === 'bl') { cxp = z.x + inset;             cyp = z.y + z.h - chipH - inset; }
-    else if (z.anchor === 'tc') { cxp = z.x + (z.w - tw) / 2;    cyp = z.y + inset; }
-    else                        { cxp = z.x + inset;             cyp = z.y + inset; }
-    svg.appendChild(mk('rect', {
-      x: cxp, y: cyp, width: tw, height: chipH,
-      rx: chipH/2, ry: chipH/2,
-      fill: 'rgba(10,10,12,0.78)', stroke: accent, 'stroke-width': '0.8',
-    }));
-    const t = mk('text', {
-      x: cxp + tw/2, y: cyp + chipH/2 + chipFs*0.34,
-      'text-anchor': 'middle', 'font-family': 'Manrope, sans-serif',
-      'font-weight': '800', 'font-size': chipFs, fill: accent,
-      'letter-spacing': '0.18em',
-    });
-    t.textContent = z.label;
-    svg.appendChild(t);
-  });
 }
 
 // Re-render zones on canvas resize so labels and borders stay correctly
 // positioned at any viewport size. ResizeObserver fires once on attach,
 // so this also covers the initial layout.
 (function _wireZonesResize() {
-  if (typeof ResizeObserver === 'undefined') return;
-  const attach = () => {
-    const el = document.getElementById('stage-canvas');
-    if (!el) { setTimeout(attach, 200); return; }
-    let raf = 0;
-    new ResizeObserver(() => {
-      if (raf) return;
-      raf = requestAnimationFrame(() => { raf = 0; if (scZonesVisible) _renderZones(); });
-    }).observe(el);
-  };
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', attach);
-  } else {
-    attach();
-  }
+  // Disabled in v3.6.29
 })();
 
 function _renderStageLayout() {
@@ -2823,6 +2725,12 @@ function _initProfessionalTools() {
       menu.appendChild(mkFabBtn('btn-sc-measure', 'straighten', 'Measure', scActivateMeasure));
       menu.appendChild(mkFabBtn('btn-sc-cable', 'cable', 'Length', scToggleCableLength));
       menu.appendChild(mkFabBtn('btn-sc-hist', 'history', 'History', openTimelinePanel));
+      menu.appendChild(mkFabBtn('btn-sc-scenes', 'layers', 'Scenes', () => {
+        fab.classList.remove('open');
+        if (typeof window.scOpenMobileScenes === 'function') {
+          window.scOpenMobileScenes();
+        }
+      }));
 
       const trigger = document.createElement('button');
       trigger.id = 'sc-tools-trigger';
