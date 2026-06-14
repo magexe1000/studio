@@ -8,8 +8,8 @@ android {
         applicationId "com.chordex.app"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode 56
-        versionName "3.6.29"
+        versionCode 57
+        versionName "3.6.30"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         aaptOptions {
              // Files and dirs to omit from the packaged assets dir, modified to accommodate modern web apps.
@@ -38,10 +38,21 @@ android {
             keyPassword 'android'
         }
         release {
-            // Use production keystore when signing env vars are non-empty.
-            // GitHub Actions sets missing secrets to "" (not null), so
-            // we must check for non-empty to avoid silent debug fallback.
             def ksPwd = System.getenv("ANDROID_KEYSTORE_PASSWORD")
+            def ksAlias = System.getenv("ANDROID_KEY_ALIAS")
+            def ksKeyPwd = System.getenv("ANDROID_KEY_PASSWORD")
+
+            if (ksPwd == null || ksPwd.isEmpty()) {
+                def secretsFile = rootProject.file("../../../signing-secrets.txt")
+                if (secretsFile.exists()) {
+                    def props = new Properties()
+                    secretsFile.withInputStream { props.load(it) }
+                    ksPwd = props.getProperty("ANDROID_KEYSTORE_PASSWORD")
+                    ksAlias = props.getProperty("ANDROID_KEY_ALIAS")
+                    ksKeyPwd = props.getProperty("ANDROID_KEY_PASSWORD")
+                }
+            }
+
             if (ksPwd != null && !ksPwd.isEmpty()) {
                 def ksFile = file('release.keystore')
                 if (!ksFile.exists()) {
@@ -52,8 +63,8 @@ android {
                 }
                 storeFile ksFile
                 storePassword ksPwd
-                keyAlias System.getenv("ANDROID_KEY_ALIAS")
-                keyPassword System.getenv("ANDROID_KEY_PASSWORD")
+                keyAlias ksAlias
+                keyPassword ksKeyPwd
             } else {
                 // Local dev fallback — debug keystore only.
                 // CI MUST always provide production signing secrets.

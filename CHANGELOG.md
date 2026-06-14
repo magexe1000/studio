@@ -29,6 +29,13 @@ Conventions:
 ### Fixed
 - Removed mobile-style top bars and switcher pill from desktop/tablet Web layouts.
 
+## 3.6.30
+
+**Android/mobile 3.6.30**
+
+### Fixed
+- Android update compatibility fix. This release replaces the invalid 3.6.29 APK and restores in-place updates for existing Studio installations.
+
 ## 3.6.29
 
 **Android/mobile 3.6.29**
