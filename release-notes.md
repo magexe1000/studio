@@ -1,11 +1,11 @@
 ### Added
-- Added adaptive Web navigation rails for laptop/desktop screen widths.
-- Added Web-specific internal app navigation tabs for tablet/iPad screen widths.
-- Added Web-specific internal app navigation for Chordex, Drumex, Stagex, Groovex, and Vocalex.
+- Redesigned Stage Plot for mobile matching modern Web Stagex visuals.
+- Redesigned Scenes bottom sheet and management interface for mobile devices.
 
 ### Improved
-- Improved Web shortcuts and deep shortcuts to target sub-sections.
-- Repositioned back buttons inline to prevent overlap in Web layouts.
+- Improved element selection outlines and scaled resize controls.
+- Aligned Stagex mobile canvas colors with Light, Dark, and AMOLED Web theme definitions.
+- Preserved all mobile gestures, offline capabilities, and project saving.
 
 ### Fixed
-- Removed mobile-style top bars and switcher pill from desktop/tablet Web layouts.
+- Removed Zones from mobile UI while maintaining legacy project compatibility.
