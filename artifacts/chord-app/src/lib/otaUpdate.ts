@@ -898,12 +898,14 @@ export function checkForUpdate(isManual = false): Promise<CentralizedOtaState> {
       otaDebugLogs.compareResult = cmp;
 
       let installedVersionCode = 0;
+      let installedVersionName = '';
       let installedSignature = '';
       if (isNative()) {
         try {
           const { AppInstaller } = await import('./apkDownloader');
           const installedDetails = await AppInstaller.getInstalledAppDetails();
           installedVersionCode = installedDetails.versionCode;
+          installedVersionName = installedDetails.versionName;
           installedSignature = (installedDetails.signatures || '').replace(/:/g, '').toLowerCase().trim();
         } catch (err) {
           console.warn('[OTA] Failed to query installed details:', err);
@@ -932,6 +934,8 @@ export function checkForUpdate(isManual = false): Promise<CentralizedOtaState> {
       const releaseChannel = (remote as any).releaseChannel || (remote as any).channel || 'production';
       const rolloutEligibility = (remote as any).rollout !== undefined ? `${(remote as any).rollout}%` : '100%';
 
+      const localCompareVersion = (isNativePlat && installedVersionName) ? installedVersionName : APP_VERSION;
+
       let versionComparisonResult = 'same_version';
       if (isNativePlat) {
         if (targetVersionCode && installedVersionCode > 0) {
@@ -943,7 +947,7 @@ export function checkForUpdate(isManual = false): Promise<CentralizedOtaState> {
             versionComparisonResult = 'same_version';
           }
         } else {
-          const sCmp = compareSemver(remote.version, APP_VERSION);
+          const sCmp = compareSemver(remote.version, localCompareVersion);
           versionComparisonResult = sCmp > 0 ? 'remote_version_higher' : (sCmp < 0 ? 'remote_version_lower' : 'same_version');
         }
       } else {
@@ -954,7 +958,7 @@ export function checkForUpdate(isManual = false): Promise<CentralizedOtaState> {
       const isUpgrade = isNativePlat
         ? (targetVersionCode && installedVersionCode > 0
             ? targetVersionCode > installedVersionCode
-            : compareSemver(remote.version, APP_VERSION) > 0)
+            : compareSemver(remote.version, localCompareVersion) > 0)
         : compareSemver(remote.version, APP_VERSION) > 0;
 
       if (isUpgrade) {
