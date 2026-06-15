@@ -3015,59 +3015,36 @@ User Agent: [Automatically Generated]
         <div style={{ height: 1, borderTop: '1px solid rgba(128, 128, 128, 0.08)', margin: '8px 0' }} />
 
         <div style={{ display: 'flex', gap: 10 }}>
-          {isNative() ? (
-            <a
-              href={`mailto:support@chordex.app?subject=${encodeURIComponent("Studio Bug Report")}&body=${encodeURIComponent(
-                `[STUDIO BUG REPORT]\n` +
-                `------------------------------------\n` +
-                `App Version: v${APP_VERSION} (Android)\n` +
-                `User Agent: ${navigator.userAgent}\n` +
-                `Date: ${new Date().toISOString()}\n\n` +
-                `[Description of Bug]\n- \n\n` +
-                `[Steps to Reproduce]\n1. \n2. \n3. \n\n` +
-                `[Expected Behavior]\n- \n\n` +
-                `[Actual Behavior]\n- `
-              )}`}
-              style={{
-                textDecoration: 'none',
-                padding: '10px 16px',
-                background: accent.from,
-                color: '#fff',
-                fontSize: 13,
-                fontWeight: 700,
-                borderRadius: 8,
-                border: 'none',
-                display: 'flex',
-                alignItems: 'center',
-                gap: 8,
-              }}
-            >
-              <span className="material-symbols-outlined" style={{ fontSize: 18 }}>mail</span>
-              Send Bug Report Email
-            </a>
-          ) : (
-            <a
-              href="https://github.com/MAGEXE1000/Studio/issues/new"
-              target="_blank"
-              rel="noopener noreferrer"
-              style={{
-                textDecoration: 'none',
-                padding: '10px 16px',
-                background: 'rgba(255,255,255,0.04)',
-                color: 'var(--c-text-primary)',
-                fontSize: 13,
-                fontWeight: 700,
-                borderRadius: 8,
-                border: '1px solid rgba(128, 128, 128, 0.1)',
-                display: 'flex',
-                alignItems: 'center',
-                gap: 8,
-              }}
-            >
-              <span className="material-symbols-outlined" style={{ fontSize: 18 }}>open_in_new</span>
-              Open GitHub Issues
-            </a>
-          )}
+          <a
+            href={`https://github.com/MAGEXE1000/Studio/issues/new?title=${encodeURIComponent("Bug: [Enter short title]")}&body=${encodeURIComponent(
+              `**AFFECTED MODULE**\n- [e.g. Chordex, Drumex, Stagex, Groovex, Vocalex, Settings, Help]\n\n` +
+              `**APP VERSION**\n- v${APP_VERSION} (${isNative() ? 'Android/Native' : 'Web'})\n\n` +
+              `**ANDROID/OS VERSION**\n- [e.g. Android 13 / Windows 11]\n\n` +
+              `**DEVICE MODEL**\n- [e.g. Samsung Galaxy S23 / Laptop]\n\n` +
+              `**REPRODUCTION STEPS**\n1. \n2. \n3. \n\n` +
+              `**EXPECTED RESULT**\n- \n\n` +
+              `**ACTUAL RESULT**\n- \n\n` +
+              `*Generated on ${new Date().toISOString()}*`
+            )}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            style={{
+              textDecoration: 'none',
+              padding: '10px 16px',
+              background: accent.from,
+              color: '#fff',
+              fontSize: 13,
+              fontWeight: 700,
+              borderRadius: 8,
+              border: 'none',
+              display: 'flex',
+              alignItems: 'center',
+              gap: 8,
+            }}
+          >
+            <span className="material-symbols-outlined" style={{ fontSize: 18 }}>open_in_new</span>
+            Report a Bug on GitHub
+          </a>
         </div>
       </div>
     );
@@ -5597,59 +5574,36 @@ User Agent: [Automatically Generated]
         <div style={{ height: 1, borderTop: '1px solid rgba(128, 128, 128, 0.08)', margin: '8px 0' }} />
 
         <div style={{ display: 'flex', gap: 10 }}>
-          {isNative() ? (
-            <a
-              href={`mailto:support@chordex.app?subject=${encodeURIComponent("Studio Bug Report")}&body=${encodeURIComponent(
-                `[STUDIO BUG REPORT]\n` +
-                `------------------------------------\n` +
-                `App Version: v${APP_VERSION} (Android)\n` +
-                `User Agent: ${navigator.userAgent}\n` +
-                `Date: ${new Date().toISOString()}\n\n` +
-                `[Description of Bug]\n- \n\n` +
-                `[Steps to Reproduce]\n1. \n2. \n3. \n\n` +
-                `[Expected Behavior]\n- \n\n` +
-                `[Actual Behavior]\n- `
-              )}`}
-              style={{
-                textDecoration: 'none',
-                padding: '10px 16px',
-                background: accent.from,
-                color: '#fff',
-                fontSize: 13,
-                fontWeight: 700,
-                borderRadius: 8,
-                border: 'none',
-                display: 'flex',
-                alignItems: 'center',
-                gap: 8,
-              }}
-            >
-              <span className="material-symbols-outlined" style={{ fontSize: 18 }}>mail</span>
-              Send Bug Report Email
-            </a>
-          ) : (
-            <a
-              href="https://github.com/MAGEXE1000/Studio/issues/new"
-              target="_blank"
-              rel="noopener noreferrer"
-              style={{
-                textDecoration: 'none',
-                padding: '10px 16px',
-                background: 'rgba(255,255,255,0.04)',
-                color: 'var(--c-text-primary)',
-                fontSize: 13,
-                fontWeight: 700,
-                borderRadius: 8,
-                border: '1px solid rgba(128, 128, 128, 0.1)',
-                display: 'flex',
-                alignItems: 'center',
-                gap: 8,
-              }}
-            >
-              <span className="material-symbols-outlined" style={{ fontSize: 18 }}>open_in_new</span>
-              Open GitHub Issues
-            </a>
-          )}
+          <a
+            href={`https://github.com/MAGEXE1000/Studio/issues/new?title=${encodeURIComponent("Bug: [Enter short title]")}&body=${encodeURIComponent(
+              `**AFFECTED MODULE**\n- [e.g. Chordex, Drumex, Stagex, Groovex, Vocalex, Settings, Help]\n\n` +
+              `**APP VERSION**\n- v${APP_VERSION} (${isNative() ? 'Android/Native' : 'Web'})\n\n` +
+              `**ANDROID/OS VERSION**\n- [e.g. Android 13 / Windows 11]\n\n` +
+              `**DEVICE MODEL**\n- [e.g. Samsung Galaxy S23 / Laptop]\n\n` +
+              `**REPRODUCTION STEPS**\n1. \n2. \n3. \n\n` +
+              `**EXPECTED RESULT**\n- \n\n` +
+              `**ACTUAL RESULT**\n- \n\n` +
+              `*Generated on ${new Date().toISOString()}*`
+            )}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            style={{
+              textDecoration: 'none',
+              padding: '10px 16px',
+              background: accent.from,
+              color: '#fff',
+              fontSize: 13,
+              fontWeight: 700,
+              borderRadius: 8,
+              border: 'none',
+              display: 'flex',
+              alignItems: 'center',
+              gap: 8,
+            }}
+          >
+            <span className="material-symbols-outlined" style={{ fontSize: 18 }}>open_in_new</span>
+            Report a Bug on GitHub
+          </a>
         </div>
       </div>
     );

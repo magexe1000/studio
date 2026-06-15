@@ -51,7 +51,7 @@ export default defineConfig(async ({ command, mode }) => {
   // Hard gate validation during vite build
   if (command === "build") {
     console.log(`\x1b[32mVite Build: Bundling Git Commit SHA: ${gitCommitSha}\x1b[0m`);
-    
+
     // Check if Git working tree is clean
     if (isDirty) {
       console.warn("\x1b[33mVite Build: ⚠ WARNING: Git working tree is dirty. Staged or unstaged changes exist. The build provenance might be inconsistent.\x1b[0m");
