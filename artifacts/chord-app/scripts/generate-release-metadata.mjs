@@ -319,12 +319,26 @@ if (reinstallRequired) {
   androidMetadata.newSignatureSha256 = '900cf259185c81100cda8bb08571fa23552e9789131cf07a8f4056e4d4129206';
 }
 
-// Get commit SHA and build timestamp from appVersion.ts if present
-const commitMatch = src.match(/export\s+const\s+APP_COMMIT_SHA\s*=\s*['"]([^'"]+)['"]/);
-const gitCommitSha = commitMatch ? commitMatch[1] : 'unknown';
+// Get commit SHA and build timestamp dynamically from Git if possible
+let gitCommitSha = 'unknown';
+try {
+  const gitRes = spawnSync('git', ['rev-parse', '--short', 'HEAD'], { encoding: 'utf8', cwd: repoRoot });
+  if (gitRes.status === 0) {
+    gitCommitSha = gitRes.stdout.trim();
+  }
+} catch (e) {
+  // ignore
+}
+if (gitCommitSha === 'unknown') {
+  const commitMatch = src.match(/export\s+const\s+APP_COMMIT_SHA\s*=\s*.*?['"]([^'"]+)['"]/);
+  gitCommitSha = commitMatch ? commitMatch[1] : 'unknown';
+}
 
-const timestampMatch = src.match(/export\s+const\s+APP_BUILD_TIMESTAMP\s*=\s*['"]([^'"]+)['"]/);
-const buildTimestamp = timestampMatch ? timestampMatch[1] : new Date().toLocaleString('en-US', { timeZoneName: 'short' });
+let buildTimestamp = new Date().toLocaleString('en-US', { timeZoneName: 'short' });
+const timestampMatch = src.match(/export\s+const\s+APP_BUILD_TIMESTAMP\s*=\s*.*?['"]([^'"]+)['"]/);
+if (timestampMatch) {
+  buildTimestamp = timestampMatch[1];
+}
 
 const webMetadata = {
   platform: 'web',

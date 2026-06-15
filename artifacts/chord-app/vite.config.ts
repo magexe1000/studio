@@ -2,6 +2,8 @@ import { defineConfig, loadEnv } from "vite";
 import react from "@vitejs/plugin-react";
 import tailwindcss from "@tailwindcss/vite";
 import path from "path";
+import { execSync } from "child_process";
+import fs from "fs";
 const rawPort = process.env.PORT ?? "5173";
 const port = Number(rawPort);
 const basePath = process.env.BASE_PATH ?? "/";
@@ -29,8 +31,50 @@ export default defineConfig(async ({ command, mode }) => {
     envDefines[`import.meta.env.${k}`] = JSON.stringify(val);
   }
 
+  // Get current git commit SHA and build timestamp dynamically
+  let gitCommitSha = 'unknown';
+  let isDirty = false;
+  try {
+    gitCommitSha = execSync('git rev-parse --short HEAD', { encoding: 'utf8' }).trim();
+    const status = execSync('git status --porcelain', { encoding: 'utf8' }).trim();
+    if (status) {
+      isDirty = true;
+    }
+  } catch (e: any) {
+    console.warn('Vite Config: ⚠ Could not get git commit SHA:', e.message);
+  }
+  const buildTimestamp = new Date().toLocaleString('en-US', { timeZoneName: 'short' });
+
+  envDefines['import.meta.env.VITE_GIT_COMMIT_SHA'] = JSON.stringify(gitCommitSha);
+  envDefines['import.meta.env.VITE_BUILD_TIMESTAMP'] = JSON.stringify(buildTimestamp);
+
   // Hard gate validation during vite build
   if (command === "build") {
+    console.log(`\x1b[32mVite Build: Bundling Git Commit SHA: ${gitCommitSha}\x1b[0m`);
+    
+    // Check if Git working tree is clean
+    if (isDirty) {
+      console.warn("\x1b[33mVite Build: ⚠ WARNING: Git working tree is dirty. Staged or unstaged changes exist. The build provenance might be inconsistent.\x1b[0m");
+    }
+
+    // Compare fallback commit SHA in appVersion.ts
+    try {
+      const appVersionPath = path.resolve(import.meta.dirname, "src/lib/appVersion.ts");
+      if (fs.existsSync(appVersionPath)) {
+        const content = fs.readFileSync(appVersionPath, "utf8");
+        const match = content.match(/export\s+const\s+APP_COMMIT_SHA\s*=\s*.*?['"]([^'"]+)['"]/);
+        if (match) {
+          const fallbackSha = match[1];
+          if (gitCommitSha !== 'unknown' && fallbackSha !== gitCommitSha) {
+            console.warn(`\x1b[33mVite Build: ⚠ WARNING: Fallback commit SHA in appVersion.ts ('${fallbackSha}') does not match actual Git HEAD SHA ('${gitCommitSha}').\x1b[0m`);
+            console.warn(`\x1b[33mPlease update appVersion.ts with the correct commit SHA before final release to avoid stale defaults.\x1b[0m`);
+          }
+        }
+      }
+    } catch (err) {
+      // ignore
+    }
+
     const url = (process.env.VITE_SUPABASE_URL ?? env.VITE_SUPABASE_URL ?? "").trim();
     const key = (process.env.VITE_SUPABASE_ANON_KEY ?? env.VITE_SUPABASE_ANON_KEY ?? "").trim();
     const provider = (process.env.VITE_SYNC_BACKEND_PROVIDER ?? env.VITE_SYNC_BACKEND_PROVIDER ?? "").trim();
