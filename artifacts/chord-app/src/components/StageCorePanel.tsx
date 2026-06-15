@@ -493,6 +493,35 @@ export default function StagexPanel() {
   // Scenes feature (v3.0.63+) — picker for which stage plot(s) to include
   const [pdfSceneInfo, setPdfSceneInfo] = useState<{ count: number; currentIdx: number; names: string[] }>({ count: 1, currentIdx: 0, names: ['Scene 1'] });
   const [pdfSceneChoice, setPdfSceneChoice] = useState<'current' | 'all' | number>('current');
+  const [isStageExpanded, setIsStageExpanded] = useState(false);
+
+  const toggleStageExpanded = async () => {
+    const nextVal = !isStageExpanded;
+    setIsStageExpanded(nextVal);
+    try {
+      if (nextVal) {
+        if (window.screen && window.screen.orientation && (window.screen.orientation as any).lock) {
+          await (window.screen.orientation as any).lock('landscape');
+        }
+      } else {
+        if (window.screen && window.screen.orientation && (window.screen.orientation as any).unlock) {
+          (window.screen.orientation as any).unlock();
+        }
+      }
+    } catch (e) {
+      console.warn('Screen orientation lock/unlock failed:', e);
+    }
+  };
+
+  useEffect(() => {
+    return () => {
+      try {
+        if (window.screen && window.screen.orientation && (window.screen.orientation as any).unlock) {
+          (window.screen.orientation as any).unlock();
+        }
+      } catch (e) {}
+    };
+  }, []);
 
   useEffect(() => {
     // Always show the share button when navigator.share exists. Android WebView
@@ -757,8 +786,8 @@ export default function StagexPanel() {
   }, []);
 
   const hasWebHeader = !isWebDesktop || (curView === 'Editor' || curView === 'Export' || showBack);
-  const collapseHeader = (isLandscape && curView === 'Editor') || liveMode || !hasWebHeader;
-  const hideBottomNav  = curView === 'Export';
+  const collapseHeader = (isLandscape && curView === 'Editor') || liveMode || !hasWebHeader || isStageExpanded;
+  const hideBottomNav  = curView === 'Export' || isStageExpanded;
   const isLandscapeEditor = isLandscape && curView === 'Editor';
 
   const navTabs: { view: string; label: string; icon: string }[] = [
@@ -1800,6 +1829,48 @@ export default function StagexPanel() {
           <div style={{ position: 'absolute', inset: 0, zIndex: 10, background: stageBg }}>
             <SmartLoading fallbackSkeleton={<StagexPanelSkeleton />} />
           </div>
+        )}
+
+        {/* ── Stage Expand/Rotate Toggle ── */}
+        {curView === 'Editor' && (
+          <button
+            onClick={toggleStageExpanded}
+            onTouchEnd={(e) => { e.preventDefault(); toggleStageExpanded(); }}
+            aria-label={isStageExpanded ? "Exit Landscape View" : "Enter Landscape View"}
+            style={{
+              position: 'absolute',
+              bottom: (isLandscapeEditor ? 14 : 90) + 110,
+              right: 17,
+              width: 44,
+              height: 44,
+              borderRadius: '50%',
+              background: isStageExpanded
+                ? `linear-gradient(135deg, ${accent.from}, ${accent.to})`
+                : (isLight ? 'rgba(255,255,255,0.82)' : 'rgba(28,28,32,0.80)'),
+              border: isStageExpanded ? 'none' : (isLight ? '1px solid rgba(0,0,0,0.10)' : '1px solid rgba(255,255,255,0.12)'),
+              backdropFilter: isStageExpanded ? 'none' : 'blur(12px)',
+              WebkitBackdropFilter: isStageExpanded ? 'none' : 'blur(12px)',
+              boxShadow: isStageExpanded
+                ? `0 4px 20px ${accent.from}90`
+                : '0 4px 16px rgba(0,0,0,0.25)',
+              zIndex: 20,
+              cursor: 'pointer',
+              WebkitTapHighlightColor: 'transparent',
+              touchAction: 'manipulation',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              padding: 0,
+              opacity: (isLandscapeEditor && propPanelOpen || fabOpen) ? 0 : 1,
+              pointerEvents: (isLandscapeEditor && propPanelOpen || fabOpen) ? 'none' as const : 'auto' as const,
+              visibility: (isLandscapeEditor && propPanelOpen || fabOpen) ? 'hidden' as const : 'visible' as const,
+              transition: 'background 300ms ease, box-shadow 300ms ease, opacity 420ms cubic-bezier(0.4,0,0.2,1)',
+            }}
+          >
+            <span className="material-symbols-outlined" style={{ color: isStageExpanded ? '#fff' : (isLight ? 'rgba(0,0,0,0.65)' : 'rgba(200,200,220,0.9)'), fontSize: 22, lineHeight: 1 }}>
+              screen_rotation
+            </span>
+          </button>
         )}
 
         {/* ── Live-mode toggle (eye) — stacked 8px above the FAB ── */}
