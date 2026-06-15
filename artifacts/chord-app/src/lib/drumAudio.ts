@@ -573,8 +573,12 @@ export const samplePool = new SamplePool();
 /** Load samples for the chosen kit on first play */
 export function loadDrumSamples(kit: KitType) {
   if (kit === 'house') return; // House kit loaded separately via loadHouseKit()
-  const { ctx } = getCtx();
-  samplePool.loadForKit(kit, ctx);
+  try {
+    const { ctx } = getCtx();
+    samplePool.loadForKit(kit, ctx);
+  } catch (e) {
+    console.warn('loadDrumSamples: failed to initialize AudioContext:', e);
+  }
 }
 
 // ── House Kit — multi-velocity local Opus sample pool ───────────────────────
@@ -722,10 +726,14 @@ let _houseKitMic: HouseMic = 'blend';
 export function setHouseKitMic(mic: HouseMic) { _houseKitMic = mic; }
 
 export function loadHouseKit(mic: HouseMic) {
-  const { ctx } = getCtx();
-  _houseKitMic = mic;
-  houseKitPool.load(mic, ctx);
-  cymbalPool.load(ctx);
+  try {
+    const { ctx } = getCtx();
+    _houseKitMic = mic;
+    houseKitPool.load(mic, ctx);
+    cymbalPool.load(ctx);
+  } catch (e) {
+    console.warn('loadHouseKit: failed to initialize AudioContext:', e);
+  }
 }
 
 // ── House Kit Cymbal Pool — hi-hat, crash, ride WAV samples ─────────────────

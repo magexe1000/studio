@@ -2375,6 +2375,7 @@ function startDragElement(e, el) {
   };
 
   const cleanup = () => {
+    window._cancelActiveDrag = null;
     wrap.removeEventListener('pointermove', onMove);
     wrap.removeEventListener('pointerup', onUp);
     wrap.removeEventListener('pointercancel', cleanup);
@@ -2389,6 +2390,7 @@ function startDragElement(e, el) {
     repositionResizeBar(wrap);
   };
 
+  window._cancelActiveDrag = cleanup;
   wrap.addEventListener('pointermove', onMove);
   wrap.addEventListener('pointerup', onUp);
   wrap.addEventListener('pointercancel', cleanup);
@@ -2419,8 +2421,10 @@ function startTouchDragElement(touch, el) {
     if (!_touchRaf) _touchRaf = requestAnimationFrame(() => { _touchRaf = null; renderConnections(); });
   };
   const onEnd = () => {
+    window._cancelActiveDrag = null;
     window.removeEventListener('touchmove', onMove);
     window.removeEventListener('touchend', onEnd);
+    window.removeEventListener('touchcancel', onEnd);
     state.canvasW = rect.width; state.canvasH = rect.height;
     _propPeek(false);
     var _tb2 = document.getElementById('bottom-toolbar');
@@ -2429,8 +2433,10 @@ function startTouchDragElement(touch, el) {
     const dom = document.getElementById('elem-' + el.id);
     if (dom) repositionResizeBar(dom);
   };
+  window._cancelActiveDrag = onEnd;
   window.addEventListener('touchmove', onMove, { passive: false });
   window.addEventListener('touchend', onEnd);
+  window.addEventListener('touchcancel', onEnd);
 }
 
 // ══════════════════════════════════════════════════════════
@@ -9500,7 +9506,45 @@ function downloadQRCode() {
         }
       } catch (e) {}
     }
+  window.stageHasOpenOverlay = function() {
+    const ccm = document.getElementById('cable-context-menu');
+    if (ccm && ccm.classList.contains('visible')) return true;
+    const ids = [
+      'gear-modal', 'sections-modal', 'batch-import-modal', 'segment-modal',
+      'smart-sort-modal', 'autosave-modal', 'share-modal', 'tl-item-modal',
+      'custom-el-modal', 'song-modal', 'confirm-modal', 'presets-panel',
+      'timeline-panel'
+    ];
+    for (var i = 0; i < ids.length; i++) {
+      const el = document.getElementById(ids[i]);
+      if (el && el.style.display !== 'none') return true;
+    }
+    if (typeof _mobileScenesOpen !== 'undefined' && _mobileScenesOpen) return true;
+    const sheet = document.getElementById('sc-item-sheet');
+    if (sheet && sheet.classList.contains('sc-sheet-open')) return true;
+    if (typeof _dialOpen !== 'undefined' && _dialOpen) return true;
+    return false;
+  };
+
+  function cancelActiveDrag() {
+    if (typeof window._cancelActiveDrag === 'function') {
+      try { window._cancelActiveDrag(); } catch (e) {}
+    }
   }
+
+  window.addEventListener('visibilitychange', function() {
+    if (document.hidden) {
+      cancelActiveDrag();
+      if (typeof deselectAll === 'function') deselectAll();
+      if (typeof msClear === 'function') msClear();
+    }
+  });
+
+  window.addEventListener('orientationchange', function() {
+    cancelActiveDrag();
+    if (typeof deselectAll === 'function') deselectAll();
+    if (typeof msClear === 'function') msClear();
+  });
 
   window.addEventListener('message', function (e) {
     if (!e.data || typeof e.data !== 'object') return;

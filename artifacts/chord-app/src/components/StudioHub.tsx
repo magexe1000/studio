@@ -256,7 +256,7 @@ export default function StudioHub() {
   const devTapsRef = useRef(0);
   const [devToast, setDevToast] = useState<string | null>(null);
   const [devToastTimer, setDevToastTimer] = useState<number | null>(null);
-  
+
 
   const showDevToast = (msg: string) => {
     if (devToastTimer) {
@@ -373,7 +373,7 @@ export default function StudioHub() {
       setTab('settings');
       return true;
     }
-    if (tab === 'settings') {
+    if (tab === 'settings' || tab === 'help') {
       setTab('home');
       return true;
     }
@@ -1209,7 +1209,7 @@ const HUB_SETTINGS_CSS = `
     border-radius: 50%;
     background: hsl(var(--slider-hue, 0), 85%, 60%);
     border: 3px solid #ffffff;
-    box-shadow: 
+    box-shadow:
       0 2px 8px rgba(0,0,0,0.35),
       0 0 10px hsla(var(--slider-hue, 0), 85%, 60%, 0.4);
     cursor: pointer;
@@ -1217,7 +1217,7 @@ const HUB_SETTINGS_CSS = `
   }
   input[type=range].hue-slider:active::-webkit-slider-thumb {
     transform: scale(1.18);
-    box-shadow: 
+    box-shadow:
       0 3px 12px rgba(0,0,0,0.45),
       0 0 16px hsla(var(--slider-hue, 0), 85%, 60%, 0.6);
   }
@@ -1227,7 +1227,7 @@ const HUB_SETTINGS_CSS = `
     border-radius: 50%;
     background: hsl(var(--slider-hue, 0), 85%, 60%);
     border: 3px solid #ffffff;
-    box-shadow: 
+    box-shadow:
       0 2px 8px rgba(0,0,0,0.35),
       0 0 10px hsla(var(--slider-hue, 0), 85%, 60%, 0.4);
     cursor: pointer;
@@ -1236,7 +1236,7 @@ const HUB_SETTINGS_CSS = `
   }
   input[type=range].hue-slider:active::-moz-range-thumb {
     transform: scale(1.18);
-    box-shadow: 
+    box-shadow:
       0 3px 12px rgba(0,0,0,0.45),
       0 0 16px hsla(var(--slider-hue, 0), 85%, 60%, 0.6);
   }
@@ -2171,7 +2171,7 @@ function HubSettings({
 
   useEffect(() => {
     if (page !== 'developer' && page !== 'debug' && page !== 'download-apps' && page !== 'release-notes') return;
-    
+
     const loadInfo = async () => {
       try {
         if (isNative()) {
@@ -2244,7 +2244,7 @@ function HubSettings({
           if (apkPath) {
             try {
               const inspected = await AppInstaller.inspectApk({ filePath: apkPath });
-              
+
               let sizeStr = 'N/A';
               try {
                 const { Filesystem } = await import('@capacitor/filesystem');
@@ -2259,7 +2259,7 @@ function HubSettings({
                 fileSize: sizeStr,
                 filePath: apkPath
               });
-              
+
               const eligibility = await checkApkEligibility(apkPath);
               setApkEligibility(eligibility);
             } catch (apkErr) {
@@ -2274,7 +2274,7 @@ function HubSettings({
         }
       }
     };
-    
+
     const loadManifests = async () => {
       const t = Date.now();
       const baseUrl = 'https://studio-30f44.web.app';
@@ -2365,7 +2365,7 @@ function HubSettings({
         releaseNotes: ['Simulated OTA item 1', 'Simulated OTA item 2']
       };
       sessionStorage.setItem('studio:mockOtaResponse', JSON.stringify(mockRemote));
-      
+
       const dismissed = localStorage.getItem('studio:dismissedVersions');
       if (dismissed) {
         try {
@@ -2374,7 +2374,7 @@ function HubSettings({
         } catch {}
       }
       sessionStorage.removeItem('studio:laterUpdateVersion');
-      
+
       showDevToast('OTA simulation configured. Checking update...');
       await ota.checkNow();
     } catch (err: any) {
@@ -2553,9 +2553,9 @@ function HubSettings({
           <span className="material-symbols-outlined" style={{ color: 'var(--c-text-secondary)', fontSize: 20 }}>
             search
           </span>
-          <input 
-            type="text" 
-            placeholder="Search help articles..." 
+          <input
+            type="text"
+            placeholder="Search help articles..."
             disabled
             style={{
               background: 'transparent',
@@ -2622,9 +2622,9 @@ function HubSettings({
             For help with your account, project recovery, or complex issues, feel free to visit our official github repository or reach out directly.
           </p>
           <div style={{ display: 'flex', gap: 10, marginTop: 4 }}>
-            <a 
-              href="https://github.com/MAGEXE1000/Studio" 
-              target="_blank" 
+            <a
+              href="https://github.com/MAGEXE1000/Studio"
+              target="_blank"
               rel="noopener noreferrer"
               style={{
                 textDecoration: 'none',
@@ -2693,7 +2693,7 @@ function HubSettings({
     let apkVersion = '3.6.28';
     let apkSize = '13.47 MB';
     let apkUrl = 'https://github.com/MAGEXE1000/Studio/releases/download/v3.6.28/studio-3.6.28.apk';
-    
+
     try {
       if (firebaseAppReleaseJson && !firebaseAppReleaseJson.startsWith('Error') && firebaseAppReleaseJson !== 'Loading...') {
         const parsed = JSON.parse(firebaseAppReleaseJson);
@@ -2731,7 +2731,7 @@ function HubSettings({
                 </span>
               </div>
             </div>
-            <a 
+            <a
               href={apkUrl}
               style={{
                 textDecoration: 'none',
@@ -2946,15 +2946,15 @@ User Agent: ${navigator.userAgent}
 Date: ${new Date().toISOString()}
 
 [Description of Bug]
-- 
+-
 
 [Steps to Reproduce]
-1. 
-2. 
-3. 
+1.
+2.
+3.
 
 [Expected Behavior]
-- 
+-
 
 [Actual Behavior]
 - `;
@@ -2966,10 +2966,13 @@ Date: ${new Date().toISOString()}
     return (
       <div style={{ display: 'flex', flexDirection: 'column', gap: 16, paddingBottom: 24 }}>
         <p style={{ margin: 0, fontSize: 13, color: 'var(--c-text-secondary)', lineHeight: 1.5 }}>
-          If you encounter an issue or unexpected behavior in Studio, please report it! Copy the template below and submit it on our GitHub repository.
+          {isNative()
+            ? "If you encounter an issue or unexpected behavior in Studio, please report it! Tap below to send us a support email with pre-filled diagnostic information."
+            : "If you encounter an issue or unexpected behavior in Studio, please report it! Copy the template below and submit it on our GitHub repository."
+          }
         </p>
 
-        <button 
+        <button
           onClick={handleCopyTemplate}
           style={{
             alignSelf: 'flex-start',
@@ -3004,7 +3007,7 @@ Date: ${new Date().toISOString()}
           lineHeight: 1.5,
         }}>
           {`[STUDIO BUG REPORT]
-App Version: v${APP_VERSION} (Web)
+App Version: v${APP_VERSION} (${isNative() ? 'Android' : 'Web'})
 User Agent: [Automatically Generated]
 ...`}
         </div>
@@ -3012,27 +3015,59 @@ User Agent: [Automatically Generated]
         <div style={{ height: 1, borderTop: '1px solid rgba(128, 128, 128, 0.08)', margin: '8px 0' }} />
 
         <div style={{ display: 'flex', gap: 10 }}>
-          <a 
-            href="https://github.com/MAGEXE1000/Studio/issues/new" 
-            target="_blank" 
-            rel="noopener noreferrer"
-            style={{
-              textDecoration: 'none',
-              padding: '10px 16px',
-              background: 'rgba(255,255,255,0.04)',
-              color: 'var(--c-text-primary)',
-              fontSize: 13,
-              fontWeight: 700,
-              borderRadius: 8,
-              border: '1px solid rgba(128, 128, 128, 0.1)',
-              display: 'flex',
-              alignItems: 'center',
-              gap: 8,
-            }}
-          >
-            <span className="material-symbols-outlined" style={{ fontSize: 18 }}>open_in_new</span>
-            Open GitHub Issues
-          </a>
+          {isNative() ? (
+            <a
+              href={`mailto:support@chordex.app?subject=${encodeURIComponent("Studio Bug Report")}&body=${encodeURIComponent(
+                `[STUDIO BUG REPORT]\n` +
+                `------------------------------------\n` +
+                `App Version: v${APP_VERSION} (Android)\n` +
+                `User Agent: ${navigator.userAgent}\n` +
+                `Date: ${new Date().toISOString()}\n\n` +
+                `[Description of Bug]\n- \n\n` +
+                `[Steps to Reproduce]\n1. \n2. \n3. \n\n` +
+                `[Expected Behavior]\n- \n\n` +
+                `[Actual Behavior]\n- `
+              )}`}
+              style={{
+                textDecoration: 'none',
+                padding: '10px 16px',
+                background: accent.from,
+                color: '#fff',
+                fontSize: 13,
+                fontWeight: 700,
+                borderRadius: 8,
+                border: 'none',
+                display: 'flex',
+                alignItems: 'center',
+                gap: 8,
+              }}
+            >
+              <span className="material-symbols-outlined" style={{ fontSize: 18 }}>mail</span>
+              Send Bug Report Email
+            </a>
+          ) : (
+            <a
+              href="https://github.com/MAGEXE1000/Studio/issues/new"
+              target="_blank"
+              rel="noopener noreferrer"
+              style={{
+                textDecoration: 'none',
+                padding: '10px 16px',
+                background: 'rgba(255,255,255,0.04)',
+                color: 'var(--c-text-primary)',
+                fontSize: 13,
+                fontWeight: 700,
+                borderRadius: 8,
+                border: '1px solid rgba(128, 128, 128, 0.1)',
+                display: 'flex',
+                alignItems: 'center',
+                gap: 8,
+              }}
+            >
+              <span className="material-symbols-outlined" style={{ fontSize: 18 }}>open_in_new</span>
+              Open GitHub Issues
+            </a>
+          )}
         </div>
       </div>
     );
@@ -3046,42 +3081,42 @@ User Agent: [Automatically Generated]
       <div style={{ display: 'flex', flexDirection: 'column', gap: 16, width: '100%', paddingBottom: 24 }}>
         <SettingsSectionLabel>Sidebar Behavior</SettingsSectionLabel>
         <div style={cardStyle}>
-          <SettingRow 
-            label="Hide sidebar while using apps" 
+          <SettingRow
+            label="Hide sidebar while using apps"
             desc="Hides the global Studio sidebar inside apps to maximize workspace size"
           >
-            <Toggle 
-              value={preferences.autoHideSidebarInApps} 
-              onChange={v => setPreference('autoHideSidebarInApps', v)} 
-              accentFrom={accent.from} 
-              accentTo={accent.to} 
+            <Toggle
+              value={preferences.autoHideSidebarInApps}
+              onChange={v => setPreference('autoHideSidebarInApps', v)}
+              accentFrom={accent.from}
+              accentTo={accent.to}
             />
           </SettingRow>
 
           <div style={{ opacity: isHideActive ? 1 : 0.5, pointerEvents: isHideActive ? 'auto' : 'none', transition: 'opacity 200ms ease' }}>
-            <SettingRow 
-              label="Reveal sidebar on left-edge hover" 
+            <SettingRow
+              label="Reveal sidebar on left-edge hover"
               desc="Hovering the far-left edge of the screen reveals the hidden sidebar"
             >
-              <Toggle 
-                value={isHideActive && preferences.hoverRevealSidebar} 
-                onChange={v => setPreference('hoverRevealSidebar', v)} 
-                accentFrom={accent.from} 
+              <Toggle
+                value={isHideActive && preferences.hoverRevealSidebar}
+                onChange={v => setPreference('hoverRevealSidebar', v)}
+                accentFrom={accent.from}
                 accentTo={accent.to}
               />
             </SettingRow>
           </div>
 
           <div style={{ opacity: isHoverActive ? 1 : 0.5, pointerEvents: isHoverActive ? 'auto' : 'none', transition: 'opacity 200ms ease' }}>
-            <SettingRow 
-              label="Auto-close hover-opened sidebar" 
+            <SettingRow
+              label="Auto-close hover-opened sidebar"
               desc="Automatically hides the sidebar when your pointer leaves it"
             >
-              <Toggle 
-                value={isHoverActive && preferences.autoCloseHoverSidebar} 
-                onChange={v => setPreference('autoCloseHoverSidebar', v)} 
-                accentFrom={accent.from} 
-                accentTo={accent.to} 
+              <Toggle
+                value={isHoverActive && preferences.autoCloseHoverSidebar}
+                onChange={v => setPreference('autoCloseHoverSidebar', v)}
+                accentFrom={accent.from}
+                accentTo={accent.to}
               />
             </SettingRow>
           </div>
@@ -3089,21 +3124,21 @@ User Agent: [Automatically Generated]
 
         <SettingsSectionLabel>App Workspace</SettingsSectionLabel>
         <div style={cardStyle}>
-          <SettingRow 
-            label="Show app navigation dock" 
+          <SettingRow
+            label="Show app navigation dock"
             desc="Shows a macOS-style floating bottom dock inside apps for section navigation"
           >
-            <Toggle 
-              value={preferences.showWebAppDock} 
+            <Toggle
+              value={preferences.showWebAppDock}
               onChange={v => {
                 if (!v && isWebDesktop) {
                   alert("Cannot disable the app navigation dock on desktop/tablet as it is the only way to navigate sections inside apps.");
                   return;
                 }
                 setPreference('showWebAppDock', v);
-              }} 
-              accentFrom={accent.from} 
-              accentTo={accent.to} 
+              }}
+              accentFrom={accent.from}
+              accentTo={accent.to}
             />
           </SettingRow>
           <div style={{ padding: '0px 20px 14px', marginTop: '-10px', borderBottom: '1px solid rgba(128,128,128,0.08)' }}>
@@ -3112,42 +3147,42 @@ User Agent: [Automatically Generated]
             </p>
           </div>
 
-          <SettingRow 
-            label="Remember last Chordex section" 
+          <SettingRow
+            label="Remember last Chordex section"
             desc="Reopening Chordex returns to your last used section instead of resetting"
           >
-            <Toggle 
-              value={preferences.rememberLastAppSection} 
-              onChange={v => setPreference('rememberLastAppSection', v)} 
-              accentFrom={accent.from} 
-              accentTo={accent.to} 
+            <Toggle
+              value={preferences.rememberLastAppSection}
+              onChange={v => setPreference('rememberLastAppSection', v)}
+              accentFrom={accent.from}
+              accentTo={accent.to}
             />
           </SettingRow>
         </div>
 
         <SettingsSectionLabel>Performance</SettingsSectionLabel>
         <div style={cardStyle}>
-          <SettingRow 
-            label="Reduce interface animations" 
+          <SettingRow
+            label="Reduce interface animations"
             desc="Minimizes transitions and movement across the workspace"
           >
-            <Toggle 
-              value={preferences.reduceMotion} 
-              onChange={v => setPreference('reduceMotion', v)} 
-              accentFrom={accent.from} 
-              accentTo={accent.to} 
+            <Toggle
+              value={preferences.reduceMotion}
+              onChange={v => setPreference('reduceMotion', v)}
+              accentFrom={accent.from}
+              accentTo={accent.to}
             />
           </SettingRow>
 
-          <SettingRow 
-            label="Compact desktop spacing" 
+          <SettingRow
+            label="Compact desktop spacing"
             desc="Reduces spacing and padding for more information on laptop screens"
           >
-            <Toggle 
-              value={preferences.compactDesktopSpacing} 
-              onChange={v => setPreference('compactDesktopSpacing', v)} 
-              accentFrom={accent.from} 
-              accentTo={accent.to} 
+            <Toggle
+              value={preferences.compactDesktopSpacing}
+              onChange={v => setPreference('compactDesktopSpacing', v)}
+              accentFrom={accent.from}
+              accentTo={accent.to}
             />
           </SettingRow>
 
@@ -3273,7 +3308,7 @@ User Agent: [Automatically Generated]
                         type="range" className="hue-slider"
                         min={0} max={359} value={hue}
                         onChange={e => updateSettings({ customAccentHue: Number(e.target.value) })}
-                        style={{ 
+                        style={{
                           background: 'linear-gradient(to right, hsl(0,80%,55%), hsl(30,80%,55%), hsl(60,80%,55%), hsl(90,80%,55%), hsl(120,80%,55%), hsl(150,80%,55%), hsl(180,80%,55%), hsl(210,80%,55%), hsl(240,80%,55%), hsl(270,80%,55%), hsl(300,80%,55%), hsl(330,80%,55%), hsl(360,80%,55%))',
                           '--slider-hue': String(hue)
                         } as React.CSSProperties}
@@ -3391,13 +3426,13 @@ User Agent: [Automatically Generated]
             {desc && <p style={{ fontSize: 'var(--font-sm)', marginTop: '2px', lineHeight: 1.3, color: 'var(--c-text-secondary)', fontFamily: 'Inter', margin: '4px 0 0' }}>{desc}</p>}
           </div>
         </div>
-        <div style={{ 
-          marginTop: '8px', 
-          padding: '8px 12px', 
-          borderRadius: '6px', 
-          background: 'rgba(128,128,128,0.06)', 
-          fontFamily: 'monospace', 
-          fontSize: '12px', 
+        <div style={{
+          marginTop: '8px',
+          padding: '8px 12px',
+          borderRadius: '6px',
+          background: 'rgba(128,128,128,0.06)',
+          fontFamily: 'monospace',
+          fontSize: '12px',
           color: highlightColor || 'var(--c-text-primary)',
           wordBreak: 'break-word',
           whiteSpace: 'pre-wrap'
@@ -4057,7 +4092,7 @@ User Agent: [Automatically Generated]
       { key: 'groovex', label: 'Groovex', node: <GroovexLogo size={34} /> },
       { key: 'vocalex', label: 'Vocalex', node: <VocalexLogo size={34} /> },
     ];
-    
+
     const heroCardStyle: React.CSSProperties = isWebDesktop ? {
       background: 'transparent',
       borderRadius: '0px',
@@ -4405,6 +4440,66 @@ User Agent: [Automatically Generated]
       );
     }
 
+    if (page === 'help-center') {
+      return (
+        <div key={pageKey} className="settings-panel-sheet" style={subStyle}>
+          <style>{HUB_SETTINGS_CSS}</style>
+          <SettingsSubHeader title="Help Center" onBack={goBack} />
+          <div style={{ padding: '0 20px', overflowY: 'auto', flex: 1 }}>
+            {renderHelpCenterContent()}
+          </div>
+        </div>
+      );
+    }
+
+    if (page === 'faq') {
+      return (
+        <div key={pageKey} className="settings-panel-sheet" style={subStyle}>
+          <style>{HUB_SETTINGS_CSS}</style>
+          <SettingsSubHeader title="FAQ & Support" onBack={goBack} />
+          <div style={{ padding: '0 20px', overflowY: 'auto', flex: 1 }}>
+            {renderFaqContent()}
+          </div>
+        </div>
+      );
+    }
+
+    if (page === 'terms') {
+      return (
+        <div key={pageKey} className="settings-panel-sheet" style={subStyle}>
+          <style>{HUB_SETTINGS_CSS}</style>
+          <SettingsSubHeader title="Terms of Service" onBack={goBack} />
+          <div style={{ padding: '0 20px', overflowY: 'auto', flex: 1 }}>
+            {renderTermsContent()}
+          </div>
+        </div>
+      );
+    }
+
+    if (page === 'privacy-policy') {
+      return (
+        <div key={pageKey} className="settings-panel-sheet" style={subStyle}>
+          <style>{HUB_SETTINGS_CSS}</style>
+          <SettingsSubHeader title="Privacy Policy" onBack={goBack} />
+          <div style={{ padding: '0 20px', overflowY: 'auto', flex: 1 }}>
+            {renderPrivacyPolicyContent()}
+          </div>
+        </div>
+      );
+    }
+
+    if (page === 'bug-report') {
+      return (
+        <div key={pageKey} className="settings-panel-sheet" style={subStyle}>
+          <style>{HUB_SETTINGS_CSS}</style>
+          <SettingsSubHeader title="Report a Bug" onBack={goBack} />
+          <div style={{ padding: '0 20px', overflowY: 'auto', flex: 1 }}>
+            {renderBugReportContent()}
+          </div>
+        </div>
+      );
+    }
+
     return (
       <div key={pageKey} style={{ padding: '0 20px', paddingBottom: 'var(--content-bottom-pad)' }}>
         <style>{HUB_SETTINGS_CSS}</style>
@@ -4418,19 +4513,29 @@ User Agent: [Automatically Generated]
 
         <SettingsSectionLabel delay={70}>Preferences</SettingsSectionLabel>
         <div style={cardStyle}>
-          <SettingsNavRow icon="settings" iconColor={accent.from} title="General Preferences" desc="Configure workspace layout and app behaviors" onPress={() => navigate('general')} delay={75} />
+          {!isNative() && (
+            <SettingsNavRow icon="settings" iconColor={accent.from} title="General Preferences" desc="Configure workspace layout and app behaviors" onPress={() => navigate('general')} delay={75} />
+          )}
           <SettingsNavRow icon="palette" iconColor={accent.from} title={t.settings.sections.appearance} desc={(t.hub as { studioSettings?: { appearanceDesc?: string } }).studioSettings?.appearanceDesc ?? 'Theme, colors, display & performance'} onPress={() => navigate('appearance')} delay={80} />
-          <SettingsNavRow icon="language" iconColor={accent.from} title={t.settings.sections.language} desc={(t.hub as { studioSettings?: { languageDesc?: string } }).studioSettings?.languageDesc ?? 'App display language'} onPress={() => navigate('language')} delay={85} />
-          <SettingsNavRow icon="account_circle" iconColor={accent.from} title={lang === 'es' ? 'Perfil y Cuenta' : 'Profile & Account'} desc="Manage user settings and backup" onPress={() => navigate('profile')} last delay={90} />
+          <SettingsNavRow icon="language" iconColor={accent.from} title={t.settings.sections.language} desc={(t.hub as { studioSettings?: { languageDesc?: string } }).studioSettings?.languageDesc ?? 'App display language'} onPress={() => navigate('language')} last={isNative()} delay={85} />
+          {!isNative() && (
+            <SettingsNavRow icon="account_circle" iconColor={accent.from} title={lang === 'es' ? 'Perfil y Cuenta' : 'Profile & Account'} desc="Manage user settings and backup" onPress={() => navigate('profile')} last delay={90} />
+          )}
         </div>
 
         <SettingsSectionLabel delay={100}>Help & Support</SettingsSectionLabel>
         <div style={cardStyle}>
           <SettingsNavRow icon="help" iconColor={accent.from} title="Help Center" desc="Documentation and guides" onPress={() => navigate('help-center')} delay={110} />
-          <SettingsNavRow icon="contact_support" iconColor={accent.from} title="FAQ & Support" desc="Frequently asked questions" onPress={() => navigate('faq')} delay={120} />
-          <SettingsNavRow icon="article" iconColor={accent.from} title="Release Notes" desc="View version history" onPress={() => navigate('release-notes')} delay={130} />
-          <SettingsNavRow icon="install_desktop" iconColor={accent.from} title="Download Apps" desc="Get native mobile and desktop clients" onPress={() => navigate('download-apps')} delay={140} />
-          <SettingsNavRow icon="keyboard" iconColor={accent.from} title="Keyboard Shortcuts" desc="View quick key bindings" onPress={() => navigate('keyboard-shortcuts')} last delay={150} />
+          <SettingsNavRow icon="contact_support" iconColor={accent.from} title="FAQ & Support" desc="Frequently asked questions" onPress={() => navigate('faq')} last={isNative()} delay={120} />
+          {!isNative() && (
+            <SettingsNavRow icon="article" iconColor={accent.from} title="Release Notes" desc="View version history" onPress={() => navigate('release-notes')} delay={130} />
+          )}
+          {!isNative() && (
+            <SettingsNavRow icon="install_desktop" iconColor={accent.from} title="Download Apps" desc="Get native mobile and desktop clients" onPress={() => navigate('download-apps')} delay={140} />
+          )}
+          {!isNative() && (
+            <SettingsNavRow icon="keyboard" iconColor={accent.from} title="Keyboard Shortcuts" desc="View quick key bindings" onPress={() => navigate('keyboard-shortcuts')} last delay={150} />
+          )}
         </div>
 
         <SettingsSectionLabel delay={170}>Legal</SettingsSectionLabel>
@@ -4498,7 +4603,7 @@ User Agent: [Automatically Generated]
   };
 
   return createPortal(
-    <div 
+    <div
       style={{
         position: 'fixed',
         inset: 0,
@@ -4546,11 +4651,11 @@ User Agent: [Automatically Generated]
           background: var(--sidebar-hover-bg, rgba(255, 255, 255, 0.04)) !important;
         }
       `}</style>
-      <div 
-        style={{ 
-          display: 'flex', 
-          width: '880px', 
-          height: '640px', 
+      <div
+        style={{
+          display: 'flex',
+          width: '880px',
+          height: '640px',
           maxWidth: '95vw',
           maxHeight: '90vh',
           background: 'var(--app-surface, rgba(18, 18, 18, 0.95))',
@@ -4561,7 +4666,7 @@ User Agent: [Automatically Generated]
           backdropFilter: 'blur(30px)',
           WebkitBackdropFilter: 'blur(30px)',
           animation: 'hub-modal-fade-in 250ms ease both',
-        }} 
+        }}
         className="settings-desktop-layout"
       >
         {/* Left Pane: Sub-navigation */}
@@ -4576,7 +4681,7 @@ User Agent: [Automatically Generated]
           height: '100%',
           overflowY: 'auto',
         }}>
-          <button 
+          <button
             onClick={() => setTab('home')}
             className="btn-smooth"
             style={{
@@ -4660,7 +4765,7 @@ User Agent: [Automatically Generated]
                 {getPageTitle(activePageId)}
               </h1>
             </div>
-            
+
             <Suspense fallback={<div style={{ color: 'var(--c-text-secondary)', fontSize: 14 }}>Loading settings...</div>}>
               {renderActivePageContent(activePageId)}
             </Suspense>
@@ -4930,6 +5035,14 @@ function HubHelp({
   const pendingRestoreRef = useRef<string | null>(null);
   const scrollRef = useRef<HTMLDivElement | null>(null);
 
+  useBackHandler('nested', () => {
+    if (page !== 'main') {
+      goBack();
+      return true;
+    }
+    return false;
+  }, [page]);
+
   useEffect(() => {
     const el = scrollRef.current;
     if (!el) return;
@@ -5027,9 +5140,9 @@ function HubHelp({
           <span className="material-symbols-outlined" style={{ color: 'var(--c-text-secondary)', fontSize: 20 }}>
             search
           </span>
-          <input 
-            type="text" 
-            placeholder="Search help articles..." 
+          <input
+            type="text"
+            placeholder="Search help articles..."
             disabled
             style={{
               background: 'transparent',
@@ -5094,9 +5207,9 @@ function HubHelp({
             For help with your account, project recovery, or complex issues, feel free to visit our official github repository or reach out directly.
           </p>
           <div style={{ display: 'flex', gap: 10, marginTop: 4 }}>
-            <a 
-              href="https://github.com/MAGEXE1000/Studio" 
-              target="_blank" 
+            <a
+              href="https://github.com/MAGEXE1000/Studio"
+              target="_blank"
               rel="noopener noreferrer"
               style={{
                 textDecoration: 'none',
@@ -5165,7 +5278,7 @@ function HubHelp({
     let apkVersion = '3.6.28';
     let apkSize = '13.47 MB';
     let apkUrl = 'https://github.com/MAGEXE1000/Studio/releases/download/v3.6.28/studio-3.6.28.apk';
-    
+
     try {
       if (firebaseAppReleaseJson && !firebaseAppReleaseJson.startsWith('Error') && firebaseAppReleaseJson !== 'Loading...') {
         const parsed = JSON.parse(firebaseAppReleaseJson);
@@ -5202,7 +5315,7 @@ function HubHelp({
                 </span>
               </div>
             </div>
-            <a 
+            <a
               href={apkUrl}
               style={{
                 textDecoration: 'none',
@@ -5415,15 +5528,15 @@ User Agent: ${navigator.userAgent}
 Date: ${new Date().toISOString()}
 
 [Description of Bug]
-- 
+-
 
 [Steps to Reproduce]
-1. 
-2. 
-3. 
+1.
+2.
+3.
 
 [Expected Behavior]
-- 
+-
 
 [Actual Behavior]
 - `;
@@ -5435,10 +5548,13 @@ Date: ${new Date().toISOString()}
     return (
       <div style={{ display: 'flex', flexDirection: 'column', gap: 16, paddingBottom: 24 }}>
         <p style={{ margin: 0, fontSize: 13, color: 'var(--c-text-secondary)', lineHeight: 1.5 }}>
-          If you encounter an issue or unexpected behavior in Studio, please report it! Copy the template below and submit it on our GitHub repository.
+          {isNative()
+            ? "If you encounter an issue or unexpected behavior in Studio, please report it! Tap below to send us a support email with pre-filled diagnostic information."
+            : "If you encounter an issue or unexpected behavior in Studio, please report it! Copy the template below and submit it on our GitHub repository."
+          }
         </p>
 
-        <button 
+        <button
           onClick={handleCopyTemplate}
           style={{
             alignSelf: 'flex-start',
@@ -5473,7 +5589,7 @@ Date: ${new Date().toISOString()}
           lineHeight: 1.5,
         }}>
           {`[STUDIO BUG REPORT]
-App Version: v${APP_VERSION} (Web)
+App Version: v${APP_VERSION} (${isNative() ? 'Android' : 'Web'})
 User Agent: [Automatically Generated]
 ...`}
         </div>
@@ -5481,27 +5597,59 @@ User Agent: [Automatically Generated]
         <div style={{ height: 1, borderTop: '1px solid rgba(128, 128, 128, 0.08)', margin: '8px 0' }} />
 
         <div style={{ display: 'flex', gap: 10 }}>
-          <a 
-            href="https://github.com/MAGEXE1000/Studio/issues/new" 
-            target="_blank" 
-            rel="noopener noreferrer"
-            style={{
-              textDecoration: 'none',
-              padding: '10px 16px',
-              background: 'rgba(255,255,255,0.04)',
-              color: 'var(--c-text-primary)',
-              fontSize: 13,
-              fontWeight: 700,
-              borderRadius: 8,
-              border: '1px solid rgba(128, 128, 128, 0.1)',
-              display: 'flex',
-              alignItems: 'center',
-              gap: 8,
-            }}
-          >
-            <span className="material-symbols-outlined" style={{ fontSize: 18 }}>open_in_new</span>
-            Open GitHub Issues
-          </a>
+          {isNative() ? (
+            <a
+              href={`mailto:support@chordex.app?subject=${encodeURIComponent("Studio Bug Report")}&body=${encodeURIComponent(
+                `[STUDIO BUG REPORT]\n` +
+                `------------------------------------\n` +
+                `App Version: v${APP_VERSION} (Android)\n` +
+                `User Agent: ${navigator.userAgent}\n` +
+                `Date: ${new Date().toISOString()}\n\n` +
+                `[Description of Bug]\n- \n\n` +
+                `[Steps to Reproduce]\n1. \n2. \n3. \n\n` +
+                `[Expected Behavior]\n- \n\n` +
+                `[Actual Behavior]\n- `
+              )}`}
+              style={{
+                textDecoration: 'none',
+                padding: '10px 16px',
+                background: accent.from,
+                color: '#fff',
+                fontSize: 13,
+                fontWeight: 700,
+                borderRadius: 8,
+                border: 'none',
+                display: 'flex',
+                alignItems: 'center',
+                gap: 8,
+              }}
+            >
+              <span className="material-symbols-outlined" style={{ fontSize: 18 }}>mail</span>
+              Send Bug Report Email
+            </a>
+          ) : (
+            <a
+              href="https://github.com/MAGEXE1000/Studio/issues/new"
+              target="_blank"
+              rel="noopener noreferrer"
+              style={{
+                textDecoration: 'none',
+                padding: '10px 16px',
+                background: 'rgba(255,255,255,0.04)',
+                color: 'var(--c-text-primary)',
+                fontSize: 13,
+                fontWeight: 700,
+                borderRadius: 8,
+                border: '1px solid rgba(128, 128, 128, 0.1)',
+                display: 'flex',
+                alignItems: 'center',
+                gap: 8,
+              }}
+            >
+              <span className="material-symbols-outlined" style={{ fontSize: 18 }}>open_in_new</span>
+              Open GitHub Issues
+            </a>
+          )}
         </div>
       </div>
     );
@@ -5688,10 +5836,16 @@ User Agent: [Automatically Generated]
         <SettingsSectionLabel delay={70}>Support</SettingsSectionLabel>
         <div style={cardStyle}>
           <SettingsNavRow icon="help" iconColor={accent.from} title="Help Center" desc="Documentation and guides" onPress={() => navigate('help-center')} delay={75} />
-          <SettingsNavRow icon="contact_support" iconColor={accent.from} title="FAQ & Support" desc="Frequently asked questions" onPress={() => navigate('faq')} delay={80} />
-          <SettingsNavRow icon="article" iconColor={accent.from} title="Release Notes" desc="View version history" onPress={() => navigate('release-notes')} delay={85} />
-          <SettingsNavRow icon="install_desktop" iconColor={accent.from} title="Download Apps" desc="Get native mobile and desktop clients" onPress={() => navigate('download-apps')} delay={90} />
-          <SettingsNavRow icon="keyboard" iconColor={accent.from} title="Keyboard Shortcuts" desc="View quick key bindings" onPress={() => navigate('keyboard-shortcuts')} last delay={95} />
+          <SettingsNavRow icon="contact_support" iconColor={accent.from} title="FAQ & Support" desc="Frequently asked questions" onPress={() => navigate('faq')} last={isNative()} delay={80} />
+          {!isNative() && (
+            <SettingsNavRow icon="article" iconColor={accent.from} title="Release Notes" desc="View version history" onPress={() => navigate('release-notes')} delay={85} />
+          )}
+          {!isNative() && (
+            <SettingsNavRow icon="install_desktop" iconColor={accent.from} title="Download Apps" desc="Get native mobile and desktop clients" onPress={() => navigate('download-apps')} delay={90} />
+          )}
+          {!isNative() && (
+            <SettingsNavRow icon="keyboard" iconColor={accent.from} title="Keyboard Shortcuts" desc="View quick key bindings" onPress={() => navigate('keyboard-shortcuts')} last delay={95} />
+          )}
         </div>
 
         <SettingsSectionLabel delay={110}>Legal</SettingsSectionLabel>
@@ -5710,7 +5864,7 @@ User Agent: [Automatically Generated]
 
   /* ── DESKTOP LAYOUT ────────────────────────────────────────────── */
   return createPortal(
-    <div 
+    <div
       style={{
         position: 'fixed',
         inset: 0,
@@ -5758,11 +5912,11 @@ User Agent: [Automatically Generated]
           background: var(--sidebar-hover-bg, rgba(255, 255, 255, 0.04)) !important;
         }
       `}</style>
-      <div 
-        style={{ 
-          display: 'flex', 
-          width: '880px', 
-          height: '640px', 
+      <div
+        style={{
+          display: 'flex',
+          width: '880px',
+          height: '640px',
           maxWidth: '95vw',
           maxHeight: '90vh',
           background: 'var(--app-surface, rgba(18, 18, 18, 0.95))',
@@ -5773,7 +5927,7 @@ User Agent: [Automatically Generated]
           backdropFilter: 'blur(30px)',
           WebkitBackdropFilter: 'blur(30px)',
           animation: 'hub-modal-fade-in 250ms ease both',
-        }} 
+        }}
         className="settings-desktop-layout"
       >
         {/* Left Pane: Sub-navigation */}
@@ -5788,7 +5942,7 @@ User Agent: [Automatically Generated]
           height: '100%',
           overflowY: 'auto',
         }}>
-          <button 
+          <button
             onClick={() => setTab('home')}
             className="btn-smooth"
             style={{
@@ -5871,7 +6025,7 @@ User Agent: [Automatically Generated]
                 {getPageTitle(activePageId)}
               </h1>
             </div>
-            
+
             <Suspense fallback={<div style={{ color: 'var(--c-text-secondary)', fontSize: 14 }}>Loading help...</div>}>
               {renderActivePageContent(activePageId)}
             </Suspense>
@@ -6083,7 +6237,7 @@ function HelpAccordion({ accent, lang }: { accent: { from: string; to: string };
       for (let i = localStorage.length - 1; i >= 0; i--) {
         const key = localStorage.key(i);
         if (key && (
-          key.includes('lottie_cache') || 
+          key.includes('lottie_cache') ||
           key.includes('ota_temp') ||
           key.includes('temp_asset') ||
           key.includes('debug_log')
@@ -6111,13 +6265,13 @@ function HelpAccordion({ accent, lang }: { accent: { from: string; to: string };
         const val = localStorage.getItem(k);
         return val && val.length > 9 && val.charAt(8) === ':';
       }).length;
-      
+
       const report = lang === 'es'
         ? `Clave de cifrado: ACTIVA (256-bit CFB)\nID de hardware: ${devId}\nBases de datos encriptadas: ${encryptedKeysCount} de ${storageKeys.length} claves\nEstado del cortafuegos: SEGURO`
         : lang === 'de'
         ? `Schlüssel-Status: AKTIV (256-bit CFB)\nHardware-ID: ${devId}\nVerschlüsselte Datenbanken: ${encryptedKeysCount} von ${storageKeys.length} Keys\nSicherheitsstufe: MAXIMAL`
         : `Encryption Key: ACTIVE (256-bit CFB)\nHardware ID: ${devId}\nEncrypted Databases: ${encryptedKeysCount} of ${storageKeys.length} keys\nFirewall Status: SECURE`;
-        
+
       setAuditReport(report);
       setSecurityState('success');
     } catch (e) {
@@ -6213,7 +6367,7 @@ function HelpAccordion({ accent, lang }: { accent: { from: string; to: string };
                 }}
               >
                 <span>{item.answer}</span>
-                
+
                 {/* Troubleshooter Injectors */}
                 {idx === 4 && (
                   <button

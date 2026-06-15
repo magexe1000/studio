@@ -175,6 +175,9 @@ importers:
       '@capacitor/preferences':
         specifier: ^8.0.1
         version: 8.0.1(@capacitor/core@6.2.1)
+      '@capacitor/screen-orientation':
+        specifier: ^6.0.4
+        version: 6.0.4(@capacitor/core@6.2.1)
       '@capacitor/share':
         specifier: ^6.0.1
         version: 6.0.4(@capacitor/core@6.2.1)
@@ -801,6 +804,11 @@ packages:
     resolution: {integrity: sha512-T6no3ebi79XJCk91U3Jp/liJUwgBdvHR+s6vhvPkPxSuch7z3zx5Rv1bdWM6sWruNx+pViuEGqZvbfCdyBvcHQ==}
     peerDependencies:
       '@capacitor/core': '>=8.0.0'
+
+  '@capacitor/screen-orientation@6.0.4':
+    resolution: {integrity: sha512-BKuGqUGvN7hSEmotI7m8UlGRRBGd9YpAzlnQAXp9VNvKkinSkreMHPrEOiR/sG3QX/vR/BJ190tGQiICmylcTg==}
+    peerDependencies:
+      '@capacitor/core': ^6.0.0
 
   '@capacitor/share@6.0.4':
     resolution: {integrity: sha512-Ij8C3as4n6L+SUj3M1ko+DGIsrDw2VTkn5Y/pQnFRI9dRk6YoSpGKLN54yOyN7ew3N9bVa8Rko+dFwdcNg7ESA==}
@@ -5898,6 +5906,10 @@ snapshots:
       '@capacitor/core': 6.2.1
 
   '@capacitor/preferences@8.0.1(@capacitor/core@6.2.1)':
+    dependencies:
+      '@capacitor/core': 6.2.1
+
+  '@capacitor/screen-orientation@6.0.4(@capacitor/core@6.2.1)':
     dependencies:
       '@capacitor/core': 6.2.1
 
