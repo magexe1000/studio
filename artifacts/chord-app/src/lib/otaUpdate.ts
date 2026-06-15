@@ -86,6 +86,18 @@ export let otaDebugLogs: {
   eligibilityValidApk: boolean | null;
   eligibilityFinalInstall: string | null;
   eligibilityReason: string | null;
+  updateDecision: string | null;
+  updateDecisionReason: string | null;
+  remoteVersionCode: number | null;
+  versionComparisonResult: string | null;
+  nativePlatformDetected: boolean | null;
+  platformDetected: string | null;
+  apkMetadataValid: boolean | null;
+  apkUrlPresent: boolean | null;
+  apkShaPresent: boolean | null;
+  skippedDismissedState: string | null;
+  releaseChannel: string | null;
+  rolloutEligibility: string | null;
 } = {
   appVersion: APP_VERSION,
   nativeApkVersion: null,
@@ -143,6 +155,18 @@ export let otaDebugLogs: {
   eligibilityValidApk: null,
   eligibilityFinalInstall: null,
   eligibilityReason: null,
+  updateDecision: null,
+  updateDecisionReason: null,
+  remoteVersionCode: null,
+  versionComparisonResult: null,
+  nativePlatformDetected: null,
+  platformDetected: null,
+  apkMetadataValid: null,
+  apkUrlPresent: null,
+  apkShaPresent: null,
+  skippedDismissedState: null,
+  releaseChannel: null,
+  rolloutEligibility: null,
 };
 
 export interface OtaDiagnostics {
@@ -342,6 +366,8 @@ export interface RemoteVersionInfo {
   releaseNotes?: string[] | StructuredReleaseNotes;
   requiredApkVersion?: string;
   requiredVersionCode?: number;
+  versionCode?: number;
+  platform?: string;
   reinstallRequired?: boolean;
   signatureChanged?: boolean;
   previousSignatureSha256?: string;
@@ -480,6 +506,9 @@ async function fetchOne(
     const requiredVersionCode = typeof obj.required_version_code === 'number'
       ? obj.required_version_code
       : (typeof obj.requiredVersionCode === 'number' ? obj.requiredVersionCode : (typeof obj.required_version_code === 'string' ? parseInt(obj.required_version_code, 10) : (typeof obj.requiredVersionCode === 'string' ? parseInt(obj.requiredVersionCode, 10) : undefined)));
+    const versionCode = typeof obj.versionCode === 'number'
+      ? obj.versionCode
+      : (typeof obj.version_code === 'number' ? obj.version_code : (typeof obj.versionCode === 'string' ? parseInt(obj.versionCode, 10) : (typeof obj.version_code === 'string' ? parseInt(obj.version_code, 10) : undefined)));
 
     let parsedReleaseNotes: string[] | StructuredReleaseNotes | undefined = undefined;
     if (obj.releaseNotes) {
@@ -519,6 +548,8 @@ async function fetchOne(
       releaseNotes: parsedReleaseNotes,
       requiredApkVersion,
       requiredVersionCode,
+      versionCode,
+      platform: typeof obj.platform === 'string' ? obj.platform : undefined,
       reinstallRequired,
       signatureChanged,
       previousSignatureSha256,
@@ -888,9 +919,41 @@ export function checkForUpdate(isManual = false): Promise<CentralizedOtaState> {
         localStorage.removeItem('studio:downloadedBundleId');
       } catch (_) {}
 
-      const isUpgrade = isNative()
-        ? (remote.requiredVersionCode && installedVersionCode > 0
-            ? remote.requiredVersionCode > installedVersionCode
+      const isNativePlat = isNative();
+      const targetVersionCode = remote.versionCode ?? remote.requiredVersionCode;
+      
+      const apkUrlPresent = !!(remote.apkUrl || remote.downloadUrl);
+      const apkShaPresent = !!remote.apkSha256;
+      const apkMetadataValid = !!(remote.version && remote.platform === 'android' && apkUrlPresent && apkShaPresent);
+      
+      const isDismissed = dismissedList.includes(remote.version) || laterVersion === remote.version;
+      const skippedDismissedState = isDismissed ? 'skipped_by_user' : 'not_skipped';
+      
+      const releaseChannel = (remote as any).releaseChannel || (remote as any).channel || 'production';
+      const rolloutEligibility = (remote as any).rollout !== undefined ? `${(remote as any).rollout}%` : '100%';
+
+      let versionComparisonResult = 'same_version';
+      if (isNativePlat) {
+        if (targetVersionCode && installedVersionCode > 0) {
+          if (targetVersionCode > installedVersionCode) {
+            versionComparisonResult = 'remote_version_higher';
+          } else if (targetVersionCode < installedVersionCode) {
+            versionComparisonResult = 'remote_version_lower';
+          } else {
+            versionComparisonResult = 'same_version';
+          }
+        } else {
+          const sCmp = compareSemver(remote.version, APP_VERSION);
+          versionComparisonResult = sCmp > 0 ? 'remote_version_higher' : (sCmp < 0 ? 'remote_version_lower' : 'same_version');
+        }
+      } else {
+        const sCmp = compareSemver(remote.version, APP_VERSION);
+        versionComparisonResult = sCmp > 0 ? 'remote_version_higher' : (sCmp < 0 ? 'remote_version_lower' : 'same_version');
+      }
+
+      const isUpgrade = isNativePlat
+        ? (targetVersionCode && installedVersionCode > 0
+            ? targetVersionCode > installedVersionCode
             : compareSemver(remote.version, APP_VERSION) > 0)
         : compareSemver(remote.version, APP_VERSION) > 0;
 
@@ -905,13 +968,62 @@ export function checkForUpdate(isManual = false): Promise<CentralizedOtaState> {
         }
       }
 
+      let updateType: 'ota' | 'apk' | 'both' | 'none' = 'none';
+      if (isUpgrade) {
+        updateType = 'apk';
+      }
+
+      const updateAvailable = isUpgrade;
+
+      let decisionReason = 'no_update_same_version';
+      if (isUpgrade) {
+        decisionReason = 'upgrade_available';
+      } else {
+        if (!isNativePlat) {
+          decisionReason = 'native_platform_not_detected';
+        } else if (remote.platform !== 'android') {
+          decisionReason = 'wrong_platform';
+        } else if (!apkUrlPresent) {
+          decisionReason = 'missing_apk_url';
+        } else if (!apkShaPresent) {
+          decisionReason = 'missing_apk_sha';
+        } else if (isDismissed) {
+          decisionReason = 'skipped_by_user';
+        } else if (versionComparisonResult === 'remote_version_lower') {
+          decisionReason = 'remote_version_lower';
+        } else if (versionComparisonResult === 'same_version') {
+          decisionReason = 'no_update_same_version';
+        } else {
+          decisionReason = 'unsupported_update_mode';
+        }
+      }
+
       otaDebugLogs.installedVersionCode = installedVersionCode;
       otaDebugLogs.requiredApkVersion = remote.requiredApkVersion || 'N/A';
       otaDebugLogs.requiredVersionCode = remote.requiredVersionCode || null;
       otaDebugLogs.nativeApkBehind = nativeApkBehind;
       otaDebugLogs.apkUpdateRequired = apkUpdateRequired;
       otaDebugLogs.staleOtaCleared = staleOtaCleared;
-      
+
+      otaDebugLogs.updateType = updateType;
+      otaDebugLogs.remoteUpdateType = remote.updateType || 'none';
+      const otaBlockedBecauseApkRequired = false;
+      otaDebugLogs.otaBlockedBecauseApkRequired = otaBlockedBecauseApkRequired;
+      otaDebugLogs.apkEligibilityResult = 'N/A';
+
+      otaDebugLogs.updateDecision = updateType;
+      otaDebugLogs.updateDecisionReason = decisionReason;
+      otaDebugLogs.remoteVersionCode = targetVersionCode || null;
+      otaDebugLogs.versionComparisonResult = versionComparisonResult;
+      otaDebugLogs.nativePlatformDetected = isNativePlat;
+      otaDebugLogs.platformDetected = remote.platform || 'web';
+      otaDebugLogs.apkMetadataValid = apkMetadataValid;
+      otaDebugLogs.apkUrlPresent = apkUrlPresent;
+      otaDebugLogs.apkShaPresent = apkShaPresent;
+      otaDebugLogs.skippedDismissedState = skippedDismissedState;
+      otaDebugLogs.releaseChannel = releaseChannel;
+      otaDebugLogs.rolloutEligibility = rolloutEligibility;
+
       // Update global context mirroring variables
       updateGlobalState({
         pendingOtaBundleId: null,
@@ -921,23 +1033,9 @@ export function checkForUpdate(isManual = false): Promise<CentralizedOtaState> {
         finalPathExecuted: 'N/A'
       });
 
-      let updateType: 'ota' | 'apk' | 'both' | 'none' = 'none';
       let apkUrl: string | null = null;
       let manualApkUrl: string | null = null;
       let fallbackApkUrl: string | null = null;
-
-      const updateAvailable = isUpgrade;
-
-      if (updateAvailable) {
-        updateType = 'apk';
-      }
-
-      const otaBlockedBecauseApkRequired = false;
-
-      otaDebugLogs.updateType = updateType;
-      otaDebugLogs.remoteUpdateType = remote.updateType || 'none';
-      otaDebugLogs.otaBlockedBecauseApkRequired = otaBlockedBecauseApkRequired;
-      otaDebugLogs.apkEligibilityResult = 'N/A';
 
       if (updateType === 'none') {
         console.log('[OTA DEBUG] Skip: updateType evaluated to "none" because remote.version <= APP_VERSION and no APK update required.', {
@@ -1016,7 +1114,7 @@ export function checkForUpdate(isManual = false): Promise<CentralizedOtaState> {
       }
       otaDebugLogs.finalUpdatePath = finalPath;
 
-      const isDismissed = dismissedList.includes(remote.version) || laterVersion === remote.version;
+      // isDismissed already computed above
       
       let nextState: OtaUpdateState = (isNative() && !isAppInstallerAvailable())
         ? 'manual_apk_required'

@@ -23,11 +23,12 @@
  */
 
 import { useMemo } from 'react';
+import { Capacitor } from '@capacitor/core';
 
 /** Canonical semver string used by the OTA comparator. */
 export const NATIVE_VERSION = '3.6.28';
 export const WEB_VERSION = '4.0.0';
-export const APP_VERSION = (typeof window !== 'undefined' && (window as any).Capacitor?.isNativePlatform?.()) ? NATIVE_VERSION : WEB_VERSION;
+export const APP_VERSION = Capacitor.isNativePlatform() ? NATIVE_VERSION : WEB_VERSION;
 
 /** Optional pre-release tag rendered in the UI (e.g. "Beta", "RC"). */
 export const APP_VERSION_TAG = 'Beta';
@@ -40,8 +41,8 @@ export const APP_VERSION_LABEL = `${APP_VERSION_TAG} ${APP_VERSION}`;
 export const APP_VERSION_DATE = '2026-06-10'; // 3.6.28
 // Note: keep ISO-8601. Bump together with APP_VERSION on each release.
 
-export const APP_COMMIT_SHA = 'be572413';
-export const APP_BUILD_TIMESTAMP = '6/10/2026, 2:55:55 PM CST';
+export const APP_COMMIT_SHA = '51204dc7';
+export const APP_BUILD_TIMESTAMP = '6/14/2026, 10:35:25 PM CST';
 
 /**
  * Changelog for the CURRENT release — shown to the user the first
@@ -70,12 +71,6 @@ export const APP_CHANGELOG_SECTIONS: ChangelogSection[] = [
     items: [
       "Improved Web shortcuts and deep shortcuts to target sub-sections.",
       "Repositioned back buttons inline to prevent overlap in Web layouts.",
-    ],
-  },
-  {
-    heading: "Fixed",
-    items: [
-      "Removed mobile-style top bars and switcher pill from desktop/tablet Web layouts.",
     ],
   },
 ];

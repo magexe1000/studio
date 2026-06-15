@@ -125,6 +125,18 @@ export default function UpdateDiagnosticsSheet({ open, onClose }: Props) {
       `Fetched version.json: ${otaDebugLogs.fetchedVersionJson || 'N/A'}`,
       `Fetched app-release.json: ${otaDebugLogs.fetchedAppReleaseJson || 'N/A'}`,
       `Update Type: ${otaDebugLogs.updateType || 'N/A'}`,
+      `Update Decision: ${otaDebugLogs.updateDecision || 'N/A'}`,
+      `Update Decision Reason: ${otaDebugLogs.updateDecisionReason || 'N/A'}`,
+      `Remote versionCode: ${otaDebugLogs.remoteVersionCode !== null ? otaDebugLogs.remoteVersionCode : 'N/A'}`,
+      `Version comparison result: ${otaDebugLogs.versionComparisonResult || 'N/A'}`,
+      `Native platform detected: ${otaDebugLogs.nativePlatformDetected !== null ? otaDebugLogs.nativePlatformDetected : 'N/A'}`,
+      `Platform detected: ${otaDebugLogs.platformDetected || 'N/A'}`,
+      `APK metadata valid: ${otaDebugLogs.apkMetadataValid !== null ? otaDebugLogs.apkMetadataValid : 'N/A'}`,
+      `APK URL present: ${otaDebugLogs.apkUrlPresent !== null ? otaDebugLogs.apkUrlPresent : 'N/A'}`,
+      `APK SHA present: ${otaDebugLogs.apkShaPresent !== null ? otaDebugLogs.apkShaPresent : 'N/A'}`,
+      `skipped/dismissed state: ${otaDebugLogs.skippedDismissedState || 'N/A'}`,
+      `release channel: ${otaDebugLogs.releaseChannel || 'N/A'}`,
+      `rollout eligibility: ${otaDebugLogs.rolloutEligibility || 'N/A'}`,
       `Download Status: ${otaDebugLogs.downloadStatus || 'N/A'}`,
       `SHA Verification Status: ${otaDebugLogs.shaVerification || 'N/A'}`,
       `File Details: ${otaDebugLogs.fileDetails || 'N/A'}`,
@@ -347,6 +359,79 @@ export default function UpdateDiagnosticsSheet({ open, onClose }: Props) {
             <div style={{ minWidth: 120, flex: 1 }}>
               <DiagnosticField label="Timestamp" value={otaDiagnostics.timestamp} />
             </div>
+          </div>
+
+          <div style={{
+            fontFamily: 'Manrope',
+            fontWeight: 800,
+            fontSize: 12,
+            color: 'var(--c-text-primary)',
+            marginTop: 18,
+            marginBottom: 12,
+            borderBottom: '1px solid rgba(128,128,128,0.16)',
+            paddingBottom: 6,
+            textTransform: 'uppercase',
+            letterSpacing: '0.05em'
+          }}>
+            Updater Debug Info
+          </div>
+          
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px 24px', marginBottom: 12 }}>
+            <div style={{ minWidth: 120, flex: 1 }}>
+              <DiagnosticField label="Update Decision" value={otaDebugLogs.updateDecision || 'N/A'} />
+            </div>
+            <div style={{ minWidth: 120, flex: 1 }}>
+              <DiagnosticField label="Update Decision Reason" value={otaDebugLogs.updateDecisionReason || 'N/A'} />
+            </div>
+          </div>
+
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px 24px', marginBottom: 12 }}>
+            <div style={{ minWidth: 120, flex: 1 }}>
+              <DiagnosticField label="Installed versionCode" value={otaDebugLogs.installedVersionCode !== null ? String(otaDebugLogs.installedVersionCode) : 'N/A'} />
+            </div>
+            <div style={{ minWidth: 120, flex: 1 }}>
+              <DiagnosticField label="Remote versionCode" value={otaDebugLogs.remoteVersionCode !== null ? String(otaDebugLogs.remoteVersionCode) : 'N/A'} />
+            </div>
+          </div>
+
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px 24px', marginBottom: 12 }}>
+            <div style={{ minWidth: 120, flex: 1 }}>
+              <DiagnosticField label="Version Comparison Result" value={otaDebugLogs.versionComparisonResult || 'N/A'} />
+            </div>
+            <div style={{ minWidth: 120, flex: 1 }}>
+              <DiagnosticField label="Native Platform Detected" value={otaDebugLogs.nativePlatformDetected !== null ? String(otaDebugLogs.nativePlatformDetected) : 'N/A'} />
+            </div>
+          </div>
+
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px 24px', marginBottom: 12 }}>
+            <div style={{ minWidth: 120, flex: 1 }}>
+              <DiagnosticField label="Platform Detected" value={otaDebugLogs.platformDetected || 'N/A'} />
+            </div>
+            <div style={{ minWidth: 120, flex: 1 }}>
+              <DiagnosticField label="APK Metadata Valid" value={otaDebugLogs.apkMetadataValid !== null ? String(otaDebugLogs.apkMetadataValid) : 'N/A'} />
+            </div>
+          </div>
+
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px 24px', marginBottom: 12 }}>
+            <div style={{ minWidth: 120, flex: 1 }}>
+              <DiagnosticField label="APK URL Present" value={otaDebugLogs.apkUrlPresent !== null ? String(otaDebugLogs.apkUrlPresent) : 'N/A'} />
+            </div>
+            <div style={{ minWidth: 120, flex: 1 }}>
+              <DiagnosticField label="APK SHA Present" value={otaDebugLogs.apkShaPresent !== null ? String(otaDebugLogs.apkShaPresent) : 'N/A'} />
+            </div>
+          </div>
+
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px 24px', marginBottom: 12 }}>
+            <div style={{ minWidth: 120, flex: 1 }}>
+              <DiagnosticField label="Skipped/Dismissed State" value={otaDebugLogs.skippedDismissedState || 'N/A'} />
+            </div>
+            <div style={{ minWidth: 120, flex: 1 }}>
+              <DiagnosticField label="Release Channel" value={otaDebugLogs.releaseChannel || 'N/A'} />
+            </div>
+          </div>
+
+          <div style={{ marginBottom: 16 }}>
+            <DiagnosticField label="Rollout Eligibility" value={otaDebugLogs.rolloutEligibility || 'N/A'} />
           </div>
 
           <DiagnosticField label="Exception Message" value={otaDiagnostics.exceptionMessage} />
