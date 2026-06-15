@@ -29,6 +29,16 @@ Conventions:
 ### Fixed
 
 
+## 3.6.32
+
+**Android/mobile 3.6.32**
+
+### Fixed
+- Fixed Android update detection by using native package version and versionCode comparison.
+- Added detailed diagnostics to the Update Diagnostics sheet to debug update decisions.
+- Replaces the updater-broken 3.6.31 release to allow automatic update checks.
+
+
 ## 3.6.31
 
 **Android/mobile 3.6.31**

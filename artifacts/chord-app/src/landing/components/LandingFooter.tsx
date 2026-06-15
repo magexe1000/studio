@@ -7,7 +7,7 @@ interface LandingFooterProps {
   apkVersion?: string;
 }
 
-export default function LandingFooter({ navigateTo, apkUrl, apkVersion = '3.6.28' }: LandingFooterProps) {
+export default function LandingFooter({ navigateTo, apkUrl, apkVersion = '3.6.32' }: LandingFooterProps) {
   const handleScrollTo = (e: React.MouseEvent<HTMLAnchorElement | HTMLButtonElement>, id: string) => {
     e.preventDefault();
     const el = document.getElementById(id);

@@ -88,8 +88,8 @@ export default function StudioLandingPage({ navigateTo }: StudioLandingPageProps
       })
       .then(data => {
         setRelease({
-          version: data.version || data.versionName || '3.6.28',
-          apkUrl: data.apkUrl || data.download_url || 'https://github.com/MAGEXE1000/Studio/releases/download/v3.6.28/studio-3.6.28.apk',
+          version: data.version || data.versionName || '3.6.32',
+          apkUrl: data.apkUrl || data.download_url || 'https://github.com/MAGEXE1000/Studio/releases/download/v3.6.32/studio-3.6.32.apk',
           apkSizeBytes: data.apkSizeBytes || 14125258
         });
         setLoadingRelease(false);
@@ -97,8 +97,8 @@ export default function StudioLandingPage({ navigateTo }: StudioLandingPageProps
       .catch(err => {
         console.warn('Failed to fetch app-release.json, using fallback:', err);
         setRelease({
-          version: '3.6.28',
-          apkUrl: 'https://github.com/MAGEXE1000/Studio/releases/download/v3.6.28/studio-3.6.28.apk',
+          version: '3.6.32',
+          apkUrl: 'https://github.com/MAGEXE1000/Studio/releases/download/v3.6.32/studio-3.6.32.apk',
           apkSizeBytes: 14125258
         });
         setLoadingRelease(false);

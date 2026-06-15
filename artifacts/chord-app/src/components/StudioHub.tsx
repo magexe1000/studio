@@ -2690,9 +2690,9 @@ function HubSettings({
   }
 
   function renderDownloadAppsContent() {
-    let apkVersion = '3.6.28';
+    let apkVersion = '3.6.32';
     let apkSize = '13.47 MB';
-    let apkUrl = 'https://github.com/MAGEXE1000/Studio/releases/download/v3.6.28/studio-3.6.28.apk';
+    let apkUrl = 'https://github.com/MAGEXE1000/Studio/releases/download/v3.6.32/studio-3.6.32.apk';
     
     try {
       if (firebaseAppReleaseJson && !firebaseAppReleaseJson.startsWith('Error') && firebaseAppReleaseJson !== 'Loading...') {
@@ -5162,9 +5162,9 @@ function HubHelp({
   }
 
   function renderDownloadAppsContent() {
-    let apkVersion = '3.6.28';
+    let apkVersion = '3.6.32';
     let apkSize = '13.47 MB';
-    let apkUrl = 'https://github.com/MAGEXE1000/Studio/releases/download/v3.6.28/studio-3.6.28.apk';
+    let apkUrl = 'https://github.com/MAGEXE1000/Studio/releases/download/v3.6.32/studio-3.6.32.apk';
     
     try {
       if (firebaseAppReleaseJson && !firebaseAppReleaseJson.startsWith('Error') && firebaseAppReleaseJson !== 'Loading...') {

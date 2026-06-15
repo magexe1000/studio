@@ -15,7 +15,7 @@ interface LandingDownloadsProps {
 export default function LandingDownloads({
   navigateTo,
   apkUrl,
-  apkVersion = '3.6.28',
+  apkVersion = '3.6.32',
   apkSizeBytes,
   loadingRelease
 }: LandingDownloadsProps) {
