@@ -1009,8 +1009,7 @@ export default function App() {
       if (!handled) {
         const isSubApp = useChordStore.getState().settings.appMode !== 'hub';
         if (isSubApp) {
-          // If we are in a sub-app and back gesture is not internally handled, consume and do nothing (do not return to Hub)
-          console.log('[Navigation] Back pressed inside sub-app (root state) - ignored exit.');
+          returnToStudioHubRef.current(false);
         } else {
           // Double press to exit when already on the Studio Hub
           const now = Date.now();
@@ -1678,9 +1677,16 @@ export default function App() {
 
       if (deltaX > vw * 0.25) {
         // Intercept with handleGlobalBack first
-        handleGlobalBack();
+        const handled = handleGlobalBack();
+        if (!handled) {
+          if (subAppWrapperRef.current) {
+            subAppWrapperRef.current.style.transform = `translateX(${vw}px)`;
+          }
+          returnToStudioHub(true);
+          return;
+        }
       }
-      // Always snap back to normal position — swipe gesture should never exit the sub-app to the Hub
+      // Always snap back to normal position if handled internally
       if (subAppWrapperRef.current) {
         subAppWrapperRef.current.style.transform = 'translateX(0)';
       }
@@ -1971,7 +1977,7 @@ export default function App() {
                       </div>
                     </div>
 
-                    {!isSubAppActive && <BottomNav />}
+                    {settings.appMode === 'chords' && <BottomNav />}
 
                     {chordexSplash !== 'hidden' && (
                       <div style={{
