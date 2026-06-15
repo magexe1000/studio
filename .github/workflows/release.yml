@@ -174,7 +174,7 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          VERSION=$(node -p "require('./artifacts/chord-app/package.json').version")
+          VERSION=$(node -e "const fs = require('fs'); const src = fs.readFileSync('artifacts/chord-app/src/lib/appVersion.ts', 'utf8'); const m = src.match(/export\s+const\s+NATIVE_VERSION\s*=\s*['\"]([^'\"]+)['\"]/); if (m) console.log(m[1]); else process.exit(1);")
           TAG="v$VERSION"
           if ! gh release view "$TAG" > /dev/null 2>&1; then
             gh release create "$TAG" --title "Studio v$VERSION" --notes-file release-notes.md
@@ -201,34 +201,41 @@ jobs:
         run: |
           echo "Waiting 10s for Firebase CDN propagation..."
           sleep 10
-          VERSION=$(node -p "require('./artifacts/chord-app/package.json').version")
-          echo "Expected version: $VERSION"
+          NATIVE_VER=$(node -e "const fs = require('fs'); const src = fs.readFileSync('artifacts/chord-app/src/lib/appVersion.ts', 'utf8'); const m = src.match(/export\s+const\s+NATIVE_VERSION\s*=\s*['\"]([^'\"]+)['\"]/); if (m) console.log(m[1]); else process.exit(1);")
+          WEB_VER=$(node -e "const fs = require('fs'); const src = fs.readFileSync('artifacts/chord-app/src/lib/appVersion.ts', 'utf8'); const m = src.match(/export\s+const\s+WEB_VERSION\s*=\s*['\"]([^'\"]+)['\"]/); if (m) console.log(m[1]); else process.exit(1);")
+          
+          RELEASE_TYPE="${{ steps.gate.outputs.release_type }}"
+          echo "Verifying deployment for release type: $RELEASE_TYPE"
 
-          echo "--- Fetching version.json ---"
-          VER_JSON=$(curl -sf --retry 3 "https://studio-30f44.web.app/version.json")
-          VER_LIVE=$(echo "$VER_JSON" | node -p "JSON.parse(require('fs').readFileSync(0,'utf8')).version")
-          echo "Deployed version.json version = $VER_LIVE"
-          if [ "$VER_LIVE" != "$VERSION" ]; then
-            echo "::error::Deployed version.json version mismatch! Expected $VERSION, got $VER_LIVE"
-            exit 1
+          if [ "$RELEASE_TYPE" = "ota" ] || [ "$RELEASE_TYPE" = "both" ]; then
+            echo "--- Fetching version.json ---"
+            VER_JSON=$(curl -sf --retry 3 "https://studio-30f44.web.app/version.json")
+            VER_LIVE=$(echo "$VER_JSON" | node -p "JSON.parse(require('fs').readFileSync(0,'utf8')).version")
+            echo "Deployed version.json version = $VER_LIVE"
+            if [ "$VER_LIVE" != "$WEB_VER" ]; then
+              echo "::error::Deployed version.json version mismatch! Expected $WEB_VER, got $VER_LIVE"
+              exit 1
+            fi
           fi
 
-          echo "--- Fetching app-release.json ---"
-          APP_JSON=$(curl -sf --retry 3 "https://studio-30f44.web.app/app-release.json")
-          APP_LIVE=$(echo "$APP_JSON" | node -p "JSON.parse(require('fs').readFileSync(0,'utf8')).version")
-          echo "Deployed app-release.json version = $APP_LIVE"
-          if [ "$APP_LIVE" != "$VERSION" ]; then
-            echo "::error::Deployed app-release.json version mismatch! Expected $VERSION, got $APP_LIVE"
-            exit 1
-          fi
+          if [ "$RELEASE_TYPE" = "apk" ] || [ "$RELEASE_TYPE" = "both" ]; then
+            echo "--- Fetching app-release.json ---"
+            APP_JSON=$(curl -sf --retry 3 "https://studio-30f44.web.app/app-release.json")
+            APP_LIVE=$(echo "$APP_JSON" | node -p "JSON.parse(require('fs').readFileSync(0,'utf8')).version")
+            echo "Deployed app-release.json version = $APP_LIVE"
+            if [ "$APP_LIVE" != "$NATIVE_VER" ]; then
+              echo "::error::Deployed app-release.json version mismatch! Expected $NATIVE_VER, got $APP_LIVE"
+              exit 1
+            fi
 
-          echo "--- Checking APK download URL ---"
-          APK_URL=$(echo "$APP_JSON" | node -p "const d=JSON.parse(require('fs').readFileSync(0,'utf8')); d.download_url || d.apkUrl || ''")
-          if [ -n "$APK_URL" ]; then
-            STATUS=$(curl -sf -o /dev/null -w "%{http_code}" --retry 3 "$APK_URL" || echo "000")
-            echo "APK URL status: $STATUS"
-            if [ "$STATUS" != "200" ] && [ "$STATUS" != "302" ]; then
-              echo "::warning::APK URL returned HTTP $STATUS (may need time to propagate)"
+            echo "--- Checking APK download URL ---"
+            APK_URL=$(echo "$APP_JSON" | node -p "const d=JSON.parse(require('fs').readFileSync(0,'utf8')); d.download_url || d.apkUrl || ''")
+            if [ -n "$APK_URL" ]; then
+              STATUS=$(curl -sf -o /dev/null -w "%{http_code}" --retry 3 "$APK_URL" || echo "000")
+              echo "APK URL status: $STATUS"
+              if [ "$STATUS" != "200" ] && [ "$STATUS" != "302" ]; then
+                echo "::warning::APK URL returned HTTP $STATUS (may need time to propagate)"
+              fi
             fi
           fi
 
@@ -244,7 +251,18 @@ jobs:
             echo "No changes to commit."
             exit 0
           fi
-          VERSION=$(node -p "require('./artifacts/chord-app/package.json').version")
+          RELEASE_TYPE="${{ steps.gate.outputs.release_type }}"
+          NATIVE_VER=$(node -e "const fs = require('fs'); const src = fs.readFileSync('artifacts/chord-app/src/lib/appVersion.ts', 'utf8'); const m = src.match(/export\s+const\s+NATIVE_VERSION\s*=\s*['\"]([^'\"]+)['\"]/); if (m) console.log(m[1]); else process.exit(1);")
+          WEB_VER=$(node -e "const fs = require('fs'); const src = fs.readFileSync('artifacts/chord-app/src/lib/appVersion.ts', 'utf8'); const m = src.match(/export\s+const\s+WEB_VERSION\s*=\s*['\"]([^'\"]+)['\"]/); if (m) console.log(m[1]); else process.exit(1);")
+          
+          if [ "$RELEASE_TYPE" = "apk" ]; then
+            VERSION="$NATIVE_VER"
+          elif [ "$RELEASE_TYPE" = "ota" ]; then
+            VERSION="$WEB_VER"
+          else
+            VERSION="$NATIVE_VER"
+          fi
+          
           NOTE="${{ steps.gate.outputs.note }}"
           if [ -n "$NOTE" ]; then
             git commit -m "release v$VERSION — $NOTE"

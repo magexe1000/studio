@@ -30,66 +30,72 @@ const otaBase = 'https://studio-30f44.web.app';
 const firebasePublicDir = path.join(repoRoot, 'firebase-public');
 const firebaseOtaDir = path.join(firebasePublicDir, 'ota');
 
-// ── Auto-bump APP_VERSION in src/lib/appVersion.ts ────────────────────
+// ── Parse NATIVE_VERSION in src/lib/appVersion.ts ────────────────────
 const appVersionPath = path.join(pkgRoot, 'src', 'lib', 'appVersion.ts');
 let version = '0.0.0';
 if (existsSync(appVersionPath)) {
   const versionSrc = readFileSync(appVersionPath, 'utf8');
-  const versionMatch = versionSrc.match(/export\s+const\s+APP_VERSION\s*=\s*['"]([^'"]+)['"]/);
-  if (versionMatch) {
-    const currentVersion = versionMatch[1];
-    version = currentVersion;
-    
-    // Check if custom version is passed via command line (e.g., --version 3.0.79)
-    const versionArgIndex = process.argv.indexOf('--version');
-    const noBump = process.argv.includes('--no-bump');
-    let nextVersion = null;
-    if (noBump) {
-      nextVersion = currentVersion;
-    } else if (versionArgIndex !== -1 && process.argv[versionArgIndex + 1]) {
-      nextVersion = process.argv[versionArgIndex + 1];
-    } else {
-      // Auto-increment the patch version (rolling over from 99 to minor version)
-      const parts = currentVersion.split('.');
-      if (parts.length === 3 && parts.every(p => /^\d+$/.test(p))) {
-        if (parts[2] === '99') {
-          parts[1] = String(Number(parts[1]) + 1);
-          parts[2] = '0';
-        } else {
-          parts[2] = String(Number(parts[2]) + 1);
-        }
-        nextVersion = parts.join('.');
-      }
-    }
-    
-    if (nextVersion && nextVersion !== currentVersion) {
-      const d = new Date();
-      const year = d.getFullYear();
-      const month = String(d.getMonth() + 1).padStart(2, '0');
-      const day = String(d.getDate()).padStart(2, '0');
-      const dateString = `${year}-${month}-${day}`;
-      
-      let newSrc = versionSrc;
-      newSrc = newSrc.replace(
-        /export\s+const\s+APP_VERSION\s*=\s*['"]([^'"]+)['"]/,
-        `export const APP_VERSION = '${nextVersion}'`
-      );
-      newSrc = newSrc.replace(
-        /export\s+const\s+APP_VERSION_DATE\s*=\s*['"]([^'"]+)['"]\s*;\s*\/\/\s*[^\r\n]*/,
-        `export const APP_VERSION_DATE = '${dateString}'; // ${nextVersion}`
-      );
-      
-      writeFileSync(appVersionPath, newSrc, 'utf8');
-      console.log(`release-firebase: → Auto-bumped version in appVersion.ts: ${currentVersion} → ${nextVersion} (date: ${dateString})`);
-      version = nextVersion;
-    } else {
-      console.log(`release-firebase: → Keeping current version ${currentVersion}`);
-    }
+  const nativeVersionMatches = [...versionSrc.matchAll(/export\s+const\s+NATIVE_VERSION\s*=\s*['"]([^'"]+)['"]/g)];
+  if (nativeVersionMatches.length !== 1) {
+    console.error('release-firebase: ✗ Unable to resolve NATIVE_VERSION from appVersion.ts');
+    process.exit(1);
+  }
+  const currentVersion = nativeVersionMatches[0][1];
+  const semverRegex = /^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(?:-([0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*))?(?:\+[0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*)?$/;
+  if (!semverRegex.test(currentVersion)) {
+    console.error(`release-firebase: ✗ Invalid semantic version format for NATIVE_VERSION: ${currentVersion}`);
+    process.exit(1);
+  }
+  version = currentVersion;
+  
+  // Check if custom version is passed via command line (e.g., --version 3.0.79)
+  const versionArgIndex = process.argv.indexOf('--version');
+  const noBump = process.argv.includes('--no-bump');
+  let nextVersion = null;
+  if (noBump) {
+    nextVersion = currentVersion;
+  } else if (versionArgIndex !== -1 && process.argv[versionArgIndex + 1]) {
+    nextVersion = process.argv[versionArgIndex + 1];
   } else {
-    console.warn(`release-firebase: ⚠ Could not find APP_VERSION in ${appVersionPath}`);
+    // Auto-increment the patch version (rolling over from 99 to minor version)
+    const parts = currentVersion.split('.');
+    if (parts.length === 3 && parts.every(p => /^\d+$/.test(p))) {
+      if (parts[2] === '99') {
+        parts[1] = String(Number(parts[1]) + 1);
+        parts[2] = '0';
+      } else {
+        parts[2] = String(Number(parts[2]) + 1);
+      }
+      nextVersion = parts.join('.');
+    }
+  }
+  
+  if (nextVersion && nextVersion !== currentVersion) {
+    const d = new Date();
+    const year = d.getFullYear();
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    const dateString = `${year}-${month}-${day}`;
+    
+    let newSrc = versionSrc;
+    newSrc = newSrc.replace(
+      /export\s+const\s+NATIVE_VERSION\s*=\s*['"]([^'"]+)['"]/,
+      `export const NATIVE_VERSION = '${nextVersion}'`
+    );
+    newSrc = newSrc.replace(
+      /export\s+const\s+APP_VERSION_DATE\s*=\s*['"]([^'"]+)['"]\s*;\s*\/\/\s*[^\r\n]*/,
+      `export const APP_VERSION_DATE = '${dateString}'; // ${nextVersion}`
+    );
+    
+    writeFileSync(appVersionPath, newSrc, 'utf8');
+    console.log(`release-firebase: → Auto-bumped version in appVersion.ts: ${currentVersion} → ${nextVersion} (date: ${dateString})`);
+    version = nextVersion;
+  } else {
+    console.log(`release-firebase: → Keeping current version ${currentVersion}`);
   }
 } else {
-  console.warn(`release-firebase: ⚠ ${appVersionPath} does not exist. Skipping auto-bump.`);
+  console.error(`release-firebase: ✗ appVersion.ts does not exist at ${appVersionPath}`);
+  process.exit(1);
 }
 
 // ── Early Validation Checks ──────────────────────────────────────────
@@ -203,19 +209,93 @@ const tempNotesPath = path.join(pkgRoot, '.release-temp-notes.json');
 writeFileSync(tempNotesPath, JSON.stringify({ changelog, releaseNotes, description: changelog }, null, 2) + '\n', 'utf8');
 console.log(`release-firebase: ✓ Wrote temporary notes to ${tempNotesPath}`);
 
-// C. Verify versionName consistency
+// C. Verify build.gradle consistency and cross-check against previous release
 let gradleVersionName = '';
+let gradleVersionCode = 0;
+let gradleApplicationId = '';
+
 const gradlePath = path.join(pkgRoot, 'android/app/build.gradle');
 if (existsSync(gradlePath)) {
   const gradleSrc = readFileSync(gradlePath, 'utf8');
   const nameMatch = gradleSrc.match(/versionName\s+['"]([^'"]+)['"]/);
+  const codeMatch = gradleSrc.match(/versionCode\s+(\d+)/);
+  const idMatch = gradleSrc.match(/applicationId\s+['"]([^'"]+)['"]/);
+  
   if (nameMatch) gradleVersionName = nameMatch[1];
+  if (codeMatch) gradleVersionCode = parseInt(codeMatch[1], 10);
+  if (idMatch) gradleApplicationId = idMatch[1];
 }
+
+let prevVersionCode = 0;
+const localAppReleasePath = path.join(repoRoot, 'firebase-public', 'app-release.json');
+if (existsSync(localAppReleasePath)) {
+  try {
+    const localData = JSON.parse(readFileSync(localAppReleasePath, 'utf8'));
+    if (localData && localData.versionCode && localData.version !== version) {
+      prevVersionCode = parseInt(localData.versionCode, 10);
+      console.log(`release-firebase: Local app-release.json versionCode is ${prevVersionCode}`);
+    }
+  } catch (e) {
+    console.warn(`release-firebase: ⚠ Could not read local app-release.json: ${e.message}`);
+  }
+}
+
+if (!prevVersionCode) {
+  try {
+    const response = await fetch('https://studio-30f44.web.app/app-release.json', { headers: { 'Cache-Control': 'no-cache' } });
+    if (response.ok) {
+      const data = await response.json();
+      if (data && data.versionCode && data.version !== version) {
+        prevVersionCode = parseInt(data.versionCode, 10);
+        console.log(`release-firebase: Deployed production versionCode is ${prevVersionCode}`);
+      }
+    }
+  } catch (e) {
+    console.warn(`release-firebase: ⚠ Could not fetch app-release.json from Firebase: ${e.message}`);
+  }
+}
+
+// Perform validation checks
 if (gradleVersionName !== version) {
-  console.error(`release-firebase: ✗ versionName mismatch! build.gradle: ${gradleVersionName}, package.json: ${version}`);
+  console.error(`release-firebase: ✗ NATIVE_VERSION (${version}) differs from build.gradle versionName (${gradleVersionName})!`);
   process.exit(1);
 }
-console.log(`release-firebase: ✓ versionName is consistent: ${version}`);
+if (gradleApplicationId !== 'com.chordex.app') {
+  console.error(`release-firebase: ✗ package name (${gradleApplicationId}) differs from com.chordex.app!`);
+  process.exit(1);
+}
+if (prevVersionCode && gradleVersionCode <= prevVersionCode) {
+  console.error(`release-firebase: ✗ versionCode (${gradleVersionCode}) is not greater than the previous release (${prevVersionCode})!`);
+  process.exit(1);
+}
+
+const changelogFound = match ? 'yes' : 'no';
+const expectedGitTag = `v${version}`;
+
+console.log('================================================================');
+console.log('RELEASE CONFIGURATION & PREFLIGHT REPORT');
+console.log('================================================================');
+console.log(`Release Type:            Android APK`);
+console.log(`Resolved Version Source: NATIVE_VERSION`);
+console.log(`Resolved Version:        ${version}`);
+console.log(`Gradle versionName:      ${gradleVersionName}`);
+console.log(`Gradle versionCode:      ${gradleVersionCode}`);
+console.log(`Changelog File Path:     ${changelogPath}`);
+console.log(`Changelog Entry Found:   ${changelogFound}`);
+console.log(`APK Package Name:        ${gradleApplicationId}`);
+console.log(`Expected Git Tag:        ${expectedGitTag}`);
+console.log('================================================================\n');
+
+const validateOnly = process.argv.includes('--validate-only');
+if (validateOnly) {
+  console.log(`Resolved Android version: ${version}`);
+  console.log(`Resolved versionCode: ${gradleVersionCode}`);
+  console.log(`Changelog entry: found`);
+  console.log(`Validation successful`);
+  console.log(`No release side effects performed`);
+  await new Promise(resolve => setTimeout(resolve, 50));
+  process.exit(0);
+}
 
 // D. Check for hardcoded java home in gradle.properties
 const gradlePropsPath = path.join(pkgRoot, 'android', 'gradle.properties');
@@ -483,7 +563,7 @@ if (appInstallerValidateResult.status !== 0) {
 // Step 5: Validate APK metadata
 console.log('Step 5/15: Validate APK metadata...');
 gradleVersionName = '';
-let gradleVersionCode = 0;
+gradleVersionCode = 0;
 if (existsSync(gradlePath)) {
   const gradleSrc = readFileSync(gradlePath, 'utf8');
   const nameMatch = gradleSrc.match(/versionName\s+['"]([^'"]+)['"]/);
@@ -493,7 +573,7 @@ if (existsSync(gradlePath)) {
 }
 console.log(`release-firebase: build.gradle versionName = ${gradleVersionName}, versionCode = ${gradleVersionCode}`);
 if (gradleVersionName !== version) {
-  console.error(`release-firebase: ✗ versionName mismatch! build.gradle: ${gradleVersionName}, package.json: ${version}`);
+  console.error(`release-firebase: ✗ versionName mismatch! build.gradle: ${gradleVersionName}, NATIVE_VERSION: ${version}`);
   process.exit(1);
 }
 

@@ -42,12 +42,28 @@ const appReleaseJsonPath = path.join(repoRoot, 'firebase-public/app-release.json
 
 // Get version from appVersion.ts
 const src = fs.readFileSync(appVersionPath, 'utf8');
-const versionMatch = src.match(/export\s+const\s+APP_VERSION\s*=\s*['"]([^'"]+)['"]/);
-if (!versionMatch) {
-  console.error('generate-release-metadata: ✗ could not find APP_VERSION');
+const nativeVersionMatches = [...src.matchAll(/export\s+const\s+NATIVE_VERSION\s*=\s*['"]([^'"]+)['"]/g)];
+if (nativeVersionMatches.length !== 1) {
+  console.error('generate-release-metadata: ✗ Unable to resolve NATIVE_VERSION from appVersion.ts');
   process.exit(1);
 }
-const version = versionMatch[1];
+const version = nativeVersionMatches[0][1];
+const semverRegex = /^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(?:-([0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*))?(?:\+[0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*)?$/;
+if (!semverRegex.test(version)) {
+  console.error(`generate-release-metadata: ✗ Invalid semantic version format for NATIVE_VERSION: ${version}`);
+  process.exit(1);
+}
+
+const webVersionMatches = [...src.matchAll(/export\s+const\s+WEB_VERSION\s*=\s*['"]([^'"]+)['"]/g)];
+if (webVersionMatches.length !== 1) {
+  console.error('generate-release-metadata: ✗ Unable to resolve WEB_VERSION from appVersion.ts');
+  process.exit(1);
+}
+const webVersion = webVersionMatches[0][1];
+if (!semverRegex.test(webVersion)) {
+  console.error(`generate-release-metadata: ✗ Invalid semantic version format for WEB_VERSION: ${webVersion}`);
+  process.exit(1);
+}
 
 // Read changelog description and releaseNotes from temp notes JSON if it exists, otherwise from version.json
 let description = `Release v${version}`;
@@ -312,7 +328,7 @@ const buildTimestamp = timestampMatch ? timestampMatch[1] : new Date().toLocaleS
 
 const webMetadata = {
   platform: 'web',
-  version: version,
+  version: webVersion,
   commit: gitCommitSha,
   releasedAt: buildTimestamp,
   buildTimestamp: buildTimestamp,

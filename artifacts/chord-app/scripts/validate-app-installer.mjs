@@ -195,15 +195,19 @@ let prevSignature = '';
 if (fs.existsSync(paths.apkPath)) {
   console.log('Resolving previous release info from Firebase...');
   try {
-    const versionRes = await fetch('https://studio-30f44.web.app/version.json');
+    const versionRes = await fetch('https://studio-30f44.web.app/app-release.json');
     if (versionRes.ok) {
       const versionData = await versionRes.json();
       const prevVersion = versionData.version;
       console.log(`Previous deployed version: ${prevVersion}`);
       
-      const packageJsonPath = path.join(appRoot, 'package.json');
-      const packageJson = JSON.parse(fs.readFileSync(packageJsonPath, 'utf8'));
-      const currentVersion = packageJson.version;
+      const appVersionPath = path.join(appRoot, 'src/lib/appVersion.ts');
+      const appVersionSrc = fs.readFileSync(appVersionPath, 'utf8');
+      const nativeVersionMatches = [...appVersionSrc.matchAll(/export\s+const\s+NATIVE_VERSION\s*=\s*['"]([^'"]+)['"]/g)];
+      if (nativeVersionMatches.length !== 1) {
+        throw new Error('Unable to resolve NATIVE_VERSION from appVersion.ts');
+      }
+      const currentVersion = nativeVersionMatches[0][1];
       
       if (prevVersion && prevVersion !== currentVersion) {
         const prevApkUrl = `https://github.com/MAGEXE1000/Studio/releases/download/v${prevVersion}/studio-${prevVersion}.apk`;
@@ -363,10 +367,14 @@ if (fs.existsSync(paths.apkPath)) {
     assert(nameMatch, 'Could not parse versionName from APK manifest!', EXIT_CODES.RELEASE_VALIDATION);
     const versionNameVal = nameMatch[1];
     
-    // Get expected versionName from package.json
-    const packageJsonPath = path.join(appRoot, 'package.json');
-    const packageJson = JSON.parse(fs.readFileSync(packageJsonPath, 'utf8'));
-    const expectedVersionName = packageJson.version;
+    // Get expected versionName from NATIVE_VERSION in appVersion.ts
+    const appVersionPath = path.join(appRoot, 'src/lib/appVersion.ts');
+    const appVersionSrc = fs.readFileSync(appVersionPath, 'utf8');
+    const nativeVersionMatches = [...appVersionSrc.matchAll(/export\s+const\s+NATIVE_VERSION\s*=\s*['"]([^'"]+)['"]/g)];
+    if (nativeVersionMatches.length !== 1) {
+      assert(false, 'Unable to resolve NATIVE_VERSION from appVersion.ts', EXIT_CODES.RELEASE_VALIDATION);
+    }
+    const expectedVersionName = nativeVersionMatches[0][1];
     
     if (process.env.CI) {
       assert(versionNameVal === expectedVersionName, `VersionName mismatch! Expected ${expectedVersionName} but found: ${versionNameVal}`, EXIT_CODES.RELEASE_VALIDATION);

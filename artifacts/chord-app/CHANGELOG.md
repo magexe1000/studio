@@ -13,7 +13,23 @@ Conventions:
   can parse. Keep each line short — the modal's text area is narrow.
 - List the user-visible changes only. Internal refactors, tooling,
   and CI tweaks do not need a bullet.
-- Newest version goes on top.
+
+## 3.6.33
+
+### Added
+- Restored Stagex element picker and visible elements (Guitar, People/Performers, etc.).
+- Restored Chordex bottom navigation for Android.
+- Added version-gated native WebView Cache Storage cleanup preventatively.
+
+### Improved
+- Centered and scaled Stage plot for phone screens.
+- Improved global system Back and left-edge swipe-back navigation.
+- Improved Setup Back button behaviors to prevent duplicate controls.
+
+### Fixed
+- Fixed Stagex mobile layout alignment and rotation.
+- Fixed Setup, Rider, Setlist, and Gear Back navigation.
+
 
 ## 4.0.0
 
