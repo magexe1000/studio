@@ -13,6 +13,7 @@ import SmartLoading from './SmartLoading';
 import { StagexPanelSkeleton } from './StudioSkeleton';
 import { useIsWebDesktop } from '../hooks/useIsWebDesktop';
 import { WebToolbar, WebButton } from './WebDesignSystem';
+import { Capacitor } from '@capacitor/core';
 
 type StageWin = Window & {
   stageGoBack?: () => boolean;
@@ -356,6 +357,11 @@ const HIDE_IFRAME_UI = `
   }
 `;
 
+const HIDE_IFRAME_UI_MOBILE = `
+  #sc-fab-btn { display: none !important; }
+  #mobile-nav-bar { opacity: 0 !important; pointer-events: none !important; }
+`;
+
 export default function StagexPanel() {
   const isWebDesktop = useIsWebDesktop();
   const [isRightPanelCollapsed, setIsRightPanelCollapsed] = useState(false);
@@ -568,8 +574,9 @@ export default function StagexPanel() {
   })();
   const isAmoled  = isLight ? false : (isWebDesktop ? true : stageVis.amoledMode);
 
+  const baseOrigin = (typeof window !== 'undefined' && Capacitor.isNativePlatform()) ? 'https://localhost' : '';
   const iframeSrc = useRef(
-    `/stage-core/index.html#${isLight ? 'light' : 'dark'},${encodeURIComponent(accent.from)},${encodeURIComponent(accent.to)},${isAmoled ? '1' : '0'}`
+    `${baseOrigin}/stage-core/index.html#${isLight ? 'light' : 'dark'},${encodeURIComponent(accent.from)},${encodeURIComponent(accent.to)},${isAmoled ? '1' : '0'}`
   ).current;
   const stageBg   = isAmoled ? (isLight ? '#ffffff' : '#000000') : isLight ? '#f2f1ef' : '#0e0e0e';
   const stageHdr  = isAmoled ? (isLight ? '#ffffff' : '#000000') : isLight ? '#f2f1ef' : '#0e0e0e';
@@ -618,7 +625,7 @@ export default function StagexPanel() {
           if (!s) {
             s = doc.createElement('style');
             s.id = 'react-parent-overrides';
-            s.textContent = HIDE_IFRAME_UI;
+            s.textContent = isWebDesktop ? HIDE_IFRAME_UI : HIDE_IFRAME_UI_MOBILE;
             doc.head.appendChild(s);
           }
           if (!doc.getElementById('sc-scroll-spy')) {
@@ -675,7 +682,7 @@ export default function StagexPanel() {
     };
     iframe.addEventListener('load', handleLoad);
     return () => iframe.removeEventListener('load', handleLoad);
-  }, [accent.from, accent.to, stageVis.theme, isAmoled]);
+  }, [accent.from, accent.to, stageVis.theme, isAmoled, isWebDesktop]);
 
   useEffect(() => {
     const onMsg = (e: MessageEvent) => {

@@ -27,7 +27,23 @@ Conventions:
 - Repositioned back buttons inline to prevent overlap in Web layouts.
 
 ### Fixed
-- Removed mobile-style top bars and switcher pill from desktop/tablet Web layouts.
+
+
+## 3.6.31
+
+**Android/mobile 3.6.31**
+
+### Fixed
+- Fixed Android native mobile layout regressions in Stagex and Setup panels.
+- Fixed Stagex element visibility and same-origin protocol mismatch.
+- Removed duplicate Back buttons and aligned bottom navigation in WebView.
+
+## 3.6.30
+
+**Android/mobile 3.6.30**
+
+### Fixed
+- Android update compatibility release using the production signing certificate.
 
 ## 3.6.29
 

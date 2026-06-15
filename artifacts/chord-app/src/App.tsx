@@ -1,4 +1,5 @@
 import { lazy, Suspense, useCallback, useEffect, useRef, useState } from 'react';
+import { Capacitor } from '@capacitor/core';
 import { createPortal, flushSync } from 'react-dom';
 import { motion, AnimatePresence } from 'motion/react';
 import { useChordStore, ACCENT_COLORS } from './store/useChordStore';
@@ -101,12 +102,16 @@ export default function App() {
 
   const [route, setRoute] = useState(() => {
     if (typeof window === 'undefined') return '/';
+    if (Capacitor.isNativePlatform()) return '/app';
     const path = window.location.pathname;
     if (path === '/app' || path.startsWith('/app/')) return '/app';
     return '/';
   });
 
   const navigateTo = (path: string) => {
+    if (Capacitor.isNativePlatform() && path === '/') {
+      return;
+    }
     window.history.pushState({}, '', path);
     setRoute(path);
   };
@@ -117,7 +122,11 @@ export default function App() {
       if (path === '/app' || path.startsWith('/app/')) {
         setRoute('/app');
       } else {
-        setRoute('/');
+        if (Capacitor.isNativePlatform()) {
+          setRoute('/app');
+        } else {
+          setRoute('/');
+        }
       }
     };
     window.addEventListener('popstate', handlePopState);
@@ -1962,7 +1971,7 @@ export default function App() {
                       </div>
                     </div>
 
-                    <BottomNav />
+                    {!isSubAppActive && <BottomNav />}
 
                     {chordexSplash !== 'hidden' && (
                       <div style={{
