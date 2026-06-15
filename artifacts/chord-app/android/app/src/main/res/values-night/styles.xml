@@ -1,12 +1,12 @@
 <?xml version="1.0" encoding="utf-8"?>
-<resources>
+<resources xmlns:tools="http://schemas.android.com/tools">
     <style name="AppTheme" parent="Theme.AppCompat.Light.NoActionBar">
             <item name="android:windowFullscreen">false</item>
             <item name="android:windowTranslucentStatus">false</item>
             <item name="android:windowDrawsSystemBarBackgrounds">true</item>
-            <item name="android:windowLayoutInDisplayCutoutMode">default</item>
-            <item name="android:windowSplashScreenAnimationDuration">0</item>
-            <item name="android:windowSplashScreenBackground">#111116</item>
+            <item name="android:windowLayoutInDisplayCutoutMode" tools:ignore="NewApi">default</item>
+            <item name="android:windowSplashScreenAnimationDuration" tools:ignore="NewApi">0</item>
+            <item name="android:windowSplashScreenBackground" tools:ignore="NewApi">#111116</item>
             <item name="android:windowLightStatusBar">false</item>
     </style>
 </resources>

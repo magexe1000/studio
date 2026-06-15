@@ -423,6 +423,15 @@ select option { background: #0e0e0e; color: #fff; }
    MOBILE RESPONSIVE  ( ≤ 767px )
 ──────────────────────────────────────────────────*/
 @media (max-width: 767px) {
+  #sc-fab-wrap {
+    bottom: 150px !important;
+  }
+  #sc-item-sheet {
+    bottom: 200px !important;
+    max-height: calc(100vh - 220px) !important;
+    overflow-y: auto !important;
+  }
+
   /* Slimmer header — match dark-mode canvas bg (#0e0e0e), no backdrop blur */
   header { height: 52px !important; padding-left: 14px !important; padding-right: 14px !important; background: #0e0e0e !important; backdrop-filter: none !important; -webkit-backdrop-filter: none !important; }
 
@@ -636,25 +645,24 @@ select option { background: #0e0e0e; color: #fff; }
   #mob-exp-set-btn .material-symbols-outlined { font-size: 14px !important; }
 
 
-  /* Properties panel: compact top drawer in portrait, matches plot width */
+  /* Properties panel: bottom sheet in portrait */
   #properties-panel {
     position: absolute !important;
-    top: 0 !important; bottom: auto !important;
+    bottom: 12px !important; top: auto !important;
     left: 50% !important; right: auto !important;
-    width: min(1080px, calc(100vw - 32px), calc((100vh - 40px) * 16 / 9)) !important;
-    max-width: min(1080px, calc(100vw - 32px), calc((100vh - 40px) * 16 / 9)) !important;
-    height: auto !important; max-height: 28vh !important;
-    border-radius: 0 0 10px 10px !important;
+    width: min(92vw, 340px) !important;
+    max-width: min(92vw, 340px) !important;
+    height: auto !important; max-height: 44vh !important;
+    border-radius: 14px !important;
     border: 1px solid rgba(255,255,255,0.06) !important;
-    border-top: none !important;
     z-index: 310 !important;
     overflow-y: auto !important; overflow-x: hidden !important;
     opacity: 0 !important;
-    transform: translateX(-50%) translateY(-105%) !important;
+    transform: translateX(-50%) translateY(calc(100% + 24px)) !important;
     pointer-events: none !important;
     transition: transform 0.28s cubic-bezier(0.34,1.56,0.64,1), opacity 0.18s ease !important;
     padding: 0 !important;
-    background: rgba(10,10,12,0.94) !important;
+    background: #000000 !important;
     backdrop-filter: blur(16px) !important; -webkit-backdrop-filter: blur(16px) !important;
     box-shadow: 0 4px 20px rgba(0,0,0,0.4) !important;
     scrollbar-width: none !important;
@@ -667,7 +675,7 @@ select option { background: #0e0e0e; color: #fff; }
   }
   #properties-panel.prop-peek {
     opacity: 0.92 !important;
-    transform: translateX(-50%) translateY(-80%) !important;
+    transform: translateX(-50%) translateY(calc(100% - 40px)) !important;
     pointer-events: auto !important;
   }
 

@@ -5,6 +5,8 @@ import App from "./App";
 import { tolgee } from "./lib/i18nSetup";
 import { notifyBundleReady, ensureNotificationPermission } from "./lib/capgoUpdater";
 import { seedAudioAssets } from "./lib/assetCache";
+import { Capacitor } from "@capacitor/core";
+import { NATIVE_VERSION } from "./lib/appVersion";
 // StudioSolarIntro removed from the React tree — the solar-system startup
 // animation now lives inline in index.html so it paints on the FIRST frame,
 // before the JS bundle has to download/parse/mount. The .tsx file is kept
@@ -71,4 +73,24 @@ if (typeof window !== 'undefined' && 'serviceWorker' in navigator) {
   }).catch((err) => {
     console.warn('[sw] Failed to clean up service workers:', err);
   });
+}
+
+// Clear Web Cache Storage on native platform version change to prevent WebView cache drift.
+if (typeof window !== 'undefined' && Capacitor.isNativePlatform()) {
+  const LAST_NATIVE_VERSION_KEY = 'studio:lastNativeVersionForCache';
+  const lastVersion = localStorage.getItem(LAST_NATIVE_VERSION_KEY);
+  if (lastVersion !== NATIVE_VERSION) {
+    if (typeof caches !== 'undefined' && typeof caches.keys === 'function') {
+      caches.keys().then((keys) => {
+        return Promise.all(keys.map((key) => caches.delete(key)));
+      }).then(() => {
+        console.log('[Cache Migration] Cleared all Web asset caches successfully.');
+        localStorage.setItem(LAST_NATIVE_VERSION_KEY, NATIVE_VERSION);
+      }).catch((err) => {
+        console.warn('[Cache Migration] Failed to clear caches:', err);
+      });
+    } else {
+      localStorage.setItem(LAST_NATIVE_VERSION_KEY, NATIVE_VERSION);
+    }
+  }
 }
