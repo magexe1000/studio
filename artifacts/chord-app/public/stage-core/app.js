@@ -1313,6 +1313,7 @@ function toggleSCDial() {
 function openSCDial() {
   _buildDial();
   _dialOpen = true;
+  updateDropHint();
   try { window.parent.postMessage({ type: 'sc-dial-state', open: true }, window.location.origin); } catch(e) {}
   closeMobileElTray();
   const wrap  = document.getElementById('sc-fab-wrap');
@@ -1332,6 +1333,7 @@ function openSCDial() {
 function closeSCDial() {
   if (!_dialOpen) return;
   _dialOpen = false;
+  updateDropHint();
   try { window.parent.postMessage({ type: 'sc-dial-state', open: false }, window.location.origin); } catch(e) {}
   const wrap  = document.getElementById('sc-fab-wrap');
   const chips = wrap ? wrap.querySelectorAll('.sc-dial-chip') : [];
@@ -1394,6 +1396,7 @@ function openItemSheet(cat, label) {
   setTimeout(() => {
     if (wrap) wrap.classList.add('sc-items-open');
     sheet.classList.add('sc-sheet-open');
+    updateDropHint();
   }, 100);
 }
 
@@ -1402,6 +1405,7 @@ function closeItemSheet(goBackToChips) {
   const wrap  = document.getElementById('sc-fab-wrap');
   if (sheet) sheet.classList.remove('sc-sheet-open');
   if (wrap)  wrap.classList.remove('sc-items-open');
+  updateDropHint();
   if (goBackToChips) {
     setTimeout(() => openSCDial(), 190);
   } else {
@@ -1534,47 +1538,22 @@ function repositionResizeBar(wrap) {
   const elementObj = state.elements.find(e => e.id === elId);
   if (!elementObj) return;
 
-  const elContent = wrap.querySelector('.el-content');
-  const w = elContent ? elContent.offsetWidth : 60;
-  const h = elContent ? elContent.offsetHeight : 60;
   const scale = elementObj.scale / 100;
   const zoom = state.zoom || 1;
-
-  let bounds = { left: 0, top: 0, right: 1, bottom: 1, width: 1, height: 1 };
-  if (wrap.dataset.bounds) {
-    try {
-      bounds = JSON.parse(wrap.dataset.bounds);
-    } catch {}
-  }
 
   const isMobile = window.innerWidth < 768;
   const targetOnScreenScale = isMobile ? 0.82 : 1.0;
   const scaleCorrection = targetOnScreenScale / (scale * zoom);
 
-  const tightW = w * bounds.width * scale;
-  const tightH = h * bounds.height * scale;
-
-  const tightCenterX = w * (bounds.left + bounds.width / 2 - 0.5) * scale;
-  const tightCenterY = h * (bounds.top + bounds.height / 2 - 0.5) * scale;
-
   const barW = 140;
   const barH = 32;
 
-  let localX = tightCenterX - barW / 2;
-  let localY = (tightCenterY - tightH / 2) - barH - 8;
-
-  const absX = elementObj.x + localX;
-  const absY = elementObj.y + localY;
+  let absX = elementObj.x - barW / 2;
+  let absY = elementObj.y - 40;
 
   const pad = 12;
   let finalAbsX = Math.max(pad, Math.min(canvasRect.width - barW - pad, absX));
-  let finalAbsY = absY;
-
-  if (finalAbsY < pad) {
-    finalAbsY = elementObj.y + (tightCenterY + tightH / 2) + 8;
-  }
-  // Clamp Y to prevent going off the bottom
-  finalAbsY = Math.max(pad, Math.min(canvasRect.height - barH - pad, finalAbsY));
+  let finalAbsY = Math.max(pad, Math.min(canvasRect.height - barH - pad, absY));
 
   const relX = (finalAbsX - elementObj.x) / (scale * zoom);
   const relY = (finalAbsY - elementObj.y) / (scale * zoom);
@@ -2475,6 +2454,7 @@ function selectElement(id) {
   // Selecting a different element always resets the dismissed flag and peeks
   if (differentElement) _propUserDismissed = false;
   if (!_propUserDismissed) setPropState('open');
+  updateDropHint();
 }
 
 function deselectAll() {
@@ -2484,6 +2464,7 @@ function deselectAll() {
   updatePropertiesPanel();
   updateStatusBar(); // refresh SEL stat
   setPropState('hidden');
+  updateDropHint();
 }
 
 // Tap anywhere on the panel to ensure it's open
@@ -2511,6 +2492,20 @@ const _canvasBg = e => {
 };
 document.getElementById('stage-canvas').addEventListener('mousedown', _canvasBg);
 document.getElementById('stage-canvas').addEventListener('touchstart', _canvasBg, { passive: true });
+
+function togglePropMoreFields() {
+  const container = document.getElementById('prop-more-fields');
+  const icon = document.getElementById('prop-more-toggle-icon');
+  if (!container) return;
+  const isHidden = container.classList.contains('hidden');
+  if (isHidden) {
+    container.classList.remove('hidden');
+    if (icon) icon.style.transform = 'rotate(180deg)';
+  } else {
+    container.classList.add('hidden');
+    if (icon) icon.style.transform = 'rotate(0deg)';
+  }
+}
 
 // ══════════════════════════════════════════════════════════
 //  PROPERTIES PANEL
@@ -2545,6 +2540,13 @@ function updatePropertiesPanel() {
   updateColorTags(el.color);
   renderRolesList(el);
   document.getElementById('role-picker').classList.add('hidden');
+
+  const moreFields = document.getElementById('prop-more-fields');
+  const moreIcon = document.getElementById('prop-more-toggle-icon');
+  if (moreFields) {
+    moreFields.classList.add('hidden');
+    if (moreIcon) moreIcon.style.transform = 'rotate(0deg)';
+  }
 }
 
 function updateSelectedElement() {
@@ -2649,7 +2651,9 @@ function removeSelected() {
 function updateDropHint() {
   const hint = document.getElementById('drop-zone-hint');
   if (!hint) return;
-  const show = state.elements.length === 0;
+  const sheet = document.getElementById('sc-item-sheet');
+  const sheetOpen = sheet && sheet.classList.contains('sc-sheet-open');
+  const show = state.elements.length === 0 && !_dialOpen && !sheetOpen && !_mobileScenesOpen && !state.selectedId;
   hint.style.opacity = show ? '1' : '0';
   hint.style.transform = show ? 'translate(-50%, -50%) scale(1)' : 'translate(-50%, -44%) scale(0.96)';
   hint.style.pointerEvents = show ? 'auto' : 'none';
@@ -5408,6 +5412,7 @@ function scOpenMobileScenes() {
   
   _mobileScenesOpen = true;
   renderMobileScenesList();
+  updateDropHint();
 }
 
 function closeScenesSheet() {
@@ -5421,6 +5426,7 @@ function closeScenesSheet() {
     }, 300);
   }
   _mobileScenesOpen = false;
+  updateDropHint();
 }
 
 function _createScenesBackdrop() {

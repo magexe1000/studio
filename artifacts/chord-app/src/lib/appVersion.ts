@@ -26,7 +26,7 @@ import { useMemo } from 'react';
 import { Capacitor } from '@capacitor/core';
 
 /** Canonical semver string used by the OTA comparator. */
-export const NATIVE_VERSION = '3.6.31';
+export const NATIVE_VERSION = '3.6.33';
 export const WEB_VERSION = '4.0.0';
 export const APP_VERSION = Capacitor.isNativePlatform() ? NATIVE_VERSION : WEB_VERSION;
 
@@ -38,11 +38,11 @@ export const APP_VERSION_LABEL = `${APP_VERSION_TAG} ${APP_VERSION}`;
 
 /** Release date for the CURRENT bundle, shown alongside the version pill
  *  in the changelog sheet. ISO-8601 (`YYYY-MM-DD`). */
-export const APP_VERSION_DATE = '2026-06-10'; // 3.6.28
+export const APP_VERSION_DATE = '2026-06-15'; // 3.6.33
 // Note: keep ISO-8601. Bump together with APP_VERSION on each release.
 
-export const APP_COMMIT_SHA = 'a6abbd4f';
-export const APP_BUILD_TIMESTAMP = '6/14/2026, 10:55:09 PM CST';
+export const APP_COMMIT_SHA = '582f7e86';
+export const APP_BUILD_TIMESTAMP = '6/14/2026, 11:24:17 PM CST';
 
 /**
  * Changelog for the CURRENT release — shown to the user the first

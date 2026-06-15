@@ -3184,9 +3184,9 @@ html[data-amoled="1"] #el-properties-panel { background: #000 !important; }
 
         <!-- Empty Stage Help Hint -->
         <div id="drop-zone-hint" class="absolute pointer-events-none" style="top:50%;left:50%;transform:translate(-50%, -50%) scale(1);z-index:5;opacity:0;">
-          <div class="flex items-center gap-2" style="background:rgba(12,12,16,0.78);border:1px solid rgba(255,255,255,0.08);border-radius:99px;padding:6px 14px;backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);box-shadow:0 8px 32px rgba(0,0,0,0.5);white-space:nowrap;">
-            <span class="material-symbols-outlined" style="font-size:15px;color:rgba(255,255,255,0.4);">info</span>
-            <span class="font-body" style="font-size:11.5px;font-weight:600;color:rgba(255,255,255,0.55);font-family:'Manrope',sans-serif;letter-spacing:0.01em;">Drag elements from the sidebar to build your stage plot.</span>
+          <div class="flex items-center gap-2" style="background:rgba(12,12,16,0.78);border:1px solid rgba(255,255,255,0.08);border-radius:99px;padding:5px 12px;backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);box-shadow:0 8px 32px rgba(0,0,0,0.5);white-space:nowrap;">
+            <span class="material-symbols-outlined" style="font-size:13px;color:rgba(255,255,255,0.4);">info</span>
+            <span class="font-body" style="font-size:10px;font-weight:600;color:rgba(255,255,255,0.55);font-family:'Manrope',sans-serif;letter-spacing:0.01em;">Add elements to build your stage.</span>
           </div>
         </div>
 
@@ -3291,110 +3291,120 @@ html[data-amoled="1"] #el-properties-panel { background: #000 !important; }
 
         <div class="prop-divider"></div>
 
-        <!-- Input Source -->
-        <div class="prop-row">
-          <label class="prop-label" data-i18n="propInputSrc">Input Source</label>
-          <select id="input-source" onchange="updateSelectedElement()" class="prop-input">
-            <optgroup label="Stage Left">
-              <option value="SL01">XLR Stage Left 01</option>
-              <option value="SL02">XLR Stage Left 02</option>
-              <option value="SL03">XLR Stage Left 03</option>
-              <option value="SL04">XLR Stage Left 04</option>
-            </optgroup>
-            <optgroup label="Stage Right">
-              <option value="SR01">XLR Stage Right 01</option>
-              <option value="SR02">XLR Stage Right 02</option>
-              <option value="SR03">XLR Stage Right 03</option>
-            </optgroup>
-            <optgroup label="Wireless">
-              <option value="WRA">Wireless Rack A</option>
-              <option value="WRB">Wireless Rack B</option>
-            </optgroup>
-            <optgroup label="Digital">
-              <option value="DNT1">Dante Primary 01</option>
-              <option value="DNT2">Dante Primary 02</option>
-              <option value="DI">Direct Inject (DI)</option>
-            </optgroup>
-          </select>
-        </div>
+        <!-- Toggle Button for Advanced Fields -->
+        <button id="prop-more-toggle" onclick="togglePropMoreFields()" style="display:flex;align-items:center;justify-content:space-between;width:100%;background:none;border:none;color:var(--accent);font-family:'Manrope',sans-serif;font-size:8px;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;cursor:pointer;padding:6px 0;outline:none;margin-top:2px;">
+          <span>More Details</span>
+          <span id="prop-more-toggle-icon" class="material-symbols-outlined" style="font-size:12px;transition:transform 0.2s;">expand_more</span>
+        </button>
 
-        <!-- Output + Phantom inline header -->
-        <div class="prop-row">
-          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:3px;">
-            <label class="prop-label" style="margin:0;" data-i18n="propOutput">Output</label>
-            <div style="display:flex;align-items:center;gap:5px;">
-              <span style="font-family:'Manrope',sans-serif;font-size:8px;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:#585858;">+48V</span>
-              <button id="toggle-phantom" onclick="togglePhantom()" style="position:relative;width:30px;height:15px;background:none;border:none;cursor:pointer;padding:0;flex-shrink:0;">
-                <div id="phantom-track" style="position:absolute;inset:0;background:#2a2a2a;border-radius:8px;transition:background 0.2s;"></div>
-                <div id="phantom-knob" style="position:absolute;top:2px;left:2px;width:11px;height:11px;background:#484847;border-radius:6px;transition:transform 0.2s,background 0.2s;"></div>
-              </button>
-            </div>
+        <div id="prop-more-fields" class="hidden">
+
+          <!-- Input Source -->
+          <div class="prop-row">
+            <label class="prop-label" data-i18n="propInputSrc">Input Source</label>
+            <select id="input-source" onchange="updateSelectedElement()" class="prop-input">
+              <optgroup label="Stage Left">
+                <option value="SL01">XLR Stage Left 01</option>
+                <option value="SL02">XLR Stage Left 02</option>
+                <option value="SL03">XLR Stage Left 03</option>
+                <option value="SL04">XLR Stage Left 04</option>
+              </optgroup>
+              <optgroup label="Stage Right">
+                <option value="SR01">XLR Stage Right 01</option>
+                <option value="SR02">XLR Stage Right 02</option>
+                <option value="SR03">XLR Stage Right 03</option>
+              </optgroup>
+              <optgroup label="Wireless">
+                <option value="WRA">Wireless Rack A</option>
+                <option value="WRB">Wireless Rack B</option>
+              </optgroup>
+              <optgroup label="Digital">
+                <option value="DNT1">Dante Primary 01</option>
+                <option value="DNT2">Dante Primary 02</option>
+                <option value="DI">Direct Inject (DI)</option>
+              </optgroup>
+            </select>
           </div>
-          <select id="input-output" onchange="updateSelectedElement()" class="prop-input">
-            <option value="FOH">FOH Mix</option>
-            <option value="MON1">Monitor Mix 1</option>
-            <option value="MON2">Monitor Mix 2</option>
-            <option value="IEM1">IEM Mix 1</option>
-            <option value="IEM2">IEM Mix 2</option>
-            <option value="SUB">Sub Group L-R</option>
-            <option value="MATRIX">Matrix Out</option>
-          </select>
-        </div>
 
-        <div class="prop-divider"></div>
-
-        <!-- Roles -->
-        <div class="prop-row">
-          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px;">
-            <label class="prop-label" style="margin:0;" data-i18n="propRoles">Roles</label>
-            <button id="add-role-btn" onclick="toggleRolePicker()" style="font-family:'Manrope',sans-serif;font-size:7px;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;padding:2px 8px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);border-radius:6px;color:var(--accent);cursor:pointer;">+ Add</button>
-          </div>
-          <div id="roles-list" style="min-height:2px;"></div>
-          <div id="role-picker" class="hidden" style="background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);border-radius:8px;padding:6px;margin-top:4px;">
-            <div style="display:flex;flex-wrap:wrap;gap:3px;margin-bottom:4px;">
-              <button class="role-cat-btn" data-cat="mics" onclick="switchRolePickerCat('mics')" style="font-family:'Manrope',sans-serif;font-size:7px;padding:3px 6px;font-weight:700;text-transform:uppercase;background:var(--accent);color:#000;border:none;border-radius:4px;cursor:pointer;">Mics</button>
-              <button class="role-cat-btn" data-cat="drums" onclick="switchRolePickerCat('drums')" style="font-family:'Manrope',sans-serif;font-size:7px;padding:3px 6px;font-weight:700;text-transform:uppercase;background:rgba(255,255,255,0.05);color:var(--accent);border:none;border-radius:4px;cursor:pointer;">Drums</button>
-              <button class="role-cat-btn" data-cat="inst" onclick="switchRolePickerCat('inst')" style="font-family:'Manrope',sans-serif;font-size:7px;padding:3px 6px;font-weight:700;text-transform:uppercase;background:rgba(255,255,255,0.05);color:var(--accent);border:none;border-radius:4px;cursor:pointer;">Inst</button>
-              <button class="role-cat-btn" data-cat="amps" onclick="switchRolePickerCat('amps')" style="font-family:'Manrope',sans-serif;font-size:7px;padding:3px 6px;font-weight:700;text-transform:uppercase;background:rgba(255,255,255,0.05);color:var(--accent);border:none;border-radius:4px;cursor:pointer;">Amps</button>
-              <button class="role-cat-btn" data-cat="mon" onclick="switchRolePickerCat('mon')" style="font-family:'Manrope',sans-serif;font-size:7px;padding:3px 6px;font-weight:700;text-transform:uppercase;background:rgba(255,255,255,0.05);color:var(--accent);border:none;border-radius:4px;cursor:pointer;">Audio</button>
-              <button class="role-cat-btn" data-cat="util" onclick="switchRolePickerCat('util')" style="font-family:'Manrope',sans-serif;font-size:7px;padding:3px 6px;font-weight:700;text-transform:uppercase;background:rgba(255,255,255,0.05);color:var(--accent);border:none;border-radius:4px;cursor:pointer;">Util</button>
-            </div>
-            <div id="role-picker-grid" class="grid grid-cols-3 gap-1" style="max-height:90px;overflow-y:auto;"></div>
-          </div>
-        </div>
-
-        <!-- Notes (compact 2 rows) -->
-        <div class="prop-row">
-          <label class="prop-label" data-i18n="propNotes">Notes</label>
-          <textarea id="input-notes" oninput="updateSelectedElement()" rows="1"
-            placeholder="Gear notes, positioning..."
-            style="width:100%;background:rgba(255,255,255,0.04);border:none;border-bottom:1px solid rgba(255,255,255,0.08);border-radius:6px 6px 0 0;color:#767575;font-family:'Manrope',sans-serif;font-size:10px;padding:5px 8px;outline:none;resize:none;"></textarea>
-        </div>
-
-        <!-- GAIN STAGING HELPER -->
-        <div id="gain-helper-section" style="display:none;margin-top:2px;">
-          <div style="padding:4px 10px 4px;border-top:1px solid rgba(72,72,71,0.25);">
-            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;">
-              <span style="font-family:'Manrope',sans-serif;font-size:8px;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:#585858;">Gain Staging</span>
+          <!-- Output + Phantom inline header -->
+          <div class="prop-row">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:3px;">
+              <label class="prop-label" style="margin:0;" data-i18n="propOutput">Output</label>
               <div style="display:flex;align-items:center;gap:5px;">
-                <span id="gain-status-label" style="font-family:'Manrope',sans-serif;font-size:7px;font-weight:700;letter-spacing:0.08em;color:#4ade80;"></span>
-                <span id="gain-db-val" style="font-family:'Manrope',sans-serif;font-size:9px;font-weight:700;color:#e0e0e0;"></span>
+                <span style="font-family:'Manrope',sans-serif;font-size:8px;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:#585858;">+48V</span>
+                <button id="toggle-phantom" onclick="togglePhantom()" style="position:relative;width:30px;height:15px;background:none;border:none;cursor:pointer;padding:0;flex-shrink:0;">
+                  <div id="phantom-track" style="position:absolute;inset:0;background:#2a2a2a;border-radius:8px;transition:background 0.2s;"></div>
+                  <div id="phantom-knob" style="position:absolute;top:2px;left:2px;width:11px;height:11px;background:#484847;border-radius:6px;transition:transform 0.2s,background 0.2s;"></div>
+                </button>
               </div>
             </div>
-            <div style="display:flex;align-items:center;gap:5px;margin-bottom:5px;">
-              <button onclick="adjustGain(-3)" style="font-family:'Manrope',sans-serif;font-size:9px;font-weight:700;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);color:#c8c8c8;padding:3px 8px;border-radius:6px;cursor:pointer;line-height:1;">−3</button>
-              <div style="flex:1;height:5px;background:#1a1a1a;border-radius:2px;overflow:hidden;">
-                <div id="gain-bar-fill" style="height:100%;width:50%;background:#4ade80;border-radius:2px;transition:width 0.3s,background 0.3s;"></div>
-              </div>
-              <button onclick="adjustGain(+3)" style="font-family:'Manrope',sans-serif;font-size:9px;font-weight:700;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);color:#c8c8c8;padding:3px 8px;border-radius:6px;cursor:pointer;line-height:1;">+3</button>
-            </div>
-            <div style="display:flex;justify-content:space-between;margin-bottom:4px;">
-              <span id="gain-type-name" style="font-family:'Manrope',sans-serif;font-size:8px;font-weight:700;color:var(--accent);text-transform:uppercase;letter-spacing:0.06em;"></span>
-              <span id="gain-range-text" style="font-family:'Manrope',sans-serif;font-size:8px;color:#585858;"></span>
-            </div>
-            <p id="gain-warning-text" style="font-family:'Manrope',sans-serif;font-size:8px;font-weight:700;letter-spacing:0.04em;margin:0 0 4px;display:none;"></p>
-            <p id="gain-note-text" style="font-family:'Manrope',sans-serif;font-size:9px;color:#767575;line-height:1.45;margin:0;"></p>
+            <select id="input-output" onchange="updateSelectedElement()" class="prop-input">
+              <option value="FOH">FOH Mix</option>
+              <option value="MON1">Monitor Mix 1</option>
+              <option value="MON2">Monitor Mix 2</option>
+              <option value="IEM1">IEM Mix 1</option>
+              <option value="IEM2">IEM Mix 2</option>
+              <option value="SUB">Sub Group L-R</option>
+              <option value="MATRIX">Matrix Out</option>
+            </select>
           </div>
+
+          <div class="prop-divider"></div>
+
+          <!-- Roles -->
+          <div class="prop-row">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px;">
+              <label class="prop-label" style="margin:0;" data-i18n="propRoles">Roles</label>
+              <button id="add-role-btn" onclick="toggleRolePicker()" style="font-family:'Manrope',sans-serif;font-size:7px;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;padding:2px 8px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);border-radius:6px;color:var(--accent);cursor:pointer;">+ Add</button>
+            </div>
+            <div id="roles-list" style="min-height:2px;"></div>
+            <div id="role-picker" class="hidden" style="background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);border-radius:8px;padding:6px;margin-top:4px;">
+              <div style="display:flex;flex-wrap:wrap;gap:3px;margin-bottom:4px;">
+                <button class="role-cat-btn" data-cat="mics" onclick="switchRolePickerCat('mics')" style="font-family:'Manrope',sans-serif;font-size:7px;padding:3px 6px;font-weight:700;text-transform:uppercase;background:var(--accent);color:#000;border:none;border-radius:4px;cursor:pointer;">Mics</button>
+                <button class="role-cat-btn" data-cat="drums" onclick="switchRolePickerCat('drums')" style="font-family:'Manrope',sans-serif;font-size:7px;padding:3px 6px;font-weight:700;text-transform:uppercase;background:rgba(255,255,255,0.05);color:var(--accent);border:none;border-radius:4px;cursor:pointer;">Drums</button>
+                <button class="role-cat-btn" data-cat="inst" onclick="switchRolePickerCat('inst')" style="font-family:'Manrope',sans-serif;font-size:7px;padding:3px 6px;font-weight:700;text-transform:uppercase;background:rgba(255,255,255,0.05);color:var(--accent);border:none;border-radius:4px;cursor:pointer;">Inst</button>
+                <button class="role-cat-btn" data-cat="amps" onclick="switchRolePickerCat('amps')" style="font-family:'Manrope',sans-serif;font-size:7px;padding:3px 6px;font-weight:700;text-transform:uppercase;background:rgba(255,255,255,0.05);color:var(--accent);border:none;border-radius:4px;cursor:pointer;">Amps</button>
+                <button class="role-cat-btn" data-cat="mon" onclick="switchRolePickerCat('mon')" style="font-family:'Manrope',sans-serif;font-size:7px;padding:3px 6px;font-weight:700;text-transform:uppercase;background:rgba(255,255,255,0.05);color:var(--accent);border:none;border-radius:4px;cursor:pointer;">Audio</button>
+                <button class="role-cat-btn" data-cat="util" onclick="switchRolePickerCat('util')" style="font-family:'Manrope',sans-serif;font-size:7px;padding:3px 6px;font-weight:700;text-transform:uppercase;background:rgba(255,255,255,0.05);color:var(--accent);border:none;border-radius:4px;cursor:pointer;">Util</button>
+              </div>
+              <div id="role-picker-grid" class="grid grid-cols-3 gap-1" style="max-height:90px;overflow-y:auto;"></div>
+            </div>
+          </div>
+
+          <!-- Notes (compact 2 rows) -->
+          <div class="prop-row">
+            <label class="prop-label" data-i18n="propNotes">Notes</label>
+            <textarea id="input-notes" oninput="updateSelectedElement()" rows="1"
+              placeholder="Gear notes, positioning..."
+              style="width:100%;background:rgba(255,255,255,0.04);border:none;border-bottom:1px solid rgba(255,255,255,0.08);border-radius:6px 6px 0 0;color:#767575;font-family:'Manrope',sans-serif;font-size:10px;padding:5px 8px;outline:none;resize:none;"></textarea>
+          </div>
+
+          <!-- GAIN STAGING HELPER -->
+          <div id="gain-helper-section" style="display:none;margin-top:2px;">
+            <div style="padding:4px 10px 4px;border-top:1px solid rgba(72,72,71,0.25);">
+              <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;">
+                <span style="font-family:'Manrope',sans-serif;font-size:8px;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:#585858;">Gain Staging</span>
+                <div style="display:flex;align-items:center;gap:5px;">
+                  <span id="gain-status-label" style="font-family:'Manrope',sans-serif;font-size:7px;font-weight:700;letter-spacing:0.08em;color:#4ade80;"></span>
+                  <span id="gain-db-val" style="font-family:'Manrope',sans-serif;font-size:9px;font-weight:700;color:#e0e0e0;"></span>
+                </div>
+              </div>
+              <div style="display:flex;align-items:center;gap:5px;margin-bottom:5px;">
+                <button onclick="adjustGain(-3)" style="font-family:'Manrope',sans-serif;font-size:9px;font-weight:700;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);color:#c8c8c8;padding:3px 8px;border-radius:6px;cursor:pointer;line-height:1;">−3</button>
+                <div style="flex:1;height:5px;background:#1a1a1a;border-radius:2px;overflow:hidden;">
+                  <div id="gain-bar-fill" style="height:100%;width:50%;background:#4ade80;border-radius:2px;transition:width 0.3s,background 0.3s;"></div>
+                </div>
+                <button onclick="adjustGain(+3)" style="font-family:'Manrope',sans-serif;font-size:9px;font-weight:700;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);color:#c8c8c8;padding:3px 8px;border-radius:6px;cursor:pointer;line-height:1;">+3</button>
+              </div>
+              <div style="display:flex;justify-content:space-between;margin-bottom:4px;">
+                <span id="gain-type-name" style="font-family:'Manrope',sans-serif;font-size:8px;font-weight:700;color:var(--accent);text-transform:uppercase;letter-spacing:0.06em;"></span>
+                <span id="gain-range-text" style="font-family:'Manrope',sans-serif;font-size:8px;color:#585858;"></span>
+              </div>
+              <p id="gain-warning-text" style="font-family:'Manrope',sans-serif;font-size:8px;font-weight:700;letter-spacing:0.04em;margin:0 0 4px;display:none;"></p>
+              <p id="gain-note-text" style="font-family:'Manrope',sans-serif;font-size:9px;color:#767575;line-height:1.45;margin:0;"></p>
+            </div>
+          </div>
+
         </div>
 
       </div>
