@@ -1,5 +1,5 @@
+import { StudioLogo } from '@workspace/ui-shared';
 import React from 'react';
-import { StudioLogo } from '../../components/ChordexLogo';
 
 interface LandingFooterProps {
   navigateTo: (path: string) => void;

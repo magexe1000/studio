@@ -1,13 +1,10 @@
+import { useT, useScrollHide, useIsWebDesktop, useChordStore } from '@workspace/studio-core';
 import { useState, useMemo, useRef } from 'react';
 import NoResultsLottie from '../components/lottie/NoResultsLottie';
 import { SONG_CATALOG, getArtists, getGenres } from './songCatalog';
 import type { SongMeta } from './songCatalog';
 import { useGroovexStore } from './useGroovexStore';
-import { useT } from '../lib/useT';
-import { useScrollHide } from '../lib/navScroll';
 import { AnimatedAppHeader, StaggeredReveal } from '../components/AppAnimationSystem';
-import { useIsWebDesktop } from '../hooks/useIsWebDesktop';
-import { useChordStore } from '../store/useChordStore';
 
 export default function GroovexLibrary() {
   const { searchQuery, setSearchQuery, filterArtist, setFilterArtist, filterGenre, setFilterGenre, sortBy, setSortBy, setView, setActiveSong, addRecentSong, recentSongs } = useGroovexStore();

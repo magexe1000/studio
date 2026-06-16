@@ -1,6 +1,6 @@
+import { ChordexLogo, StagexLogoIcon, GroovexLogo } from '@workspace/ui-shared';
 import React from 'react';
 import { motion } from 'motion/react';
-import { ChordexLogo, StagexLogoIcon, GroovexLogo } from '../../components/ChordexLogo';
 
 // ===== CHORDEX SKELETON =====
 export function ChordexFeatureSkeleton() {

@@ -1,12 +1,7 @@
+import { useChordStore, ACCENT_COLORS, useT, useBackHandler, useLiquidGlassNav, useNavCollapsed, useNavHidden, useIsWebDesktop } from '@workspace/studio-core';
 import { lazy, Suspense, useEffect, useRef, useState } from 'react';
 import { useGroovexStore, type GroovexView } from './useGroovexStore';
-import { useChordStore, ACCENT_COLORS } from '../store/useChordStore';
-import { useT } from '../lib/useT';
 import { AppModeMenuLogo } from '../components/AppModeMenuLogo';
-import { useBackHandler } from '../lib/backStack';
-import { useLiquidGlassNav } from '../lib/useLiquidGlassNav';
-import { useNavCollapsed, useNavHidden } from '../lib/navScroll';
-import { useIsWebDesktop } from '../hooks/useIsWebDesktop';
 import WebAppSectionDock from '../components/WebAppSectionDock';
 
 const GroovexLibrary = lazy(() => import('./GroovexLibrary'));

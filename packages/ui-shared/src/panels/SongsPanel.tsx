@@ -1,22 +1,14 @@
+import { getAllChords, getChordById, type Chord, type ChordType, type GuitarChordData, useChordStore, ACCENT_COLORS, type SongPreset, type SongSection, type CustomChord, transposeChordId, transposeKeyString, formatOffset, isChordOutOfKey, useScrollHide, setNavHidden, useT, setBackHandler, useIsWebDesktop, logActivity } from '@workspace/studio-core';
 import { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import AnimatedActionButton from '../components/animata/container/animated-border-trail';
 import { Capacitor } from '@capacitor/core';
 import SuccessLottie from '../components/lottie/SuccessLottie';
 import MusicNotesLottie from '../components/lottie/MusicNotesLottie';
-import { getAllChords, getChordById, type Chord, type ChordType, type GuitarChordData } from '../data/chords';
-import { useChordStore, ACCENT_COLORS, type SongPreset, type SongSection, type CustomChord } from '../store/useChordStore';
-import { transposeChordId, transposeKeyString, formatOffset } from '../lib/transpose';
-import { isChordOutOfKey } from '../lib/chordAssistant';
 import LiveMode from '../components/LiveMode';
 import CustomChordBuilder, { CustomMiniDiagram } from '../components/CustomChordBuilder';
 import ChordDiagram from '../components/ChordDiagram';
-import { useScrollHide, setNavHidden } from '../lib/navScroll';
-import { useT } from '../lib/useT';
-import { setBackHandler } from '../lib/backStack';
 import { AppModeMenuLogo } from '../components/AppModeMenuLogo';
-import { useIsWebDesktop } from '../hooks/useIsWebDesktop';
 import { AnimatedAppHeader, StaggeredReveal } from '../components/AppAnimationSystem';
-import { logActivity } from '../lib/activityLogger';
 
 /* ──────────────────── PDF EXPORT CONFIG ──────────────────── */
 export interface ExportConfig {

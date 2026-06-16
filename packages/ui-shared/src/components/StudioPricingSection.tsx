@@ -1,6 +1,5 @@
+import { UserProfile, AuthUser } from '@workspace/studio-core';
 import React from 'react';
-import { UserProfile } from '../lib/permissions';
-import { AuthUser } from '../lib/auth';
 import { Circle, Layers3, BadgeCheck, ShieldCheck, CheckCircle, Info, HelpCircle } from 'lucide-react';
 
 interface PricingPlan {

@@ -1,17 +1,11 @@
+import { setBackHandler, useBackHandler, useChordStore, ACCENT_COLORS, translations, useT, useLiquidGlassNav, useNavCollapsed, setNavCollapsed, useIsWebDesktop } from '@workspace/studio-core';
 import { useRef, useEffect, useCallback, useState, useMemo } from 'react';
 import { motion } from 'motion/react';
 import AnimatedActionButton from './animata/container/animated-border-trail';
 import { AppModeMenuLogo } from './AppModeMenuLogo';
 import WebAppSectionDock from './WebAppSectionDock';
-import { setBackHandler, useBackHandler } from '../lib/backStack';
-import { useChordStore, ACCENT_COLORS } from '../store/useChordStore';
-import translations from '../lib/i18n';
-import { useT } from '../lib/useT';
-import { useLiquidGlassNav } from '../lib/useLiquidGlassNav';
-import { useNavCollapsed, setNavCollapsed } from '../lib/navScroll';
 import SmartLoading from './SmartLoading';
 import { StagexPanelSkeleton } from './StudioSkeleton';
-import { useIsWebDesktop } from '../hooks/useIsWebDesktop';
 import { WebToolbar, WebButton } from './WebDesignSystem';
 import { Capacitor } from '@capacitor/core';
 import { ScreenOrientation } from '@capacitor/screen-orientation';
@@ -1134,13 +1128,13 @@ ComposedPath: ${path.slice(0, 3).join(' > ')}`;
   // snapshots and push restores through postMessage.
   useEffect(() => {
     let cancelled = false;
-    void import('../lib/sync').then(({ registerStageIframe }) => {
+    void import('@workspace/studio-core').then(({ registerStageIframe }) => {
       if (cancelled) return;
       registerStageIframe(iframeRef.current);
     });
     return () => {
       cancelled = true;
-      void import('../lib/sync').then(({ registerStageIframe }) => registerStageIframe(null));
+      void import('@workspace/studio-core').then(({ registerStageIframe }) => registerStageIframe(null));
     };
   }, []);
 

@@ -1,18 +1,10 @@
 #!/usr/bin/env node
 import { execSync } from 'node:child_process';
 
-const webAffectingPatterns = [
-  /^apps\/studio-web\//,
-  /^packages\/studio-core\//,
-  /^packages\/ui-shared\//,
-  /^packages\/ui-web\//,
-  /^netlify\.toml$/,
-  /^package\.json$/,
-  /^pnpm-lock\.yaml$/,
-  /^pnpm-workspace\.yaml$/,
-  /^tsconfig\.json$/,
-  /^tsconfig\.base\.json$/,
-  /^scripts\/netlify-ignore\.mjs$/
+const androidOnlyPatterns = [
+  /^apps\/studio-android\//,
+  /^packages\/ui-android\//,
+  /^android\//
 ];
 
 try {
@@ -36,12 +28,12 @@ try {
     process.exit(0);
   }
   
-  const hasWebChanges = changedFiles.some(file => {
-    return webAffectingPatterns.some(pattern => pattern.test(file));
+  const hasNonAndroidChanges = changedFiles.some(file => {
+    return !androidOnlyPatterns.some(pattern => pattern.test(file));
   });
   
-  if (hasWebChanges) {
-    console.log('Web-affecting changes detected. Proceeding with build (exit 1).');
+  if (hasNonAndroidChanges) {
+    console.log('Web-affecting or unknown changes detected. Proceeding with Netlify build (exit 1).');
     process.exit(1);
   } else {
     console.log('Android-only changes detected. Skipping Netlify build (exit 0).');

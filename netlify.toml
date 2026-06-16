@@ -37,14 +37,14 @@
     Cache-Control = "public, max-age=31536000, immutable"
 
 [[redirects]]
-  from = "/app-release.json"
-  to = "https://studio-30f44.web.app/app-release.json"
+  from = "/version.json"
+  to = "https://studio-30f44.web.app/version.json"
   status = 200
   force = true
 
 [[redirects]]
-  from = "/version.json"
-  to = "https://studio-30f44.web.app/version.json"
+  from = "/app-release.json"
+  to = "https://studio-30f44.web.app/app-release.json"
   status = 200
   force = true
 

@@ -1,5 +1,5 @@
+import { useStudioPreferences } from '@workspace/studio-core';
 import React from 'react';
-import { useStudioPreferences } from '../../hooks/useStudioPreferences';
 import { 
   ChordexSongsMockup,
   ChordexLibraryMockup,

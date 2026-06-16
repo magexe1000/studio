@@ -1,3 +1,4 @@
+import { type TakeRecord, blobToAudioBuffer, extractWaveformPeaks } from '@workspace/studio-core';
 /**
  * Harmony Engine (Vocalex)
  * ────────────────────────
@@ -10,8 +11,6 @@
  */
 
 import { pitchShiftBuffer, audioBufferToWavBlob, type PitchShiftOptions } from './pitchShift';
-import type { TakeRecord } from './takesDb';
-import { blobToAudioBuffer, extractWaveformPeaks } from './takesDb';
 
 // ── Harmony interval catalogue ──────────────────────────────────────────────
 

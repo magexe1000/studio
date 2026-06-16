@@ -1,3 +1,5 @@
+import { useStudioPreferences } from '@workspace/studio-core';
+import { StudioLogo } from '@workspace/ui-shared';
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import LandingNavbar from './components/LandingNavbar';
@@ -9,8 +11,6 @@ import LandingMacbookScroll from './components/LandingMacbookScroll';
 import Landing3DMarquee from './components/Landing3DMarquee';
 import LandingDownloads from './components/LandingDownloads';
 import LandingFooter from './components/LandingFooter';
-import { StudioLogo } from '../components/ChordexLogo';
-import { useStudioPreferences } from '../hooks/useStudioPreferences';
 
 interface StudioLandingPageProps {
   navigateTo: (path: string) => void;

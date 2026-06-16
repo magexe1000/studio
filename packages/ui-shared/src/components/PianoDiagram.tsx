@@ -1,5 +1,5 @@
+import { type PianoChordData } from '@workspace/studio-core';
 import { memo } from 'react';
-import type { PianoChordData } from '../data/chords';
 
 interface PianoDiagramProps {
   chordData: PianoChordData;

@@ -1,1 +1,0 @@
-C:/Users/ayuda/.gemini/antigravity/scratch/Studio/packages/ui-shared/src/components/StudioProgressBar.tsx

@@ -1,3 +1,4 @@
+// Export everything from ui-shared
 export { default as AnimatedBorderButton } from './components/AnimatedBorderButton';
 export { default as AnimatedProgressBar } from './components/AnimatedProgressBar';
 export { default as AppSpinner } from './components/AppSpinner';
@@ -27,3 +28,40 @@ export { default as StageCorePanel } from './components/StageCorePanel';
 export { default as StudioHub } from './components/StudioHub';
 export * from './components/NavIcons';
 export * from './components/AppAnimationSystem';
+
+// Remaining components in ui-shared/components
+export { default as AccountCard } from './components/AccountCard';
+export { default as ApplyToSheet } from './components/ApplyToSheet';
+export { default as ChangelogModal } from './components/ChangelogModal';
+export { default as ChangelogSheet } from './components/ChangelogSheet';
+export { default as CustomChordBuilder } from './components/CustomChordBuilder';
+export { default as DisabledAccountScreen } from './components/DisabledAccountScreen';
+export * from './components/DownloadIcon';
+export { default as PendingDeletionScreen } from './components/PendingDeletionScreen';
+export { default as ProgressionGenerator } from './components/ProgressionGenerator';
+export * from './components/ScrollFade';
+export * from './components/SettingControls';
+export { default as StudioAuthCard } from './components/StudioAuthCard';
+export { default as StudioPricingSection } from './components/StudioPricingSection';
+export { default as StudioUpdateScreen } from './components/StudioUpdateScreen';
+export { default as UpdateLoadingScreen } from './components/UpdateLoadingScreen';
+export { default as ProfileDropdown } from './components/kokonutui/profile-dropdown';
+
+// Animata
+export { default as AnimatedActionButton } from './components/animata/container/animated-border-trail';
+export { default as StudioSpinner } from './components/animata/progress/spinner';
+
+// Lottie
+export { default as AppLottie } from './components/lottie/AppLottie';
+export { default as EmptyStateLottie } from './components/lottie/EmptyStateLottie';
+export { default as LoadingLottie } from './components/lottie/LoadingLottie';
+export { default as MicWavesLottie } from './components/lottie/MicWavesLottie';
+export { default as MusicNotesLottie } from './components/lottie/MusicNotesLottie';
+export { default as NoResultsLottie } from './components/lottie/NoResultsLottie';
+export { default as SuccessLottie } from './components/lottie/SuccessLottie';
+export { default as UpdateLottie } from './components/lottie/UpdateLottie';
+export { default as VinylLottie } from './components/lottie/VinylLottie';
+
+// UI
+export * from './components/ui/dropdown-menu';
+export * from './components/ui/encrypted-text';

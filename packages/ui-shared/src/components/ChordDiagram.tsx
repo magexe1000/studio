@@ -1,5 +1,5 @@
+import { type GuitarChordData } from '@workspace/studio-core';
 import { memo } from 'react';
-import type { GuitarChordData } from '../data/chords';
 
 interface Props {
   data: GuitarChordData;

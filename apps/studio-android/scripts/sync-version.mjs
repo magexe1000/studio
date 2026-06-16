@@ -60,13 +60,29 @@ const buildTimestamp = new Date().toLocaleString('en-US', { timeZoneName: 'short
 src = src.replace(/export\s+const\s+APP_COMMIT_SHA\s*=\s*['"]([^'"]+)['"]/, `export const APP_COMMIT_SHA = '${gitCommitSha}'`);
 src = src.replace(/export\s+const\s+APP_BUILD_TIMESTAMP\s*=\s*['"]([^'"]+)['"]/, `export const APP_BUILD_TIMESTAMP = '${buildTimestamp}'`);
 
-const versionMatch = src.match(/export\s+const\s+WEB_VERSION\s*=\s*['"]([^'"]+)['"]/);
+const versionMatch = src.match(/export\s+const\s+NATIVE_VERSION\s*=\s*['"]([^'"]+)['"]/);
 if (!versionMatch) {
-  console.error(`sync-version: ✗ could not find WEB_VERSION in ${sourcePath}`);
-  console.error("  Expected:  export const WEB_VERSION = 'X.Y.Z';");
+  console.error(`sync-version: ✗ could not find NATIVE_VERSION in ${sourcePath}`);
+  console.error("  Expected:  export const NATIVE_VERSION = 'X.Y.Z';");
   process.exit(1);
 }
 const version = versionMatch[1];
+
+// Parse versionCode from build.gradle
+let versionCode = 0;
+try {
+  const gradlePath = path.join(root, 'android/app/build.gradle');
+  if (fs.existsSync(gradlePath)) {
+    const gradleSrc = fs.readFileSync(gradlePath, 'utf8');
+    const codeMatch = gradleSrc.match(/versionCode\s+(\d+)/);
+    if (codeMatch) {
+      versionCode = parseInt(codeMatch[1], 10);
+    }
+  }
+} catch (err) {
+  console.warn('sync-version: ⚠ Could not parse versionCode from build.gradle:', err);
+}
+
 
 // 3. Open and parse CHANGELOG.md
 if (!fs.existsSync(localChangelogPath)) {
@@ -194,8 +210,11 @@ fs.writeFileSync(sourcePath, finalSrc, 'utf8');
 console.log(`sync-version: ✓ updated APP_COMMIT_SHA and APP_BUILD_TIMESTAMP in ${path.relative(root, sourcePath)}`);
 
 const payload = {
-  platform: 'web',
+  platform: 'android',
   version,
+  versionName: version,
+  versionCode,
+  version_code: versionCode,
   commit: gitCommitSha,
   releasedAt: buildTimestamp,
   buildTimestamp,

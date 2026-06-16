@@ -1,5 +1,5 @@
+import { createAudioContext } from '@workspace/studio-core';
 import { NOTE_FREQ } from './exerciseData';
-import { createAudioContext } from '../lib/audioContextOptions';
 
 let ctx: AudioContext | null = null;
 let activeNodes: AudioNode[] = [];

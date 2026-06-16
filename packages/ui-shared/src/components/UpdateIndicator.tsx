@@ -1,3 +1,4 @@
+import { useOtaUpdate, type StructuredReleaseNotes, otaDiagnostics, otaDebugLogs, APP_VERSION_LABEL, compareSemver, normalizeSemver, applyUpdate, isNative, fadeToBlackAndReload, useChordStore } from '@workspace/studio-core';
 /**
  * Floating "update available" indicator — top of the Hub.
  *
@@ -32,17 +33,13 @@ import { useState, useEffect, useRef } from 'react';
 import StudioSpinner from './animata/progress/spinner';
 import AnimatedActionButton from './animata/container/animated-border-trail';
 import StudioUpdateScreen from './StudioUpdateScreen';
-import { useOtaUpdate, type StructuredReleaseNotes, otaDiagnostics, otaDebugLogs } from '../lib/otaUpdate';
 import UpdateDiagnosticsSheet from './UpdateDiagnosticsSheet';
-import { APP_VERSION_LABEL, compareSemver, normalizeSemver } from '../lib/appVersion';
-import { applyUpdate, isNative, fadeToBlackAndReload } from '../lib/capgoUpdater';
 import { DownloadIcon } from './DownloadIcon';
-import { useChordStore } from '../store/useChordStore';
 import {
   enableLiquidGlass,
   tagLiquidTarget,
   untagLiquidTarget,
-} from '../lib/liquidGlass';
+} from '@workspace/studio-core';
 
 function CheckIconSvg() {
   return (
@@ -666,7 +663,7 @@ function UpdateModal({
   const handleInstallApk = async () => {
     try {
       if (isNative()) {
-        const { AppInstaller } = await import('../lib/apkDownloader');
+        const { AppInstaller } = await import('@workspace/studio-core');
         const hasPerm = (await AppInstaller.canRequestPackageInstalls()).value;
         if (!hasPerm) {
           setPermissionBlocked(true);
@@ -696,7 +693,7 @@ function UpdateModal({
 
   const handleOpenSettings = async () => {
     try {
-      const { AppInstaller } = await import('../lib/apkDownloader');
+      const { AppInstaller } = await import('@workspace/studio-core');
       await AppInstaller.openUnknownAppSourcesSettings();
     } catch (err) {
       console.error('[UpdateIndicator] Failed to open settings:', err);
@@ -705,7 +702,7 @@ function UpdateModal({
 
   const handleOpenGitHub = async () => {
     try {
-      const { resolveReleasePageUrl } = await import('../lib/apkDownloader');
+      const { resolveReleasePageUrl } = await import('@workspace/studio-core');
       const fallbackUrl = await resolveReleasePageUrl(ota.remoteVersion ?? undefined);
       window.open(fallbackUrl, '_system');
     } catch (err) {
@@ -720,7 +717,7 @@ function UpdateModal({
 
     const checkPerm = async () => {
       try {
-        const { AppInstaller } = await import('../lib/apkDownloader');
+        const { AppInstaller } = await import('@workspace/studio-core');
         const hasPerm = (await AppInstaller.canRequestPackageInstalls()).value;
         if (hasPerm && active) {
           setPermissionBlocked(false);

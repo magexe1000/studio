@@ -1,5 +1,5 @@
+import { type AccentColor } from '@workspace/studio-core';
 import React, { memo } from 'react';
-import { type AccentColor } from '../store/useChordStore';
 
 // ── Shared primitives used across SettingsPanel and HubSettings ────────────────
 

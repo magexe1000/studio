@@ -1,12 +1,10 @@
+import { useChordStore, useScrollHide, useIsWebDesktop, useT } from '@workspace/studio-core';
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import VinylLottie from '../components/lottie/VinylLottie';
 import LoadingLottie from '../components/lottie/LoadingLottie';
-import { useChordStore } from '../store/useChordStore';
 import { GroovexMixerSkeleton } from '../components/StudioSkeleton';
-import { useScrollHide } from '../lib/navScroll';
 import { SONG_CATALOG } from './songCatalog';
 import { useGroovexStore } from './useGroovexStore';
-import { useIsWebDesktop } from '../hooks/useIsWebDesktop';
 import {
   createEngine, initSoundTouch, initTracks, loadAudioFile, loadAudioBuffer, setTrackBuffer,
   play, pause, stop, seek, startScrub, scrubSeek, endScrub, setTrackVolume, toggleMute, toggleSolo,
@@ -14,7 +12,6 @@ import {
   type AudioEngine,
 } from './audioEngine';
 import { downloadStem, getSongCacheStatus, clearSongCache, type DownloadProgress } from './stemCache';
-import { useT } from '../lib/useT';
 import StudioProgressBar from '../components/StudioProgressBar';
 import StudioCountUpPercentage from '../components/StudioCountUpPercentage';
 

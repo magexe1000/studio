@@ -1,8 +1,6 @@
+import { StudioProgressBar, StudioUpdateAuroraBackground, StudioCountUpPercentage } from '@workspace/ui-shared';
 import { useEffect, useState } from 'react';
 import { motion } from 'motion/react';
-import StudioProgressBar from './StudioProgressBar';
-import StudioUpdateAuroraBackground from './StudioUpdateAuroraBackground';
-import StudioCountUpPercentage from './StudioCountUpPercentage';
 
 /**
  * StudioUpdateScreen — fullscreen overlay during OTA download.

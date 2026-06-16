@@ -1,6 +1,6 @@
+import { createAudioContext } from '@workspace/studio-core';
 import { detectPitch, type PitchResult } from './pitchYin';
 import { NOTE_FREQ } from './exerciseData';
-import { createAudioContext } from '../lib/audioContextOptions';
 
 export interface DetectorState {
   listening: boolean;

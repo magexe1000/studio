@@ -1,3 +1,4 @@
+import { type Theme } from '@workspace/studio-core';
 /**
  * StudioThemeToggler — Animated 4-mode theme picker.
  *
@@ -20,7 +21,6 @@
 
 import { useCallback } from 'react';
 import { flushSync } from 'react-dom';
-import type { Theme } from '../store/useChordStore';
 
 // ── Types ─────────────────────────────────────────────────────────────────
 

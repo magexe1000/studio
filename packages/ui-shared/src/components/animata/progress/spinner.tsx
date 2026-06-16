@@ -1,4 +1,4 @@
-import { cn } from "@/lib/utils";
+import { cn } from '@workspace/studio-core';
 
 interface StudioSpinnerProps {
   className?: string;

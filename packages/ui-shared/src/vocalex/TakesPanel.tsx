@@ -1,17 +1,16 @@
+import { useT, createAudioContext } from '@workspace/studio-core';
 import { useState, useRef, useEffect, useCallback } from 'react';
 import {
   saveTake, getAllTakes, deleteTake as dbDeleteTake,
   extractWaveformPeaks, blobToAudioBuffer,
   type TakeRecord,
-} from './takesDb';
+} from '@workspace/studio-core';
 import LoadingLottie from '../components/lottie/LoadingLottie';
 import SmartLoading from '../components/SmartLoading';
 import { VocalexTakesSkeleton } from '../components/StudioSkeleton';
 import EmptyStateLottie from '../components/lottie/EmptyStateLottie';
 import { analyzeAudio, type VocalAnalysis, type AnalysisLabels } from './vocalAnalysis';
-import { useT } from '../lib/useT';
 import { setVocalexBack } from './headerBack';
-import { createAudioContext } from '../lib/audioContextOptions';
 import HarmonizerSheet from './HarmonizerSheet';
 import { clearTakeCache } from './harmonyEngine';
 

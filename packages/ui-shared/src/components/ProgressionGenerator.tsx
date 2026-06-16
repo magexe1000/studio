@@ -1,3 +1,4 @@
+import { useChordStore, getChordById, setBackHandler, setNavLocked, setNavHidden, useScrollHide, useT, type SongPreset } from '@workspace/studio-core';
 /**
  * ProgressionGenerator — bottom-sheet modal for the auto chord-progression
  * generator. Pure UI: all theory lives in src/lib/progressionGen.ts.
@@ -19,17 +20,11 @@
 
 import React, { useState, useCallback, useMemo, useEffect, useRef } from 'react';
 import AnimatedActionButton from './animata/container/animated-border-trail';
-import { useChordStore } from '../store/useChordStore';
-import { getChordById } from '../data/chords';
 import {
   KEYS, SCALE_TYPES, STYLES,
   generateProgression, diatonicChordIds, romanToChordId, labelKey,
   type Key, type ScaleType, type Style, type GeneratedProgression,
-} from '../lib/progressionGen';
-import { setBackHandler } from '../lib/backStack';
-import { setNavLocked, setNavHidden, useScrollHide } from '../lib/navScroll';
-import { useT } from '../lib/useT';
-import type { SongPreset } from '../store/useChordStore';
+} from '@workspace/studio-core';
 
 interface Props {
   accent: { from: string; to: string; mid: string };

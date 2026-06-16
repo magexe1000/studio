@@ -15,7 +15,8 @@
     "test:android": "pnpm --filter @workspace/studio-android test",
     "version:web": "node scripts/version-manager.mjs web",
     "version:android": "node scripts/version-manager.mjs android",
-    "lint:imports": "node scripts/enforce-import-boundaries.mjs"
+    "lint:imports": "node scripts/enforce-import-boundaries.mjs",
+    "check:versions": "node scripts/verify-versions-consistency.mjs"
   },
   "private": true,
   "devDependencies": {

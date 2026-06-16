@@ -1,12 +1,7 @@
+import { useBackHandler, useChordStore, ACCENT_COLORS, type AppKey, useT, resetNav, setNavCollapsed, useNavHidden, useNavCollapsed, useLiquidGlassNav, useIsWebDesktop } from '@workspace/studio-core';
 import { useState, useRef, useEffect, lazy, Suspense } from 'react';
-import { useBackHandler } from '../lib/backStack';
-import { useChordStore, ACCENT_COLORS, type AppKey } from '../store/useChordStore';
 import { AppModeMenuLogo } from '../components/AppModeMenuLogo';
-import { useT } from '../lib/useT';
-import { resetNav, setNavCollapsed, useNavHidden, useNavCollapsed } from '../lib/navScroll';
 import { subscribeVocalexBack } from './headerBack';
-import { useLiquidGlassNav } from '../lib/useLiquidGlassNav';
-import { useIsWebDesktop } from '../hooks/useIsWebDesktop';
 import WebAppSectionDock from '../components/WebAppSectionDock';
 
 const PracticePanelLazy = lazy(() => import('./PracticePanel'));

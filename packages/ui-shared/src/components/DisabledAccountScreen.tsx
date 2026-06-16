@@ -1,8 +1,5 @@
+import { signOut, enableAccount, useT, useChordStore } from '@workspace/studio-core';
 import { useState } from 'react';
-import { signOut } from '../lib/auth';
-import { enableAccount } from '../lib/accountStatus';
-import { useT } from '../lib/useT';
-import { useChordStore } from '../store/useChordStore';
 
 type Props = {
   user: { uid: string; email: string | null; displayName: string | null; photoURL: string | null };

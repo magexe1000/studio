@@ -1,3 +1,4 @@
+import { type TakeRecord, blobToAudioBuffer, createAudioContext } from '@workspace/studio-core';
 /**
  * HarmonizerSheet — Full-screen professional vocal harmonizer for Vocalex.
  *
@@ -13,8 +14,6 @@
 
 import { useState, useRef, useCallback, useEffect } from 'react';
 import ElasticSlider from '../components/ElasticSlider';
-import type { TakeRecord } from './takesDb';
-import { blobToAudioBuffer } from './takesDb';
 import {
   HARMONIES, DEFAULT_HARMONY_LAYERS,
   startHarmonyPlayback, bounceHarmonizedTake,
@@ -23,7 +22,6 @@ import {
 } from './harmonyEngine';
 import { detectPitch } from './pitchYin';
 import { bufferToMono } from './pitchShift';
-import { createAudioContext } from '../lib/audioContextOptions';
 
 // ─── helpers ──────────────────────────────────────────────────────────────
 

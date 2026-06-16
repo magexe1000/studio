@@ -1,5 +1,5 @@
+import { createAudioContext } from '@workspace/studio-core';
 import { SoundTouchNode } from '@soundtouchjs/audio-worklet';
-import { createAudioContext } from '../lib/audioContextOptions';
 
 export interface TrackState {
   name: string;

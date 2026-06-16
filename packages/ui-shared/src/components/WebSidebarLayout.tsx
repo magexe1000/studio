@@ -1,13 +1,8 @@
+import { useChordStore, ACCENT_COLORS, useT, subscribeAuth, signOut, type AuthUser, useOtaUpdate, APP_VERSION_LABEL, useStudioPreferences } from '@workspace/studio-core';
 import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { useSidebar, Sidebar, SidebarHeader, SidebarContent, SidebarGroup, SidebarGroupLabel, SidebarMenu, SidebarMenuItem, SidebarMenuButton, SidebarFooter, SidebarRail } from './StudioSidebar';
 import { StudioLogo, ChordexLogo, DrumexLogo, StagexLogoIcon, GroovexLogo, VocalexLogo } from './ChordexLogo';
-import { useChordStore, ACCENT_COLORS } from '../store/useChordStore';
-import { useT } from '../lib/useT';
-import { subscribeAuth, signOut, type AuthUser } from '../lib/auth';
-import { useOtaUpdate } from '../lib/otaUpdate';
-import { APP_VERSION_LABEL } from '../lib/appVersion';
-import { useStudioPreferences } from '../hooks/useStudioPreferences';
 
 function SidebarLabel({ children, open }: { children: React.ReactNode; open: boolean }) {
   const { preferences } = useStudioPreferences();

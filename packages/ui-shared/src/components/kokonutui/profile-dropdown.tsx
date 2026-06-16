@@ -1,5 +1,5 @@
+import { cn } from '@workspace/studio-core';
 import React, { useState, useRef, useEffect, CSSProperties } from "react";
-import { cn } from "@/lib/utils";
 
 interface AuthUser {
   displayName?: string | null;

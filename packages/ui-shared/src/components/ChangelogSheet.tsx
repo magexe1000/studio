@@ -1,3 +1,4 @@
+import { useChordStore, ACCENT_COLORS, useT, useBackHandler, useIsWebDesktop } from '@workspace/studio-core';
 /**
  * ChangelogSheet — bottom sheet that lists release notes for one version.
  *
@@ -26,17 +27,13 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { useChordStore, ACCENT_COLORS } from '../store/useChordStore';
 import {
   APP_VERSION,
   APP_VERSION_DATE,
   APP_CHANGELOG_SECTIONS,
   getChangelogSections,
   type ChangelogSection,
-} from '../lib/appVersion';
-import { useT } from '../lib/useT';
-import { useBackHandler } from '../lib/backStack';
-import { useIsWebDesktop } from '../hooks/useIsWebDesktop';
+} from '@workspace/studio-core';
 
 type Props = {
   open: boolean;

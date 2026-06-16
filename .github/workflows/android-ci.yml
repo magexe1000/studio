@@ -68,7 +68,58 @@ jobs:
       - name: Capacitor Sync
         run: pnpm --filter @workspace/studio-android android:sync
 
-      - name: Compile Gradle Android Project
+      - name: Build Debug APK
         run: |
           cd apps/studio-android/android
-          ./gradlew compileReleaseJavaWithJavac
+          chmod +x gradlew
+          ./gradlew assembleDebug
+
+      - name: Validate Debug APK Artifact
+        run: |
+          # Find aapt in ANDROID_HOME build-tools
+          AAPT_PATH=$(find $ANDROID_HOME/build-tools -name aapt -type f | head -n 1)
+          if [ -z "$AAPT_PATH" ]; then
+            echo "::error::Could not find aapt utility"
+            exit 1
+          fi
+          echo "Found aapt at $AAPT_PATH"
+          
+          APK_PATH="apps/studio-android/android/app/build/outputs/apk/debug/app-debug.apk"
+          if [ ! -f "$APK_PATH" ]; then
+            echo "::error::Debug APK does not exist!"
+            exit 1
+          fi
+          
+          # Check size
+          SIZE=$(stat -c%s "$APK_PATH")
+          echo "APK Size: $SIZE bytes"
+          if [ "$SIZE" -le 0 ]; then
+            echo "::error::APK size is zero!"
+            exit 1
+          fi
+          
+          # Dump badging
+          BADGING=$($AAPT_PATH dump badging "$APK_PATH")
+          
+          # Validate package name
+          if ! echo "$BADGING" | grep -q "package: name='com.chordex.app'"; then
+            echo "::error::Invalid package name!"
+            exit 1
+          fi
+          
+          # Validate versionName
+          if ! echo "$BADGING" | grep -q "versionName='3.6.31'"; then
+            echo "::error::Invalid versionName! Expected 3.6.31"
+            echo "Badging: $(echo "$BADGING" | grep 'package:')"
+            exit 1
+          fi
+          
+          # Validate versionCode
+          if ! echo "$BADGING" | grep -q "versionCode='58'"; then
+            echo "::error::Invalid versionCode! Expected 58"
+            echo "Badging: $(echo "$BADGING" | grep 'package:')"
+            exit 1
+          fi
+          
+          echo "✓ Debug APK validation passed successfully!"
+

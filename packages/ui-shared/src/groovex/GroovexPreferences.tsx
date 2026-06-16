@@ -1,14 +1,10 @@
+import { useT, APP_VERSION_LABEL, useScrollHide, useIsWebDesktop, useChordStore } from '@workspace/studio-core';
 import { useState, useEffect, useCallback, useRef } from 'react';
 import ElasticSlider from '../components/ElasticSlider';
 import { useGroovexStore } from './useGroovexStore';
 import { getCacheSize, clearAllCache, clearSongCache, getPerSongCacheInfo, type SongCacheInfo } from './stemCache';
 import { SONG_CATALOG } from './songCatalog';
-import { useT } from '../lib/useT';
-import { APP_VERSION_LABEL } from '../lib/appVersion';
-import { useScrollHide } from '../lib/navScroll';
-import { useIsWebDesktop } from '../hooks/useIsWebDesktop';
 import { WebSettingsSection, WebPreferenceRow } from '../components/WebDesignSystem';
-import { useChordStore } from '../store/useChordStore';
 
 export default function GroovexPreferences() {
   const t = useT();

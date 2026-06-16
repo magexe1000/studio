@@ -1,8 +1,8 @@
+import { useStudioPreferences } from '@workspace/studio-core';
 import React from 'react';
 import { Globe, Smartphone, Monitor, Download } from 'lucide-react';
 import { formatBytes } from '../landingUtils';
 import { motion } from 'motion/react';
-import { useStudioPreferences } from '../../hooks/useStudioPreferences';
 
 interface LandingDownloadsProps {
   navigateTo: (path: string) => void;

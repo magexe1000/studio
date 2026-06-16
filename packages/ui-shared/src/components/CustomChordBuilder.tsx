@@ -1,14 +1,11 @@
+import { useChordStore, ACCENT_COLORS, type CustomChord, type BarreDef, setNavHidden, useScrollHide, type GuitarChordData, useT } from '@workspace/studio-core';
 import { useState, useCallback, useMemo, useRef } from 'react';
-import { useChordStore, ACCENT_COLORS, type CustomChord, type BarreDef } from '../store/useChordStore';
 import {
   detectChordName, chromaticToName,
   OPEN_NOTES, STRING_LABELS, notesFromFrets, notesFromPianoKeys,
-} from '../lib/chordDetect';
-import { setNavHidden, useScrollHide } from '../lib/navScroll';
+} from '@workspace/studio-core';
 import { useEffect } from 'react';
 import ChordDiagram from './ChordDiagram';
-import type { GuitarChordData } from '../data/chords';
-import { useT } from '../lib/useT';
 
 type Instrument = 'guitar' | 'piano' | 'bass';
 

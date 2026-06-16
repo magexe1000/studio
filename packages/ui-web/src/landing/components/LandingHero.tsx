@@ -1,7 +1,7 @@
+import { useStudioPreferences } from '@workspace/studio-core';
 import React, { useState, useEffect, useCallback } from 'react';
 import { ArrowRight, Download, Monitor } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
-import { useStudioPreferences } from '../../hooks/useStudioPreferences';
 import LandingLinkPreview from './LandingLinkPreview';
 
 interface LandingHeroProps {

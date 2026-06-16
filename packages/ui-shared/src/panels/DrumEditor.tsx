@@ -1,3 +1,4 @@
+import { useChordStore, ACCENT_COLORS, useT, setBackHandler, useNavCollapsed, setNavCollapsed, useLiquidGlassNav, DRUM_LIBRARY, LIBRARY_CATEGORIES, LIBRARY_GENRES, type LibraryCategory, type LibraryGenre, type LibraryPattern, useIsWebDesktop } from '@workspace/studio-core';
 import {
   memo, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState,
 } from 'react';
@@ -21,11 +22,9 @@ const MetronomeIcon = ({ size = 16 }: { size?: number }) => (
 );
 
 import ElasticSlider from '../components/ElasticSlider';
-import { useChordStore, ACCENT_COLORS } from '../store/useChordStore';
 import EmptyStateLottie from '../components/lottie/EmptyStateLottie';
 import LoadingLottie from '../components/lottie/LoadingLottie';
 import SuccessLottie from '../components/lottie/SuccessLottie';
-import { useT } from '../lib/useT';
 import {
   useDrumStore, KIT_INSTRUMENTS, INSTRUMENT_COLOR, INSTRUMENT_NAME, KIT_FAMILY, HOUSE_MICS, HOUSE_CRASH_MODELS, CYMBAL_PACKS,
   stepsPerMeasure, INST_VARIATIONS, GROOVE_TAGS, DEFAULT_INST_FX, emptyMeasure, DRUM_INSTRUMENTS,
@@ -35,7 +34,7 @@ import {
   type DrumInstrument, type KitType, type HouseMic, type HouseCrashModel, type CymbalPack, type DrumSong, type DrumMeasure, type NoteVariation,
   type DrumPattern, type DrumHit, type GrooveEntry, type GrooveTag, type InstFX,
   type InstPlugin, type LoopRange,
-} from '../store/useDrumStore';
+} from '@workspace/studio-core';
 import {
   drumScheduler, samplePool, loadDrumSamples, loadHouseKit, houseKitPool,
   setHouseKitMic, setHouseInstVelOverrides, HOUSE_VEL_CONFIGS, HOUSE_INST_LABELS,
@@ -44,15 +43,10 @@ import {
   KIT_DEFAULTS, getSoundForVariation, setInstFXMap, setInstPluginMap,
   getAudioCtx,
   type SampleStatus, type HouseInstName,
-} from '../lib/drumAudio';
+} from '@workspace/studio-core';
 import { AppModeMenuLogo } from '../components/AppModeMenuLogo';
 import DrumPrefsPanel from './DrumPrefsPanel';
 import { AnimatedAppHeader, StaggeredReveal } from '../components/AppAnimationSystem';
-import { setBackHandler } from '../lib/backStack';
-import { useNavCollapsed, setNavCollapsed } from '../lib/navScroll';
-import { useLiquidGlassNav } from '../lib/useLiquidGlassNav';
-import { DRUM_LIBRARY, LIBRARY_CATEGORIES, LIBRARY_GENRES, type LibraryCategory, type LibraryGenre, type LibraryPattern } from '../lib/drumLibrary';
-import { useIsWebDesktop } from '../hooks/useIsWebDesktop';
 import WebAppSectionDock from '../components/WebAppSectionDock';
 
 // ── Layout ─────────────────────────────────────────────────────────────────

@@ -1,6 +1,6 @@
+import { useChordStore } from '@workspace/studio-core';
 import React, { useRef } from 'react';
 import { motion } from 'motion/react';
-import { useChordStore } from '../store/useChordStore';
 
 // Helper to check if reduced motion is preferred by the system or settings
 export function usePrefersReducedMotion() {

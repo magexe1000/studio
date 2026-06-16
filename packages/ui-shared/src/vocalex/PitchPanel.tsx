@@ -1,8 +1,6 @@
+import { useT, createAudioContext, useChordStore } from '@workspace/studio-core';
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { detectPitch, type PitchResult } from './pitchYin';
-import { useT } from '../lib/useT';
-import { createAudioContext } from '../lib/audioContextOptions';
-import { useChordStore } from '../store/useChordStore';
 
 const HISTORY_LEN = 12;
 const SMOOTHING = 0.3;

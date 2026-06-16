@@ -9,11 +9,15 @@ const appRoot = path.resolve(__dirname, '..');
 const repoRoot = path.resolve(__dirname, '../../..');
 
 const releaseType = 'apk';
+const isDevPreview = process.argv.includes('--development-preview');
 
 console.log('generate-release-metadata: → Running AppInstaller contract validation...');
 const args = ['scripts/validate-app-installer.mjs'];
 if (releaseType === 'ota') {
   args.push('--allow-missing-apk');
+}
+if (isDevPreview) {
+  args.push('--development-preview');
 }
 const validateResult = spawnSync('node', args, {
   cwd: appRoot,
@@ -356,8 +360,13 @@ const webMetadata = {
 
 // Validate the constructed metadata before writing
 if (prevVersionCode && prevData && prevData.version !== version && versionCode <= prevVersionCode) {
-  console.error(`generate-release-metadata: ✗ versionCode (${versionCode}) must be greater than previous versionCode (${prevVersionCode})!`);
-  process.exit(1);
+  if (isDevPreview) {
+    console.warn(`generate-release-metadata: ⚠ Development warning: versionCode (${versionCode}) is not greater than previous versionCode (${prevVersionCode}). Proceeding since --development-preview is enabled.`);
+    androidMetadata.developmentPreview = true;
+  } else {
+    console.error(`generate-release-metadata: ✗ versionCode (${versionCode}) must be greater than previous versionCode (${prevVersionCode})!`);
+    process.exit(1);
+  }
 }
 
 // Validate against GitHub Pages URLs in Android metadata

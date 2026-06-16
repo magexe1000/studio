@@ -1,5 +1,5 @@
+import { useT } from '@workspace/studio-core';
 import { useState, useRef, useEffect, useCallback, useMemo } from 'react';
-import { useT } from '../lib/useT';
 import { setVocalexBack } from './headerBack';
 import { AnimatedAppHeader, StaggeredReveal } from '../components/AppAnimationSystem';
 

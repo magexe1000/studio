@@ -1,8 +1,6 @@
+import { useChordStore, ACCENT_COLORS, type AppKey, useT } from '@workspace/studio-core';
 import React, { useState, useEffect, useRef } from 'react';
 import { StudioLogo, ChordexLogo, DrumexLogo, StagexLogoIcon, GroovexLogo, VocalexLogo } from './ChordexLogo';
-import { useChordStore, ACCENT_COLORS } from '../store/useChordStore';
-import type { AppKey } from '../store/useChordStore';
-import { useT } from '../lib/useT';
 
 interface AppCard {
   key: AppKey;

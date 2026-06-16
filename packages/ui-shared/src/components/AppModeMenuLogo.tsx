@@ -1,3 +1,4 @@
+import { useChordStore, ACCENT_COLORS, useIsWebDesktop } from '@workspace/studio-core';
 /**
  * AppModeMenuLogo — app switcher pill in every panel header.
  *
@@ -11,8 +12,6 @@
 import { useState, useRef, useEffect, useLayoutEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { ChordexLogo, DrumexLogo, StudioLogo, StagexLogoIcon, GroovexLogo, VocalexLogo } from './ChordexLogo';
-import { useChordStore, ACCENT_COLORS } from '../store/useChordStore';
-import { useIsWebDesktop } from '../hooks/useIsWebDesktop';
 
 type AppValue = 'chords' | 'drums' | 'stage' | 'groovex' | 'vocalex';
 

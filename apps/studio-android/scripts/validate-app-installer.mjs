@@ -6,11 +6,12 @@ import AdmZip from 'adm-zip';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const appRoot = path.resolve(__dirname, '..');
+const repoRoot = path.resolve(__dirname, '../../..');
 
 const paths = {
   pluginJava: path.join(appRoot, 'android/app/src/main/java/com/chordex/app/AppInstallerPlugin.java'),
   mainActivityJava: path.join(appRoot, 'android/app/src/main/java/com/chordex/app/MainActivity.java'),
-  apkDownloaderTs: path.join(appRoot, 'src/lib/apkDownloader.ts'),
+  apkDownloaderTs: path.join(appRoot, '../../packages/studio-core/src/lib/apkDownloader.ts'),
   apkPath: path.join(appRoot, 'android/app/build/outputs/apk/release/app-release.apk'),
 };
 
@@ -34,9 +35,11 @@ function assert(condition, message, exitCode = EXIT_CODES.APP_INSTALLER_VALIDATI
 
 // 0. Verify releaseType and native changes
 const releaseType = process.env.RELEASE_TYPE || 'both';
-if (process.env.CI) {
+const isDevPreview = process.argv.includes('--development-preview');
+
+if (!isDevPreview) {
   try {
-    console.log(`Checking for native or update-system changes in CI environment (releaseType: ${releaseType})...`);
+    console.log(`Checking for native or update-system changes (releaseType: ${releaseType})...`);
     const changedFiles = execSync('git diff --name-only HEAD^ HEAD', { encoding: 'utf8' })
       .split('\n')
       .map(f => f.trim())
@@ -352,11 +355,11 @@ if (fs.existsSync(paths.apkPath)) {
     const versionCodeVal = codeMatch[1].startsWith('0x') ? parseInt(codeMatch[1], 16) : parseInt(codeMatch[1], 10);
     assert(versionCodeVal > 0, `Invalid versionCode parsed: ${versionCodeVal}`, EXIT_CODES.RELEASE_VALIDATION);
     if (prevVersionCode) {
-      if (process.env.CI) {
-        assert(versionCodeVal > prevVersionCode, `Release blocked: versionCode must increase! Installed/Previous: ${prevVersionCode}, Current: ${versionCodeVal}. Please increment versionCode in build.gradle.`, EXIT_CODES.RELEASE_VALIDATION);
-      } else {
-        if (versionCodeVal <= prevVersionCode) {
-          console.warn(`⚠ Local validation warning: versionCode (${versionCodeVal}) is not greater than previous (${prevVersionCode}). Proceeding anyway since we are not in CI.`);
+      if (versionCodeVal <= prevVersionCode) {
+        if (isDevPreview) {
+          console.warn(`⚠ Development warning: versionCode (${versionCodeVal}) is not greater than previous (${prevVersionCode}). Proceeding since --development-preview is enabled.`);
+        } else {
+          assert(false, `Release blocked: versionCode must increase! Installed/Previous: ${prevVersionCode}, Current: ${versionCodeVal}. Please increment versionCode in build.gradle.`, EXIT_CODES.RELEASE_VALIDATION);
         }
       }
     }
@@ -376,11 +379,11 @@ if (fs.existsSync(paths.apkPath)) {
     }
     const expectedVersionName = nativeVersionMatches[0][1];
     
-    if (process.env.CI) {
-      assert(versionNameVal === expectedVersionName, `VersionName mismatch! Expected ${expectedVersionName} but found: ${versionNameVal}`, EXIT_CODES.RELEASE_VALIDATION);
-    } else {
-      if (versionNameVal !== expectedVersionName) {
-        console.warn(`⚠ Local validation warning: VersionName mismatch! Expected ${expectedVersionName} but found: ${versionNameVal}. Proceeding anyway since we are not in CI.`);
+    if (versionNameVal !== expectedVersionName) {
+      if (isDevPreview) {
+        console.warn(`⚠ Development warning: VersionName mismatch! Expected ${expectedVersionName} but found: ${versionNameVal}. Proceeding since --development-preview is enabled.`);
+      } else {
+        assert(false, `VersionName mismatch! Expected ${expectedVersionName} but found: ${versionNameVal}`, EXIT_CODES.RELEASE_VALIDATION);
       }
     }
     console.log(`✓ APK versionName is ${versionNameVal} (matches expected ${expectedVersionName}).`);
@@ -407,8 +410,10 @@ if (fs.existsSync(paths.apkPath)) {
     const oldProdSignature = "58b9bf2de5064c62ac3ca181b5608fe135c6894a8359ff6588e19218cd384764";
 
     if (prevSignature) {
-      if (process.env.CI) {
-        if (currentSignature !== prevSignature) {
+      if (currentSignature !== prevSignature) {
+        if (isDevPreview) {
+          console.warn(`⚠ Development warning: signing certificate signature fingerprint changed! Previous: ${prevSignature}, Current: ${currentSignature}. Proceeding since --development-preview is enabled.`);
+        } else {
           if (process.env.REINSTALL_REQUIRED === 'true') {
             assert(
               prevSignature === oldProdSignature && currentSignature === expectedProdSignature,
@@ -420,21 +425,15 @@ if (fs.existsSync(paths.apkPath)) {
             assert(false, `Release blocked: signing certificate signature fingerprint changed! Previous: ${prevSignature}, Current: ${currentSignature}. (For controlled reset, set REINSTALL_REQUIRED=true)`, EXIT_CODES.RELEASE_VALIDATION);
           }
         }
-      } else {
-        if (currentSignature !== prevSignature) {
-          console.warn(`⚠ Local validation warning: signing certificate signature fingerprint changed! Previous: ${prevSignature}, Current: ${currentSignature}. Proceeding anyway since we are not in CI.`);
-        }
       }
     }
     
     // Check signature consistency with expected production key
-    if (process.env.CI) {
-      assert(currentSignature === expectedProdSignature, `Release blocked: APK is not signed with the production certificate in CI! Expected: ${expectedProdSignature}, Found: ${currentSignature}`, EXIT_CODES.RELEASE_VALIDATION);
-    } else {
-      // Local expected signature matching (if variable defined in env)
-      if (process.env.EXPECTED_SIGNATURE_SHA256) {
-        const expected = process.env.EXPECTED_SIGNATURE_SHA256.replace(/:/g, '').toLowerCase();
-        assert(currentSignature === expected, `Signing certificate fingerprint mismatch! Expected: ${process.env.EXPECTED_SIGNATURE_SHA256}, Found: ${currentSignature}`, EXIT_CODES.RELEASE_VALIDATION);
+    if (currentSignature !== expectedProdSignature) {
+      if (isDevPreview) {
+        console.warn(`⚠ Development warning: APK is not signed with the production certificate. Expected: ${expectedProdSignature}, Found: ${currentSignature}`);
+      } else {
+        assert(false, `Release blocked: APK is not signed with the production certificate! Expected: ${expectedProdSignature}, Found: ${currentSignature}`, EXIT_CODES.RELEASE_VALIDATION);
       }
     }
     console.log('✓ APK signing certificate validation check passed.');

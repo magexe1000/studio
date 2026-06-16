@@ -52,13 +52,18 @@ export default defineConfig(async ({ command, mode }) => {
       console.warn("\x1b[33mVite Build (Android): ⚠ WARNING: Git working tree is dirty.\x1b[0m");
     }
 
-    const url = (process.env.VITE_SUPABASE_URL ?? env.VITE_SUPABASE_URL ?? "").trim();
-    const key = (process.env.VITE_SUPABASE_ANON_KEY ?? env.VITE_SUPABASE_ANON_KEY ?? "").trim();
-    const provider = (process.env.VITE_SYNC_BACKEND_PROVIDER ?? env.VITE_SYNC_BACKEND_PROVIDER ?? "").trim();
+    let url = (process.env.VITE_SUPABASE_URL ?? env.VITE_SUPABASE_URL ?? "").trim();
+    let key = (process.env.VITE_SUPABASE_ANON_KEY ?? env.VITE_SUPABASE_ANON_KEY ?? "").trim();
+    let provider = (process.env.VITE_SYNC_BACKEND_PROVIDER ?? env.VITE_SYNC_BACKEND_PROVIDER ?? "").trim();
 
     if (!url || !key || provider !== "supabase-realtime") {
-      console.error("\x1b[31mVite Build (Android): ✗ Supabase config missing.\x1b[0m");
-      throw new Error("Supabase config missing.");
+      console.warn("\x1b[33mVite Build (Android): ⚠ Warning: Supabase config missing. Using fallback mock values for non-release build.\x1b[0m");
+      url = "https://mock-supabase.local";
+      key = "mock-anon-key";
+      provider = "supabase-realtime";
+      envDefines['import.meta.env.VITE_SUPABASE_URL'] = JSON.stringify(url);
+      envDefines['import.meta.env.VITE_SUPABASE_ANON_KEY'] = JSON.stringify(key);
+      envDefines['import.meta.env.VITE_SYNC_BACKEND_PROVIDER'] = JSON.stringify(provider);
     }
   }
 

@@ -1,10 +1,6 @@
+import { useDrumStore, useChordStore, ACCENT_COLORS, useT, useScrollHide, useIsWebDesktop } from '@workspace/studio-core';
 import { useRef, useState } from 'react';
-import { useDrumStore } from '../store/useDrumStore';
-import { useChordStore, ACCENT_COLORS } from '../store/useChordStore';
 import { Toggle, SectionHeader, SettingRow } from '../components/SettingControls';
-import { useT } from '../lib/useT';
-import { useScrollHide } from '../lib/navScroll';
-import { useIsWebDesktop } from '../hooks/useIsWebDesktop';
 
 function IconDrumSongs({ active }: { active: boolean }) {
   const sw = active ? 2 : 1.6; const ao = active ? 0.13 : 0;

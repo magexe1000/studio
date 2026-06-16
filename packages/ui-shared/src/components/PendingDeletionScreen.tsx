@@ -1,13 +1,11 @@
+import { signOut, useT, useChordStore } from '@workspace/studio-core';
 import { useEffect, useState } from 'react';
-import { signOut } from '../lib/auth';
 import {
   cancelAccountDeletion,
   finalizeAccountDeletion,
   ACCOUNT_GRACE_DAYS,
   type AccountState,
-} from '../lib/accountStatus';
-import { useT } from '../lib/useT';
-import { useChordStore } from '../store/useChordStore';
+} from '@workspace/studio-core';
 
 type Props = Extract<AccountState, { phase: 'pending' }>;
 

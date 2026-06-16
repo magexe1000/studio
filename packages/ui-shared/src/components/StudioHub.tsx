@@ -1,31 +1,19 @@
+import { useBackHandler, subscribeAuth, signOut, type AuthUser, subscribeSyncStatus, syncNow, type SyncStatus, deviceId, getConflictLogs, clearConflictLogs, createCloudBackup, getSyncDiagnostics, pushLocalSettingsToCloud, pullCloudSettingsFromCloud, registerDevice, registerCurrentDevice, reconnectDevices, useChordStore, ACCENT_COLORS, type Theme, type AnimationSpeed, type DisplayDensity, type AppKey, type PerAppVisuals, useNavHidden, useNavCollapsed, useScrollHide, useT, APP_VERSION_LABEL, APP_VERSION_TAG, APP_VERSION_DATE, compareSemver, APP_VERSION, getChangelogSections, useOtaUpdate, otaDebugLogs, otaDiagnostics, checkForUpdate, resetOtaUpdateState, isAppInstallerAvailable, applyUpdate, isNative, fadeToBlackAndReload, notifyOtaAvailable, resolveApkUrl, downloadAndInstallApk, resolveReleasePageUrl, useLiquidGlassNav, useIsWebDesktop, useStudioPreferences } from '@workspace/studio-core';
 import React, { useState, useRef, useEffect, useLayoutEffect, lazy, Suspense, useMemo, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import { motion } from 'motion/react';
-import { useBackHandler } from '../lib/backStack';
-import { subscribeAuth, signOut, type AuthUser } from '../lib/auth';
-import { subscribeSyncStatus, syncNow, type SyncStatus, deviceId, getConflictLogs, clearConflictLogs, createCloudBackup, getSyncDiagnostics, pushLocalSettingsToCloud, pullCloudSettingsFromCloud, registerDevice, registerCurrentDevice, reconnectDevices } from '../lib/sync';
-import { useChordStore, ACCENT_COLORS, type Theme, type AnimationSpeed, type DisplayDensity, type AppKey, type PerAppVisuals } from '../store/useChordStore';
 import { StudioLogo, ChordexLogo, DrumexLogo, StagexLogoIcon, GroovexLogo, VocalexLogo } from './ChordexLogo';
-import { useNavHidden, useNavCollapsed, useScrollHide } from '../lib/navScroll';
-import { useT } from '../lib/useT';
 import { Toggle, SectionHeader, SettingRow, SegmentedControl, COLOR_OPTIONS } from './SettingControls';
 import StudioThemeToggler from './StudioThemeToggler';
 import ApplyToSheet from './ApplyToSheet';
-import { APP_VERSION_LABEL, APP_VERSION_TAG, APP_VERSION_DATE, compareSemver, APP_VERSION, getChangelogSections } from '../lib/appVersion';
 import ChangelogSheet from './ChangelogSheet';
 import GradientBorderCard from './GradientBorderCard';
-import { useOtaUpdate, otaDebugLogs, otaDiagnostics, checkForUpdate, resetOtaUpdateState, isAppInstallerAvailable } from '../lib/otaUpdate';
 import UpdateDiagnosticsSheet from './UpdateDiagnosticsSheet';
-import { applyUpdate, isNative, fadeToBlackAndReload, notifyOtaAvailable } from '../lib/capgoUpdater';
-import { resolveApkUrl, downloadAndInstallApk, resolveReleasePageUrl } from '../lib/apkDownloader';
 import StudioUpdateScreen from './StudioUpdateScreen';
 import StudioTitleReveal from './StudioTitleReveal';
 import { EncryptedText } from './ui/encrypted-text';
-import { useLiquidGlassNav } from '../lib/useLiquidGlassNav';
 import ProfileDropdown from './kokonutui/profile-dropdown';
 import SmartLoading from './SmartLoading';
-import { useIsWebDesktop } from '../hooks/useIsWebDesktop';
-import { useStudioPreferences } from '../hooks/useStudioPreferences';
 import { StudioSkeletonProfile, StudioSkeletonList } from './StudioSkeleton';
 
 // AccountCard pulls Firebase (auth + firestore). Lazy-load it so Firebase
@@ -2242,7 +2230,7 @@ function HubSettings({
 
       if (isNative()) {
         try {
-          const { AppInstaller, checkApkEligibility } = await import('../lib/apkDownloader');
+          const { AppInstaller, checkApkEligibility } = await import('@workspace/studio-core');
           const installed = await AppInstaller.getInstalledAppInfo();
           setInstalledPackageDetails({
             ...installed,

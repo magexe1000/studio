@@ -1,3 +1,4 @@
+import { subscribeSyncStatus, getSyncStatus, syncNow, retrySync, type SyncStatus, subscribeDevices, deviceId, revokeDeviceSession, resolveMigration, registerDevice, registerCurrentDevice, scheduleAccountDeletion, disableAccount, useT, useChordStore, useBackHandler, useIsWebDesktop, logActivity, getActivityEmoji, getFirebaseAuth, APP_VERSION, APP_COMMIT_SHA, APP_BUILD_TIMESTAMP } from '@workspace/studio-core';
 import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import AppSpinner from './AppSpinner';
@@ -18,24 +19,15 @@ import {
   isEmailVerified,
   getSignInProviders,
   type AuthUser,
-} from '../lib/auth';
-import { subscribeSyncStatus, getSyncStatus, syncNow, retrySync, type SyncStatus, subscribeDevices, deviceId, revokeDeviceSession, resolveMigration, registerDevice, registerCurrentDevice } from '../lib/sync';
-import { scheduleAccountDeletion, disableAccount } from '../lib/accountStatus';
-import { useT } from '../lib/useT';
-import { useChordStore } from '../store/useChordStore';
+} from '@workspace/studio-core';
 import {
   AVATAR_ICONS,
   getUserAvatar,
   setUserAvatar,
   subscribeUserAvatar,
   type AvatarIcon,
-} from '../lib/userAvatar';
-import { useBackHandler } from '../lib/backStack';
-import { useIsWebDesktop } from '../hooks/useIsWebDesktop';
-import { logActivity, getActivityEmoji } from '../lib/activityLogger';
+} from '@workspace/studio-core';
 import StudioPricingSection from './StudioPricingSection';
-import { getFirebaseAuth } from '../lib/firebase';
-import { APP_VERSION, APP_COMMIT_SHA, APP_BUILD_TIMESTAMP } from '../lib/appVersion';
 import { updateProfile } from 'firebase/auth';
 
 function compressAndResizeImage(file: File, maxWidth = 256, maxHeight = 256): Promise<Blob> {
@@ -83,7 +75,7 @@ async function selectAvatarIcon(user: AuthUser | null, icon: AvatarIcon | null) 
   if (!user?.uid) return;
   setUserAvatar(user.uid, icon);
   try {
-    const { syncWriteProfileMain } = await import('../lib/sync');
+    const { syncWriteProfileMain } = await import('@workspace/studio-core');
     await syncWriteProfileMain(user.displayName, user.photoURL, icon);
   } catch (e) {
     console.error('Failed to sync avatar icon selection:', e);
@@ -99,7 +91,7 @@ import {
   hasProAccessUser,
   type UserProfile,
   type UserRole
-} from '../lib/permissions';
+} from '@workspace/studio-core';
 
 const CLOUD_SYNC_FEATURE_ENABLED = false;
 
@@ -1435,7 +1427,7 @@ export function AccountSettingsPage({ accent, cardStyle, onBack }: {
 
       if (Capacitor.isNativePlatform()) {
         try {
-          const { AppInstaller } = await import('../lib/apkDownloader');
+          const { AppInstaller } = await import('@workspace/studio-core');
           await AppInstaller.requestPermissions();
         } catch (e) {
           console.warn('[Export] Permissions request failed:', e);
@@ -1695,7 +1687,7 @@ export function AccountSettingsPage({ accent, cardStyle, onBack }: {
     setBusy(true); setErr(null);
     try {
       await updateDisplayName(nameInput);
-      const { syncWriteProfileMain } = await import('../lib/sync');
+      const { syncWriteProfileMain } = await import('@workspace/studio-core');
       await syncWriteProfileMain(nameInput, user.photoURL, avatarIcon);
       closeSheet();
       showToast(L.nameSaved);
@@ -2396,7 +2388,7 @@ export function AccountSettingsPage({ accent, cardStyle, onBack }: {
                   onClick={async () => {
                     if (Capacitor.isNativePlatform()) {
                       try {
-                        const { AppInstaller } = await import('../lib/apkDownloader');
+                        const { AppInstaller } = await import('@workspace/studio-core');
                         await AppInstaller.requestPermissions();
                       } catch (e) {
                         console.warn('[Profile] Permissions request failed:', e);
@@ -3661,7 +3653,7 @@ export function AccountSettingsPage({ accent, cardStyle, onBack }: {
                             onClick={async () => {
                               setBusy(true);
                               try {
-                                const { getActiveSyncProvider } = await import('../lib/syncBackends');
+                                const { getActiveSyncProvider } = await import('@workspace/studio-core');
                                 const res = await getActiveSyncProvider().sendSyncProbe();
                                 if (res.success) {
                                   showToast(lang === 'es' ? `¡Sonda enviada! Nonce: ${res.nonce}` : `Probe sent! Nonce: ${res.nonce}`);
@@ -3700,7 +3692,7 @@ export function AccountSettingsPage({ accent, cardStyle, onBack }: {
                             onClick={async () => {
                               setBusy(true);
                               try {
-                                const { getActiveSyncProvider } = await import('../lib/syncBackends');
+                                const { getActiveSyncProvider } = await import('@workspace/studio-core');
                                 await getActiveSyncProvider().clearSyncProbe();
                                 showToast(lang === 'es' ? 'Sonda eliminada.' : 'Probe cleared.');
                               } catch (e: any) {
@@ -3735,7 +3727,7 @@ export function AccountSettingsPage({ accent, cardStyle, onBack }: {
                             onClick={async () => {
                               setBusy(true);
                               try {
-                                const { getActiveSyncProvider } = await import('../lib/syncBackends');
+                                const { getActiveSyncProvider } = await import('@workspace/studio-core');
                                 const res = await getActiveSyncProvider().directWriteTest();
                                 if (res.success) {
                                   showToast(lang === 'es' ? '¡Prueba de escritura completada!' : 'Direct write test complete!');
@@ -3778,7 +3770,7 @@ export function AccountSettingsPage({ accent, cardStyle, onBack }: {
                               }
                               setBusy(true);
                               try {
-                                const { getActiveSyncProvider } = await import('../lib/syncBackends');
+                                const { getActiveSyncProvider } = await import('@workspace/studio-core');
                                 const res = await getActiveSyncProvider().registerCurrentDevice('manual-button');
                                 if (res.success) {
                                   showToast(lang === 'es' ? '¡Registro completado!' : 'Registration complete!');
@@ -3817,7 +3809,7 @@ export function AccountSettingsPage({ accent, cardStyle, onBack }: {
                             onClick={async () => {
                               setBusy(true);
                               try {
-                                const { reconnectDevices } = await import('../lib/sync');
+                                const { reconnectDevices } = await import('@workspace/studio-core');
                                 await reconnectDevices();
                                 showToast(lang === 'es' ? '¡Dispositivos reconectados!' : 'Devices reconnected!');
                               } catch (e: any) {

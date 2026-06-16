@@ -1,12 +1,9 @@
+import { getAllSessions, saveSession, deleteSession, createLayer, createDefaultEffects, type LabSession, type LabLayer, type TrackEffect, getAllTakes, type TakeRecord, useT, createAudioContext } from '@workspace/studio-core';
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import ElasticSlider from '../components/ElasticSlider';
 import AnimatedActionButton from '../components/animata/container/animated-border-trail';
 import MicWavesLottie from '../components/lottie/MicWavesLottie';
-import { getAllSessions, saveSession, deleteSession, createLayer, createDefaultEffects, type LabSession, type LabLayer, type TrackEffect } from './labSessionDb';
-import { getAllTakes, type TakeRecord } from './takesDb';
-import { useT } from '../lib/useT';
 import { setVocalexBack } from './headerBack';
-import { createAudioContext } from '../lib/audioContextOptions';
 import HarmonizerSheet from './HarmonizerSheet';
 
 const SESSION_ICONS = ['graphic_eq', 'layers', 'multiline_chart', 'equalizer', 'tune', 'mic', 'queue_music', 'stacked_line_chart'];

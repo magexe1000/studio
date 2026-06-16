@@ -1,8 +1,6 @@
+import { useChordStore, ACCENT_COLORS, otaDiagnostics, otaDebugLogs, useBackHandler } from '@workspace/studio-core';
 import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { useChordStore, ACCENT_COLORS } from '../store/useChordStore';
-import { otaDiagnostics, otaDebugLogs } from '../lib/otaUpdate';
-import { useBackHandler } from '../lib/backStack';
 
 type Props = {
   open: boolean;

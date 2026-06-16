@@ -1,6 +1,6 @@
+import { useStudioPreferences } from '@workspace/studio-core';
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { useStudioPreferences } from '../hooks/useStudioPreferences';
 
 interface SidebarContextType {
   state: 'expanded' | 'collapsed';

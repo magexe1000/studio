@@ -1,6 +1,6 @@
+import { StudioLogo, ChordexLogo, DrumexLogo, StagexLogoIcon, GroovexLogo, VocalexLogo } from '@workspace/ui-shared';
 import React, { useState, useRef } from 'react';
 import { motion, AnimatePresence, useMotionValue, useSpring } from 'motion/react';
-import { StudioLogo, ChordexLogo, DrumexLogo, StagexLogoIcon, GroovexLogo, VocalexLogo } from '../../components/ChordexLogo';
 
 interface LandingLinkPreviewProps {
   children: React.ReactNode;

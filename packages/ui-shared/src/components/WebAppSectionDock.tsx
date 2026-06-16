@@ -1,9 +1,6 @@
+import { useChordStore, ACCENT_COLORS, type AppKey, useT, APP_SECTIONS, useStudioPreferences } from '@workspace/studio-core';
 import React, { useRef, useState } from 'react';
 import { motion, AnimatePresence, useMotionValue, useSpring, useTransform, MotionValue } from 'motion/react';
-import { useChordStore, ACCENT_COLORS, type AppKey } from '../store/useChordStore';
-import { useT } from '../lib/useT';
-import { APP_SECTIONS } from '../lib/studioAppNavigationRegistry';
-import { useStudioPreferences } from '../hooks/useStudioPreferences';
 
 interface DockItemProps {
   id: string;

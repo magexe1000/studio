@@ -1,6 +1,6 @@
+import { cn } from '@workspace/studio-core';
 "use client";
 
-import { cn } from "../lib/utils";
 import type { Variants } from "motion/react";
 import {
  LazyMotion,

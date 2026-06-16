@@ -1,9 +1,6 @@
+import { useChordStore, ACCENT_COLORS, type ActivePanel, useScrollHide, useT, useIsWebDesktop } from '@workspace/studio-core';
 import React, { useRef } from 'react';
-import { useChordStore, ACCENT_COLORS, type ActivePanel } from '../store/useChordStore';
-import { useScrollHide } from '../lib/navScroll';
-import { useT } from '../lib/useT';
 import { AppModeMenuLogo } from '../components/AppModeMenuLogo';
-import { useIsWebDesktop } from '../hooks/useIsWebDesktop';
 import { Toggle, SectionHeader, SettingRow } from '../components/SettingControls';
 import { IconSongs, IconLibrary, IconChords, IconSettings } from '../components/NavIcons';
 import { WebSettingsSection, WebPreferenceRow } from '../components/WebDesignSystem';

@@ -1,6 +1,6 @@
+import { useStudioPreferences } from '@workspace/studio-core';
 import React, { useRef } from 'react';
 import { motion, useScroll, useTransform, useSpring } from 'motion/react';
-import { useStudioPreferences } from '../../hooks/useStudioPreferences';
 import { renderMockupByName } from './StudioScreenMockups';
 
 interface LandingMacbookScrollProps {

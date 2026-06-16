@@ -1,9 +1,6 @@
+import { getChordById, type GuitarChordData, useChordStore, ACCENT_COLORS, type SongPreset, setNavHidden, transposeChordId } from '@workspace/studio-core';
 import { useEffect, useRef, useState, useCallback, useMemo } from 'react';
 import ElasticSlider from './ElasticSlider';
-import { getChordById, type GuitarChordData } from '../data/chords';
-import { useChordStore, ACCENT_COLORS, type SongPreset } from '../store/useChordStore';
-import { setNavHidden } from '../lib/navScroll';
-import { transposeChordId } from '../lib/transpose';
 
 interface LiveModeProps {
   preset: SongPreset;

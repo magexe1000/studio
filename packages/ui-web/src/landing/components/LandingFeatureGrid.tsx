@@ -1,7 +1,7 @@
+import { useStudioPreferences } from '@workspace/studio-core';
 import React from 'react';
 import { FEATURES_DATA } from '../landingData';
 import { motion } from 'motion/react';
-import { useStudioPreferences } from '../../hooks/useStudioPreferences';
 
 export default function LandingFeatureGrid() {
   const { preferences } = useStudioPreferences();

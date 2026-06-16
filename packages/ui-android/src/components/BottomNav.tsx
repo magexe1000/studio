@@ -1,9 +1,5 @@
+import { useChordStore, ACCENT_COLORS, type ActivePanel, type AppKey, useNavHidden, useNavCollapsed, useT, useLiquidGlassNav, useIsWebDesktop } from '@workspace/studio-core';
 import { useEffect, useRef, useState } from 'react';
-import { useChordStore, ACCENT_COLORS, type ActivePanel, type AppKey } from '../store/useChordStore';
-import { useNavHidden, useNavCollapsed } from '../lib/navScroll';
-import { useT } from '../lib/useT';
-import { useLiquidGlassNav } from '../lib/useLiquidGlassNav';
-import { useIsWebDesktop } from '../hooks/useIsWebDesktop';
 
 /* ── Crisp inline SVG icons ──────────────────────────────────── */
 export function IconSongs({ active }: { active: boolean }) {

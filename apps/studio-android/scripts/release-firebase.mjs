@@ -377,7 +377,8 @@ function run(cmd, args, extraEnv = {}) {
 }
 
 // ── Signing preflight — fail fast before expensive builds ───────────
-if (process.env.CI) {
+const isDevPreview = process.argv.includes('--development-preview');
+if (!isDevPreview) {
   console.log('release-firebase: → Running signing preflight...');
   const ksPath = path.join(pkgRoot, 'android', 'app', 'release.keystore');
   const ksAlias = (process.env.ANDROID_KEY_ALIAS || '').trim();
@@ -448,7 +449,7 @@ if (process.env.CI) {
     process.exit(1);
   }
 } else {
-  console.log('release-firebase: ⚠ Skipping signing preflight (not in CI).');
+  console.log('release-firebase: ⚠ Skipping signing preflight (--development-preview is set).');
 }
 
 // ── Build PWA for Firebase ──────────────────────────────────────────

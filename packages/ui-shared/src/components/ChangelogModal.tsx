@@ -1,3 +1,4 @@
+import { usePostUpdateChangelog } from '@workspace/studio-core';
 /**
  * What's New sheet — shown automatically only after an OTA update.
  * Uses usePostUpdateChangelog to compare the stored last-seen version
@@ -5,7 +6,6 @@
  * normal launch and only appears when the bundle has actually advanced.
  */
 
-import { usePostUpdateChangelog } from '../lib/otaUpdate';
 import ChangelogSheet from './ChangelogSheet';
 
 export default function ChangelogModal() {

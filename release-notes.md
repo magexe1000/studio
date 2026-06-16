@@ -1,10 +1,6 @@
-### Added
-- Added adaptive Web navigation rails for laptop/desktop screen widths.
-- Added Web-specific internal app navigation tabs for tablet/iPad screen widths.
-- Added Web-specific internal app navigation for Chordex, Drumex, Stagex, Groovex, and Vocalex.
-
-### Improved
-- Improved Web shortcuts and deep shortcuts to target sub-sections.
-- Repositioned back buttons inline to prevent overlap in Web layouts.
+**Android/mobile 3.6.31**
 
 ### Fixed
+- Fixed Android native mobile layout regressions in Stagex and Setup panels.
+- Fixed Stagex element visibility and same-origin protocol mismatch.
+- Removed duplicate Back buttons and aligned bottom navigation in WebView.

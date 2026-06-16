@@ -4,10 +4,10 @@ on:
   workflow_dispatch:
     inputs:
       version_name:
-        description: "Android versionName (e.g., 3.6.36)"
+        description: "Android versionName (e.g., x.y.z)"
         required: true
       version_code:
-        description: "Android versionCode (e.g., 63)"
+        description: "Android versionCode (e.g., integer)"
         required: true
       note:
         description: "Release notes / changelog entry"
@@ -30,7 +30,6 @@ jobs:
       ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
       ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
       EXPECTED_SIGNATURE_SHA256: "900cf259185c81100cda8bb08571fa23552e9789131cf07a8f4056e4d4129206"
-      REINSTALL_REQUIRED: "true"
 
     steps:
       - uses: actions/checkout@v4
@@ -97,9 +96,9 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           VERSION="${{ github.event.inputs.version_name }}"
-          TAG="v$VERSION-android"
+          TAG="v$VERSION"
           if ! gh release view "$TAG" > /dev/null 2>&1; then
-            gh release create "$TAG" --title "Studio Android v$VERSION" --notes "${{ github.event.inputs.note }}" --prerelease
+            gh release create "$TAG" --title "Studio v$VERSION" --notes "${{ github.event.inputs.note }}" --prerelease
           fi
           FILE_NAME="studio-$VERSION.apk"
           HASH_NAME="studio-$VERSION.sha256"

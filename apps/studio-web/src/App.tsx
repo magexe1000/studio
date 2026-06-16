@@ -1,3 +1,4 @@
+import { type AppKey } from '@workspace/studio-core';
 import { lazy, Suspense, useCallback, useEffect, useRef, useState } from 'react';
 import { createPortal, flushSync } from 'react-dom';
 import { motion, AnimatePresence } from 'motion/react';
@@ -11,7 +12,6 @@ import {
   setNavHidden,
   setNavLocked
 } from '@workspace/studio-core';
-import type { AppKey } from '@workspace/studio-core';
 
 import {
   SmartLoading,

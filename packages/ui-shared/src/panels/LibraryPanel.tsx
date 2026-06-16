@@ -1,23 +1,14 @@
+import { getAllChords, searchChords, getChordById, getRelatedChords, type ChordType, useChordStore, ACCENT_COLORS, SONGS, GENRE_META, type Genre, SPANISH_DESCRIPTIONS, useScrollHide, useT, useIsWebDesktop, setBackHandler, playChord, stopChordPlayback, type GuitarChordData } from '@workspace/studio-core';
 import React, { useState, useMemo, useRef, useEffect, useCallback } from 'react';
-import { getAllChords, searchChords, getChordById, getRelatedChords, type ChordType } from '../data/chords';
-import { useChordStore, ACCENT_COLORS } from '../store/useChordStore';
 import EmptyStateLottie from '../components/lottie/EmptyStateLottie';
-import { SONGS, GENRE_META, type Genre } from '../data/progressions';
-import { SPANISH_DESCRIPTIONS } from '../data/progressionsEs';
-import { useScrollHide } from '../lib/navScroll';
 import ChordDiagram from '../components/ChordDiagram';
-import { useT } from '../lib/useT';
 import { AppModeMenuLogo } from '../components/AppModeMenuLogo';
-import { useIsWebDesktop } from '../hooks/useIsWebDesktop';
-import { setBackHandler } from '../lib/backStack';
-import { playChord, stopChordPlayback } from '../lib/guitarAudio';
 import { AnimatedAppHeader, StaggeredReveal } from '../components/AppAnimationSystem';
 import { useScrollFade } from '../components/ScrollFade';
 import GuitarDiagram from '../components/GuitarDiagram';
 import PianoDiagram from '../components/PianoDiagram';
 import FourStringDiagram from '../components/FourStringDiagram';
 import { WebEmptyState } from '../components/WebDesignSystem';
-import type { GuitarChordData } from '../data/chords';
 
 function RelatedPlayBtn({ guitar, accent, isLight }: {
   guitar: GuitarChordData;

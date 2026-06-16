@@ -1,7 +1,7 @@
+import { useStudioPreferences } from '@workspace/studio-core';
+import { StudioLogo } from '@workspace/ui-shared';
 import React, { useState, useEffect } from 'react';
 import { motion } from 'motion/react';
-import { StudioLogo } from '../../components/ChordexLogo';
-import { useStudioPreferences } from '../../hooks/useStudioPreferences';
 
 interface LandingNavbarProps {
   navigateTo: (path: string) => void;
