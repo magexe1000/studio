@@ -381,10 +381,18 @@ export default function StudioHub() {
   }, [tab]);
 
   const launchApp = useCallback((appMode: 'chords' | 'drums' | 'stage' | 'groovex' | 'vocalex') => {
+    if ((window as any).studioTransitionActive) {
+      console.warn('[Navigation] App switch request ignored: transition in progress.');
+      return;
+    }
+    (window as any).studioTransitionActive = true;
     updateSettings({ appMode });
     setTimeout(() => {
       setZooming(true);
     }, 100);
+    setTimeout(() => {
+      (window as any).studioTransitionActive = false;
+    }, 450);
   // updateSettings is stable (Zustand action), setZooming is React setState
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -425,6 +433,7 @@ export default function StudioHub() {
       watchdogTimer = setTimeout(() => {
         console.warn('[Safety] Hub zooming stuck on Hub mode for too long, forcing reset.');
         setZooming(false);
+        (window as any).studioTransitionActive = false;
       }, 600);
     }
     return () => {
@@ -2539,112 +2548,7 @@ function HubSettings({
 
   function renderHelpCenterContent() {
     return (
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 24, paddingBottom: 24 }}>
-        {/* Search Bar Visual */}
-        <div style={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: 12,
-          padding: '12px 16px',
-          background: 'rgba(255, 255, 255, 0.03)',
-          border: '1px solid rgba(128, 128, 128, 0.08)',
-          borderRadius: 12,
-        }}>
-          <span className="material-symbols-outlined" style={{ color: 'var(--c-text-secondary)', fontSize: 20 }}>
-            search
-          </span>
-          <input
-            type="text"
-            placeholder="Search help articles..."
-            disabled
-            style={{
-              background: 'transparent',
-              border: 'none',
-              outline: 'none',
-              color: 'var(--c-text-primary)',
-              fontSize: 14,
-              width: '100%',
-              cursor: 'not-allowed',
-            }}
-          />
-        </div>
-
-        {/* Quick Help Topics */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-          <h3 style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--c-text-secondary)', opacity: 0.6, margin: '0 0 4px 0' }}>
-            Help Categories
-          </h3>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: 10 }}>
-            {[
-              { icon: 'play_circle', title: 'Getting Started', desc: 'Learn the basics of Studio, including app structures and navigation.' },
-              { icon: 'save', title: 'Projects & Exporting', desc: 'How to save your projects locally or export them as MIDI or Audio.' },
-              { icon: 'volume_up', title: 'Audio & MIDI Configurations', desc: 'Configure output devices, MIDI inputs, and latencies.' },
-              { icon: 'build', title: 'Troubleshooting & Diagnosis', desc: 'Run tests to check your system audio, cloud database, and cache.' },
-            ].map((topic, i) => (
-              <div key={i} style={{
-                display: 'flex',
-                gap: 16,
-                padding: '16px',
-                background: 'rgba(255, 255, 255, 0.02)',
-                border: '1px solid rgba(128, 128, 128, 0.06)',
-                borderRadius: 12,
-              }}>
-                <span className="material-symbols-outlined" style={{ fontSize: 24, color: accent.from }}>
-                  {topic.icon}
-                </span>
-                <div>
-                  <h4 style={{ margin: '0 0 4px 0', fontSize: 14, fontWeight: 700, color: 'var(--c-text-primary)' }}>
-                    {topic.title}
-                  </h4>
-                  <p style={{ margin: 0, fontSize: 12, color: 'var(--c-text-secondary)', lineHeight: 1.4 }}>
-                    {topic.desc}
-                  </p>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        {/* Contact/Support Links */}
-        <div style={{
-          padding: 18,
-          background: 'rgba(255, 255, 255, 0.01)',
-          border: '1px solid rgba(128, 128, 128, 0.06)',
-          borderRadius: 12,
-          display: 'flex',
-          flexDirection: 'column',
-          gap: 12,
-        }}>
-          <h4 style={{ margin: 0, fontSize: 14, fontWeight: 700, color: 'var(--c-text-primary)' }}>
-            Need direct assistance?
-          </h4>
-          <p style={{ margin: 0, fontSize: 12, color: 'var(--c-text-secondary)', lineHeight: 1.4 }}>
-            For help with your account, project recovery, or complex issues, feel free to visit our official github repository or reach out directly.
-          </p>
-          <div style={{ display: 'flex', gap: 10, marginTop: 4 }}>
-            <a
-              href="https://github.com/MAGEXE1000/Studio"
-              target="_blank"
-              rel="noopener noreferrer"
-              style={{
-                textDecoration: 'none',
-                padding: '8px 16px',
-                background: 'rgba(255,255,255,0.06)',
-                color: 'var(--c-text-primary)',
-                fontSize: 12,
-                fontWeight: 700,
-                borderRadius: 8,
-                display: 'flex',
-                alignItems: 'center',
-                gap: 8,
-              }}
-            >
-              <span className="material-symbols-outlined" style={{ fontSize: 16 }}>open_in_new</span>
-              GitHub Repository
-            </a>
-          </div>
-        </div>
-      </div>
+      <HelpAccordion accent={accent} lang={lang} />
     );
   }
 
@@ -4502,16 +4406,15 @@ User Agent: [Automatically Generated]
 
         <SettingsSectionLabel delay={100}>Help & Support</SettingsSectionLabel>
         <div style={cardStyle}>
-          <SettingsNavRow icon="help" iconColor={accent.from} title="Help Center" desc="Documentation and guides" onPress={() => navigate('help-center')} delay={110} />
-          <SettingsNavRow icon="contact_support" iconColor={accent.from} title="FAQ & Support" desc="Frequently asked questions" onPress={() => navigate('faq')} last={isNative()} delay={120} />
+          <SettingsNavRow icon="contact_support" iconColor={accent.from} title={lang === 'es' ? 'Ayuda y Soporte' : 'Help & Support'} desc={lang === 'es' ? 'Documentación, preguntas frecuentes y diagnósticos' : 'Documentation, FAQ & diagnostics'} onPress={() => navigate('help-center')} last={isNative()} delay={110} />
           {!isNative() && (
-            <SettingsNavRow icon="article" iconColor={accent.from} title="Release Notes" desc="View version history" onPress={() => navigate('release-notes')} delay={130} />
+            <SettingsNavRow icon="article" iconColor={accent.from} title="Release Notes" desc="View version history" onPress={() => navigate('release-notes')} delay={120} />
           )}
           {!isNative() && (
-            <SettingsNavRow icon="install_desktop" iconColor={accent.from} title="Download Apps" desc="Get native mobile and desktop clients" onPress={() => navigate('download-apps')} delay={140} />
+            <SettingsNavRow icon="install_desktop" iconColor={accent.from} title="Download Apps" desc="Get native mobile and desktop clients" onPress={() => navigate('download-apps')} delay={130} />
           )}
           {!isNative() && (
-            <SettingsNavRow icon="keyboard" iconColor={accent.from} title="Keyboard Shortcuts" desc="View quick key bindings" onPress={() => navigate('keyboard-shortcuts')} last delay={150} />
+            <SettingsNavRow icon="keyboard" iconColor={accent.from} title="Keyboard Shortcuts" desc="View quick key bindings" onPress={() => navigate('keyboard-shortcuts')} last delay={140} />
           )}
         </div>
 
@@ -5057,7 +4960,7 @@ function HubHelp({
   useEffect(() => {
     const handleRoute = () => {
       sessionStorage.removeItem('studio:routeToHelpPage');
-      navigate('faq');
+      navigate('help-center');
     };
     window.addEventListener('studio:route-to-faq', handleRoute);
     return () => {
@@ -5104,109 +5007,7 @@ function HubHelp({
 
   function renderHelpCenterContent() {
     return (
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 24, paddingBottom: 24 }}>
-        <div style={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: 12,
-          padding: '12px 16px',
-          background: 'rgba(255, 255, 255, 0.03)',
-          border: '1px solid rgba(128, 128, 128, 0.08)',
-          borderRadius: 12,
-        }}>
-          <span className="material-symbols-outlined" style={{ color: 'var(--c-text-secondary)', fontSize: 20 }}>
-            search
-          </span>
-          <input
-            type="text"
-            placeholder="Search help articles..."
-            disabled
-            style={{
-              background: 'transparent',
-              border: 'none',
-              outline: 'none',
-              color: 'var(--c-text-primary)',
-              fontSize: 14,
-              width: '100%',
-              cursor: 'not-allowed',
-            }}
-          />
-        </div>
-
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-          <h3 style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--c-text-secondary)', opacity: 0.6, margin: '0 0 4px 0' }}>
-            Help Categories
-          </h3>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: 10 }}>
-            {[
-              { icon: 'play_circle', title: 'Getting Started', desc: 'Learn the basics of Studio, including app structures and navigation.' },
-              { icon: 'save', title: 'Projects & Exporting', desc: 'How to save your projects locally or export them as MIDI or Audio.' },
-              { icon: 'volume_up', title: 'Audio & MIDI Configurations', desc: 'Configure output devices, MIDI inputs, and latencies.' },
-              { icon: 'build', title: 'Troubleshooting & Diagnosis', desc: 'Run tests to check your system audio, cloud database, and cache.' },
-            ].map((topic, i) => (
-              <div key={i} style={{
-                display: 'flex',
-                gap: 16,
-                padding: '16px',
-                background: 'rgba(255, 255, 255, 0.02)',
-                border: '1px solid rgba(128, 128, 128, 0.06)',
-                borderRadius: 12,
-              }}>
-                <span className="material-symbols-outlined" style={{ fontSize: 24, color: accent.from }}>
-                  {topic.icon}
-                </span>
-                <div>
-                  <h4 style={{ margin: '0 0 4px 0', fontSize: 14, fontWeight: 700, color: 'var(--c-text-primary)' }}>
-                    {topic.title}
-                  </h4>
-                  <p style={{ margin: 0, fontSize: 12, color: 'var(--c-text-secondary)', lineHeight: 1.4 }}>
-                    {topic.desc}
-                  </p>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        <div style={{
-          padding: 18,
-          background: 'rgba(255, 255, 255, 0.01)',
-          border: '1px solid rgba(128, 128, 128, 0.06)',
-          borderRadius: 12,
-          display: 'flex',
-          flexDirection: 'column',
-          gap: 12,
-        }}>
-          <h4 style={{ margin: 0, fontSize: 14, fontWeight: 700, color: 'var(--c-text-primary)' }}>
-            Need direct assistance?
-          </h4>
-          <p style={{ margin: 0, fontSize: 12, color: 'var(--c-text-secondary)', lineHeight: 1.4 }}>
-            For help with your account, project recovery, or complex issues, feel free to visit our official github repository or reach out directly.
-          </p>
-          <div style={{ display: 'flex', gap: 10, marginTop: 4 }}>
-            <a
-              href="https://github.com/MAGEXE1000/Studio"
-              target="_blank"
-              rel="noopener noreferrer"
-              style={{
-                textDecoration: 'none',
-                padding: '8px 16px',
-                background: 'rgba(255,255,255,0.06)',
-                color: 'var(--c-text-primary)',
-                fontSize: 12,
-                fontWeight: 700,
-                borderRadius: 8,
-                display: 'flex',
-                alignItems: 'center',
-                gap: 8,
-              }}
-            >
-              <span className="material-symbols-outlined" style={{ fontSize: 16 }}>open_in_new</span>
-              GitHub Repository
-            </a>
-          </div>
-        </div>
-      </div>
+      <HelpAccordion accent={accent} lang={lang} />
     );
   }
 
@@ -5636,8 +5437,7 @@ User Agent: [Automatically Generated]
     {
       label: lang === 'es' ? 'Soporte' : 'Support',
       items: [
-        { id: 'help-center' as const, icon: 'help', label: lang === 'es' ? 'Centro de Ayuda' : 'Help Center' },
-        { id: 'faq' as const, icon: 'contact_support', label: lang === 'es' ? 'Preguntas Frecuentes' : 'FAQ & Support' },
+        { id: 'help-center' as const, icon: 'contact_support', label: lang === 'es' ? 'Ayuda y Soporte' : 'Help & Support' },
         { id: 'release-notes' as const, icon: 'article', label: lang === 'es' ? 'Notas de Lanzamiento' : 'Release Notes' },
         { id: 'download-apps' as const, icon: 'install_desktop', label: lang === 'es' ? 'Descargar Aplicaciones' : 'Download Apps' },
         { id: 'keyboard-shortcuts' as const, icon: 'keyboard', label: lang === 'es' ? 'Atajos de Teclado' : 'Keyboard Shortcuts' },
@@ -5789,16 +5589,15 @@ User Agent: [Automatically Generated]
 
         <SettingsSectionLabel delay={70}>Support</SettingsSectionLabel>
         <div style={cardStyle}>
-          <SettingsNavRow icon="help" iconColor={accent.from} title="Help Center" desc="Documentation and guides" onPress={() => navigate('help-center')} delay={75} />
-          <SettingsNavRow icon="contact_support" iconColor={accent.from} title="FAQ & Support" desc="Frequently asked questions" onPress={() => navigate('faq')} last={isNative()} delay={80} />
+          <SettingsNavRow icon="contact_support" iconColor={accent.from} title={lang === 'es' ? 'Ayuda y Soporte' : 'Help & Support'} desc={lang === 'es' ? 'Documentación, preguntas frecuentes y diagnósticos' : 'Documentation, FAQ & diagnostics'} onPress={() => navigate('help-center')} last={isNative()} delay={75} />
           {!isNative() && (
-            <SettingsNavRow icon="article" iconColor={accent.from} title="Release Notes" desc="View version history" onPress={() => navigate('release-notes')} delay={85} />
+            <SettingsNavRow icon="article" iconColor={accent.from} title="Release Notes" desc="View version history" onPress={() => navigate('release-notes')} delay={80} />
           )}
           {!isNative() && (
-            <SettingsNavRow icon="install_desktop" iconColor={accent.from} title="Download Apps" desc="Get native mobile and desktop clients" onPress={() => navigate('download-apps')} delay={90} />
+            <SettingsNavRow icon="install_desktop" iconColor={accent.from} title="Download Apps" desc="Get native mobile and desktop clients" onPress={() => navigate('download-apps')} delay={85} />
           )}
           {!isNative() && (
-            <SettingsNavRow icon="keyboard" iconColor={accent.from} title="Keyboard Shortcuts" desc="View quick key bindings" onPress={() => navigate('keyboard-shortcuts')} last delay={95} />
+            <SettingsNavRow icon="keyboard" iconColor={accent.from} title="Keyboard Shortcuts" desc="View quick key bindings" onPress={() => navigate('keyboard-shortcuts')} last delay={90} />
           )}
         </div>
 
@@ -6116,6 +5915,8 @@ const FAQ_ITEMS: Record<string, FAQItem[]> = {
 
 function HelpAccordion({ accent, lang }: { accent: { from: string; to: string }; lang: string }) {
   const [openIdx, setOpenIdx] = useState<number | null>(null);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [activeCategory, setActiveCategory] = useState<string | null>(null);
   const faqList = FAQ_ITEMS[lang] ?? FAQ_ITEMS.en;
 
   // Troubleshooter States
@@ -6125,6 +5926,23 @@ function HelpAccordion({ accent, lang }: { accent: { from: string; to: string };
   const [securityState, setSecurityState] = useState<'idle' | 'auditing' | 'success'>('idle');
   const [auditReport, setAuditReport] = useState<string | null>(null);
   const [resetState, setResetState] = useState<'idle' | 'repairing' | 'success'>('idle');
+
+  // Audio Context State
+  const [audioCtxState, setAudioCtxState] = useState<string>('unknown');
+  useEffect(() => {
+    try {
+      const AudioCtx = window.AudioContext || (window as any).webkitAudioContext;
+      if (AudioCtx) {
+        const tempCtx = new AudioCtx();
+        setAudioCtxState(tempCtx.state);
+        tempCtx.close();
+      } else {
+        setAudioCtxState('unsupported');
+      }
+    } catch {
+      setAudioCtxState('error');
+    }
+  }, [audioState]);
 
   // Sync state monitoring
   useEffect(() => {
@@ -6246,359 +6064,631 @@ function HelpAccordion({ accent, lang }: { accent: { from: string; to: string };
     }
   };
 
+  // Helper for categorizing FAQ items
+  const getFaqCategory = (idx: number): string => {
+    if ([0, 1, 2, 3, 6].includes(idx)) return 'getting-started';
+    if ([4].includes(idx)) return 'audio-midi';
+    if ([5, 7, 8].includes(idx)) return 'sync-storage';
+    return 'getting-started';
+  };
+
+  // Filter FAQ items
+  const filteredFaqs = faqList.map((item, idx) => ({ ...item, originalIdx: idx })).filter(item => {
+    const matchesSearch = searchQuery.trim() === '' || 
+      item.question.toLowerCase().includes(searchQuery.toLowerCase()) || 
+      item.answer.toLowerCase().includes(searchQuery.toLowerCase());
+    
+    const matchesCategory = !activeCategory || getFaqCategory(item.originalIdx) === activeCategory;
+    
+    return matchesSearch && matchesCategory;
+  });
+
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-      {faqList.map((item, idx) => {
-        const isOpen = openIdx === idx;
-        return (
-          <div
-            key={idx}
-            className="spring-in"
-            style={{
-              background: 'var(--app-surface)',
-              border: '1px solid rgba(128,128,128,0.1)',
-              borderRadius: 14,
-              overflow: 'hidden',
-              boxShadow: isOpen ? '0 8px 24px rgba(0,0,0,0.06)' : '0 2px 8px rgba(0,0,0,0.02)',
-              transition: 'box-shadow 300ms ease, border-color 300ms ease',
-              borderColor: isOpen ? `color-mix(in srgb, ${accent.from} 30%, rgba(128,128,128,0.1))` : 'rgba(128,128,128,0.1)',
-            }}
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 20, paddingBottom: 24 }}>
+      {/* Search Input */}
+      <div style={{
+        display: 'flex',
+        alignItems: 'center',
+        gap: 12,
+        padding: '12px 16px',
+        background: 'rgba(255, 255, 255, 0.03)',
+        border: '1px solid rgba(128, 128, 128, 0.08)',
+        borderRadius: 12,
+      }}>
+        <span className="material-symbols-outlined" style={{ color: 'var(--c-text-secondary)', fontSize: 20 }}>
+          search
+        </span>
+        <input
+          type="text"
+          placeholder={lang === 'es' ? "Buscar ayuda y preguntas..." : "Search help articles & FAQs..."}
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          style={{
+            background: 'transparent',
+            border: 'none',
+            outline: 'none',
+            color: 'var(--c-text-primary)',
+            fontSize: 14,
+            width: '100%',
+          }}
+        />
+        {searchQuery && (
+          <button
+            onClick={() => setSearchQuery('')}
+            style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--c-text-secondary)', padding: 0 }}
           >
-            <button
-              onClick={() => setOpenIdx(isOpen ? null : idx)}
-              style={{
-                width: '100%',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-                padding: '16px 18px',
-                background: 'transparent',
-                border: 'none',
-                cursor: 'pointer',
-                textAlign: 'left',
-                color: 'var(--c-text-primary)',
-                fontFamily: 'Manrope, sans-serif',
-                fontWeight: 700,
-                fontSize: 14,
-                gap: 12,
-                outline: 'none',
-                WebkitTapHighlightColor: 'transparent',
-              }}
-            >
-              <span style={{ transition: 'color 200ms ease', color: isOpen ? accent.from : 'var(--c-text-primary)' }}>
-                {item.question}
-              </span>
-              <span
-                className="material-symbols-outlined"
+            <span className="material-symbols-outlined" style={{ fontSize: 18 }}>close</span>
+          </button>
+        )}
+      </div>
+
+      {/* Category Chips */}
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+        <h3 style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--c-text-secondary)', opacity: 0.6, margin: 0 }}>
+          {lang === 'es' ? 'Categorías de Ayuda' : 'Help Categories'}
+        </h3>
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+          {[
+            { id: 'getting-started', label: lang === 'es' ? 'Inicio' : 'Getting Started', icon: 'play_circle' },
+            { id: 'audio-midi', label: 'Audio & MIDI', icon: 'volume_up' },
+            { id: 'sync-storage', label: lang === 'es' ? 'Sincro y Almacén' : 'Sync & Storage', icon: 'cloud_sync' },
+            { id: 'troubleshooting', label: lang === 'es' ? 'Diagnóstico' : 'Diagnostics', icon: 'build' },
+          ].map((cat) => {
+            const isActive = activeCategory === cat.id;
+            return (
+              <button
+                key={cat.id}
+                onClick={() => setActiveCategory(isActive ? null : cat.id)}
                 style={{
-                  transform: isOpen ? 'rotate(180deg)' : 'rotate(0deg)',
-                  transition: 'transform 300ms cubic-bezier(0.34, 1.56, 0.64, 1), color 200ms ease',
-                  fontSize: 20,
-                  color: isOpen ? accent.from : 'var(--c-text-secondary)',
-                }}
-              >
-                expand_more
-              </span>
-            </button>
-            <div
-              style={{
-                maxHeight: isOpen ? 380 : 0,
-                opacity: isOpen ? 1 : 0,
-                overflow: 'hidden',
-                transition: 'max-height 300ms cubic-bezier(0.25, 1, 0.5, 1), opacity 240ms ease',
-              }}
-            >
-              <div
-                style={{
-                  padding: '0 18px 16px',
-                  fontSize: '13px',
-                  lineHeight: '1.6',
-                  color: 'var(--c-text-secondary)',
-                  fontFamily: 'Inter, sans-serif',
-                  fontWeight: 500,
                   display: 'flex',
-                  flexDirection: 'column',
+                  alignItems: 'center',
+                  gap: 6,
+                  padding: '8px 14px',
+                  borderRadius: 20,
+                  border: isActive ? 'none' : '1px solid rgba(128, 128, 128, 0.15)',
+                  background: isActive ? `linear-gradient(135deg, ${accent.from}, ${accent.to})` : 'rgba(255, 255, 255, 0.02)',
+                  color: isActive ? '#fff' : 'var(--c-text-primary)',
+                  fontSize: 12,
+                  fontWeight: 700,
+                  cursor: 'pointer',
+                  transition: 'all 200ms ease',
                 }}
               >
-                <span>{item.answer}</span>
+                <span className="material-symbols-outlined" style={{ fontSize: 16 }}>{cat.icon}</span>
+                <span>{cat.label}</span>
+              </button>
+            );
+          })}
+        </div>
+      </div>
 
-                {/* Troubleshooter Injectors */}
-                {idx === 4 && (
-                  <button
-                    onClick={runAudioTroubleshooter}
-                    disabled={audioState === 'testing'}
-                    style={{
-                      marginTop: 12,
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      gap: 8,
-                      padding: '10px 16px',
-                      borderRadius: 12,
-                      background: audioState === 'testing' ? 'rgba(128,128,128,0.1)' : `linear-gradient(135deg, ${accent.from}, ${accent.to})`,
-                      color: audioState === 'testing' ? 'var(--c-text-secondary)' : '#ffffff',
-                      border: 'none',
-                      fontFamily: 'Manrope, sans-serif',
-                      fontWeight: 700,
-                      fontSize: '12px',
-                      cursor: audioState === 'testing' ? 'default' : 'pointer',
-                      boxShadow: audioState === 'testing' ? 'none' : `0 4px 12px rgba(0, 122, 255, 0.15)`,
-                      transition: 'all 200ms ease',
-                      outline: 'none',
-                    }}
-                  >
-                    {audioState === 'testing' ? (
-                      <>
-                        <span className="material-symbols-outlined" style={{ fontSize: 16, animation: 'spin 1s linear infinite' }}>
-                          sync
-                        </span>
-                        <span>{lang === 'es' ? 'Probando Altavoces...' : lang === 'de' ? 'Testen...' : 'Running Diagnostics...'}</span>
-                      </>
-                    ) : audioState === 'success' ? (
-                      <>
-                        <span className="material-symbols-outlined" style={{ fontSize: 16 }}>
-                          check_circle
-                        </span>
-                        <span>{lang === 'es' ? '¡Altavoz Activo!' : lang === 'de' ? 'Lautsprecher Aktiv!' : 'Sound Active!'}</span>
-                      </>
-                    ) : (
-                      <>
-                        <span className="material-symbols-outlined" style={{ fontSize: 16 }}>
-                          volume_up
-                        </span>
-                        <span>{lang === 'es' ? 'Reiniciar y Probar Sonido' : lang === 'de' ? 'Sound-Engine testen' : 'Restart & Test Sound Engine'}</span>
-                      </>
-                    )}
-                  </button>
-                )}
-
-                {idx === 5 && (
-                  <button
-                    onClick={runSyncTroubleshooter}
-                    disabled={syncState === 'syncing'}
-                    style={{
-                      marginTop: 12,
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      gap: 8,
-                      padding: '10px 16px',
-                      borderRadius: 12,
-                      background: syncState === 'syncing' ? 'rgba(128,128,128,0.1)' : `linear-gradient(135deg, ${accent.from}, ${accent.to})`,
-                      color: syncState === 'syncing' ? 'var(--c-text-secondary)' : '#ffffff',
-                      border: 'none',
-                      fontFamily: 'Manrope, sans-serif',
-                      fontWeight: 700,
-                      fontSize: '12px',
-                      cursor: syncState === 'syncing' ? 'default' : 'pointer',
-                      boxShadow: syncState === 'syncing' ? 'none' : `0 4px 12px rgba(0, 122, 255, 0.15)`,
-                      transition: 'all 200ms ease',
-                      outline: 'none',
-                    }}
-                  >
-                    {syncState === 'syncing' ? (
-                      <>
-                        <span className="material-symbols-outlined" style={{ fontSize: 16, animation: 'spin 1s linear infinite' }}>
-                          sync
-                        </span>
-                        <span>{lang === 'es' ? 'Sincronizando de Nuevo...' : lang === 'de' ? 'Synchronisieren...' : 'Re-syncing with Cloud...'}</span>
-                      </>
-                    ) : syncState === 'success' ? (
-                      <>
-                        <span className="material-symbols-outlined" style={{ fontSize: 16 }}>
-                          check_circle
-                        </span>
-                        <span>{lang === 'es' ? '¡Sincronización Exitosa!' : lang === 'de' ? 'Erfolgreich synchronisiert!' : 'Sync Successful!'}</span>
-                      </>
-                    ) : syncState === 'error' ? (
-                      <>
-                        <span className="material-symbols-outlined" style={{ fontSize: 16 }}>
-                          error
-                        </span>
-                        <span>{lang === 'es' ? 'Error al Sincronizar' : lang === 'de' ? 'Synchronisierungsfehler' : 'Sync Failed'}</span>
-                      </>
-                    ) : (
-                      <>
-                        <span className="material-symbols-outlined" style={{ fontSize: 16 }}>
-                          cloud_sync
-                        </span>
-                        <span>{lang === 'es' ? 'Forzar Sincronización Completa' : lang === 'de' ? 'Datenbank neu synchronisieren' : 'Force Full Re-Sync'}</span>
-                      </>
-                    )}
-                  </button>
-                )}
-
-                {idx === 6 && (
-                  <button
-                    onClick={runCacheTroubleshooter}
-                    disabled={cacheState === 'clearing'}
-                    style={{
-                      marginTop: 12,
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      gap: 8,
-                      padding: '10px 16px',
-                      borderRadius: 12,
-                      background: cacheState === 'clearing' ? 'rgba(128,128,128,0.1)' : `linear-gradient(135deg, ${accent.from}, ${accent.to})`,
-                      color: cacheState === 'clearing' ? 'var(--c-text-secondary)' : '#ffffff',
-                      border: 'none',
-                      fontFamily: 'Manrope, sans-serif',
-                      fontWeight: 700,
-                      fontSize: '12px',
-                      cursor: cacheState === 'clearing' ? 'default' : 'pointer',
-                      boxShadow: cacheState === 'clearing' ? 'none' : `0 4px 12px rgba(0, 122, 255, 0.15)`,
-                      transition: 'all 200ms ease',
-                      outline: 'none',
-                    }}
-                  >
-                    {cacheState === 'clearing' ? (
-                      <>
-                        <span className="material-symbols-outlined" style={{ fontSize: 16, animation: 'spin 1s linear infinite' }}>
-                          sync
-                        </span>
-                        <span>{lang === 'es' ? 'Limpiando Caché...' : lang === 'de' ? 'Cache wird geleert...' : 'Flushing Cache...'}</span>
-                      </>
-                    ) : cacheState === 'success' ? (
-                      <>
-                        <span className="material-symbols-outlined" style={{ fontSize: 16 }}>
-                          check_circle
-                        </span>
-                        <span>{lang === 'es' ? '¡Caché Limpia!' : lang === 'de' ? 'Cache Geleert!' : 'Cache Cleaned!'}</span>
-                      </>
-                    ) : (
-                      <>
-                        <span className="material-symbols-outlined" style={{ fontSize: 16 }}>
-                          mop
-                        </span>
-                        <span>{lang === 'es' ? 'Vaciar Caché y Temporales' : lang === 'de' ? 'Caches & Temp-Dateien löschen' : 'Wipe Caches & Temp Files'}</span>
-                      </>
-                    )}
-                  </button>
-                )}
-
-                {idx === 7 && (
-                  <div style={{ display: 'flex', flexDirection: 'column', width: '100%' }}>
-                    <button
-                      onClick={runSecurityTroubleshooter}
-                      disabled={securityState === 'auditing'}
-                      style={{
-                        marginTop: 12,
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        gap: 8,
-                        padding: '10px 16px',
-                        borderRadius: 12,
-                        background: securityState === 'auditing' ? 'rgba(128,128,128,0.1)' : `linear-gradient(135deg, ${accent.from}, ${accent.to})`,
-                        color: securityState === 'auditing' ? 'var(--c-text-secondary)' : '#ffffff',
-                        border: 'none',
-                        fontFamily: 'Manrope, sans-serif',
-                        fontWeight: 700,
-                        fontSize: '12px',
-                        cursor: securityState === 'auditing' ? 'default' : 'pointer',
-                        boxShadow: securityState === 'auditing' ? 'none' : `0 4px 12px rgba(0, 122, 255, 0.15)`,
-                        transition: 'all 200ms ease',
-                        outline: 'none',
-                      }}
-                    >
-                      {securityState === 'auditing' ? (
-                        <>
-                          <span className="material-symbols-outlined" style={{ fontSize: 16, animation: 'spin 1s linear infinite' }}>
-                            sync
-                          </span>
-                          <span>{lang === 'es' ? 'Auditando Cifrado...' : lang === 'de' ? 'Verschlüsselung prüfen...' : 'Auditing Cryptographic Engine...'}</span>
-                        </>
-                      ) : securityState === 'success' ? (
-                        <>
-                          <span className="material-symbols-outlined" style={{ fontSize: 16 }}>
-                            shield
-                          </span>
-                          <span>{lang === 'es' ? '¡Dispositivo Seguro!' : lang === 'de' ? 'Gerät Sicher!' : 'System Secure!'}</span>
-                        </>
-                      ) : (
-                        <>
-                          <span className="material-symbols-outlined" style={{ fontSize: 16 }}>
-                            security
-                          </span>
-                          <span>{lang === 'es' ? 'Auditar Cifrado y Seguridad' : lang === 'de' ? 'Verschlüsselung & Key prüfen' : 'Verify Device Encryption'}</span>
-                        </>
-                      )}
-                    </button>
-                    {auditReport && (
-                      <pre
-                        style={{
-                          marginTop: 10,
-                          padding: 10,
-                          background: 'rgba(0, 0, 0, 0.2)',
-                          borderRadius: 8,
-                          fontFamily: 'monospace',
-                          fontSize: '11px',
-                          color: '#4ade80',
-                          whiteSpace: 'pre-wrap',
-                          border: '1px solid rgba(74, 222, 128, 0.2)',
-                          lineHeight: '1.4',
-                        }}
-                      >
-                        {auditReport}
-                      </pre>
-                    )}
-                  </div>
-                )}
-
-                {idx === 8 && (
-                  <button
-                    onClick={runResetTroubleshooter}
-                    disabled={resetState === 'repairing'}
-                    style={{
-                      marginTop: 12,
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      gap: 8,
-                      padding: '10px 16px',
-                      borderRadius: 12,
-                      background: resetState === 'repairing' ? 'rgba(128,128,128,0.1)' : `linear-gradient(135deg, ${accent.from}, ${accent.to})`,
-                      color: resetState === 'repairing' ? 'var(--c-text-secondary)' : '#ffffff',
-                      border: 'none',
-                      fontFamily: 'Manrope, sans-serif',
-                      fontWeight: 700,
-                      fontSize: '12px',
-                      cursor: resetState === 'repairing' ? 'default' : 'pointer',
-                      boxShadow: resetState === 'repairing' ? 'none' : `0 4px 12px rgba(0, 122, 255, 0.15)`,
-                      transition: 'all 200ms ease',
-                      outline: 'none',
-                    }}
-                  >
-                    {resetState === 'repairing' ? (
-                      <>
-                        <span className="material-symbols-outlined" style={{ fontSize: 16, animation: 'spin 1s linear infinite' }}>
-                          sync
-                        </span>
-                        <span>{lang === 'es' ? 'Recargando Memoria...' : lang === 'de' ? 'Speicher neu laden...' : 'Reloading Memory...'}</span>
-                      </>
-                    ) : resetState === 'success' ? (
-                      <>
-                        <span className="material-symbols-outlined" style={{ fontSize: 16 }}>
-                          autorenew
-                        </span>
-                        <span>{lang === 'es' ? '¡Reiniciando!' : lang === 'de' ? 'Neustart!' : 'Restarting!'}</span>
-                      </>
-                    ) : (
-                      <>
-                        <span className="material-symbols-outlined" style={{ fontSize: 16 }}>
-                          restart_alt
-                        </span>
-                        <span>{lang === 'es' ? 'Recargar y Reparar Interfaz' : lang === 'de' ? 'Speicher leeren & App neu laden' : 'Reload & Soft Reset Memory'}</span>
-                      </>
-                    )}
-                  </button>
-                )}
-              </div>
+      {/* Dynamic Device Diagnostics Card */}
+      {(!activeCategory || activeCategory === 'troubleshooting') && (
+        <div style={{
+          background: 'rgba(255, 255, 255, 0.02)',
+          border: '1px solid rgba(128, 128, 128, 0.08)',
+          borderRadius: 16,
+          padding: 16,
+          display: 'flex',
+          flexDirection: 'column',
+          gap: 12,
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <span className="material-symbols-outlined" style={{ color: accent.from, fontSize: 22 }}>
+              monitor_heart
+            </span>
+            <h4 style={{ margin: 0, fontSize: 14, fontWeight: 800, color: 'var(--c-text-primary)' }}>
+              {lang === 'es' ? 'Diagnóstico del Dispositivo' : 'Device Diagnostics'}
+            </h4>
+          </div>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, fontSize: 11, color: 'var(--c-text-secondary)' }}>
+            <div>
+              <span style={{ opacity: 0.6 }}>ID: </span>
+              <span style={{ fontFamily: 'monospace', fontWeight: 600 }}>{deviceId()?.slice(0, 12) || 'UNKNOWN'}...</span>
+            </div>
+            <div>
+              <span style={{ opacity: 0.6 }}>Platform: </span>
+              <span style={{ fontWeight: 600 }}>{isNative() ? 'Android App' : 'Web Browser'}</span>
+            </div>
+            <div>
+              <span style={{ opacity: 0.6 }}>Audio: </span>
+              <span style={{ fontWeight: 600, color: audioCtxState === 'running' ? '#40c057' : 'var(--c-text-secondary)' }}>{audioCtxState}</span>
+            </div>
+            <div>
+              <span style={{ opacity: 0.6 }}>Storage: </span>
+              <span style={{ fontWeight: 600 }}>{localStorage?.length || 0} keys</span>
             </div>
           </div>
-        );
-      })}
+
+          <div style={{ height: 1, background: 'rgba(128, 128, 128, 0.08)', margin: '4px 0' }} />
+
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+            <button
+              onClick={runAudioTroubleshooter}
+              disabled={audioState === 'testing'}
+              style={{
+                padding: '6px 12px',
+                borderRadius: 8,
+                background: 'rgba(255,255,255,0.04)',
+                border: '1px solid rgba(128,128,128,0.1)',
+                color: 'var(--c-text-primary)',
+                fontSize: 11,
+                fontWeight: 700,
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: 4,
+              }}
+            >
+              <span className="material-symbols-outlined" style={{ fontSize: 14, animation: audioState === 'testing' ? 'spin 1s linear infinite' : 'none' }}>
+                {audioState === 'testing' ? 'sync' : 'volume_up'}
+              </span>
+              {audioState === 'testing' ? 'Testing...' : 'Test Audio'}
+            </button>
+
+            <button
+              onClick={runSyncTroubleshooter}
+              disabled={syncState === 'syncing'}
+              style={{
+                padding: '6px 12px',
+                borderRadius: 8,
+                background: 'rgba(255,255,255,0.04)',
+                border: '1px solid rgba(128,128,128,0.1)',
+                color: 'var(--c-text-primary)',
+                fontSize: 11,
+                fontWeight: 700,
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: 4,
+              }}
+            >
+              <span className="material-symbols-outlined" style={{ fontSize: 14, animation: syncState === 'syncing' ? 'spin 1s linear infinite' : 'none' }}>
+                {syncState === 'syncing' ? 'sync' : 'sync_problem'}
+              </span>
+              {syncState === 'syncing' ? 'Syncing...' : 'Force Sync'}
+            </button>
+
+            <button
+              onClick={runCacheTroubleshooter}
+              disabled={cacheState === 'clearing'}
+              style={{
+                padding: '6px 12px',
+                borderRadius: 8,
+                background: 'rgba(255,255,255,0.04)',
+                border: '1px solid rgba(128,128,128,0.1)',
+                color: 'var(--c-text-primary)',
+                fontSize: 11,
+                fontWeight: 700,
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: 4,
+              }}
+            >
+              <span className="material-symbols-outlined" style={{ fontSize: 14, animation: cacheState === 'clearing' ? 'spin 1s linear infinite' : 'none' }}>
+                {cacheState === 'clearing' ? 'sync' : 'mop'}
+              </span>
+              {cacheState === 'clearing' ? 'Clearing...' : 'Clear Cache'}
+            </button>
+
+            <button
+              onClick={runSecurityTroubleshooter}
+              disabled={securityState === 'auditing'}
+              style={{
+                padding: '6px 12px',
+                borderRadius: 8,
+                background: 'rgba(255,255,255,0.04)',
+                border: '1px solid rgba(128,128,128,0.1)',
+                color: 'var(--c-text-primary)',
+                fontSize: 11,
+                fontWeight: 700,
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: 4,
+              }}
+            >
+              <span className="material-symbols-outlined" style={{ fontSize: 14, animation: securityState === 'auditing' ? 'spin 1s linear infinite' : 'none' }}>
+                {securityState === 'auditing' ? 'sync' : 'security'}
+              </span>
+              {securityState === 'auditing' ? 'Auditing...' : 'Security Audit'}
+            </button>
+
+            <button
+              onClick={runResetTroubleshooter}
+              disabled={resetState === 'repairing'}
+              style={{
+                padding: '6px 12px',
+                borderRadius: 8,
+                background: 'rgba(255,255,255,0.04)',
+                border: '1px solid rgba(128,128,128,0.1)',
+                color: 'var(--c-text-primary)',
+                fontSize: 11,
+                fontWeight: 700,
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: 4,
+              }}
+            >
+              <span className="material-symbols-outlined" style={{ fontSize: 14, animation: resetState === 'repairing' ? 'spin 1s linear infinite' : 'none' }}>
+                {resetState === 'repairing' ? 'sync' : 'restart_alt'}
+              </span>
+              {resetState === 'repairing' ? 'Resetting...' : 'Reset & Reload'}
+            </button>
+          </div>
+
+          {auditReport && (
+            <div style={{
+              background: 'rgba(0,0,0,0.2)',
+              border: '1px solid rgba(128,128,128,0.1)',
+              borderRadius: 8,
+              padding: 10,
+              fontSize: 10,
+              fontFamily: 'monospace',
+              color: '#40c057',
+              whiteSpace: 'pre-wrap',
+            }}>
+              {auditReport}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* FAQ items / Accordions */}
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+        <h3 style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--c-text-secondary)', opacity: 0.6, margin: 0 }}>
+          {lang === 'es' ? 'Preguntas Frecuentes' : 'Frequently Asked Questions'}
+        </h3>
+        
+        {filteredFaqs.length === 0 ? (
+          <div style={{ padding: '20px 0', textAlign: 'center', color: 'var(--c-text-secondary)', fontSize: 13 }}>
+            {lang === 'es' ? 'No se encontraron preguntas.' : 'No matching FAQs found.'}
+          </div>
+        ) : (
+          filteredFaqs.map((item) => {
+            const isOpen = openIdx === item.originalIdx;
+            return (
+              <div
+                key={item.originalIdx}
+                className="spring-in"
+                style={{
+                  background: 'var(--app-surface)',
+                  border: '1px solid rgba(128,128,128,0.1)',
+                  borderRadius: 14,
+                  overflow: 'hidden',
+                  boxShadow: isOpen ? '0 8px 24px rgba(0,0,0,0.06)' : '0 2px 8px rgba(0,0,0,0.02)',
+                  transition: 'box-shadow 300ms ease, border-color 300ms ease',
+                  borderColor: isOpen ? `color-mix(in srgb, ${accent.from} 30%, rgba(128,128,128,0.1))` : 'rgba(128,128,128,0.1)',
+                }}
+              >
+                <button
+                  onClick={() => setOpenIdx(isOpen ? null : item.originalIdx)}
+                  style={{
+                    width: '100%',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    padding: '16px 18px',
+                    background: 'transparent',
+                    border: 'none',
+                    cursor: 'pointer',
+                    textAlign: 'left',
+                    color: 'var(--c-text-primary)',
+                    fontFamily: 'Manrope, sans-serif',
+                    fontWeight: 700,
+                    fontSize: 14,
+                    gap: 12,
+                    outline: 'none',
+                    WebkitTapHighlightColor: 'transparent',
+                  }}
+                >
+                  <span style={{ transition: 'color 200ms ease', color: isOpen ? accent.from : 'var(--c-text-primary)' }}>
+                    {item.question}
+                  </span>
+                  <span
+                    className="material-symbols-outlined"
+                    style={{
+                      transform: isOpen ? 'rotate(180deg)' : 'rotate(0deg)',
+                      transition: 'transform 300ms cubic-bezier(0.34, 1.56, 0.64, 1), color 200ms ease',
+                      fontSize: 20,
+                      color: isOpen ? accent.from : 'var(--c-text-secondary)',
+                    }}
+                  >
+                    expand_more
+                  </span>
+                </button>
+                <div
+                  style={{
+                    maxHeight: isOpen ? 380 : 0,
+                    opacity: isOpen ? 1 : 0,
+                    overflow: 'hidden',
+                    transition: 'max-height 300ms cubic-bezier(0.25, 1, 0.5, 1), opacity 240ms ease',
+                  }}
+                >
+                  <div
+                    style={{
+                      padding: '0 18px 16px',
+                      fontSize: '13px',
+                      lineHeight: '1.6',
+                      color: 'var(--c-text-secondary)',
+                      fontFamily: 'Inter, sans-serif',
+                      fontWeight: 500,
+                      display: 'flex',
+                      flexDirection: 'column',
+                    }}
+                  >
+                    <span>{item.answer}</span>
+
+                    {/* Troubleshooter Injectors */}
+                    {item.originalIdx === 4 && (
+                      <button
+                        onClick={runAudioTroubleshooter}
+                        disabled={audioState === 'testing'}
+                        style={{
+                          marginTop: 12,
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          gap: 8,
+                          padding: '10px 16px',
+                          borderRadius: 12,
+                          background: audioState === 'testing' ? 'rgba(128,128,128,0.1)' : `linear-gradient(135deg, ${accent.from}, ${accent.to})`,
+                          color: audioState === 'testing' ? 'var(--c-text-secondary)' : '#ffffff',
+                          border: 'none',
+                          fontFamily: 'Manrope, sans-serif',
+                          fontWeight: 700,
+                          fontSize: '12px',
+                          cursor: audioState === 'testing' ? 'default' : 'pointer',
+                          boxShadow: audioState === 'testing' ? 'none' : `0 4px 12px rgba(0, 122, 255, 0.15)`,
+                          transition: 'all 200ms ease',
+                          outline: 'none',
+                        }}
+                      >
+                        {audioState === 'testing' ? (
+                          <>
+                            <span className="material-symbols-outlined" style={{ fontSize: 16, animation: 'spin 1s linear infinite' }}>
+                              sync
+                            </span>
+                            <span>{lang === 'es' ? 'Probando Altavoces...' : lang === 'de' ? 'Testen...' : 'Running Diagnostics...'}</span>
+                          </>
+                        ) : audioState === 'success' ? (
+                          <>
+                            <span className="material-symbols-outlined" style={{ fontSize: 16 }}>
+                              check_circle
+                            </span>
+                            <span>{lang === 'es' ? '¡Altavoz Activo!' : lang === 'de' ? 'Lautsprecher Aktiv!' : 'Sound Active!'}</span>
+                          </>
+                        ) : (
+                          <>
+                            <span className="material-symbols-outlined" style={{ fontSize: 16 }}>
+                              volume_up
+                            </span>
+                            <span>{lang === 'es' ? 'Reiniciar y Probar Sonido' : lang === 'de' ? 'Sound-Engine testen' : 'Restart & Test Sound Engine'}</span>
+                          </>
+                        )}
+                      </button>
+                    )}
+
+                    {item.originalIdx === 5 && (
+                      <button
+                        onClick={runSyncTroubleshooter}
+                        disabled={syncState === 'syncing'}
+                        style={{
+                          marginTop: 12,
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          gap: 8,
+                          padding: '10px 16px',
+                          borderRadius: 12,
+                          background: syncState === 'syncing' ? 'rgba(128,128,128,0.1)' : `linear-gradient(135deg, ${accent.from}, ${accent.to})`,
+                          color: syncState === 'syncing' ? 'var(--c-text-secondary)' : '#ffffff',
+                          border: 'none',
+                          fontFamily: 'Manrope, sans-serif',
+                          fontWeight: 700,
+                          fontSize: '12px',
+                          cursor: syncState === 'syncing' ? 'default' : 'pointer',
+                          boxShadow: syncState === 'syncing' ? 'none' : `0 4px 12px rgba(0, 122, 255, 0.15)`,
+                          transition: 'all 200ms ease',
+                          outline: 'none',
+                        }}
+                      >
+                        {syncState === 'syncing' ? (
+                          <>
+                            <span className="material-symbols-outlined" style={{ fontSize: 16, animation: 'spin 1s linear infinite' }}>
+                              sync
+                            </span>
+                            <span>{lang === 'es' ? 'Sincronizando de Nuevo...' : lang === 'de' ? 'Synchronisieren...' : 'Re-syncing with Cloud...'}</span>
+                          </>
+                        ) : syncState === 'success' ? (
+                          <>
+                            <span className="material-symbols-outlined" style={{ fontSize: 16 }}>
+                              check_circle
+                            </span>
+                            <span>{lang === 'es' ? '¡Sincronización Exitosa!' : lang === 'de' ? 'Erfolgreich synchronisiert!' : 'Sync Successful!'}</span>
+                          </>
+                        ) : syncState === 'error' ? (
+                          <>
+                            <span className="material-symbols-outlined" style={{ fontSize: 16 }}>
+                              error
+                            </span>
+                            <span>{lang === 'es' ? 'Error al Sincronizar' : lang === 'de' ? 'Synchronisierungsfehler' : 'Sync Failed'}</span>
+                          </>
+                        ) : (
+                          <>
+                            <span className="material-symbols-outlined" style={{ fontSize: 16 }}>
+                              cloud_sync
+                            </span>
+                            <span>{lang === 'es' ? 'Forzar Sincronización Completa' : lang === 'de' ? 'Datenbank neu synchronisieren' : 'Force Full Re-Sync'}</span>
+                          </>
+                        )}
+                      </button>
+                    )}
+
+                    {item.originalIdx === 6 && (
+                      <button
+                        onClick={runCacheTroubleshooter}
+                        disabled={cacheState === 'clearing'}
+                        style={{
+                          marginTop: 12,
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          gap: 8,
+                          padding: '10px 16px',
+                          borderRadius: 12,
+                          background: cacheState === 'clearing' ? 'rgba(128,128,128,0.1)' : `linear-gradient(135deg, ${accent.from}, ${accent.to})`,
+                          color: cacheState === 'clearing' ? 'var(--c-text-secondary)' : '#ffffff',
+                          border: 'none',
+                          fontFamily: 'Manrope, sans-serif',
+                          fontWeight: 700,
+                          fontSize: '12px',
+                          cursor: cacheState === 'clearing' ? 'default' : 'pointer',
+                          boxShadow: cacheState === 'clearing' ? 'none' : `0 4px 12px rgba(0, 122, 255, 0.15)`,
+                          transition: 'all 200ms ease',
+                          outline: 'none',
+                        }}
+                      >
+                        {cacheState === 'clearing' ? (
+                          <>
+                            <span className="material-symbols-outlined" style={{ fontSize: 16, animation: 'spin 1s linear infinite' }}>
+                              sync
+                            </span>
+                            <span>{lang === 'es' ? 'Limpiando Caché...' : lang === 'de' ? 'Cache wird geleert...' : 'Flushing Cache...'}</span>
+                          </>
+                        ) : cacheState === 'success' ? (
+                          <>
+                            <span className="material-symbols-outlined" style={{ fontSize: 16 }}>
+                              check_circle
+                            </span>
+                            <span>{lang === 'es' ? '¡Caché Limpia!' : lang === 'de' ? 'Cache Geleert!' : 'Cache Cleaned!'}</span>
+                          </>
+                        ) : (
+                          <>
+                            <span className="material-symbols-outlined" style={{ fontSize: 16 }}>
+                              mop
+                            </span>
+                            <span>{lang === 'es' ? 'Vaciar Caché y Temporales' : lang === 'de' ? 'Caches & Temp-Dateien löschen' : 'Wipe Caches & Temp Files'}</span>
+                          </>
+                        )}
+                      </button>
+                    )}
+
+                    {item.originalIdx === 7 && (
+                      <div style={{ display: 'flex', flexDirection: 'column', width: '100%' }}>
+                        <button
+                          onClick={runSecurityTroubleshooter}
+                          disabled={securityState === 'auditing'}
+                          style={{
+                            marginTop: 12,
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            gap: 8,
+                            padding: '10px 16px',
+                            borderRadius: 12,
+                            background: securityState === 'auditing' ? 'rgba(128,128,128,0.1)' : `linear-gradient(135deg, ${accent.from}, ${accent.to})`,
+                            color: securityState === 'auditing' ? 'var(--c-text-secondary)' : '#ffffff',
+                            border: 'none',
+                            fontFamily: 'Manrope, sans-serif',
+                            fontWeight: 700,
+                            fontSize: '12px',
+                            cursor: securityState === 'auditing' ? 'default' : 'pointer',
+                            boxShadow: securityState === 'auditing' ? 'none' : `0 4px 12px rgba(0, 122, 255, 0.15)`,
+                            transition: 'all 200ms ease',
+                            outline: 'none',
+                          }}
+                        >
+                          {securityState === 'auditing' ? (
+                            <>
+                              <span className="material-symbols-outlined" style={{ fontSize: 16, animation: 'spin 1s linear infinite' }}>
+                                sync
+                              </span>
+                              <span>{lang === 'es' ? 'Realizando Auditoría...' : lang === 'de' ? 'Prüfung läuft...' : 'Auditing Storage...'}</span>
+                            </>
+                          ) : securityState === 'success' ? (
+                            <>
+                              <span className="material-symbols-outlined" style={{ fontSize: 16 }}>
+                                check_circle
+                              </span>
+                              <span>{lang === 'es' ? '¡Auditoría Completa!' : lang === 'de' ? 'Prüfung Abgeschlossen!' : 'Audit Complete!'}</span>
+                            </>
+                          ) : (
+                            <>
+                              <span className="material-symbols-outlined" style={{ fontSize: 16 }}>
+                                security
+                              </span>
+                              <span>{lang === 'es' ? 'Auditar Claves y Encriptación' : lang === 'de' ? 'Datenbank-Verschlüsselung prüfen' : 'Audit Keys & Encryption'}</span>
+                            </>
+                          )}
+                        </button>
+                        {auditReport && (
+                          <div style={{
+                            marginTop: 10,
+                            padding: 12,
+                            background: 'rgba(0,0,0,0.15)',
+                            border: '1px solid rgba(128,128,128,0.1)',
+                            borderRadius: 8,
+                            fontFamily: 'monospace',
+                            fontSize: 11,
+                            color: '#40c057',
+                            whiteSpace: 'pre-wrap',
+                            lineHeight: 1.4,
+                          }}>
+                            {auditReport}
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+            );
+          })
+        )}
+      </div>
+
+      {/* GitHub contact card */}
+      <div style={{
+        padding: 18,
+        background: 'rgba(255, 255, 255, 0.01)',
+        border: '1px solid rgba(128, 128, 128, 0.06)',
+        borderRadius: 12,
+        display: 'flex',
+        flexDirection: 'column',
+        gap: 12,
+      }}>
+        <h4 style={{ margin: 0, fontSize: 14, fontWeight: 700, color: 'var(--c-text-primary)' }}>
+          {lang === 'es' ? '¿Necesitas ayuda directa?' : 'Need direct assistance?'}
+        </h4>
+        <p style={{ margin: 0, fontSize: 12, color: 'var(--c-text-secondary)', lineHeight: 1.4 }}>
+          {lang === 'es' ? 'Para ayuda con tu cuenta, recuperación de proyectos o problemas complejos, visita nuestro repositorio oficial en GitHub.' : 'For help with your account, project recovery, or complex issues, feel free to visit our official GitHub repository or reach out directly.'}
+        </p>
+        <div style={{ display: 'flex', gap: 10, marginTop: 4 }}>
+          <a
+            href="https://github.com/MAGEXE1000/Studio"
+            target="_blank"
+            rel="noopener noreferrer"
+            style={{
+              textDecoration: 'none',
+              padding: '8px 16px',
+              background: 'rgba(255,255,255,0.06)',
+              color: 'var(--c-text-primary)',
+              fontSize: 12,
+              fontWeight: 700,
+              borderRadius: 8,
+              display: 'flex',
+              alignItems: 'center',
+              gap: 8,
+            }}
+          >
+            <span className="material-symbols-outlined" style={{ fontSize: 16 }}>open_in_new</span>
+            GitHub Repository
+          </a>
+        </div>
+      </div>
     </div>
   );
 }

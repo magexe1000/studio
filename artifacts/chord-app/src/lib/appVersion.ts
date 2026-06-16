@@ -26,7 +26,7 @@ import { useMemo } from 'react';
 import { Capacitor } from '@capacitor/core';
 
 /** Canonical semver string used by the OTA comparator. */
-export const NATIVE_VERSION = '3.6.34';
+export const NATIVE_VERSION = '3.6.35';
 export const WEB_VERSION = '4.0.0';
 export const APP_VERSION = Capacitor.isNativePlatform() ? NATIVE_VERSION : WEB_VERSION;
 
@@ -38,11 +38,11 @@ export const APP_VERSION_LABEL = `${APP_VERSION_TAG} ${APP_VERSION}`;
 
 /** Release date for the CURRENT bundle, shown alongside the version pill
  *  in the changelog sheet. ISO-8601 (`YYYY-MM-DD`). */
-export const APP_VERSION_DATE = '2026-06-15'; // 3.6.34
+export const APP_VERSION_DATE = '2026-06-16'; // 3.6.35
 // Note: keep ISO-8601. Bump together with APP_VERSION on each release.
 
 export const APP_COMMIT_SHA = import.meta.env.VITE_GIT_COMMIT_SHA || 'c9e77a16';
-export const APP_BUILD_TIMESTAMP = import.meta.env.VITE_BUILD_TIMESTAMP || '6/15/2026, 1:15:07 PM CST';
+export const APP_BUILD_TIMESTAMP = import.meta.env.VITE_BUILD_TIMESTAMP || '6/16/2026, 1:15:07 PM CST';
 
 /**
  * Changelog for the CURRENT release — shown to the user the first
@@ -81,26 +81,21 @@ export const APP_CHANGELOG_SECTIONS_ES: ChangelogSection[] = [
   {
     heading: "Añadido",
     items: [
-      "Bloqueo de rotación horizontal nativa de Stagex.",
-      "Correcciones de navegación en subsecciones de configuración.",
-      "Limpieza de ajustes exclusivos de móvil.",
+      "Serialización de transiciones para estabilizar el cambio rápido de aplicaciones.",
     ],
   },
   {
     heading: "Mejorado",
     items: [
-      "Transiciones de orientación más suaves.",
-      "Mejoras en el gesto del botón Atrás y deslizamiento hacia atrás de Android.",
-      "Estabilidad de la barra de navegación inferior.",
-      "Páginas de Ayuda, FAQ, Términos, Privacidad e Informar de un error.",
+      "Centro unificado de Ayuda y Soporte con búsqueda, categorías y diagnóstico en vivo.",
+      "Protección de subaplicaciones con reintentos de carga y límites de error.",
     ],
   },
   {
     heading: "Corregido",
     items: [
-      "Corrección de congelación y cancelación de arrastre táctil de elementos de Stage.",
-      "Limpieza de rectángulo de selección atascado.",
-      "Salvaguardas de pantalla negra en el montaje de Drumex.",
+      "Corregido la respuesta táctil y pérdida de clics por re-renderizado en controles móviles de Stagex.",
+      "Resuelto condiciones de carrera en la carga de caché del iframe de Stagex.",
     ],
   },
 ];
@@ -110,26 +105,21 @@ export const APP_CHANGELOG_SECTIONS_DE: ChangelogSection[] = [
   {
     heading: "Hinzugefügt",
     items: [
-      "Stagex native Querformat-Rotationssperre.",
-      "Korrekturen für die Navigation in Setup-Unterabschnitten.",
-      "Bereinigung der mobil-spezifischen Einstellungen.",
+      "Übergangsserialisierung zur Stabilisierung des schnellen App-Wechsels.",
     ],
   },
   {
     heading: "Verbessert",
     items: [
-      "Sanftere Orientierungsübergänge.",
-      "Verbesserte Android Zurück- und Wisch-Zurück-Gesten.",
-      "Stabilität der unteren Navigationsleiste.",
-      "Hilfe, FAQ, Nutzungsbedingungen, Datenschutz und Fehlerbericht-Seiten.",
+      "Einheitliches Hilfe- und Support-Center mit Suche, Kategorien und Live-Diagnose.",
+      "Absicherung von Sub-Apps durch Import-Wiederholungsversuche und Error Boundaries.",
     ],
   },
   {
     heading: "Behoben",
     items: [
-      "Fehlerbehebung für Einfrieren und Abbruch des Ziehens von Elementen in Stage.",
-      "Bereinigung von hängengebliebenen Auswahlrechtecken.",
-      "Schutzmaßnahmen gegen schwarzen Bildschirm bei Drumex-Start.",
+      "Fehlerbehebung für Touch-Steuerung und Klickverlust bei Stagex auf Mobilgeräten.",
+      "Behebung von Race Conditions beim Laden des Stagex-Iframe-Caches.",
     ],
   },
 ];

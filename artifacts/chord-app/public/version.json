@@ -1,12 +1,12 @@
 {
   "platform": "web",
   "version": "4.0.0",
-  "commit": "be572413",
-  "releasedAt": "6/10/2026, 2:55:55 PM CST",
-  "buildTimestamp": "6/10/2026, 2:55:55 PM CST",
+  "commit": "2a2fd859",
+  "releasedAt": "6/15/2026, 7:09:55 PM CST",
+  "buildTimestamp": "6/15/2026, 7:09:55 PM CST",
   "updateMode": "refresh",
-  "changelog": "• Added adaptive Web navigation rails for laptop/desktop screen widths.\n• Added Web-specific internal app navigation tabs for tablet/iPad screen widths.\n• Added Web-specific internal app navigation for Chordex, Drumex, Stagex, Groovex, and Vocalex.\n• Improved Web shortcuts and deep shortcuts to target sub-sections.\n• Repositioned back buttons inline to prevent overlap in Web layouts.\n• Removed mobile-style top bars and switcher pill from desktop/tablet Web layouts.",
-  "whatsNew": "• Added adaptive Web navigation rails for laptop/desktop screen widths.\n• Added Web-specific internal app navigation tabs for tablet/iPad screen widths.\n• Added Web-specific internal app navigation for Chordex, Drumex, Stagex, Groovex, and Vocalex.\n• Improved Web shortcuts and deep shortcuts to target sub-sections.\n• Repositioned back buttons inline to prevent overlap in Web layouts.\n• Removed mobile-style top bars and switcher pill from desktop/tablet Web layouts.",
+  "changelog": "• Added adaptive Web navigation rails for laptop/desktop screen widths.\n• Added Web-specific internal app navigation tabs for tablet/iPad screen widths.\n• Added Web-specific internal app navigation for Chordex, Drumex, Stagex, Groovex, and Vocalex.\n• Improved Web shortcuts and deep shortcuts to target sub-sections.\n• Repositioned back buttons inline to prevent overlap in Web layouts.",
+  "whatsNew": "• Added adaptive Web navigation rails for laptop/desktop screen widths.\n• Added Web-specific internal app navigation tabs for tablet/iPad screen widths.\n• Added Web-specific internal app navigation for Chordex, Drumex, Stagex, Groovex, and Vocalex.\n• Improved Web shortcuts and deep shortcuts to target sub-sections.\n• Repositioned back buttons inline to prevent overlap in Web layouts.",
   "releaseNotes": {
     "added": [
       "Added adaptive Web navigation rails for laptop/desktop screen widths.",
@@ -16,9 +16,6 @@
     "improved": [
       "Improved Web shortcuts and deep shortcuts to target sub-sections.",
       "Repositioned back buttons inline to prevent overlap in Web layouts."
-    ],
-    "fixed": [
-      "Removed mobile-style top bars and switcher pill from desktop/tablet Web layouts."
     ]
   },
   "mandatory": false

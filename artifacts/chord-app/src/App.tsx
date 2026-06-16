@@ -30,10 +30,23 @@ import StudioLandingPage from './landing/StudioLandingPage';
 import { ErrorBoundary } from './components/ErrorBoundary';
 
 
+// Helper to retry dynamic imports once when they fail (e.g. due to chunk loading network failures)
+function retryLazyImport<T>(importFn: () => Promise<T>, retriesLeft = 1): Promise<T> {
+  return importFn().catch((error) => {
+    if (retriesLeft > 0) {
+      console.warn("Dynamic import failed. Retrying in 1000ms...", error);
+      return new Promise<void>((resolve) => setTimeout(resolve, 1000)).then(() =>
+        retryLazyImport(importFn, retriesLeft - 1)
+      );
+    }
+    throw error;
+  });
+}
+
 // Lazy-load StudioHub — it's 1400+ lines and pulls in SettingControls,
 // ApplyToSheet, ChangelogSheet, and all logo variants. Keeping it out of
 // the main bundle saves significant parse+eval time on cold launch.
-const StudioHub = lazy(() => import('./components/StudioHub'));
+const StudioHub = lazy(() => retryLazyImport(() => import('./components/StudioHub')));
 
 function SidebarHoverSync({ hoverShowSidebar }: { hoverShowSidebar: boolean }) {
   const { setOpen } = useSidebar();
@@ -53,12 +66,12 @@ type AccountState =
   | { phase: 'pending'; user: { uid: string; email: string | null; displayName: string | null; photoURL: string | null }; scheduledAtMs: number }
   | { phase: 'disabled'; user: { uid: string; email: string | null; displayName: string | null; photoURL: string | null } };
 
-const stagexImport  = () => import('./components/StageCorePanel');
-const libraryImport = () => import('./panels/LibraryPanel');
-const chordImport   = () => import('./panels/ChordPanel');
-const settingsImport = () => import('./panels/SettingsPanel');
-const songsImport   = () => import('./panels/SongsPanel');
-const drumImport    = () => import('./panels/DrumEditor');
+const stagexImport  = () => retryLazyImport(() => import('./components/StageCorePanel'));
+const libraryImport = () => retryLazyImport(() => import('./panels/LibraryPanel'));
+const chordImport   = () => retryLazyImport(() => import('./panels/ChordPanel'));
+const settingsImport = () => retryLazyImport(() => import('./panels/SettingsPanel'));
+const songsImport   = () => retryLazyImport(() => import('./panels/SongsPanel'));
+const drumImport    = () => retryLazyImport(() => import('./panels/DrumEditor'));
 
 const StagexPanel  = lazy(stagexImport);
 const LibraryPanel = lazy(libraryImport);
@@ -67,17 +80,17 @@ const SettingsPanel = lazy(settingsImport);
 const SongsPanel   = lazy(songsImport);
 const DrumEditor   = lazy(drumImport);
 
-const groovexImport = () => import('./groovex/GroovexApp');
+const groovexImport = () => retryLazyImport(() => import('./groovex/GroovexApp'));
 const GroovexApp = lazy(groovexImport);
 
-const vocalexImport = () => import('./vocalex/VocalexApp');
+const vocalexImport = () => retryLazyImport(() => import('./vocalex/VocalexApp'));
 const VocalexApp = lazy(vocalexImport);
 
 // Lockdown screen is only ever rendered when the user has scheduled
 // account deletion, which requires an active sign-in. Lazy so first
 // paint never pays for it.
-const PendingDeletionScreen = lazy(() => import('./components/PendingDeletionScreen'));
-const DisabledAccountScreen = lazy(() => import('./components/DisabledAccountScreen'));
+const PendingDeletionScreen = lazy(() => retryLazyImport(() => import('./components/PendingDeletionScreen')));
+const DisabledAccountScreen = lazy(() => retryLazyImport(() => import('./components/DisabledAccountScreen')));
 
 // Preload panel chunks during browser idle time so tab switches and
 // app-mode transitions are instant.  We fire on the first available idle
@@ -899,6 +912,12 @@ export default function App() {
   }, []);
 
   const returnToStudioHub = useCallback((isSwipeSuccess = false) => {
+    if (exitingToHub || (window as any).studioTransitionActive) {
+      console.warn('[Navigation] Return to hub request ignored: transition in progress.');
+      return;
+    }
+    (window as any).studioTransitionActive = true;
+
     const currentApp = useChordStore.getState().settings.appMode;
     const isDev = useChordStore.getState().settings.developerMode;
     
@@ -970,6 +989,7 @@ export default function App() {
         subAppWrapperRef.current.style.transform = '';
         subAppWrapperRef.current.style.transition = '';
       }
+      (window as any).studioTransitionActive = false;
     }, 370);
 
     transitionTimerRef.current = timer;
@@ -1096,6 +1116,7 @@ export default function App() {
         setExitingToHub(false);
         updateSettings({ appMode: 'hub' });
         window.dispatchEvent(new CustomEvent('studio:reset-hub-zooming'));
+        (window as any).studioTransitionActive = false;
       }, 800);
     }
     return () => {
@@ -1824,7 +1845,9 @@ export default function App() {
             >
               {activeAppToRender === 'groovex' && (
                 <div className="app-sub-app-container" style={{ position: 'relative', width: '100%', height: '100%', overflow: 'hidden', background: groovexBgColor }}>
-                  <Suspense fallback={<SmartLoading fallbackSkeleton={<GroovexAppSkeleton />} />}><AppEntryTransition><GroovexApp /></AppEntryTransition></Suspense>
+                  <ErrorBoundary moduleName="Groovex">
+                    <Suspense fallback={<SmartLoading fallbackSkeleton={<GroovexAppSkeleton />} />}><AppEntryTransition><GroovexApp /></AppEntryTransition></Suspense>
+                  </ErrorBoundary>
                   {groovexSplash !== 'hidden' && (
                     <div style={{
                       position: 'absolute', inset: 0, zIndex: 500,
@@ -1849,7 +1872,9 @@ export default function App() {
 
               {activeAppToRender === 'vocalex' && (
                 <div className="app-sub-app-container" style={{ position: 'relative', width: '100%', height: '100%', overflow: 'hidden', background: vocalexBgColor }}>
-                  <Suspense fallback={<SmartLoading fallbackSkeleton={<VocalexTakesSkeleton />} />}><AppEntryTransition><VocalexApp /></AppEntryTransition></Suspense>
+                  <ErrorBoundary moduleName="Vocalex">
+                    <Suspense fallback={<SmartLoading fallbackSkeleton={<VocalexTakesSkeleton />} />}><AppEntryTransition><VocalexApp /></AppEntryTransition></Suspense>
+                  </ErrorBoundary>
                   {vocalexSplash !== 'hidden' && (
                     <div style={{
                       position: 'absolute', inset: 0, zIndex: 500,
@@ -1874,7 +1899,9 @@ export default function App() {
 
               {activeAppToRender === 'stage' && (
                 <div className="app-sub-app-container" style={{ position: 'relative', width: '100%', height: '100%', overflow: 'hidden', background: stageBgColor }}>
-                  <Suspense fallback={<SmartLoading fallbackSkeleton={<StagexPanelSkeleton />} />}><AppEntryTransition><StagexPanel /></AppEntryTransition></Suspense>
+                  <ErrorBoundary moduleName="Stagex">
+                    <Suspense fallback={<SmartLoading fallbackSkeleton={<StagexPanelSkeleton />} />}><AppEntryTransition><StagexPanel /></AppEntryTransition></Suspense>
+                  </ErrorBoundary>
                   {stageSplash !== 'hidden' && (
                     <div style={{
                       position: 'absolute', inset: 0, zIndex: 500,
@@ -1899,7 +1926,7 @@ export default function App() {
 
               {activeAppToRender === 'drums' && (
                 <div className="app-sub-app-container" style={{ position: 'relative', width: '100%', height: '100%', overflow: 'hidden' }}>
-                  <ErrorBoundary><Suspense fallback={<SmartLoading fallbackSkeleton={<DrumEditorSkeleton />} />}><AppEntryTransition><DrumEditor /></AppEntryTransition></Suspense></ErrorBoundary>
+                  <ErrorBoundary moduleName="Drumex"><Suspense fallback={<SmartLoading fallbackSkeleton={<DrumEditorSkeleton />} />}><AppEntryTransition><DrumEditor /></AppEntryTransition></Suspense></ErrorBoundary>
                   {drumSplash !== 'hidden' && (
                     <div style={{
                       position: 'absolute', inset: 0, zIndex: 500,
@@ -1966,12 +1993,14 @@ export default function App() {
                                 contain: 'layout style paint',
                               }}
                             >
-                              <Suspense fallback={<SmartLoading fallbackSkeleton={<ChordexPanelSkeleton />} />}>
-                                {panel === 'library'  && <LibraryPanel />}
-                                {panel === 'chord'    && <ChordPanel />}
-                                {panel === 'songs'    && <SongsPanel />}
-                                {panel === 'settings' && <SettingsPanel />}
-                              </Suspense>
+                              <ErrorBoundary moduleName="Chordex">
+                                <Suspense fallback={<SmartLoading fallbackSkeleton={<ChordexPanelSkeleton />} />}>
+                                  {panel === 'library'  && <LibraryPanel />}
+                                  {panel === 'chord'    && <ChordPanel />}
+                                  {panel === 'songs'    && <SongsPanel />}
+                                  {panel === 'settings' && <SettingsPanel />}
+                                </Suspense>
+                              </ErrorBoundary>
                             </div>
                           );
                         })}

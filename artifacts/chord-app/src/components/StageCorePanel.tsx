@@ -1,4 +1,4 @@
-import { useRef, useEffect, useCallback, useState } from 'react';
+import { useRef, useEffect, useCallback, useState, useMemo } from 'react';
 import { motion } from 'motion/react';
 import AnimatedActionButton from './animata/container/animated-border-trail';
 import { AppModeMenuLogo } from './AppModeMenuLogo';
@@ -478,7 +478,6 @@ export default function StagexPanel() {
   const prevTabRef     = useRef(0);
   const stageStretchRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [stagePill, setStagePill] = useState<{ left: number; right: number; ready: boolean }>({ left: 0, right: 0, ready: false });
-  const [pressedTab, setPressedTab] = useState<string | null>(null);
   const [fabOpen, setFabOpen] = useState(false);
   const [liveMode, setLiveMode] = useState(false);
   const [iframeLoading, setIframeLoading] = useState(true);
@@ -498,7 +497,7 @@ export default function StagexPanel() {
 
   const toggleStageExpanded = async () => {
     const nextVal = !isStageExpanded;
-    setIsStageExpanded(nextVal);
+    setRotationTransition(true);
     try {
       if (nextVal) {
         if (Capacitor.isNativePlatform()) {
@@ -513,8 +512,11 @@ export default function StagexPanel() {
           await (window.screen.orientation as any).lock('portrait');
         }
       }
+      setIsStageExpanded(nextVal);
     } catch (e) {
       console.warn('Screen orientation lock/unlock failed:', e);
+    } finally {
+      setTimeout(() => setRotationTransition(false), 320);
     }
   };
 
@@ -724,6 +726,9 @@ export default function StagexPanel() {
       injectStartOnPicker(iframe);
     };
     iframe.addEventListener('load', handleLoad);
+    if (iframe.contentDocument && iframe.contentDocument.readyState === 'complete') {
+      handleLoad();
+    }
     return () => iframe.removeEventListener('load', handleLoad);
   }, [accent.from, accent.to, stageVis.theme, isAmoled, isWebDesktop]);
 
@@ -818,7 +823,7 @@ export default function StagexPanel() {
 
   const hasWebHeader = !isWebDesktop || (curView === 'Editor' || curView === 'Export' || showBack);
   const collapseHeader = (isLandscape && curView === 'Editor') || liveMode || !hasWebHeader || isStageExpanded;
-  const hideBottomNav  = curView === 'Export' || isStageExpanded;
+  const hideBottomNav  = curView === 'Export' || isStageExpanded || fabOpen || propPanelOpen;
   const isLandscapeEditor = isLandscape && curView === 'Editor';
 
   const navTabs: { view: string; label: string; icon: string }[] = [
@@ -1852,7 +1857,9 @@ export default function StagexPanel() {
           position: 'relative',
           flex: 1,
           opacity: rotationTransition ? 0.15 : 1,
-          transition: 'opacity 280ms ease-in-out',
+          transform: rotationTransition ? 'scale(0.97)' : 'scale(1)',
+          pointerEvents: rotationTransition ? 'none' : 'auto',
+          transition: 'opacity 280ms ease-in-out, transform 280ms ease-in-out',
           backgroundColor: stageBg
         }}
       >
@@ -1915,6 +1922,8 @@ export default function StagexPanel() {
         {/* ── Live-mode toggle (eye) — stacked 8px above the FAB ── */}
         {curView === 'Editor' && (
           <button
+            id="stagex-eye-button"
+            data-testid="stagex-eye-button"
             onClick={() => callIframe('toggleGigMode')}
             onTouchEnd={(e) => { e.preventDefault(); callIframe('toggleGigMode'); }}
             aria-label={liveMode ? tr.stagex.exitLiveMode : tr.stagex.enterLiveMode}
@@ -1957,6 +1966,8 @@ export default function StagexPanel() {
         {/* ── FAB: add instrument ── */}
         {curView === 'Editor' && (
           <button
+            id="stagex-plus-button"
+            data-testid="stagex-plus-button"
             onClick={handleFabTap}
             onTouchEnd={(e) => { e.preventDefault(); handleFabTap(); }}
             aria-label={tr.stagex.addInstrument}
@@ -2130,57 +2141,53 @@ export default function StagexPanel() {
           )}
 
           {/* Nav buttons */}
-          {navTabs.map(({ view, label, icon }, i) => {
-            const active  = isTabActive(view);
-            const pressed = pressedTab === view;
-            return (
-              <button
-                key={view}
-                ref={el => { stageBtnRefs.current[i] = el; }}
-                onPointerDown={() => setPressedTab(view)}
-                onPointerUp={() => setPressedTab(null)}
-                onPointerLeave={() => setPressedTab(null)}
-                onPointerCancel={() => setPressedTab(null)}
-                onClick={() => handleNavTap(view)}
-                style={{
-                  flex: 1,
-                  display: 'flex',
-                  flexDirection: 'column',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  gap: isLandscapeEditor ? 1 : 4,
-                  padding: isLandscapeEditor ? '4px 4px' : '8px 4px',
-                  borderRadius: 9999,
-                  background: 'transparent',
-                  border: 'none',
-                  cursor: 'pointer',
-                  color: active ? (isLight ? accent.from : '#fff') : (isLight ? 'rgba(0,0,0,0.4)' : 'var(--c-text-secondary, rgba(160,160,180,0.8))'),
-                  position: 'relative',
-                  zIndex: 1,
-                  opacity: 1,
-                  transform: pressed ? 'scale(0.91)' : 'scale(1)',
-                  transition: 'color 130ms ease, transform 120ms cubic-bezier(0.34, 1.56, 0.64, 1)',
-                  WebkitFontSmoothing: 'antialiased',
-                  WebkitTapHighlightColor: 'transparent',
-                  touchAction: 'manipulation',
-                }}
-              >
-                <span className="material-symbols-outlined" style={{ fontSize: isLandscapeEditor ? 16 : 20, lineHeight: 1, fontVariationSettings: active ? "'FILL' 1" : "'FILL' 0" }}>{icon}</span>
-                <span style={{
-                  fontFamily: 'Manrope, sans-serif',
-                  fontWeight: 700,
-                  fontSize: isLandscapeEditor ? '7.5px' : '9.5px',
-                  letterSpacing: '0.08em',
-                  textTransform: 'uppercase',
-                  lineHeight: 1,
-                  whiteSpace: 'nowrap',
-                  WebkitFontSmoothing: 'antialiased',
-                }}>
-                  {label}
-                </span>
-              </button>
-            );
-          })}
+          {useMemo(() => {
+            return navTabs.map(({ view, label, icon }, i) => {
+              const active  = isTabActive(view);
+              return (
+                <button
+                  key={view}
+                  ref={el => { stageBtnRefs.current[i] = el; }}
+                  onClick={() => handleNavTap(view)}
+                  className="stage-nav-btn"
+                  style={{
+                    flex: 1,
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: isLandscapeEditor ? 1 : 4,
+                    padding: isLandscapeEditor ? '4px 4px' : '8px 4px',
+                    borderRadius: 9999,
+                    background: 'transparent',
+                    border: 'none',
+                    cursor: 'pointer',
+                    color: active ? (isLight ? accent.from : '#fff') : (isLight ? 'rgba(0,0,0,0.4)' : 'var(--c-text-secondary, rgba(160,160,180,0.8))'),
+                    position: 'relative',
+                    zIndex: 1,
+                    opacity: 1,
+                    WebkitFontSmoothing: 'antialiased',
+                    WebkitTapHighlightColor: 'transparent',
+                    touchAction: 'manipulation',
+                  }}
+                >
+                  <span className="material-symbols-outlined" style={{ fontSize: isLandscapeEditor ? 16 : 20, lineHeight: 1, fontVariationSettings: active ? "'FILL' 1" : "'FILL' 0" }}>{icon}</span>
+                  <span style={{
+                    fontFamily: 'Manrope, sans-serif',
+                    fontWeight: 700,
+                    fontSize: isLandscapeEditor ? '7.5px' : '9.5px',
+                    letterSpacing: '0.08em',
+                    textTransform: 'uppercase',
+                    lineHeight: 1,
+                    whiteSpace: 'nowrap',
+                    WebkitFontSmoothing: 'antialiased',
+                  }}>
+                    {label}
+                  </span>
+                </button>
+              );
+            });
+          }, [curView, isLandscapeEditor, isLight, accent.from, handleNavTap])}
           </div>
         </div>
       </div>
@@ -2374,6 +2381,12 @@ export default function StagexPanel() {
           <style>{`
             @keyframes pdfSheetFade { from { opacity: 0; } to { opacity: 1; } }
             @keyframes pdfSheetSlide { from { transform: translateY(100%); } to { transform: translateY(0); } }
+            .stage-nav-btn {
+              transition: color 130ms ease, transform 120ms cubic-bezier(0.34, 1.56, 0.64, 1);
+            }
+            .stage-nav-btn:active {
+              transform: scale(0.91);
+            }
           `}</style>
         </>
       )}
