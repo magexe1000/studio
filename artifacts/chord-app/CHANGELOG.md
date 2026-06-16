@@ -14,6 +14,20 @@ Conventions:
 - List the user-visible changes only. Internal refactors, tooling,
   and CI tweaks do not need a bullet.
 
+## 3.6.35
+
+### Added
+- Added transition serialization to stabilize fast app-switching.
+
+### Improved
+- Unified Help & Support center with search, categories, and live diagnostics.
+- Safeguarded sub-apps with lazy import retries and Error Boundaries.
+
+### Fixed
+- Fixed Stagex mobile controls touch responsiveness and layout re-render click loss.
+- Resolved Stagex iframe cache load race conditions.
+
+
 ## 3.6.34
 
 ### Added
