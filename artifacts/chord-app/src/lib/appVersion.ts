@@ -26,7 +26,7 @@ import { useMemo } from 'react';
 import { Capacitor } from '@capacitor/core';
 
 /** Canonical semver string used by the OTA comparator. */
-export const NATIVE_VERSION = '3.6.33';
+export const NATIVE_VERSION = '3.6.34';
 export const WEB_VERSION = '4.0.0';
 export const APP_VERSION = Capacitor.isNativePlatform() ? NATIVE_VERSION : WEB_VERSION;
 
@@ -38,7 +38,7 @@ export const APP_VERSION_LABEL = `${APP_VERSION_TAG} ${APP_VERSION}`;
 
 /** Release date for the CURRENT bundle, shown alongside the version pill
  *  in the changelog sheet. ISO-8601 (`YYYY-MM-DD`). */
-export const APP_VERSION_DATE = '2026-06-15'; // 3.6.33
+export const APP_VERSION_DATE = '2026-06-15'; // 3.6.34
 // Note: keep ISO-8601. Bump together with APP_VERSION on each release.
 
 export const APP_COMMIT_SHA = import.meta.env.VITE_GIT_COMMIT_SHA || 'c9e77a16';
@@ -61,16 +61,26 @@ export const APP_CHANGELOG_SECTIONS: ChangelogSection[] = [
   {
     heading: "Added",
     items: [
-      "Added adaptive Web navigation rails for laptop/desktop screen widths.",
-      "Added Web-specific internal app navigation tabs for tablet/iPad screen widths.",
-      "Added Web-specific internal app navigation for Chordex, Drumex, Stagex, Groovex, and Vocalex.",
+      "Stagex native landscape rotation locking.",
+      "Setup sub-section navigation corrections.",
+      "Mobile-only Settings cleanup.",
     ],
   },
   {
     heading: "Improved",
     items: [
-      "Improved Web shortcuts and deep shortcuts to target sub-sections.",
-      "Repositioned back buttons inline to prevent overlap in Web layouts.",
+      "Smoother orientation transitions.",
+      "Android Back and swipe-back gesture improvements.",
+      "Bottom navigation stability.",
+      "Help, FAQ, Terms, Privacy, and Report a Bug pages.",
+    ],
+  },
+  {
+    heading: "Fixed",
+    items: [
+      "Stage element touch drag cancellation and freeze fixes.",
+      "Stuck selection rectangle cleanup.",
+      "Drumex black-screen safeguards.",
     ],
   },
 ];
@@ -79,18 +89,28 @@ export const APP_CHANGELOG_SECTIONS: ChangelogSection[] = [
  *  by `ChangelogSheet` based on `settings.language`. */
 export const APP_CHANGELOG_SECTIONS_ES: ChangelogSection[] = [
   {
-    heading: "Corregido",
+    heading: "Añadido",
     items: [
-      "Se corrigió que Studio Web mostrara incorrectamente los estados de actualización manual de APK de Android.",
-      "Se separaron los metadatos de actualización de Web/PWA de los metadatos de lanzamiento de APK de Android.",
-      "Se aseguró que Web use el comportamiento de actualización basado en recarga mientras que Android mantiene las actualizaciones de APK/AppInstaller.",
+      "Bloqueo de rotación horizontal nativa de Stagex.",
+      "Correcciones de navegación en subsecciones de configuración.",
+      "Limpieza de ajustes exclusivos de móvil.",
     ],
   },
   {
     heading: "Mejorado",
     items: [
-      "Se agregó una separación de plataformas más clara para los metadatos y las acciones de actualización.",
-      "Se preservó la versión de Studio compartida y la sección de novedades en Web y Android.",
+      "Transiciones de orientación más suaves.",
+      "Mejoras en el gesto del botón Atrás y deslizamiento hacia atrás de Android.",
+      "Estabilidad de la barra de navegación inferior.",
+      "Páginas de Ayuda, FAQ, Términos, Privacidad e Informar de un error.",
+    ],
+  },
+  {
+    heading: "Corregido",
+    items: [
+      "Corrección de congelación y cancelación de arrastre táctil de elementos de Stage.",
+      "Limpieza de rectángulo de selección atascado.",
+      "Salvaguardas de pantalla negra en el montaje de Drumex.",
     ],
   },
 ];
@@ -98,18 +118,28 @@ export const APP_CHANGELOG_SECTIONS_ES: ChangelogSection[] = [
 /** German version of the current changelog. */
 export const APP_CHANGELOG_SECTIONS_DE: ChangelogSection[] = [
   {
-    heading: "Behoben",
+    heading: "Hinzugefügt",
     items: [
-      "Problem behoben, bei dem Studio Web fälschlicherweise den manuellen APK-Update-Status für Android anzeigte.",
-      "Trennung der Web/PWA-Update-Metadaten von den Android-APK-Release-Metadaten.",
-      "Sichergestellt, dass Web das aktualisierungsbasierte Verhalten verwendet, während Android die APK/AppInstaller-Updates beibehält.",
+      "Stagex native Querformat-Rotationssperre.",
+      "Korrekturen für die Navigation in Setup-Unterabschnitten.",
+      "Bereinigung der mobil-spezifischen Einstellungen.",
     ],
   },
   {
     heading: "Verbessert",
     items: [
-      "Klarere Plattformtrennung für Update-Metadaten und Updater-Aktionen hinzugefügt.",
-      "Gemeinsame Studio-Version und Neuigkeiten für Web und Android beibehalten.",
+      "Sanftere Orientierungsübergänge.",
+      "Verbesserte Android Zurück- und Wisch-Zurück-Gesten.",
+      "Stabilität der unteren Navigationsleiste.",
+      "Hilfe, FAQ, Nutzungsbedingungen, Datenschutz und Fehlerbericht-Seiten.",
+    ],
+  },
+  {
+    heading: "Behoben",
+    items: [
+      "Fehlerbehebung für Einfrieren und Abbruch des Ziehens von Elementen in Stage.",
+      "Bereinigung von hängengebliebenen Auswahlrechtecken.",
+      "Schutzmaßnahmen gegen schwarzen Bildschirm bei Drumex-Start.",
     ],
   },
 ];

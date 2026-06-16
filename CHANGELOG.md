@@ -14,6 +14,25 @@ Conventions:
 - List the user-visible changes only. Internal refactors, tooling,
   and CI tweaks do not need a bullet.
 
+## 3.6.34
+
+### Added
+- Added Stagex native landscape rotation locking.
+- Added Setup sub-section navigation corrections.
+- Added Mobile-only Settings cleanup.
+
+### Improved
+- Improved orientation change transitions.
+- Improved Android system Back and swipe-back gesture responsiveness.
+- Improved bottom navigation stability.
+- Improved Help, FAQ, Terms, Privacy, and Report a Bug pages.
+
+### Fixed
+- Fixed Stage element touch drag cancellation and freeze issues.
+- Fixed stuck selection rectangle on resize and orientation change.
+- Fixed Drumex black-screen safeguards on mount.
+
+
 ## 3.6.33
 
 ### Added
