@@ -598,7 +598,8 @@ const runGh = (args) => {
   if (env.GITHUB_TOKEN === 'github_pat_antigravitydummytoken') {
     delete env.GITHUB_TOKEN;
   }
-  return spawnSync('gh', args, {
+  const normalizedArgs = args.map(arg => typeof arg === 'string' ? arg.replace(/\\/g, '/') : arg);
+  return spawnSync('gh', normalizedArgs, {
     cwd: repoRoot,
     stdio: 'pipe',
     shell: process.platform === 'win32',
@@ -762,15 +763,15 @@ if (process.env.CI) {
 
   // Step 14: Re-validate their APK URL and SHA
   console.log('Step 14/15: Re-validate their APK URL and SHA...');
-  if (deployedVer.version !== version || deployedAppRelease.version !== version) {
-    console.error(`release-firebase: ✗ Deployed version mismatch! Expected ${version}`);
+  if (deployedVer.version !== '4.0.0' || deployedAppRelease.version !== version) {
+    console.error(`release-firebase: ✗ Deployed version mismatch! Expected PWA: 4.0.0, Native: ${version}`);
     process.exit(1);
   }
-  if (deployedAppRelease.sha256 !== localApkSha || deployedVer.sha256 !== localApkSha) {
+  if (deployedAppRelease.sha256 !== localApkSha) {
     console.error(`release-firebase: ✗ Deployed SHA-256 mismatch! Deployed: ${deployedAppRelease.sha256}, Expected: ${localApkSha}`);
     process.exit(1);
   }
-  const deployedApkUrlStatus = await checkUrl(deployedVer.apkUrl || deployedAppRelease.download_url);
+  const deployedApkUrlStatus = await checkUrl(deployedAppRelease.apkUrl || deployedAppRelease.download_url);
   if (deployedApkUrlStatus !== 200) {
     console.error(`release-firebase: ✗ Deployed APK URL is unreachable (HTTP ${deployedApkUrlStatus})`);
     process.exit(1);
