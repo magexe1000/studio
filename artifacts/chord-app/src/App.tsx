@@ -905,6 +905,48 @@ export default function App() {
   const [exitingToHub, setExitingToHub] = useState(false);
   const transitionTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
+  const [transitionActive, setTransitionActive] = useState(false);
+
+  // Synchronize transitionActive with window.studioTransitionActive
+  useEffect(() => {
+    try {
+      Object.defineProperty(window, 'studioTransitionActive', {
+        get() {
+          return transitionActive;
+        },
+        set(val) {
+          setTransitionActive(!!val);
+        },
+        configurable: true
+      });
+    } catch (e) {
+      console.warn('Failed to defineProperty studioTransitionActive', e);
+      (window as any).studioTransitionActive = transitionActive;
+    }
+    return () => {
+      try {
+        delete (window as any).studioTransitionActive;
+      } catch (e) {}
+    };
+  }, [transitionActive]);
+
+  // 1.2-second safety watchdog for transitionActive
+  useEffect(() => {
+    let watchdogTimer: ReturnType<typeof setTimeout> | undefined;
+    if (transitionActive) {
+      watchdogTimer = setTimeout(() => {
+        console.warn('[Safety] transitionActive watchdog triggered! Forcing reset to Hub.');
+        setTransitionActive(false);
+        setExitingToHub(false);
+        updateSettings({ appMode: 'hub' });
+        window.dispatchEvent(new CustomEvent('studio:reset-hub-zooming'));
+      }, 1200);
+    }
+    return () => {
+      if (watchdogTimer) clearTimeout(watchdogTimer);
+    };
+  }, [transitionActive, updateSettings]);
+
   useEffect(() => {
     return () => {
       if (transitionTimerRef.current) clearTimeout(transitionTimerRef.current);
@@ -912,11 +954,11 @@ export default function App() {
   }, []);
 
   const returnToStudioHub = useCallback((isSwipeSuccess = false) => {
-    if (exitingToHub || (window as any).studioTransitionActive) {
+    if (exitingToHub || transitionActive) {
       console.warn('[Navigation] Return to hub request ignored: transition in progress.');
       return;
     }
-    (window as any).studioTransitionActive = true;
+    setTransitionActive(true);
 
     const currentApp = useChordStore.getState().settings.appMode;
     const isDev = useChordStore.getState().settings.developerMode;
@@ -989,11 +1031,11 @@ export default function App() {
         subAppWrapperRef.current.style.transform = '';
         subAppWrapperRef.current.style.transition = '';
       }
-      (window as any).studioTransitionActive = false;
+      setTransitionActive(false);
     }, 370);
 
     transitionTimerRef.current = timer;
-  }, [updateSettings, exitingToHub]);
+  }, [updateSettings, exitingToHub, transitionActive]);
 
   // Keep a mutable ref so popstate/android back button event listeners always call the latest function reference
   const returnToStudioHubRef = useRef(returnToStudioHub);
@@ -1116,7 +1158,7 @@ export default function App() {
         setExitingToHub(false);
         updateSettings({ appMode: 'hub' });
         window.dispatchEvent(new CustomEvent('studio:reset-hub-zooming'));
-        (window as any).studioTransitionActive = false;
+        setTransitionActive(false);
       }, 800);
     }
     return () => {

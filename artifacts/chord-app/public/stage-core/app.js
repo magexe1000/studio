@@ -1314,7 +1314,7 @@ function openSCDial() {
   _buildDial();
   _dialOpen = true;
   updateDropHint();
-  try { window.parent.postMessage({ type: 'sc-dial-state', open: true }, window.location.origin); } catch(e) {}
+  try { window.parent.postMessage({ type: 'sc-dial-state', open: true }, '*'); } catch(e) {}
   closeMobileElTray();
   const wrap  = document.getElementById('sc-fab-wrap');
   const chips = wrap ? wrap.querySelectorAll('.sc-dial-chip') : [];
@@ -1334,7 +1334,7 @@ function closeSCDial() {
   if (!_dialOpen) return;
   _dialOpen = false;
   updateDropHint();
-  try { window.parent.postMessage({ type: 'sc-dial-state', open: false }, window.location.origin); } catch(e) {}
+  try { window.parent.postMessage({ type: 'sc-dial-state', open: false }, '*'); } catch(e) {}
   const wrap  = document.getElementById('sc-fab-wrap');
   const chips = wrap ? wrap.querySelectorAll('.sc-dial-chip') : [];
   const total = chips.length;
@@ -1409,7 +1409,7 @@ function closeItemSheet(goBackToChips) {
   if (goBackToChips) {
     setTimeout(() => openSCDial(), 190);
   } else {
-    try { window.parent.postMessage({ type: 'sc-dial-state', open: false }, window.location.origin); } catch(e) {}
+    try { window.parent.postMessage({ type: 'sc-dial-state', open: false }, '*'); } catch(e) {}
     // Spring "return home" pulse when the FAB lands back in its resting state
     const btn = document.getElementById('sc-fab-btn');
     if (btn) {
@@ -2618,6 +2618,35 @@ function updatePhantomUI(on) {
   knob.style.transform = on ? 'translateX(20px)' : 'translateX(0)';
   knob.style.background = on ? '#fff' : '#adaaaa';
 }
+
+window.deleteSelectedElement = removeSelected;
+
+window.rotateSelectedElement = function() {
+  if (state.selectedId) {
+    var el = state.elements.find(function(x) { return x.id === state.selectedId; });
+    if (el) {
+      el.rotation = (el.rotation + 45) % 360;
+      var dom = document.getElementById('elem-' + el.id);
+      if (dom) {
+        var iconWrap = dom.querySelector('.el-icon-wrap');
+        if (iconWrap) iconWrap.style.transform = 'rotate(' + el.rotation + 'deg)';
+        repositionResizeBar(dom);
+      }
+      var inputRot = document.getElementById('input-rotation');
+      if (inputRot) inputRot.value = el.rotation;
+      pushHistory();
+    }
+  }
+};
+
+window.scaleSelectedElement = function(delta) {
+  if (state.selectedId) {
+    var el = state.elements.find(function(x) { return x.id === state.selectedId; });
+    if (el) {
+      scaleElementBy(el, delta);
+    }
+  }
+};
 
 function removeSelected() {
   if (!state.selectedId) return;
@@ -8437,7 +8466,7 @@ function _applyGigEyeState() {
 
 function _notifyLiveMode(on) {
   try {
-    window.parent?.postMessage({ type: 'sc-live-mode', on: !!on }, window.location.origin);
+    window.parent?.postMessage({ type: 'sc-live-mode', on: !!on }, '*');
   } catch (_) {}
 }
 
@@ -9548,7 +9577,11 @@ function downloadQRCode() {
 
   window.addEventListener('message', function (e) {
     if (!e.data || typeof e.data !== 'object') return;
-    if (e.origin && e.origin !== window.location.origin) return;
+    var isAllowedOrigin = !e.origin || e.origin === window.location.origin ||
+      e.origin === 'https://localhost' ||
+      e.origin === 'http://localhost' ||
+      e.origin === 'capacitor://localhost';
+    if (!isAllowedOrigin) return;
     var t = e.data.type;
     if (t === 'sc-sync-snapshot') {
       try {
@@ -9556,7 +9589,7 @@ function downloadQRCode() {
         src.postMessage({
           type: 'sc-sync-snapshot-result',
           data: snapshot()
-        }, window.location.origin);
+        }, '*');
       } catch (err) {}
     } else if (t === 'sc-sync-restore') {
       restore(e.data.data);
