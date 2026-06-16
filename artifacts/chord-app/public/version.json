@@ -1,21 +1,24 @@
 {
   "platform": "web",
   "version": "4.0.0",
-  "commit": "2a2fd859",
-  "releasedAt": "6/15/2026, 7:09:55 PM CST",
-  "buildTimestamp": "6/15/2026, 7:09:55 PM CST",
+  "commit": "7a4f7aba",
+  "releasedAt": "6/16/2026, 1:15:07 PM CST",
+  "buildTimestamp": "6/16/2026, 1:15:07 PM CST",
   "updateMode": "refresh",
-  "changelog": "• Added adaptive Web navigation rails for laptop/desktop screen widths.\n• Added Web-specific internal app navigation tabs for tablet/iPad screen widths.\n• Added Web-specific internal app navigation for Chordex, Drumex, Stagex, Groovex, and Vocalex.\n• Improved Web shortcuts and deep shortcuts to target sub-sections.\n• Repositioned back buttons inline to prevent overlap in Web layouts.",
-  "whatsNew": "• Added adaptive Web navigation rails for laptop/desktop screen widths.\n• Added Web-specific internal app navigation tabs for tablet/iPad screen widths.\n• Added Web-specific internal app navigation for Chordex, Drumex, Stagex, Groovex, and Vocalex.\n• Improved Web shortcuts and deep shortcuts to target sub-sections.\n• Repositioned back buttons inline to prevent overlap in Web layouts.",
+  "description": "• Added transition serialization to stabilize fast app-switching.\n• Unified Help & Support center with search, categories, and live diagnostics.\n• Safeguarded sub-apps with lazy import retries and Error Boundaries.\n• Fixed Stagex mobile controls touch responsiveness and layout re-render click loss.\n• Resolved Stagex iframe cache load race conditions.",
+  "whatsNew": "• Added transition serialization to stabilize fast app-switching.\n• Unified Help & Support center with search, categories, and live diagnostics.\n• Safeguarded sub-apps with lazy import retries and Error Boundaries.\n• Fixed Stagex mobile controls touch responsiveness and layout re-render click loss.\n• Resolved Stagex iframe cache load race conditions.",
+  "changelog": "• Added transition serialization to stabilize fast app-switching.\n• Unified Help & Support center with search, categories, and live diagnostics.\n• Safeguarded sub-apps with lazy import retries and Error Boundaries.\n• Fixed Stagex mobile controls touch responsiveness and layout re-render click loss.\n• Resolved Stagex iframe cache load race conditions.",
   "releaseNotes": {
     "added": [
-      "Added adaptive Web navigation rails for laptop/desktop screen widths.",
-      "Added Web-specific internal app navigation tabs for tablet/iPad screen widths.",
-      "Added Web-specific internal app navigation for Chordex, Drumex, Stagex, Groovex, and Vocalex."
+      "Added transition serialization to stabilize fast app-switching."
     ],
     "improved": [
-      "Improved Web shortcuts and deep shortcuts to target sub-sections.",
-      "Repositioned back buttons inline to prevent overlap in Web layouts."
+      "Unified Help & Support center with search, categories, and live diagnostics.",
+      "Safeguarded sub-apps with lazy import retries and Error Boundaries."
+    ],
+    "fixed": [
+      "Fixed Stagex mobile controls touch responsiveness and layout re-render click loss.",
+      "Resolved Stagex iframe cache load race conditions."
     ]
   },
   "mandatory": false
