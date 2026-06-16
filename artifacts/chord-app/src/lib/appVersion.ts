@@ -61,26 +61,16 @@ export const APP_CHANGELOG_SECTIONS: ChangelogSection[] = [
   {
     heading: "Added",
     items: [
-      "Stagex native landscape rotation locking.",
-      "Setup sub-section navigation corrections.",
-      "Mobile-only Settings cleanup.",
+      "Added adaptive Web navigation rails for laptop/desktop screen widths.",
+      "Added Web-specific internal app navigation tabs for tablet/iPad screen widths.",
+      "Added Web-specific internal app navigation for Chordex, Drumex, Stagex, Groovex, and Vocalex.",
     ],
   },
   {
     heading: "Improved",
     items: [
-      "Smoother orientation transitions.",
-      "Android Back and swipe-back gesture improvements.",
-      "Bottom navigation stability.",
-      "Help, FAQ, Terms, Privacy, and Report a Bug pages.",
-    ],
-  },
-  {
-    heading: "Fixed",
-    items: [
-      "Stage element touch drag cancellation and freeze fixes.",
-      "Stuck selection rectangle cleanup.",
-      "Drumex black-screen safeguards.",
+      "Improved Web shortcuts and deep shortcuts to target sub-sections.",
+      "Repositioned back buttons inline to prevent overlap in Web layouts.",
     ],
   },
 ];
