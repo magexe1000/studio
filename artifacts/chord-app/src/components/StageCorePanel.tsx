@@ -14,6 +14,7 @@ import { StagexPanelSkeleton } from './StudioSkeleton';
 import { useIsWebDesktop } from '../hooks/useIsWebDesktop';
 import { WebToolbar, WebButton } from './WebDesignSystem';
 import { Capacitor } from '@capacitor/core';
+import { ScreenOrientation } from '@capacitor/screen-orientation';
 
 type StageWin = Window & {
   stageGoBack?: () => boolean;
@@ -439,7 +440,7 @@ export default function StagexPanel() {
     if (!query) return [];
 
     const results: any[] = [];
-    
+
     Object.entries(STAGEX_LIBRARY).forEach(([cat, items]) => {
       items.forEach(item => {
         if (item.name.toLowerCase().includes(query) || item.type.toLowerCase().includes(query)) {
@@ -500,12 +501,16 @@ export default function StagexPanel() {
     setIsStageExpanded(nextVal);
     try {
       if (nextVal) {
-        if (window.screen && window.screen.orientation && (window.screen.orientation as any).lock) {
+        if (Capacitor.isNativePlatform()) {
+          await ScreenOrientation.lock({ orientation: 'landscape' });
+        } else if (window.screen && window.screen.orientation && (window.screen.orientation as any).lock) {
           await (window.screen.orientation as any).lock('landscape');
         }
       } else {
-        if (window.screen && window.screen.orientation && (window.screen.orientation as any).unlock) {
-          (window.screen.orientation as any).unlock();
+        if (Capacitor.isNativePlatform()) {
+          await ScreenOrientation.lock({ orientation: 'portrait' });
+        } else if (window.screen && window.screen.orientation && (window.screen.orientation as any).lock) {
+          await (window.screen.orientation as any).lock('portrait');
         }
       }
     } catch (e) {
@@ -516,7 +521,9 @@ export default function StagexPanel() {
   useEffect(() => {
     return () => {
       try {
-        if (window.screen && window.screen.orientation && (window.screen.orientation as any).unlock) {
+        if (Capacitor.isNativePlatform()) {
+          ScreenOrientation.unlock().catch(() => {});
+        } else if (window.screen && window.screen.orientation && (window.screen.orientation as any).unlock) {
           (window.screen.orientation as any).unlock();
         }
       } catch (e) {}
@@ -584,6 +591,13 @@ export default function StagexPanel() {
     mql.addEventListener('change', handler);
     return () => mql.removeEventListener('change', handler);
   }, []);
+
+  const [rotationTransition, setRotationTransition] = useState(false);
+  useEffect(() => {
+    setRotationTransition(true);
+    const timer = setTimeout(() => setRotationTransition(false), 320);
+    return () => clearTimeout(timer);
+  }, [isLandscape]);
 
   const stageVis  = settings.perApp?.stage ?? { theme: 'dark' as const, accentColor: 'blue' as const, amoledMode: false };
   const accentKey = (stageVis.accentColor ?? settings.accentColor ?? 'blue') as keyof typeof ACCENT_COLORS;
@@ -776,14 +790,31 @@ export default function StagexPanel() {
     return false;
   }, [pdfSheetOpen]);
 
-  useEffect(() => {
-    const handler = (): boolean => {
-      try { return (iframeRef.current?.contentWindow as StageWin)?.stageGoBack?.() ?? false; }
-      catch { return false; }
-    };
-    setBackHandler(handler);
-    return () => setBackHandler(null);
-  }, []);
+  useBackHandler('nested', () => {
+    // 1. If iframe has an open overlay/modal/sheet, let the iframe handle it
+    try {
+      const win = iframeRef.current?.contentWindow as any;
+      if (win && typeof win.stageHasOpenOverlay === 'function' && win.stageHasOpenOverlay()) {
+        return win.stageGoBack() ?? false;
+      }
+    } catch (e) {}
+
+    // 2. Otherwise, if stage is expanded (landscape mode), exit it (item 5)
+    if (isStageExpanded) {
+      toggleStageExpanded();
+      return true;
+    }
+
+    // 3. Otherwise, let the iframe handle the next level (deselect selection, return page, etc.)
+    try {
+      const win = iframeRef.current?.contentWindow as any;
+      if (win && typeof win.stageGoBack === 'function') {
+        return win.stageGoBack() ?? false;
+      }
+    } catch (e) {}
+
+    return false;
+  }, [isStageExpanded]);
 
   const hasWebHeader = !isWebDesktop || (curView === 'Editor' || curView === 'Export' || showBack);
   const collapseHeader = (isLandscape && curView === 'Editor') || liveMode || !hasWebHeader || isStageExpanded;
@@ -1007,13 +1038,13 @@ export default function StagexPanel() {
   if (isWebDesktop) {
     return (
       <div style={{ display: 'flex', width: '100%', height: '100%', overflow: 'hidden', background: stageBg, position: 'relative' }}>
-        <WebAppSectionDock 
-          app="stage" 
-          activeSection={isTabActive('Editor') ? 'Editor' : isTabActive('Setup') ? 'Setup' : 'Preferences'} 
-          onChangeSection={handleNavTap} 
+        <WebAppSectionDock
+          app="stage"
+          activeSection={isTabActive('Editor') ? 'Editor' : isTabActive('Setup') ? 'Setup' : 'Preferences'}
+          onChangeSection={handleNavTap}
         />
         <div style={{ display: 'flex', flexDirection: 'column', flex: 1, height: '100%', overflow: 'hidden', background: stageBg, position: 'relative' }}>
-          
+
           {/* Top header/toolbar */}
           <WebToolbar className={`border-b ${isLight ? 'border-zinc-200 bg-zinc-50' : 'border-zinc-900 bg-[#080808]'} h-12 flex-shrink-0 select-none`}>
             <div className="flex items-center gap-3">
@@ -1025,7 +1056,7 @@ export default function StagexPanel() {
                 {curView === 'Editor' ? 'Stage Plot Editor' : curView === 'Export' ? 'Rider Export' : 'Setup & Options'}
               </span>
             </div>
-            
+
             {curView === 'Editor' && (
               <div className="flex gap-1.5">
                 {[
@@ -1060,7 +1091,7 @@ export default function StagexPanel() {
                 </WebButton>
               </div>
             )}
-            
+
             {curView === 'Export' && (
               <div className="flex gap-1.5">
                 <WebButton
@@ -1090,7 +1121,7 @@ export default function StagexPanel() {
               </div>
             )}
           </WebToolbar>
-          
+
           {/* Main workspace area */}
           <div style={{ display: 'flex', flex: 1, overflow: 'hidden', position: 'relative' }}>
             <div style={{
@@ -1153,14 +1184,14 @@ export default function StagexPanel() {
                 )}
               </button>
             )}
-            
+
             {curView === 'Editor' && (
               <motion.div
                 initial={{ opacity: 0, x: 20 }}
-                animate={{ 
-                  opacity: isRightPanelCollapsed ? 0 : 1, 
+                animate={{
+                  opacity: isRightPanelCollapsed ? 0 : 1,
                   x: isRightPanelCollapsed ? 20 : 0,
-                  width: isRightPanelCollapsed ? 0 : 260 
+                  width: isRightPanelCollapsed ? 0 : 260
                 }}
                 transition={{ duration: 0.25, ease: [0.16, 1, 0.3, 1] }}
                 style={{
@@ -1188,7 +1219,7 @@ export default function StagexPanel() {
                     <h4 style={{ fontSize: '9px', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.12em', color: isLight ? 'rgba(0,0,0,0.55)' : 'rgba(255,255,255,0.3)', marginBottom: '8px' }}>
                       Stage Elements
                     </h4>
-                    
+
                     <div style={{ position: 'relative', width: '100%', marginBottom: '4px' }}>
                       <span className="material-symbols-outlined" style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', fontSize: '16px', color: isLight ? 'rgba(0,0,0,0.45)' : 'rgba(255,255,255,0.35)' }}>
                         search
@@ -1349,7 +1380,7 @@ export default function StagexPanel() {
                             <span className="material-symbols-outlined" style={{ fontSize: '14px' }}>add</span>
                             Create Custom
                           </button>
-                          
+
                           {customElements.length > 0 ? (
                             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '8px', marginTop: '4px' }}>
                               {customElements.map((item, idx) => (
@@ -1401,7 +1432,7 @@ export default function StagexPanel() {
                     <button
                       onClick={() => callIframe('toggleGigMode')}
                       className={`btn-smooth border w-full ${
-                        liveMode 
+                        liveMode
                           ? (isLight ? 'bg-zinc-900 text-white border-transparent font-extrabold' : 'bg-zinc-100 text-zinc-950 border-transparent font-extrabold')
                           : (isLight ? 'bg-transparent text-zinc-600 hover:text-zinc-900 border-zinc-200 hover:border-zinc-350' : 'bg-transparent text-zinc-400 hover:text-white border-zinc-800 hover:border-zinc-700')
                       }`}
@@ -1424,7 +1455,7 @@ export default function StagexPanel() {
               </motion.div>
             )}
           </div>
-          
+
         </div>
         {pdfSheetOpen && (
           <>
@@ -1617,21 +1648,21 @@ export default function StagexPanel() {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100%', minHeight: '100dvh', background: stageBg, transition: 'background 180ms ease' }}>
-      <div 
-        style={{ 
-          display: 'flex', 
-          flexDirection: (isWebDesktop && isLargeDesktop) ? 'row' : 'column', 
-          flex: 1, 
-          width: '100%', 
-          height: '100%', 
-          overflow: 'hidden' 
+      <div
+        style={{
+          display: 'flex',
+          flexDirection: (isWebDesktop && isLargeDesktop) ? 'row' : 'column',
+          flex: 1,
+          width: '100%',
+          height: '100%',
+          overflow: 'hidden'
         }}
       >
         {isWebDesktop && (
-          <WebAppSectionDock 
-            app="stage" 
-            activeSection={isTabActive('Editor') ? 'Editor' : isTabActive('Setup') ? 'Setup' : 'Preferences'} 
-            onChangeSection={handleNavTap} 
+          <WebAppSectionDock
+            app="stage"
+            activeSection={isTabActive('Editor') ? 'Editor' : isTabActive('Setup') ? 'Setup' : 'Preferences'}
+            onChangeSection={handleNavTap}
           />
         )}
         <div style={{ display: 'flex', flexDirection: 'column', flex: 1, height: '100%', overflow: 'hidden', position: 'relative' }}>
@@ -1816,7 +1847,15 @@ export default function StagexPanel() {
       </div>
       </div>
 
-      <div style={{ position: 'relative', flex: 1 }}>
+      <div
+        style={{
+          position: 'relative',
+          flex: 1,
+          opacity: rotationTransition ? 0.15 : 1,
+          transition: 'opacity 280ms ease-in-out',
+          backgroundColor: stageBg
+        }}
+      >
         <iframe
           ref={iframeRef}
           src={iframeSrc}
@@ -2038,7 +2077,7 @@ export default function StagexPanel() {
               : '0 12px 48px rgba(0,0,0,0.50), 0 1.5px 0 rgba(255,255,255,0.08) inset',
             backdropFilter: 'blur(20px)',
             WebkitBackdropFilter: 'blur(20px)',
-            zIndex: 10,
+            zIndex: 50,
             overflow: 'hidden',
             clipPath: navCollapsed
               ? `inset(${Math.max(0, expandedStageH - 5)}px ${Math.max(0, Math.floor((expandedStageW - 90) / 2))}px 0 ${Math.max(0, Math.floor((expandedStageW - 90) / 2))}px round 99px)`
@@ -2099,9 +2138,10 @@ export default function StagexPanel() {
                 key={view}
                 ref={el => { stageBtnRefs.current[i] = el; }}
                 onPointerDown={() => setPressedTab(view)}
-                onPointerUp={() => { setPressedTab(null); handleNavTap(view); }}
+                onPointerUp={() => setPressedTab(null)}
                 onPointerLeave={() => setPressedTab(null)}
                 onPointerCancel={() => setPressedTab(null)}
+                onClick={() => handleNavTap(view)}
                 style={{
                   flex: 1,
                   display: 'flex',

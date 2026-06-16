@@ -306,9 +306,10 @@ function GroovexNav({ view, setView, hasActiveSong }: {
             key={item.id}
             ref={el => { btnRefs.current[i] = el; }}
             onPointerDown={() => setPressedId(item.id)}
-            onPointerUp={() => { setPressedId(null); setView(item.id); }}
+            onPointerUp={() => setPressedId(null)}
             onPointerLeave={() => setPressedId(null)}
             onPointerCancel={() => setPressedId(null)}
+            onClick={() => setView(item.id)}
             style={{
               flex: 1,
               display: 'flex',

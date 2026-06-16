@@ -471,9 +471,10 @@ export default function VocalexApp() {
               ref={el => { btnRefs.current[i] = el; }}
               data-testid={`vocalex-nav-${panel}`}
               onPointerDown={() => setPressedPanel(panel)}
-              onPointerUp={() => { setPressedPanel(null); setActiveTab(panel); }}
+              onPointerUp={() => setPressedPanel(null)}
               onPointerLeave={() => setPressedPanel(null)}
               onPointerCancel={() => setPressedPanel(null)}
+              onClick={() => setActiveTab(panel)}
               style={{
                 flex: 1,
                 display: 'flex',

@@ -27,6 +27,7 @@ import WebSidebarLayout from './components/WebSidebarLayout';
 import WebAppSectionDock from './components/WebAppSectionDock';
 import { useStudioPreferences } from './hooks/useStudioPreferences';
 import StudioLandingPage from './landing/StudioLandingPage';
+import { ErrorBoundary } from './components/ErrorBoundary';
 
 
 // Lazy-load StudioHub — it's 1400+ lines and pulls in SettingControls,
@@ -1898,7 +1899,7 @@ export default function App() {
 
               {activeAppToRender === 'drums' && (
                 <div className="app-sub-app-container" style={{ position: 'relative', width: '100%', height: '100%', overflow: 'hidden' }}>
-                  <Suspense fallback={<SmartLoading fallbackSkeleton={<DrumEditorSkeleton />} />}><AppEntryTransition><DrumEditor /></AppEntryTransition></Suspense>
+                  <ErrorBoundary><Suspense fallback={<SmartLoading fallbackSkeleton={<DrumEditorSkeleton />} />}><AppEntryTransition><DrumEditor /></AppEntryTransition></Suspense></ErrorBoundary>
                   {drumSplash !== 'hidden' && (
                     <div style={{
                       position: 'absolute', inset: 0, zIndex: 500,

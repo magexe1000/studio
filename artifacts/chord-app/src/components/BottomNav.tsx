@@ -314,9 +314,10 @@ export default function BottomNav() {
             ref={el => { btnRefs.current[i] = el; }}
             data-testid={`nav-${panel}`}
             onPointerDown={() => setPressedPanel(panel)}
-            onPointerUp={() => { setPressedPanel(null); setActivePanel(panel); }}
+            onPointerUp={() => setPressedPanel(null)}
             onPointerLeave={() => setPressedPanel(null)}
             onPointerCancel={() => setPressedPanel(null)}
+            onClick={() => setActivePanel(panel)}
             style={{
               flex: 1,
               display: 'flex',
