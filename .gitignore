@@ -64,3 +64,8 @@ signing-secrets.txt
 .env.*
 !.env.example
 
+# ── Firebase and release temp files ───────────────────────────────────────────
+.firebase/
+.release-temp-notes.json
+
+

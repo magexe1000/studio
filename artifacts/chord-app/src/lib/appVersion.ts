@@ -75,6 +75,31 @@ export const APP_CHANGELOG_SECTIONS: ChangelogSection[] = [
   },
 ];
 
+/** Native English version of the current changelog for Android. */
+export const APP_CHANGELOG_SECTIONS_NATIVE: ChangelogSection[] = [
+  {
+    heading: "Fixed",
+    items: [
+      "Restored Stagex bottom-navigation section switching.",
+      "Corrected Stagex plus-button and element-picker interaction.",
+      "Corrected Stagex eye/visibility control behavior.",
+      "Corrected parent-to-iframe command delivery in Android WebView.",
+      "Improved selected-element controls.",
+      "Prevented transition states from leaving Studio on a black screen.",
+      "Added recovery actions when a Studio module fails to load.",
+    ],
+  },
+  {
+    heading: "Improved",
+    items: [
+      "Unified Help Center and FAQ & Support into Help & Support.",
+      "Added searchable support content and functional troubleshooting actions.",
+      "Improved transition cleanup when switching between Studio apps.",
+      "Improved Stagex interaction diagnostics and event handling.",
+    ],
+  },
+];
+
 /** Spanish version of the current changelog — picked at render time
  *  by `ChangelogSheet` based on `settings.language`. */
 export const APP_CHANGELOG_SECTIONS_ES: ChangelogSection[] = [
@@ -129,6 +154,10 @@ export const APP_CHANGELOG_SECTIONS_DE: ChangelogSection[] = [
 /** Returns the changelog sections for the requested language, falling
  *  back to English when no localized version is available. */
 export function getChangelogSections(lang: string | undefined | null): ChangelogSection[] {
+  const isNative = typeof window !== 'undefined' && (window as any).Capacitor?.isNativePlatform?.();
+  if (isNative && (!lang || lang === 'en')) {
+    return APP_CHANGELOG_SECTIONS_NATIVE;
+  }
   if (lang === 'es') return APP_CHANGELOG_SECTIONS_ES;
   if (lang === 'de') return APP_CHANGELOG_SECTIONS_DE;
   return APP_CHANGELOG_SECTIONS;

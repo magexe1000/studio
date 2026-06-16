@@ -467,6 +467,9 @@ export default function StagexPanel() {
     return saved || s.settings.defaultStageView || 'Editor';
   });
 
+  const curViewRef = useRef(curView);
+  curViewRef.current = curView;
+
   useEffect(() => {
     useChordStore.getState().setLastSession({ stagexView: curView });
   }, [curView]);
@@ -700,7 +703,7 @@ ComposedPath: ${path.slice(0, 3).join(' > ')}`;
 
         // 1. Ensure we are in Editor view
         setTestStep('Ensuring Editor view...');
-        if (curView !== 'Editor') {
+        if ((curViewRef.current as any) !== 'Editor') {
           handleNavTap('Editor');
           await delay(300);
         }
@@ -712,7 +715,7 @@ ComposedPath: ${path.slice(0, 3).join(' > ')}`;
         if (!checkHitTarget(setupBtn, 'Setup tab')) throw new Error('Setup tab click intercepted');
         setupBtn.click();
         await delay(400);
-        if (!['SetupHub', 'Rider', 'Setlist', 'Gear', 'Members'].includes(curView)) {
+        if (!['SetupHub', 'Rider', 'Setlist', 'Gear', 'Members'].includes(curViewRef.current as any)) {
           throw new Error('Section did not switch to Setup');
         }
 
@@ -723,7 +726,7 @@ ComposedPath: ${path.slice(0, 3).join(' > ')}`;
         if (!checkHitTarget(prefBtn, 'Preferences tab')) throw new Error('Preferences tab click intercepted');
         prefBtn.click();
         await delay(400);
-        if (curView !== 'Preferences') {
+        if ((curViewRef.current as any) !== 'Preferences') {
           throw new Error('Section did not switch to Preferences');
         }
 
@@ -734,7 +737,7 @@ ComposedPath: ${path.slice(0, 3).join(' > ')}`;
         if (!checkHitTarget(editorBtn, 'Editor tab')) throw new Error('Editor tab click intercepted');
         editorBtn.click();
         await delay(400);
-        if (curView !== 'Editor') {
+        if ((curViewRef.current as any) !== 'Editor') {
           throw new Error('Section did not switch back to Editor');
         }
 
@@ -981,7 +984,7 @@ ComposedPath: ${path.slice(0, 3).join(' > ')}`;
   // throttled — spam-tapping Stage/Setup/Preferences must always feel instant.
   const NO_THROTTLE_FNS = new Set(['switchView', 'stageGoBack']);
   const pendingAcks = useRef<Map<string, { fn: string; timer: ReturnType<typeof setTimeout> }>>(new Map());
-  const callIframe = useCallback((fn: string, arg?: string) => {
+  const callIframe = useCallback((fn: string, arg?: string | number) => {
     if (!NO_THROTTLE_FNS.has(fn)) {
       const now = Date.now();
       if (now - lastCallTime.current < 200) return;
@@ -1006,7 +1009,7 @@ ComposedPath: ${path.slice(0, 3).join(' > ')}`;
       const win = iframe.contentWindow as Record<string, unknown> | null;
       const f = win?.[fn];
       if (typeof f === 'function') {
-        arg !== undefined ? (f as (a: string) => void)(arg) : (f as () => void)();
+        arg !== undefined ? (f as (a: string | number) => void)(arg) : (f as () => void)();
         clearTimeout(timeout);
         pendingAcks.current.delete(msgId);
         return;
