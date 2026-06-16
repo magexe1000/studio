@@ -1,14 +1,10 @@
 [build]
-  command = "pnpm --filter @workspace/chord-app build"
-  publish = "artifacts/chord-app/dist/public"
+  command = "pnpm build:web"
+  publish = "dist/web"
+  ignore = "node scripts/netlify-ignore.mjs"
 
 [build.environment]
   NODE_VERSION = "20"
-
-[[redirects]]
-  from = "/*"
-  to = "/index.html"
-  status = 200
 
 [[headers]]
   for = "/*"
@@ -39,4 +35,29 @@
   for = "/assets/*"
   [headers.values]
     Cache-Control = "public, max-age=31536000, immutable"
+
+[[redirects]]
+  from = "/app-release.json"
+  to = "https://studio-30f44.web.app/app-release.json"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "/version.json"
+  to = "https://studio-30f44.web.app/version.json"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "/apk/*"
+  to = "https://studio-30f44.web.app/apk/:splat"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
+
+
 

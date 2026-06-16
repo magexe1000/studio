@@ -1,0 +1,133 @@
+name: Android Release Pipeline
+
+on:
+  workflow_dispatch:
+    inputs:
+      version_name:
+        description: "Android versionName (e.g., 3.6.36)"
+        required: true
+      version_code:
+        description: "Android versionCode (e.g., 63)"
+        required: true
+      note:
+        description: "Release notes / changelog entry"
+        required: false
+        default: ""
+
+permissions:
+  contents: write
+  actions: read
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    env:
+      VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
+      VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
+      VITE_SYNC_BACKEND_PROVIDER: "supabase-realtime"
+      ANDROID_HOME: /usr/local/lib/android/sdk
+      ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+      ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+      ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+      EXPECTED_SIGNATURE_SHA256: "900cf259185c81100cda8bb08571fa23552e9789131cf07a8f4056e4d4129206"
+      REINSTALL_REQUIRED: "true"
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.26.1
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Enforce Import Boundaries
+        run: pnpm lint:imports
+
+      - name: Assert Production Signing Secrets
+        run: |
+          if [ -z "${{ secrets.ANDROID_KEYSTORE_BASE64 }}" ] || \
+             [ -z "${{ secrets.ANDROID_KEYSTORE_PASSWORD }}" ] || \
+             [ -z "${{ secrets.ANDROID_KEY_ALIAS }}" ] || \
+             [ -z "${{ secrets.ANDROID_KEY_PASSWORD }}" ]; then
+            echo "::error::Production signing secrets are missing. Refusing to publish release APK."
+            exit 1
+          fi
+
+      - name: Set Release Version
+        run: |
+          pnpm version:android --name "${{ github.event.inputs.version_name }}" --code "${{ github.event.inputs.version_code }}"
+
+      - name: Decode Android Keystore
+        run: |
+          echo "${{ secrets.ANDROID_KEYSTORE_BASE64 }}" | base64 --decode > apps/studio-android/android/app/release.keystore
+
+      - name: Run Android Release Script
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          cd apps/studio-android
+          node scripts/release-firebase.mjs --no-bump --version "${{ github.event.inputs.version_name }}" > build.log 2>&1 || {
+            status=$?
+            echo "::error::Android release script failed with status $status"
+            cat build.log
+            exit $status
+          }
+
+      - name: Write and Update Release Metadata
+        run: |
+          cd apps/studio-android
+          node scripts/generate-release-metadata.mjs
+
+      - name: Upload APK Asset to GitHub Release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          VERSION="${{ github.event.inputs.version_name }}"
+          TAG="v$VERSION-android"
+          if ! gh release view "$TAG" > /dev/null 2>&1; then
+            gh release create "$TAG" --title "Studio Android v$VERSION" --notes "${{ github.event.inputs.note }}" --prerelease
+          fi
+          FILE_NAME="studio-$VERSION.apk"
+          HASH_NAME="studio-$VERSION.sha256"
+          cp apps/studio-android/android/app/build/outputs/apk/release/app-release.apk "./$FILE_NAME"
+          sha256sum "$FILE_NAME" > "./$HASH_NAME"
+          gh release upload "$TAG" "./$FILE_NAME" "./$HASH_NAME" --clobber
+
+      - name: Deploy Update Metadata to Firebase Hosting
+        uses: FirebaseExtended/action-hosting-deploy@v0
+        with:
+          repoToken: '${{ secrets.GITHUB_TOKEN }}'
+          firebaseServiceAccount: '${{ secrets.FIREBASE_SERVICE_ACCOUNT }}'
+          projectId: '${{ secrets.FIREBASE_PROJECT_ID }}'
+          channelId: live
+
+      - name: Verify Deployed Android Metadata
+        run: |
+          echo "Waiting 15s for Firebase CDN propagation..."
+          sleep 15
+          NATIVE_VER="${{ github.event.inputs.version_name }}"
+          
+          echo "--- Fetching app-release.json ---"
+          APP_JSON=$(curl -sf --retry 3 "https://studio-30f44.web.app/app-release.json")
+          APP_LIVE=$(echo "$APP_JSON" | node -p "JSON.parse(require('fs').readFileSync(0,'utf8')).version")
+          echo "Deployed app-release.json version = $APP_LIVE"
+          if [ "$APP_LIVE" != "$NATIVE_VER" ]; then
+            echo "::error::Deployed app-release.json version mismatch! Expected $NATIVE_VER, got $APP_LIVE"
+            exit 1
+          fi
+
+          echo "✓ Android Release Post-deploy verification passed"

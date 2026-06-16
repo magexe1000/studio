@@ -1,0 +1,74 @@
+name: Android CI
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'apps/studio-android/**'
+      - 'packages/studio-core/**'
+      - 'packages/ui-shared/**'
+      - 'packages/ui-android/**'
+      - 'package.json'
+      - 'pnpm-workspace.yaml'
+      - 'pnpm-lock.yaml'
+      - 'tsconfig.json'
+      - 'tsconfig.base.json'
+      - '.github/workflows/android-ci.yml'
+  pull_request:
+    branches: [main]
+    paths:
+      - 'apps/studio-android/**'
+      - 'packages/studio-core/**'
+      - 'packages/ui-shared/**'
+      - 'packages/ui-android/**'
+      - 'package.json'
+      - 'pnpm-workspace.yaml'
+      - 'pnpm-lock.yaml'
+      - 'tsconfig.json'
+      - 'tsconfig.base.json'
+      - '.github/workflows/android-ci.yml'
+
+jobs:
+  ci:
+    runs-on: ubuntu-latest
+    env:
+      VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
+      VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
+      VITE_SYNC_BACKEND_PROVIDER: "supabase-realtime"
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.26.1
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Enforce Import Boundaries
+        run: pnpm lint:imports
+
+      - name: Typecheck Android
+        run: pnpm typecheck:android
+
+      - name: Build Android Web Assets
+        run: pnpm build:android:web
+
+      - name: Capacitor Sync
+        run: pnpm --filter @workspace/studio-android android:sync
+
+      - name: Compile Gradle Android Project
+        run: |
+          cd apps/studio-android/android
+          ./gradlew compileReleaseJavaWithJavac

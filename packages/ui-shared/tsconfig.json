@@ -1,0 +1,30 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "composite": true,
+    "rootDir": ".",
+    "outDir": "./dist",
+    "jsx": "react-jsx",
+    "lib": ["esnext", "dom", "dom.iterable"],
+    "baseUrl": ".",
+    "types": ["node", "vite/client"],
+    "resolveJsonModule": true,
+    "paths": {
+      "@/*": ["./src/*"],
+      "../lib/*": ["../studio-core/src/lib/*"],
+      "../../lib/*": ["../studio-core/src/lib/*"],
+      "../hooks/*": ["../studio-core/src/hooks/*"],
+      "../../hooks/*": ["../studio-core/src/hooks/*"],
+      "../store/*": ["../studio-core/src/store/*"],
+      "../../store/*": ["../studio-core/src/store/*"],
+      "../data/*": ["../studio-core/src/data/*"],
+      "../../data/*": ["../studio-core/src/data/*"],
+      "../i18n/*": ["../studio-core/src/i18n/*"],
+      "../../i18n/*": ["../studio-core/src/i18n/*"]
+    }
+  },
+  "include": ["src/**/*", "src/**/*.json", "firebase.config.json"],
+  "references": [
+    { "path": "../studio-core" }
+  ]
+}

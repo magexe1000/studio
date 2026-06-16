@@ -11,6 +11,24 @@
     },
     {
       "path": "./lib/api-zod"
+    },
+    {
+      "path": "./packages/studio-core"
+    },
+    {
+      "path": "./packages/ui-shared"
+    },
+    {
+      "path": "./packages/ui-web"
+    },
+    {
+      "path": "./packages/ui-android"
+    },
+    {
+      "path": "./apps/studio-web"
+    },
+    {
+      "path": "./apps/studio-android"
     }
   ]
 }

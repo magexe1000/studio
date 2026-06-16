@@ -1,0 +1,20 @@
+<svg width="180" height="180" viewBox="0 0 180 180" fill="none" xmlns="http://www.w3.org/2000/svg">
+
+  <!-- Background -->
+  <rect width="180" height="180" fill="#0e0e0e"/>
+
+  <!-- Outer bars — blue, shortest -->
+  <rect x="20" y="74"  width="14" height="82" fill="#7aafff" opacity="0.55"/>
+  <rect x="146" y="74" width="14" height="82" fill="#7aafff" opacity="0.55"/>
+
+  <!-- Inner bars — blue, medium -->
+  <rect x="42" y="46"  width="16" height="110" fill="#7aafff" opacity="0.85"/>
+  <rect x="122" y="46" width="16" height="110" fill="#7aafff" opacity="0.85"/>
+
+  <!-- Center bar — orange, tallest -->
+  <rect x="82" y="18"  width="16" height="138" fill="#ff7439"/>
+
+  <!-- Baseline rule -->
+  <rect x="16" y="158" width="148" height="2" fill="#7aafff" opacity="0.3"/>
+
+</svg>

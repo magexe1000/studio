@@ -1,0 +1,1 @@
+C:/Users/ayuda/.gemini/antigravity/scratch/Studio/packages/studio-core/src/vocalex/takesDb.ts
