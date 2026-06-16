@@ -5927,6 +5927,21 @@ function HelpAccordion({ accent, lang }: { accent: { from: string; to: string };
   const [auditReport, setAuditReport] = useState<string | null>(null);
   const [resetState, setResetState] = useState<'idle' | 'repairing' | 'success'>('idle');
 
+  const [diagEnabled, setDiagEnabled] = useState(() => {
+    try {
+      return localStorage.getItem('stagex_diagnostics_enabled') === 'true';
+    } catch {
+      return false;
+    }
+  });
+
+  const toggleDiagOverlay = () => {
+    const next = !diagEnabled;
+    setDiagEnabled(next);
+    localStorage.setItem('stagex_diagnostics_enabled', next ? 'true' : 'false');
+    window.dispatchEvent(new CustomEvent('stagex:diagnostics-toggle', { detail: next }));
+  };
+
   // Audio Context State
   const [audioCtxState, setAudioCtxState] = useState<string>('unknown');
   useEffect(() => {
@@ -6316,6 +6331,28 @@ function HelpAccordion({ accent, lang }: { accent: { from: string; to: string };
                 {resetState === 'repairing' ? 'sync' : 'restart_alt'}
               </span>
               {resetState === 'repairing' ? 'Resetting...' : 'Reset & Reload'}
+            </button>
+
+            <button
+              onClick={toggleDiagOverlay}
+              style={{
+                padding: '6px 12px',
+                borderRadius: 8,
+                background: diagEnabled ? 'rgba(64,192,87,0.15)' : 'rgba(255,255,255,0.04)',
+                border: diagEnabled ? '1px solid rgba(64,192,87,0.3)' : '1px solid rgba(128,128,128,0.1)',
+                color: diagEnabled ? '#40c057' : 'var(--c-text-primary)',
+                fontSize: 11,
+                fontWeight: 700,
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: 4,
+              }}
+            >
+              <span className="material-symbols-outlined" style={{ fontSize: 14 }}>
+                bug_report
+              </span>
+              {diagEnabled ? 'Diagnostics: ON' : 'Diagnostics Overlay'}
             </button>
           </div>
 

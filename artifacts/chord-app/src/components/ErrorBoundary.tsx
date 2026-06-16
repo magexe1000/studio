@@ -28,9 +28,17 @@ export class ErrorBoundary extends Component<Props, State> {
       name: error?.name,
       componentStack: errorInfo?.componentStack?.slice(0, 1000) // limit stack length for logs
     });
+    // Reset transition active lock on error
+    if (typeof window !== 'undefined') {
+      (window as any).studioTransitionActive = false;
+    }
   }
 
   private handleReturnToHub = () => {
+    // Reset transition active lock
+    if (typeof window !== 'undefined') {
+      (window as any).studioTransitionActive = false;
+    }
     // Try to safely return to Hub using the global function
     if (typeof (window as any).returnToStudioHub === 'function') {
       try {

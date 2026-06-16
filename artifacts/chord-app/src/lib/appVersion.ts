@@ -26,7 +26,7 @@ import { useMemo } from 'react';
 import { Capacitor } from '@capacitor/core';
 
 /** Canonical semver string used by the OTA comparator. */
-export const NATIVE_VERSION = '3.6.35';
+export const NATIVE_VERSION = '3.6.36';
 export const WEB_VERSION = '4.0.0';
 export const APP_VERSION = Capacitor.isNativePlatform() ? NATIVE_VERSION : WEB_VERSION;
 
@@ -38,7 +38,7 @@ export const APP_VERSION_LABEL = `${APP_VERSION_TAG} ${APP_VERSION}`;
 
 /** Release date for the CURRENT bundle, shown alongside the version pill
  *  in the changelog sheet. ISO-8601 (`YYYY-MM-DD`). */
-export const APP_VERSION_DATE = '2026-06-16'; // 3.6.35
+export const APP_VERSION_DATE = '2026-06-16'; // 3.6.36
 // Note: keep ISO-8601. Bump together with APP_VERSION on each release.
 
 export const APP_COMMIT_SHA = import.meta.env.VITE_GIT_COMMIT_SHA || 'c9e77a16';
@@ -81,21 +81,21 @@ export const APP_CHANGELOG_SECTIONS_ES: ChangelogSection[] = [
   {
     heading: "Añadido",
     items: [
-      "Serialización de transiciones para estabilizar el cambio rápido de aplicaciones.",
+      "Panel flotante de diagnóstico en Stagex para rastrear objetivos táctiles y acuses de recibo.",
     ],
   },
   {
     heading: "Mejorado",
     items: [
-      "Centro unificado de Ayuda y Soporte con búsqueda, categorías y diagnóstico en vivo.",
-      "Protección de subaplicaciones con reintentos de carga y límites de error.",
+      "Migradas las acciones del lienzo (rotar, escalar, eliminar) a funciones táctiles globales.",
+      "Refactorizado el bloqueo de transición global a un estado de React con watchdog de 1.2 segundos.",
     ],
   },
   {
     heading: "Corregido",
     items: [
-      "Corregido la respuesta táctil y pérdida de clics por re-renderizado en controles móviles de Stagex.",
-      "Resuelto condiciones de carrera en la carga de caché del iframe de Stagex.",
+      "Resuelto la falta de respuesta táctil en los controles de Stagex (navegación, más, ojo) en Android.",
+      "Permitida la comunicación del puente de mensajes a través de esquemas para solucionar WebView origin mismatch.",
     ],
   },
 ];
@@ -105,21 +105,21 @@ export const APP_CHANGELOG_SECTIONS_DE: ChangelogSection[] = [
   {
     heading: "Hinzugefügt",
     items: [
-      "Übergangsserialisierung zur Stabilisierung des schnellen App-Wechsels.",
+      "Schwebendes Diagnose-Overlay in Stagex zur Überwachung von Touch-Zielen und Nachrichten-Protokollen.",
     ],
   },
   {
     heading: "Verbessert",
     items: [
-      "Einheitliches Hilfe- und Support-Center mit Suche, Kategorien und Live-Diagnose.",
-      "Absicherung von Sub-Apps durch Import-Wiederholungsversuche und Error Boundaries.",
+      "Canvas-Aktionen (Drehen, Skalieren, Löschen) auf touch-kompatible globale Hilfsfunktionen migriert.",
+      "Übergangs-Lock (studioTransitionActive) in React-Status mit 1,2s-Sicherheits-Watchdog umgewandelt.",
     ],
   },
   {
     heading: "Behoben",
     items: [
-      "Fehlerbehebung für Touch-Steuerung und Klickverlust bei Stagex auf Mobilgeräten.",
-      "Behebung von Race Conditions beim Laden des Stagex-Iframe-Caches.",
+      "Reaktionslose Touch-Steuerelemente in Stagex (untere Navigation, Plus-Button, Augensymbol) auf Android behoben.",
+      "Nachrichtenbrücke-Kommunikation für capacitor://, http:// und https:// freigegeben, um Origin-Mismatches zu lösen.",
     ],
   },
 ];

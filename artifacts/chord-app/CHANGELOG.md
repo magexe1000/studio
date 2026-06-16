@@ -14,6 +14,20 @@ Conventions:
 - List the user-visible changes only. Internal refactors, tooling,
   and CI tweaks do not need a bullet.
 
+## 3.6.36
+
+### Added
+- Added native-review diagnostics overlay in Stagex to view touch targets and message logs.
+
+### Improved
+- Migrated Stagex canvas editing tools from mousedown to touch-friendly event helpers.
+- Refactored transition lock (studioTransitionActive) into React state with a 1.2s watchdog.
+
+### Fixed
+- Fixed broken Stagex touch controls (bottom nav, plus button, eye button) on Android devices.
+- Fixed WebView message bridge cross-origin issues across capacitor://, http://, and https://.
+
+
 ## 3.6.35
 
 ### Added
