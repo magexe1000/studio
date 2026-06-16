@@ -16,16 +16,20 @@ Conventions:
 
 ## 3.6.36
 
-### Added
-- Added native-review diagnostics overlay in Stagex to view touch targets and message logs.
+### Fixed
+- Restored Stagex bottom-navigation section switching.
+- Corrected Stagex plus-button and element-picker interaction.
+- Corrected Stagex eye/visibility control behavior.
+- Corrected parent-to-iframe command delivery in Android WebView.
+- Improved selected-element controls.
+- Prevented transition states from leaving Studio on a black screen.
+- Added recovery actions when a Studio module fails to load.
 
 ### Improved
-- Migrated Stagex canvas editing tools from mousedown to touch-friendly event helpers.
-- Refactored transition lock (studioTransitionActive) into React state with a 1.2s watchdog.
-
-### Fixed
-- Fixed broken Stagex touch controls (bottom nav, plus button, eye button) on Android devices.
-- Fixed WebView message bridge cross-origin issues across capacitor://, http://, and https://.
+- Unified Help Center and FAQ & Support into Help & Support.
+- Added searchable support content and functional troubleshooting actions.
+- Improved transition cleanup when switching between Studio apps.
+- Improved Stagex interaction diagnostics and event handling.
 
 
 ## 3.6.35

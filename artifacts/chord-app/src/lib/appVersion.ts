@@ -59,18 +59,24 @@ export interface ChangelogSection {
 
 export const APP_CHANGELOG_SECTIONS: ChangelogSection[] = [
   {
-    heading: "Added",
+    heading: "Fixed",
     items: [
-      "Added adaptive Web navigation rails for laptop/desktop screen widths.",
-      "Added Web-specific internal app navigation tabs for tablet/iPad screen widths.",
-      "Added Web-specific internal app navigation for Chordex, Drumex, Stagex, Groovex, and Vocalex.",
+      "Restored Stagex bottom-navigation section switching.",
+      "Corrected Stagex plus-button and element-picker interaction.",
+      "Corrected Stagex eye/visibility control behavior.",
+      "Corrected parent-to-iframe command delivery in Android WebView.",
+      "Improved selected-element controls.",
+      "Prevented transition states from leaving Studio on a black screen.",
+      "Added recovery actions when a Studio module fails to load.",
     ],
   },
   {
     heading: "Improved",
     items: [
-      "Improved Web shortcuts and deep shortcuts to target sub-sections.",
-      "Repositioned back buttons inline to prevent overlap in Web layouts.",
+      "Unified Help Center and FAQ & Support into Help & Support.",
+      "Added searchable support content and functional troubleshooting actions.",
+      "Improved transition cleanup when switching between Studio apps.",
+      "Improved Stagex interaction diagnostics and event handling.",
     ],
   },
 ];
@@ -79,23 +85,24 @@ export const APP_CHANGELOG_SECTIONS: ChangelogSection[] = [
  *  by `ChangelogSheet` based on `settings.language`. */
 export const APP_CHANGELOG_SECTIONS_ES: ChangelogSection[] = [
   {
-    heading: "Añadido",
+    heading: "Corregido",
     items: [
-      "Panel flotante de diagnóstico en Stagex para rastrear objetivos táctiles y acuses de recibo.",
+      "Restaurado el cambio de sección en la navegación inferior de Stagex.",
+      "Corregida la interacción del botón más y el selector de elementos en Stagex.",
+      "Corregido el comportamiento del control de ojo/visibilidad en Stagex.",
+      "Corregida la entrega de comandos parent-to-iframe en Android WebView.",
+      "Mejorados los controles de los elementos seleccionados.",
+      "Evitado que los estados de transición dejen a Studio en una pantalla negra.",
+      "Añadidas acciones de recuperación cuando un módulo de Studio no se carga.",
     ],
   },
   {
     heading: "Mejorado",
     items: [
-      "Migradas las acciones del lienzo (rotar, escalar, eliminar) a funciones táctiles globales.",
-      "Refactorizado el bloqueo de transición global a un estado de React con watchdog de 1.2 segundos.",
-    ],
-  },
-  {
-    heading: "Corregido",
-    items: [
-      "Resuelto la falta de respuesta táctil en los controles de Stagex (navegación, más, ojo) en Android.",
-      "Permitida la comunicación del puente de mensajes a través de esquemas para solucionar WebView origin mismatch.",
+      "Unificados el Centro de ayuda y Preguntas frecuentes y soporte en Ayuda y soporte.",
+      "Añadido contenido de soporte con búsqueda y acciones funcionales de solución de problemas.",
+      "Mejorada la limpieza de transiciones al cambiar entre aplicaciones de Studio.",
+      "Mejorados los diagnósticos de interacción y el manejo de eventos en Stagex.",
     ],
   },
 ];
@@ -103,23 +110,24 @@ export const APP_CHANGELOG_SECTIONS_ES: ChangelogSection[] = [
 /** German version of the current changelog. */
 export const APP_CHANGELOG_SECTIONS_DE: ChangelogSection[] = [
   {
-    heading: "Hinzugefügt",
+    heading: "Behoben",
     items: [
-      "Schwebendes Diagnose-Overlay in Stagex zur Überwachung von Touch-Zielen und Nachrichten-Protokollen.",
+      "Wiederherstellung des Bereichswechsels in der Stagex-Navigation unten.",
+      "Korrektur der Interaktion von Plus-Button und Element-Picker in Stagex.",
+      "Korrektur des Verhaltens der Augensymbol- und Sichtbarkeitssteuerung.",
+      "Korrektur der parent-to-iframe Befehlsübertragungen in Android WebView.",
+      "Verbesserte Steuerung für ausgewählte Elemente.",
+      "Verhindert, dass Übergangszustände Studio auf einem schwarzen Bildschirm hinterlassen.",
+      "Wiederherstellungsaktionen bei fehlgeschlagenem Laden von Studio-Modulen hinzugefügt.",
     ],
   },
   {
     heading: "Verbessert",
     items: [
-      "Canvas-Aktionen (Drehen, Skalieren, Löschen) auf touch-kompatible globale Hilfsfunktionen migriert.",
-      "Übergangs-Lock (studioTransitionActive) in React-Status mit 1,2s-Sicherheits-Watchdog umgewandelt.",
-    ],
-  },
-  {
-    heading: "Behoben",
-    items: [
-      "Reaktionslose Touch-Steuerelemente in Stagex (untere Navigation, Plus-Button, Augensymbol) auf Android behoben.",
-      "Nachrichtenbrücke-Kommunikation für capacitor://, http:// und https:// freigegeben, um Origin-Mismatches zu lösen.",
+      "Zusammenführung von Hilfe-Center und FAQ & Support in Hilfe & Support.",
+      "Durchsuchbare Support-Inhalte und funktionale Fehlerbehebungsaktionen hinzugefügt.",
+      "Verbesserte Übergangsbereinigung beim Wechsel zwischen Studio-Apps.",
+      "Verbesserte Stagex Interaktionsdiagnosen und Ereignisbehandlung.",
     ],
   },
 ];
