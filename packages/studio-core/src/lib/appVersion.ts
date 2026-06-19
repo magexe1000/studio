@@ -26,7 +26,7 @@ import { useMemo } from 'react';
 import { Capacitor } from '@capacitor/core';
 
 /** Canonical semver string used by the OTA comparator. */
-export const NATIVE_VERSION = '3.6.41';
+export const NATIVE_VERSION = '3.6.40';
 export const WEB_VERSION = '4.0.0';
 export const APP_VERSION = Capacitor.isNativePlatform() ? NATIVE_VERSION : WEB_VERSION;
 
@@ -61,8 +61,10 @@ export const APP_CHANGELOG_SECTIONS: ChangelogSection[] = [
   {
     heading: "Fixed",
     items: [
-      "Resolved global style and layout regressions in the separated monorepo architecture.",
-      "Added Tailwind CSS source path configuration for shared workspace packages.",
+      "Fixed Stagex same-origin bridge and allowed null origins.",
+      "Resolved ScreenOrientation.lock UI thread blocking issues.",
+      "Fixed element picker pointer-events and touch interactions.",
+      "Restored Stagex bottom-navigation and system back gesture handling.",
     ],
   },
 ];

@@ -1,3 +1,5 @@
 ### Fixed
-- Resolved global style and layout regressions in the separated monorepo architecture.
-- Added Tailwind CSS source path configuration for shared workspace packages.
+- Fixed Stagex same-origin bridge and allowed null origins.
+- Resolved ScreenOrientation.lock UI thread blocking issues.
+- Fixed element picker pointer-events and touch interactions.
+- Restored Stagex bottom-navigation and system back gesture handling.

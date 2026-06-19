@@ -71,6 +71,71 @@ const ALL_PANELS = ['library', 'chord', 'songs', 'settings'] as const;
 
 export default function App() {
   const { activePanel, settings, setActivePanel, activePresetId, updateSettings } = useChordStore();
+  const { preferences } = useStudioPreferences();
+
+  const returnToStudioHub = useCallback((isSwipeSuccess = false) => {
+    // 1. Close active modals/sheets/overlays
+    window.dispatchEvent(new CustomEvent('studio:close-all-sheets'));
+    window.dispatchEvent(new CustomEvent('studio:close-all-modals'));
+    document.querySelectorAll('.modal-backdrop, .overlay').forEach(el => {
+      if (el.id !== 'update-fade-overlay') {
+        el.remove();
+      }
+    });
+    document.documentElement.classList.remove('has-modal-open');
+
+    // 2. Set transition active lock
+    (window as any).studioTransitionActive = true;
+
+    // Reset Hub's zoom/opacity animation state immediately so it starts fading in as the sub-app exits
+    window.dispatchEvent(new CustomEvent('studio:reset-hub-zooming'));
+
+    // 3. Clear selected/active app state, reset animation locks & return to Hub after transition
+    updateSettings({ appMode: 'hub' });
+    
+    // Reset nested views to defaults if rememberLastAppSection is disabled
+    if (!preferences.rememberLastAppSection) {
+      const storeState = useChordStore.getState();
+      storeState.setActivePanel(storeState.settings.defaultTab ?? 'library');
+      storeState.setLastSession({
+        vocalexTab: 'practice',
+        drumexTab: storeState.settings.defaultDrumTab ?? 'songs',
+        stagexView: storeState.settings.defaultStageView ?? 'Editor',
+      });
+
+      import('@workspace/ui-shared')
+        .then(({ useGroovexStore }) => {
+          useGroovexStore.getState().setView('library');
+        })
+        .catch(() => {});
+    }
+
+    setTimeout(() => {
+      (window as any).studioTransitionActive = false;
+    }, 370);
+  }, [updateSettings, preferences.rememberLastAppSection]);
+
+  const returnToStudioHubRef = useRef(returnToStudioHub);
+  useEffect(() => {
+    returnToStudioHubRef.current = returnToStudioHub;
+  }, [returnToStudioHub]);
+
+  // Export to window object so external sub-apps can call it directly
+  useEffect(() => {
+    (window as any).returnToStudioHub = returnToStudioHub;
+    return () => {
+      delete (window as any).returnToStudioHub;
+    };
+  }, [returnToStudioHub]);
+
+  // Backward compatibility listener for studio-hub-return CustomEvent
+  useEffect(() => {
+    const handler = () => {
+      returnToStudioHubRef.current();
+    };
+    window.addEventListener('studio-hub-return', handler);
+    return () => window.removeEventListener('studio-hub-return', handler);
+  }, []);
 
   const [route, setRoute] = useState(() => {
     if (typeof window === 'undefined') return '/';

@@ -10,7 +10,8 @@ import {
   logActivity,
   resetNav,
   setNavHidden,
-  setNavLocked
+  setNavLocked,
+  handleGlobalBack
 } from '@workspace/studio-core';
 
 import {
@@ -55,6 +56,135 @@ const ALL_PANELS = ['library', 'chord', 'songs', 'settings'] as const;
 
 export default function App() {
   const { activePanel, settings, setActivePanel, activePresetId, updateSettings } = useChordStore();
+  const { preferences } = useStudioPreferences();
+
+  const [exitToast, setExitToast] = useState(false);
+  const exitToastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const lastBackTime = useRef<number>(0);
+
+  const returnToStudioHub = useCallback((isSwipeSuccess = false) => {
+    // 1. Close active modals/sheets/overlays
+    window.dispatchEvent(new CustomEvent('studio:close-all-sheets'));
+    window.dispatchEvent(new CustomEvent('studio:close-all-modals'));
+    document.querySelectorAll('.modal-backdrop, .overlay').forEach(el => {
+      if (el.id !== 'update-fade-overlay') {
+        el.remove();
+      }
+    });
+    document.documentElement.classList.remove('has-modal-open');
+
+    // 2. Set transition active lock
+    (window as any).studioTransitionActive = true;
+
+    // Reset Hub's zoom/opacity animation state immediately so it starts fading in as the sub-app exits
+    window.dispatchEvent(new CustomEvent('studio:reset-hub-zooming'));
+
+    // 3. Clear selected/active app state, reset animation locks & return to Hub after transition
+    updateSettings({ appMode: 'hub' });
+    
+    // Reset nested views to defaults if rememberLastAppSection is disabled
+    if (!preferences.rememberLastAppSection) {
+      const storeState = useChordStore.getState();
+      storeState.setActivePanel(storeState.settings.defaultTab ?? 'library');
+      storeState.setLastSession({
+        vocalexTab: 'practice',
+        drumexTab: storeState.settings.defaultDrumTab ?? 'songs',
+        stagexView: storeState.settings.defaultStageView ?? 'Editor',
+      });
+
+      import('@workspace/ui-shared')
+        .then(({ useGroovexStore }) => {
+          useGroovexStore.getState().setView('library');
+        })
+        .catch(() => {});
+    }
+
+    setTimeout(() => {
+      (window as any).studioTransitionActive = false;
+    }, 370);
+  }, [updateSettings, preferences.rememberLastAppSection]);
+
+  const returnToStudioHubRef = useRef(returnToStudioHub);
+  useEffect(() => {
+    returnToStudioHubRef.current = returnToStudioHub;
+  }, [returnToStudioHub]);
+
+  // Export to window object so external sub-apps can call it directly
+  useEffect(() => {
+    (window as any).returnToStudioHub = returnToStudioHub;
+    return () => {
+      delete (window as any).returnToStudioHub;
+    };
+  }, [returnToStudioHub]);
+
+  // Backward compatibility listener for studio-hub-return CustomEvent
+  useEffect(() => {
+    const handler = () => {
+      returnToStudioHubRef.current();
+    };
+    window.addEventListener('studio-hub-return', handler);
+    return () => window.removeEventListener('studio-hub-return', handler);
+  }, []);
+
+  // System back button & predictive gesture handler
+  useEffect(() => {
+    // Seed history entries so we can capture popstate events
+    window.history.replaceState({ chordex: 'root' }, '');
+    window.history.pushState({ chordex: 'app' }, '');
+
+    const onBack = () => {
+      const handled = handleGlobalBack();
+
+      if (!handled) {
+        const isSubApp = useChordStore.getState().settings.appMode !== 'hub';
+        if (isSubApp) {
+          returnToStudioHubRef.current(false);
+        } else {
+          // Double press to exit when already on the Studio Hub
+          const now = Date.now();
+          if (now - lastBackTime.current < 2000) {
+            import('@capacitor/app')
+              .then(({ App: CapApp }) => CapApp.exitApp())
+              .catch(() => {});
+          } else {
+            lastBackTime.current = now;
+            setExitToast(true);
+            if (exitToastTimer.current) clearTimeout(exitToastTimer.current);
+            exitToastTimer.current = setTimeout(() => setExitToast(false), 2000);
+          }
+        }
+      }
+
+      window.history.pushState({ chordex: 'app' }, '');
+    };
+
+    const handlePop = () => onBack();
+    window.addEventListener('popstate', handlePop);
+
+    let capRemove: (() => void) | null = null;
+    import('@capacitor/app')
+      .then(({ App: CapApp }) => {
+        CapApp.addListener('backButton', onBack).then((handle) => {
+          capRemove = () => handle.remove();
+        });
+      })
+      .catch(() => {});
+
+    return () => {
+      window.removeEventListener('popstate', handlePop);
+      capRemove?.();
+      if (exitToastTimer.current) clearTimeout(exitToastTimer.current);
+    };
+  }, []);
+
+  // Root-level safety fallback: recover to Studio Hub on invalid appMode
+  useEffect(() => {
+    const validModes = ['hub', 'chords', 'drums', 'stage', 'groovex', 'vocalex'];
+    if (!settings.appMode || !validModes.includes(settings.appMode)) {
+      console.warn('[Safety] Invalid appMode detected:', settings.appMode, 'Falling back to hub.');
+      updateSettings({ appMode: 'hub' });
+    }
+  }, [settings.appMode, updateSettings]);
 
   const [route, setRoute] = useState('/app');
 
@@ -246,6 +376,40 @@ export default function App() {
           </motion.div>
         )}
       </AnimatePresence>
+
+      {exitToast && renderExitToast()}
     </div>
   );
+
+  function renderExitToast() {
+    const isLight = settings.theme === 'light' ||
+      (settings.theme === 'system' && typeof window !== 'undefined' && window.matchMedia('(prefers-color-scheme: light)').matches);
+
+    return createPortal(
+      <div
+        id="exit-toast"
+        style={{
+          position: 'fixed',
+          bottom: 'max(28px, calc(env(safe-area-inset-bottom) + 88px))',
+          left: '50%',
+          transform: 'translateX(-50%)',
+          background: isLight ? 'rgba(255, 255, 255, 0.90)' : 'rgba(24,24,32,0.93)',
+          color: isLight ? '#1a1a1a' : 'var(--c-text-primary, #ffffff)',
+          padding: '10px 22px',
+          borderRadius: '24px',
+          fontSize: '13px',
+          fontFamily: 'Inter, sans-serif',
+          zIndex: 99999,
+          pointerEvents: 'none',
+          backdropFilter: 'blur(12px)',
+          border: isLight ? '1px solid rgba(0, 0, 0, 0.08)' : '1px solid rgba(255,255,255,0.08)',
+          boxShadow: isLight ? '0 8px 24px rgba(0,0,0,0.08)' : '0 8px 24px rgba(0,0,0,0.30)',
+          whiteSpace: 'nowrap',
+        }}
+      >
+        Press back or swipe again to exit
+      </div>,
+      document.body
+    );
+  }
 }

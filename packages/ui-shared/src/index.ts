@@ -65,3 +65,5 @@ export { default as VinylLottie } from './components/lottie/VinylLottie';
 // UI
 export * from './components/ui/dropdown-menu';
 export * from './components/ui/encrypted-text';
+
+export { useGroovexStore } from './groovex/useGroovexStore';
