@@ -1,6 +1,7 @@
 # ── Build output ──────────────────────────────────────────────────────────────
 dist/
 firebase-public/
+firebase-public-android/
 tmp/
 out-tsc/
 *.tsbuildinfo
@@ -67,5 +68,10 @@ signing-secrets.txt
 # ── Firebase and release temp files ───────────────────────────────────────────
 .firebase/
 .release-temp-notes.json
+
+# ── Generated metadata and release files ──────────────────────────────────────
+apps/studio-android/public/version.json
+apps/studio-web/public/version.json
+pr-body.md
 
 

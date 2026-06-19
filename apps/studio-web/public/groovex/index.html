@@ -1,0 +1,612 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Groovex — Multitrack Practice & Rehearsal Studio | Studio</title>
+  <meta name="description" content="Unleash your rehearsal with multitrack practice tools. Load tracks, adjust levels, mute stems, and loop sections with a gorgeous liquid glass UI.">
+  <meta name="keywords" content="multitrack practice app, rehearsal tools, multitrack player, stem player, practice multitracks, band rehearsal app, musician tools">
+  <link rel="canonical" href="https://studio-30f44.web.app/groovex/" />
+  <meta name="robots" content="index, follow" />
+
+  <!-- Open Graph -->
+  <meta property="og:type" content="website" />
+  <meta property="og:url" content="https://studio-30f44.web.app/groovex/" />
+  <meta property="og:title" content="Groovex — Multitrack Practice & Rehearsal Studio" />
+  <meta property="og:description" content="Unleash your rehearsal with multitrack practice tools. Load tracks, adjust levels, mute stems, and loop sections with a gorgeous liquid glass UI." />
+  <meta property="og:image" content="https://studio-30f44.web.app/opengraph.jpg" />
+
+  <!-- Twitter -->
+  <meta property="twitter:card" content="summary_large_image" />
+  <meta property="twitter:url" content="https://studio-30f44.web.app/groovex/" />
+  <meta property="twitter:title" content="Groovex — Multitrack Practice & Rehearsal Studio" />
+  <meta property="twitter:description" content="Unleash your rehearsal with multitrack practice tools. Load tracks, adjust levels, mute stems, and loop sections with a gorgeous liquid glass UI." />
+  <meta property="twitter:image" content="https://studio-30f44.web.app/opengraph.jpg" />
+
+  <!-- Fonts & Material Icons -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;700;800&family=Outfit:wght@600;800&family=Material+Symbols+Outlined&display=swap" rel="stylesheet">
+
+  <style>
+    :root {
+      --bg: #0a0a0c;
+      --surface: rgba(18, 18, 22, 0.7);
+      --border: rgba(128, 128, 128, 0.12);
+      --accent: #06b6d4;
+      --accent-glow: rgba(6, 182, 212, 0.15);
+      --text: #e1e1e6;
+      --text-muted: #888896;
+    }
+    
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+    
+    body {
+      background-color: var(--bg);
+      color: var(--text);
+      font-family: 'Manrope', sans-serif;
+      line-height: 1.6;
+      overflow-x: hidden;
+    }
+    
+    .glow-bg {
+      position: absolute;
+      top: -150px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 600px;
+      height: 600px;
+      background: radial-gradient(circle, var(--accent-glow) 0%, transparent 70%);
+      pointer-events: none;
+      z-index: -1;
+    }
+
+    header {
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 24px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      text-decoration: none;
+      color: #fff;
+      font-family: 'Outfit', sans-serif;
+      font-weight: 800;
+      font-size: 22px;
+      letter-spacing: -0.02em;
+    }
+
+    .brand svg {
+      width: 28px;
+      height: 28px;
+    }
+
+    .btn-launch {
+      padding: 10px 20px;
+      border-radius: 9999px;
+      background: linear-gradient(135deg, var(--accent), #0891b2);
+      color: #fff;
+      font-weight: 700;
+      text-decoration: none;
+      font-size: 14px;
+      box-shadow: 0 4px 12px rgba(6, 182, 212, 0.3);
+      transition: all 0.2s ease;
+    }
+
+    .btn-launch:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 16px rgba(6, 182, 212, 0.45);
+    }
+
+    main {
+      max-width: 1000px;
+      margin: 0 auto;
+      padding: 48px 24px 96px;
+    }
+
+    .hero {
+      text-align: center;
+      margin-bottom: 64px;
+    }
+
+    .tagline {
+      font-family: 'Outfit', sans-serif;
+      font-size: clamp(32px, 6vw, 48px);
+      font-weight: 800;
+      color: #fff;
+      letter-spacing: -0.03em;
+      line-height: 1.15;
+      margin-bottom: 18px;
+    }
+
+    .tagline span {
+      background: linear-gradient(135deg, #22d3ee, var(--accent));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .description {
+      font-size: clamp(16px, 2.5vw, 18px);
+      color: var(--text-muted);
+      max-width: 600px;
+      margin: 0 auto 32px;
+      font-weight: 500;
+    }
+
+    /* Interactive Vector Screenshot Mockup */
+    .mockup-container {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      padding: 12px;
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      box-shadow: 0 20px 40px rgba(0,0,0,0.4);
+      margin-bottom: 80px;
+      overflow: hidden;
+    }
+
+    .mockup-header {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      margin-bottom: 12px;
+      padding-left: 8px;
+    }
+
+    .dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: rgba(255, 255, 255, 0.2);
+    }
+
+    .dot.red { background: #ff5f56; }
+    .dot.yellow { background: #ffbd2e; }
+    .dot.green { background: #27c93f; }
+
+    .mockup-screen {
+      aspect-ratio: 16/9;
+      background: #0f0f12;
+      border-radius: 12px;
+      display: flex;
+      position: relative;
+      border: 1px solid rgba(255, 255, 255, 0.03);
+    }
+
+    /* Multitrack representation */
+    .multitrack-player {
+      flex: 1;
+      padding: 24px;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      border-right: 1px solid rgba(255,255,255,0.05);
+      gap: 14px;
+    }
+
+    .track-row {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .track-name {
+      width: 60px;
+      font-size: 11px;
+      font-weight: 700;
+      color: #fff;
+    }
+
+    .track-fader-bg {
+      flex: 1;
+      height: 6px;
+      background: rgba(255, 255, 255, 0.05);
+      border-radius: 3px;
+      position: relative;
+    }
+
+    .track-fader-fill {
+      height: 100%;
+      border-radius: 3px;
+      background: var(--accent);
+      box-shadow: 0 0 8px var(--accent-glow);
+    }
+
+    .track-fader-handle {
+      position: absolute;
+      top: 50%;
+      width: 14px;
+      height: 14px;
+      border-radius: 50%;
+      background: #fff;
+      transform: translate(-50%, -50%);
+      box-shadow: 0 2px 4px rgba(0,0,0,0.5);
+    }
+
+    .track-btn {
+      width: 22px;
+      height: 22px;
+      border-radius: 4px;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      background: rgba(255, 255, 255, 0.02);
+      color: var(--text-muted);
+      font-size: 9px;
+      font-weight: 800;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .track-btn.active {
+      background: rgba(6, 182, 212, 0.15);
+      color: var(--accent);
+      border-color: var(--accent);
+    }
+
+    /* Sidebar representation */
+    .groove-sidebar {
+      width: 30%;
+      background: rgba(18, 18, 22, 0.85);
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      border-left: 1px solid rgba(255, 255, 255, 0.05);
+    }
+
+    .sidebar-title {
+      font-size: 11px;
+      font-weight: 800;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+    }
+
+    .sidebar-item {
+      height: 32px;
+      border-radius: 6px;
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid rgba(255, 255, 255, 0.06);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 0 10px;
+      font-size: 11px;
+      font-weight: 600;
+    }
+
+    .sidebar-item span {
+      font-size: 16px;
+      color: var(--text-muted);
+    }
+
+    /* Features Grid */
+    .section-title {
+      font-family: 'Outfit', sans-serif;
+      font-size: 28px;
+      font-weight: 800;
+      text-align: center;
+      margin-bottom: 40px;
+      color: #fff;
+      letter-spacing: -0.02em;
+    }
+
+    .features-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 24px;
+      margin-bottom: 80px;
+    }
+
+    .feature-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 24px;
+      transition: all 0.2s ease;
+    }
+
+    .feature-card:hover {
+      border-color: rgba(6, 182, 212, 0.3);
+      transform: translateY(-2px);
+    }
+
+    .feature-icon {
+      width: 42px;
+      height: 42px;
+      border-radius: 10px;
+      background: rgba(6, 182, 212, 0.1);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--accent);
+      margin-bottom: 16px;
+    }
+
+    .feature-card h3 {
+      font-size: 18px;
+      font-weight: 700;
+      color: #fff;
+      margin-bottom: 8px;
+    }
+
+    .feature-card p {
+      font-size: 14px;
+      color: var(--text-muted);
+      line-height: 1.5;
+    }
+
+    /* FAQ Section */
+    .faq-container {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      padding: 32px;
+      margin-bottom: 80px;
+    }
+
+    details {
+      border-bottom: 1px solid var(--border);
+      padding: 16px 0;
+      cursor: pointer;
+    }
+
+    details:last-of-type {
+      border-bottom: none;
+    }
+
+    summary {
+      font-weight: 700;
+      font-size: 16px;
+      color: #fff;
+      list-style: none;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    summary::-webkit-details-marker {
+      display: none;
+    }
+
+    summary::after {
+      content: '+';
+      font-size: 20px;
+      color: var(--text-muted);
+      transition: transform 0.2s ease;
+    }
+
+    details[open] summary::after {
+      content: '−';
+    }
+
+    details p {
+      font-size: 14px;
+      color: var(--text-muted);
+      margin-top: 12px;
+      line-height: 1.6;
+    }
+
+    /* Footer call to action */
+    .cta-banner {
+      text-align: center;
+      background: radial-gradient(circle at center, rgba(6, 182, 212, 0.08) 0%, transparent 70%);
+      border: 1px solid var(--border);
+      border-radius: 24px;
+      padding: 48px;
+      backdrop-filter: blur(12px);
+    }
+
+    .cta-banner h2 {
+      font-family: 'Outfit', sans-serif;
+      font-size: 28px;
+      font-weight: 800;
+      color: #fff;
+      margin-bottom: 12px;
+    }
+
+    .cta-banner p {
+      color: var(--text-muted);
+      margin-bottom: 24px;
+      max-width: 500px;
+      margin-left: auto;
+      margin-right: auto;
+    }
+
+    footer-note {
+      text-align: center;
+      margin-top: 48px;
+      font-size: 12px;
+      color: var(--text-muted);
+    }
+  </style>
+
+  <!-- Structured Data JSON-LD -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@graph": [
+      {
+        "@type": "Organization",
+        "@id": "https://studio-30f44.web.app/#organization",
+        "name": "Mag Studio",
+        "url": "https://studio-30f44.web.app/",
+        "logo": "https://studio-30f44.web.app/icon-512.png"
+      },
+      {
+        "@type": "WebApplication",
+        "@id": "https://studio-30f44.web.app/#webapp-groovex",
+        "url": "https://studio-30f44.web.app/groovex/",
+        "name": "Groovex — Multitrack Practice & Rehearsal Studio",
+        "applicationCategory": "MultimediaApplication",
+        "operatingSystem": "Any",
+        "description": "Unleash your rehearsal with multitrack practice tools. Load tracks, adjust levels, mute stems, and loop sections with a gorgeous liquid glass UI.",
+        "browserRequirements": "Requires JavaScript and HTML5 canvas.",
+        "publisher": {
+          "@id": "https://studio-30f44.web.app/#organization"
+        }
+      }
+    ]
+  }
+  </script>
+</head>
+<body>
+  <div class="glow-bg"></div>
+
+  <header>
+    <a href="../" class="brand">
+      <!-- Studio sine wave -->
+      <svg viewBox="0 0 512 512" fill="none">
+        <path d="M 72 256 C 128 60 192 60 256 256 S 384 452 440 256" stroke="white" stroke-width="44" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+      </svg>
+      Studio
+    </a>
+    <a href="../?app=groovex" class="btn-launch">Launch App</a>
+  </header>
+
+  <main>
+    <section class="hero">
+      <h1 class="tagline">Interactive <span>Multitrack</span> Rehearsal Player</h1>
+      <p class="description">Groovex is a premium stem player designed for bands, instrumentalists, and rehearsals. Solo, mute, and loop sections with high-fidelity control.</p>
+      <a href="../?app=groovex" class="btn-launch" style="padding: 14px 32px; font-size: 16px;">Launch Rehearsal Studio</a>
+    </section>
+
+    <!-- Visual Interactive Screenshot Mockup -->
+    <section class="mockup-container">
+      <div class="mockup-header">
+        <div class="dot red"></div>
+        <div class="dot yellow"></div>
+        <div class="dot green"></div>
+      </div>
+      <div class="mockup-screen">
+        <div class="multitrack-player">
+          <!-- Tracks representation -->
+          <div class="track-row">
+            <span class="track-name">Drums</span>
+            <div class="track-fader-bg">
+              <div class="track-fader-fill" style="width: 80%;"></div>
+              <div class="track-fader-handle" style="left: 80%;"></div>
+            </div>
+            <button class="track-btn">M</button>
+            <button class="track-btn active">S</button>
+          </div>
+          <div class="track-row">
+            <span class="track-name">Bass</span>
+            <div class="track-fader-bg">
+              <div class="track-fader-fill" style="width: 65%;"></div>
+              <div class="track-fader-handle" style="left: 65%;"></div>
+            </div>
+            <button class="track-btn">M</button>
+            <button class="track-btn">S</button>
+          </div>
+          <div class="track-row">
+            <span class="track-name">Guitar</span>
+            <div class="track-fader-bg">
+              <div class="track-fader-fill" style="width: 75%;"></div>
+              <div class="track-fader-handle" style="left: 75%;"></div>
+            </div>
+            <button class="track-btn">M</button>
+            <button class="track-btn">S</button>
+          </div>
+          <div class="track-row">
+            <span class="track-name">Vocals</span>
+            <div class="track-fader-bg">
+              <div class="track-fader-fill" style="width: 50%;"></div>
+              <div class="track-fader-handle" style="left: 50%;"></div>
+            </div>
+            <button class="track-btn active">M</button>
+            <button class="track-btn">S</button>
+          </div>
+        </div>
+        <div class="groove-sidebar">
+          <p class="sidebar-title">Song multitracks</p>
+          <div class="sidebar-item">
+            <span class="material-symbols-outlined">album</span>
+            Back In Black
+          </div>
+          <div class="sidebar-item">
+            <span class="material-symbols-outlined">album</span>
+            Superstition
+          </div>
+          <div class="sidebar-item">
+            <span class="material-symbols-outlined">album</span>
+            Smells Like Teen Spirit
+          </div>
+          <div class="sidebar-item">
+            <span class="material-symbols-outlined">album</span>
+            Billie Jean
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Features -->
+    <section>
+      <h2 class="section-title">Elevate Your Rehearsal with Standalone Audio Control</h2>
+      <div class="features-grid">
+        <div class="feature-card">
+          <div class="feature-icon">
+            <span class="material-symbols-outlined">graphic_eq</span>
+          </div>
+          <h3>Stem Control & Isolation</h3>
+          <p>Solo, mute, or adjust individual volumes of stems (drums, bass, guitars, vocals, keys). Perfect for practicing your parts with the rest of the band playing.</p>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon">
+            <span class="material-symbols-outlined">timer</span>
+          </div>
+          <h3>Custom A-B Looper</h3>
+          <p>Highlight specific sections of a track to loop indefinitely. Slow down difficult passages to master solos, complex grooves, or vocal fills.</p>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon">
+            <span class="material-symbols-outlined">waves</span>
+          </div>
+          <h3>Pitch & Tempo Stretcher</h3>
+          <p>Change playback speed from 50% to 150% without altering pitch, or transpose keys dynamically to fit your range with high-fidelity stretchers.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- FAQ -->
+    <section class="faq-container">
+      <h2 class="section-title" style="margin-bottom: 24px;">Frequently Asked Questions</h2>
+      
+      <details>
+        <summary>What is Groovex?</summary>
+        <p>Groovex is a professional multitrack practice player designed inside the Studio ecosystem, offering advanced stem isolation, looping, and pitch/tempo shifting controls.</p>
+      </details>
+      
+      <details>
+        <summary>Can I upload my own multitracks?</summary>
+        <p>Yes. You can import your custom audio files for multitracks or import standard stems directly. All file parsing occurs securely and privately inside the browser.</p>
+      </details>
+
+      <details>
+        <summary>Does it maintain high fidelity during slowdown?</summary>
+        <p>Absolutely. Groovex integrates highly advanced phase-vocoder time-stretchers (powered by SoundTouchJS) running inside high-performance AudioWorklets for premium audio fidelity.</p>
+      </details>
+    </section>
+
+    <!-- Call to action -->
+    <section class="cta-banner">
+      <h2>Transform Your Rehearsal Sessions</h2>
+      <p>Control stem volumes, loop tricky segments, and practice with high-fidelity pitch and time stretching tools.</p>
+      <a href="../?app=groovex" class="btn-launch" style="padding: 12px 28px;">Open Groovex App</a>
+    </section>
+
+    <p class="footer-note">StudioXX by Mag. All rights reserved.</p>
+  </main>
+</body>
+</html>

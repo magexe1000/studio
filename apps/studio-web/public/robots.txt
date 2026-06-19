@@ -1,0 +1,15 @@
+User-agent: *
+Allow: /
+Allow: /stagex/
+Allow: /chordex/
+Allow: /drumex/
+Allow: /vocalex/
+Allow: /groovex/
+
+# Block development and internal paths
+Disallow: /bundles/
+Disallow: /version.json
+Disallow: /audio-manifest.json
+Disallow: /README.md
+
+Sitemap: https://studio-30f44.web.app/sitemap.xml

@@ -1,0 +1,20 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "include": ["src/**/*"],
+  "exclude": ["node_modules", "dist", "**/*.test.ts"],
+  "compilerOptions": {
+    "noEmit": true,
+    "jsx": "react-jsx",
+    "lib": ["esnext", "dom", "dom.iterable"],
+    "resolveJsonModule": true,
+    "allowImportingTsExtensions": true,
+    "moduleResolution": "bundler",
+    "types": ["node", "vite/client"]
+  },
+  "references": [
+    { "path": "../../packages/studio-core" },
+    { "path": "../../packages/ui-shared" },
+    { "path": "../../packages/ui-android" },
+    { "path": "../../lib/api-client-react" }
+  ]
+}

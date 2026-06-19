@@ -1,0 +1,1927 @@
+@import "@fontsource/manrope/400.css";
+@import "@fontsource/manrope/500.css";
+@import "@fontsource/manrope/600.css";
+@import "@fontsource/manrope/700.css";
+@import "@fontsource/manrope/800.css";
+@import "@fontsource/inter/400.css";
+@import "@fontsource/inter/700.css";
+/* Material Symbols font is loaded dynamically (subsetted) via a <link>
+   in index.html — only the icons actually used by the app are fetched
+   (~10–30 KB) instead of the full 3.8 MB local woff2. The
+   .material-symbols-outlined class lower in this file provides the
+   element styling; the @font-face comes from Google Fonts. */
+@import "tailwindcss";
+
+/* ── Gradient Border System ─────────────────────────────────────────────────
+   @property must live at the top level (outside any @layer / @media).
+   Used by .gb-wrap (wrapper pattern) and .gb-border-ring (overlay pattern). */
+@property --gb-angle {
+  syntax: "<angle>";
+  inherits: false;
+  initial-value: 0deg;
+}
+
+/* Animata AnimatedBorderTrail — registered @property so conic-gradient can
+   actually animate (without registration the browser treats it as a discrete
+   value and no transition/animation fires). */
+@property --border-trail-angle {
+  syntax: "<angle>";
+  inherits: false;
+  initial-value: 0deg;
+}
+
+@custom-variant dark (&:is(.dark *));
+
+@theme inline {
+  --color-surface: var(--app-bg);
+  --color-surface-dim: var(--app-bg);
+  --color-surface-container-lowest: var(--app-surface-lowest);
+  --color-surface-container-low: var(--app-surface-low);
+  --color-surface-container: var(--app-surface);
+  --color-surface-container-high: var(--app-surface-high);
+  --color-surface-container-highest: var(--app-surface-highest);
+  --color-surface-bright: #2c2c2c;
+  --color-surface-variant: #252626;
+  --color-on-surface: #e7e5e4;
+  --color-on-surface-variant: #acabaa;
+  --color-on-background: #e7e5e4;
+  --color-background: var(--app-bg);
+  --color-outline: #767575;
+  --color-outline-variant: #484848;
+  --color-tertiary: var(--studio-accent-from);
+  --color-tertiary-container: var(--studio-accent-to);
+  --color-on-tertiary: #001f4a;
+  --color-secondary: #9d9da6;
+  --color-secondary-container: #3a3b42;
+  --color-primary: #c6c6c7;
+  --color-primary-container: #454747;
+  --color-error: #ee7d77;
+  --color-error-dim: #bb5551;
+  --color-error-container: #7f2927;
+
+  --font-headline: "Manrope", sans-serif;
+  --font-label: "Inter", sans-serif;
+  --font-sans: "Manrope", sans-serif;
+
+  --radius-sm: 0.25rem;
+  --radius-md: 0.5rem;
+  --radius-lg: 0.75rem;
+  --radius-xl: 1rem;
+  --radius-2xl: 1.5rem;
+  --radius-3xl: 2rem;
+  --radius-full: 9999px;
+}
+
+/* ===== Typed CSS custom properties — enables native color animation ===== */
+@property --app-bg {
+  syntax: '<color>';
+  inherits: true;
+  initial-value: #0e0e0e;
+}
+@property --app-surface-lowest {
+  syntax: '<color>';
+  inherits: true;
+  initial-value: #000000;
+}
+@property --app-surface-low {
+  syntax: '<color>';
+  inherits: true;
+  initial-value: #131313;
+}
+@property --app-surface {
+  syntax: '<color>';
+  inherits: true;
+  initial-value: #191a1a;
+}
+@property --app-surface-high {
+  syntax: '<color>';
+  inherits: true;
+  initial-value: #1f2020;
+}
+@property --app-surface-highest {
+  syntax: '<color>';
+  inherits: true;
+  initial-value: #252626;
+}
+
+/* ===== AMOLED-aware CSS Custom Properties ===== */
+/* Register custom properties so they can be CSS-transitioned */
+@property --c-text-primary   { syntax: '<color>'; inherits: true;  initial-value: #e7e5e4; }
+@property --c-text-secondary { syntax: '<color>'; inherits: true;  initial-value: #acabaa; }
+@property --c-text-muted     { syntax: '<color>'; inherits: true;  initial-value: #484848; }
+
+:root {
+  --studio-accent-from: var(--accent-from, #679cff);
+  --studio-accent-to: var(--accent-to, #007aff);
+  --studio-accent-mid: var(--accent-mid, #4d8ef7);
+  --studio-accent: var(--accent-to, #007aff);
+  --studio-accent-rgb: var(--accent-to-rgb, 0, 122, 255);
+  --studio-accent-gradient: linear-gradient(135deg, var(--studio-accent-from), var(--studio-accent-to));
+  --studio-accent-soft: color-mix(in srgb, var(--studio-accent-to) 12%, transparent);
+  --studio-accent-glow: 0 4px 20px color-mix(in srgb, var(--studio-accent-to) 25%, transparent);
+  --studio-accent-border: color-mix(in srgb, var(--studio-accent-to) 30%, transparent);
+
+  --app-bg: #0e0e0e;
+  --app-surface-lowest: #000000;
+  --app-surface-low: #131313;
+  --app-surface: #191a1a;
+  --app-surface-high: #1f2020;
+  --app-surface-highest: #252626;
+
+  --c-text-primary:   #e7e5e4;
+  --c-text-secondary: #acabaa;
+  --c-text-muted:     #484848;
+
+  --add-bar-border: 1px dashed rgba(255,255,255,0.14);
+
+  --sidebar-hover-bg: rgba(255, 255, 255, 0.04);
+  --sidebar-active-bg: rgba(255, 255, 255, 0.07);
+  --sidebar-bg: rgba(15, 15, 15, 0.70);
+  --sidebar-shadow: 0 10px 30px rgba(0,0,0,0.5);
+  --popover-bg: rgba(18, 18, 18, 0.75);
+  --popover-shadow: 0 10px 30px rgba(0,0,0,0.5);
+  --profile-avatar-bg: rgba(255, 255, 255, 0.08);
+  --profile-avatar-color: #ffffff;
+  --profile-avatar-border: 0 0 0 1px rgba(255, 255, 255, 0.12);
+  --hub-card-bg: rgba(255, 255, 255, 0.01);
+  --hub-card-pressed-bg: rgba(255, 255, 255, 0.04);
+  --hub-card-border: rgba(255, 255, 255, 0.06);
+  --hub-card-icon-bg: rgba(255, 255, 255, 0.04);
+  --hub-card-icon-border: rgba(255, 255, 255, 0.08);
+
+  /* Animate the variables themselves — every consumer transitions for free */
+  transition:
+    --app-bg              300ms cubic-bezier(0.4, 0, 0.2, 1),
+    --app-surface-lowest  300ms cubic-bezier(0.4, 0, 0.2, 1),
+    --app-surface-low     300ms cubic-bezier(0.4, 0, 0.2, 1),
+    --app-surface         300ms cubic-bezier(0.4, 0, 0.2, 1),
+    --app-surface-high    300ms cubic-bezier(0.4, 0, 0.2, 1),
+    --app-surface-highest 300ms cubic-bezier(0.4, 0, 0.2, 1),
+    --c-text-primary      300ms cubic-bezier(0.4, 0, 0.2, 1),
+    --c-text-secondary    300ms cubic-bezier(0.4, 0, 0.2, 1),
+    --c-text-muted        300ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+:root.amoled {
+  --app-bg: #000000;
+  --app-surface-lowest: #000000;
+  --app-surface-low: #030303;
+  --app-surface: #080808;
+  --app-surface-high: #0d0d0d;
+  --app-surface-highest: #121212;
+  --sidebar-bg: rgba(0, 0, 0, 0.70);
+  --sidebar-shadow: 0 10px 30px rgba(0,0,0,0.8);
+  --popover-bg: rgba(0, 0, 0, 0.75);
+  --popover-shadow: 0 10px 30px rgba(0,0,0,0.8);
+  --profile-avatar-bg: rgba(255, 255, 255, 0.08);
+  --profile-avatar-color: #ffffff;
+  --profile-avatar-border: 0 0 0 1px rgba(255, 255, 255, 0.12);
+  --hub-card-bg: rgba(255, 255, 255, 0.01);
+  --hub-card-pressed-bg: rgba(255, 255, 255, 0.04);
+  --hub-card-border: rgba(255, 255, 255, 0.06);
+  --hub-card-icon-bg: rgba(255, 255, 255, 0.04);
+  --hub-card-icon-border: rgba(255, 255, 255, 0.08);
+}
+
+:root.light.amoled {
+  --app-bg: #ffffff;
+  --app-surface-lowest: #f0f0f0;
+  --app-surface-low: #f4f4f4;
+  --app-surface: #f7f7f7;
+  --app-surface-high: #fafafa;
+  --app-surface-highest: #ffffff;
+  --sidebar-bg: rgba(255, 255, 255, 0.75);
+  --sidebar-shadow: 0 10px 30px rgba(0,0,0,0.08);
+  --popover-bg: rgba(255, 255, 255, 0.80);
+  --popover-shadow: 0 10px 30px rgba(0,0,0,0.08);
+  --profile-avatar-bg: rgba(0, 0, 0, 0.06);
+  --profile-avatar-color: var(--c-text-primary);
+  --profile-avatar-border: 0 0 0 1px rgba(0, 0, 0, 0.08);
+  --hub-card-bg: rgba(0, 0, 0, 0.01);
+  --hub-card-pressed-bg: rgba(0, 0, 0, 0.04);
+  --hub-card-border: rgba(0, 0, 0, 0.08);
+  --hub-card-icon-bg: rgba(0, 0, 0, 0.03);
+  --hub-card-icon-border: rgba(0, 0, 0, 0.06);
+}
+
+/* ===== Light Theme ===== */
+:root.light {
+  color-scheme: light;
+
+  --app-bg: #f4f4f5;
+  --app-surface-lowest: #e4e4e7;
+  --app-surface-low: #ececed;
+  --app-surface: #f4f4f5;
+  --app-surface-high: #fafafa;
+  --app-surface-highest: #ffffff;
+
+  --c-text-primary:   #18181b;
+  --c-text-secondary: #52525b;
+  --c-text-muted:     #71717a;
+
+  --add-bar-border: 1px dashed rgba(0,0,0,0.22);
+
+  --sidebar-hover-bg: rgba(0, 0, 0, 0.04);
+  --sidebar-active-bg: rgba(0, 0, 0, 0.07);
+  --sidebar-bg: rgba(255, 255, 255, 0.75);
+  --sidebar-shadow: 0 10px 30px rgba(0,0,0,0.08);
+  --popover-bg: rgba(255, 255, 255, 0.80);
+  --popover-shadow: 0 10px 30px rgba(0,0,0,0.08);
+  --profile-avatar-bg: rgba(0, 0, 0, 0.06);
+  --profile-avatar-color: var(--c-text-primary);
+  --profile-avatar-border: 0 0 0 1px rgba(0, 0, 0, 0.08);
+  --hub-card-bg: rgba(0, 0, 0, 0.01);
+  --hub-card-pressed-bg: rgba(0, 0, 0, 0.04);
+  --hub-card-border: rgba(0, 0, 0, 0.08);
+  --hub-card-icon-bg: rgba(0, 0, 0, 0.03);
+  --hub-card-icon-border: rgba(0, 0, 0, 0.06);
+}
+
+/* Global Tailwind light mode class overrides */
+html.light .bg-zinc-950\/40,
+html.light .bg-zinc-950\/20,
+html.light .bg-zinc-950\/10 {
+  background-color: var(--app-surface-low) !important;
+}
+html.light .bg-zinc-950 {
+  background-color: var(--app-surface-highest) !important;
+}
+html.light .border-zinc-900 {
+  border-color: rgba(0, 0, 0, 0.08) !important;
+}
+html.light .border-zinc-900\/60,
+html.light .border-zinc-900\/80,
+html.light .border-zinc-900\/40,
+html.light .border-zinc-900\/10 {
+  border-color: rgba(0, 0, 0, 0.08) !important;
+}
+html.light .border-zinc-800 {
+  border-color: rgba(0, 0, 0, 0.1) !important;
+}
+html.light .text-zinc-400 {
+  color: var(--c-text-secondary) !important;
+}
+html.light .text-zinc-500 {
+  color: var(--c-text-muted) !important;
+}
+html.light .text-zinc-300 {
+  color: var(--c-text-primary) !important;
+}
+html.light .bg-\[\#050505\] {
+  background-color: var(--app-bg) !important;
+}
+html.light .bg-\[\#080808\]\/40 {
+  background-color: var(--app-surface-low) !important;
+}
+html.light .bg-black {
+  background-color: var(--app-surface-highest) !important;
+}
+html.light .text-\[\#f2f1ef\],
+html.light .text-\[\#f4f4f5\] {
+  color: var(--c-text-primary) !important;
+}
+html.light div.bg-\[\#080808\]\/40 span.text-white {
+  color: var(--c-text-primary) !important;
+}
+html.light .bg-zinc-800 {
+  background-color: var(--app-surface-lowest) !important;
+  color: var(--c-text-primary) !important;
+  border-color: rgba(0, 0, 0, 0.1) !important;
+}
+html.light .hover\:text-zinc-200:hover {
+  color: var(--c-text-primary) !important;
+}
+html.light .hover\:bg-zinc-900\/30:hover {
+  background-color: rgba(0, 0, 0, 0.04) !important;
+}
+html.light .hover\:border-zinc-800:hover {
+  border-color: rgba(0, 0, 0, 0.15) !important;
+}
+
+
+/* Body background always tracks the active theme so the status bar area blends in */
+html, body { background: var(--app-bg); }
+
+/* ── Navigation safe-area variables — single source of truth ────────────────
+   All scrollable content areas and floating nav bars must use these vars so
+   the floating pill nav never obscures content on any device or nav mode.
+
+   --nav-safe-bottom : gap between pill bottom and screen edge
+                       max(10px, …) guards Android 3-button nav where
+                       env(safe-area-inset-bottom) can be 0.
+                       The ,0px fallback handles WebView/older Android.
+   --nav-h           : pill height (matches BottomNav NAV_HEIGHT_PX = 64)
+   --content-bottom-pad : total bottom padding for scrollable content areas
+                          = gap + pill + 16px breathing room (≥ 90px)
+──────────────────────────────────────────────────────────────────────────── */
+:root {
+  --nav-safe-bottom:    max(10px, env(safe-area-inset-bottom, 0px));
+  --nav-h:              64px;
+  --content-bottom-pad: calc(var(--nav-safe-bottom) + var(--nav-h) + 16px);
+}
+
+.web-desktop {
+  --content-bottom-pad: 96px;
+}
+
+/* ============================================================
+   Vocalex theme tokens — used by PracticePanel / PitchPanel /
+   LabPanel / TakesPanel. Defined here (not inline) so the white
+   theme can override them in one place. Attribute selectors over
+   inline hexes proved unreliable; using CSS vars is bulletproof.
+   ============================================================ */
+:root {
+  --vx-deep:    #0e0e0e;  /* deepest surface (modal backdrops, inputs-on-cards) */
+  --vx-card:    #161717;  /* main card background */
+  --vx-card-2:  #191a1a;  /* slightly elevated card variant */
+  --vx-edge:    #1f2020;  /* card border / muted surface */
+  --vx-input:   #252626;  /* button / pill / input chip */
+  --vx-input-2: #454747;  /* light grey button (Reset etc.) */
+  --vx-text:    #e7e5e4;  /* primary text on dark cards */
+  --vx-text-2:  #acabaa;  /* secondary label text */
+  --vx-text-3:  #767575;  /* muted/tertiary */
+  --vx-text-4:  #484848;  /* most-muted / icon-on-dark */
+  --vx-text-5:  #d0d0d0;  /* light-grey button label */
+}
+html.light {
+  --vx-deep:    #f4f4f5;
+  --vx-card:    #fafafa;
+  --vx-card-2:  #ececed;
+  --vx-edge:    rgba(0,0,0,0.08);
+  --vx-input:   #ececed;
+  --vx-input-2: #e4e4e7;
+  --vx-text:    #18181b;
+  --vx-text-2:  #52525b;
+  --vx-text-3:  #71717a;
+  --vx-text-4:  #a1a1aa;
+  --vx-text-5:  #18181b;
+}
+
+/* ============================================================
+   Light-mode inline-color remap — keeps text legible across all
+   apps (Chordex, Drumex, Groovex, Vocalex, Stagex) without
+   editing every component. Many components hard-code the dark-
+   theme text token values inline (e.g. color:'#e7e5e4' for
+   primary text, '#acabaa' for secondary, '#767575' for muted).
+   In light mode those become light-grey-on-light-grey and
+   disappear. We only override the dark token VALUES — pure
+   white (#fff) is intentionally left alone because it's used
+   for white-on-accent gradient buttons that must stay white.
+   ============================================================ */
+/* High-refresh-rate hints — promote frequently-animated elements to GPU
+   layers so the compositor stays in high-frequency mode on 90/120Hz screens. */
+html[data-hifps="on"] body,
+html[data-hifps="on"] .panel-slide,
+html[data-hifps="on"] [data-anim-target],
+html[data-hifps="on"] .sc-vtool-btn {
+  will-change: transform, opacity;
+  transform: translateZ(0);
+  backface-visibility: hidden;
+}
+
+/* ============================================================
+   PERFORMANCE MODE — applied globally via root data-perf-mode.
+   Disables expensive visual effects across all apps so older /
+   slower devices stay snappy. User-controlled in Studio Hub.
+   ============================================================ */
+html[data-perf-mode="on"] *,
+html[data-perf-mode="on"] *::before,
+html[data-perf-mode="on"] *::after {
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  filter: none !important;
+}
+html[data-perf-mode="on"] * {
+  /* Strip heavy box-shadows down to a single thin shadow. */
+  text-shadow: none !important;
+}
+html[data-perf-mode="on"] [style*="box-shadow"],
+html[data-perf-mode="on"] [style*="boxShadow"] {
+  box-shadow: 0 1px 3px rgba(0,0,0,0.18) !important;
+}
+/* Cut animation/transition durations to a hard minimum so things still
+   feel responsive but cost nearly nothing to animate. */
+html[data-perf-mode="on"] *,
+html[data-perf-mode="on"] *::before,
+html[data-perf-mode="on"] *::after {
+  animation-duration: 0.01ms !important;
+  animation-iteration-count: 1 !important;
+  transition-duration: 80ms !important;
+  scroll-behavior: auto !important;
+}
+
+html[data-theme="light"] [style*="color:#e7e5e4"],
+html[data-theme="light"] [style*="color: #e7e5e4"],
+html[data-theme="light"] [style*="color:#E7E5E4"],
+html[data-theme="light"] [style*="color: #E7E5E4"],
+html[data-theme="light"] [style*="color:#eee"],
+html[data-theme="light"] [style*="color: #eee"],
+html[data-theme="light"] [style*="color:#ddd"],
+html[data-theme="light"] [style*="color: #ddd"],
+html[data-theme="light"] [style*="color:#f5f5f5"],
+html[data-theme="light"] [style*="color: #f5f5f5"] {
+  color: var(--c-text-primary) !important;
+}
+html[data-theme="light"] [style*="color:#acabaa"],
+html[data-theme="light"] [style*="color: #acabaa"],
+html[data-theme="light"] [style*="color:#ACABAA"],
+html[data-theme="light"] [style*="color: #ACABAA"],
+html[data-theme="light"] [style*="color:#adaaaa"],
+html[data-theme="light"] [style*="color: #adaaaa"],
+html[data-theme="light"] [style*="color:#ccc"],
+html[data-theme="light"] [style*="color: #ccc"] {
+  color: var(--c-text-secondary) !important;
+}
+html[data-theme="light"] [style*="color:#767575"],
+html[data-theme="light"] [style*="color: #767575"],
+html[data-theme="light"] [style*="color:#484848"],
+html[data-theme="light"] [style*="color: #484848"],
+html[data-theme="light"] [style*="color:#484847"],
+html[data-theme="light"] [style*="color: #484847"],
+html[data-theme="light"] [style*="color:#3a3a3a"],
+html[data-theme="light"] [style*="color: #3a3a3a"] {
+  color: var(--c-text-muted) !important;
+}
+/* ============================================================
+   REACT-TREE light remap (html.light) — the existing block above
+   uses `html[data-theme="light"]` which is set by the Stagex
+   iframe but **not** by the main React app (App.tsx adds the
+   `light` class to <html> instead, see ~line 248). Without these
+   rules, every hardcoded dark color inside Chordex / Drumex /
+   Vocalex / Groovex / Studio Hub stays dark in light mode.
+   We scope by `html.light` so we don't accidentally affect dark
+   mode and we keep accent / danger / status colors untouched.
+   ============================================================ */
+/* — TEXT — primary token (#e7e5e4 / #eee / #ddd / #f5f5f5) → dark text */
+html.light [style*="color:#e7e5e4"],
+html.light [style*="color: #e7e5e4"],
+html.light [style*="color:#E7E5E4"],
+html.light [style*="color: #E7E5E4"],
+html.light [style*="color:#eee"],
+html.light [style*="color: #eee"],
+html.light [style*="color:#ddd"],
+html.light [style*="color: #ddd"],
+html.light [style*="color:#f5f5f5"],
+html.light [style*="color: #f5f5f5"],
+html.light [style*="color:#e8e8ed"],
+html.light [style*="color: #e8e8ed"] {
+  color: var(--c-text-primary) !important;
+}
+/* — TEXT — secondary token (#acabaa / #adaaaa / #a8a6a5 / #ccc) */
+html.light [style*="color:#acabaa"],
+html.light [style*="color: #acabaa"],
+html.light [style*="color:#ACABAA"],
+html.light [style*="color: #ACABAA"],
+html.light [style*="color:#adaaaa"],
+html.light [style*="color: #adaaaa"],
+html.light [style*="color:#a8a6a5"],
+html.light [style*="color: #a8a6a5"],
+html.light [style*="color:#ccc"],
+html.light [style*="color: #ccc"] {
+  color: var(--c-text-secondary) !important;
+}
+/* — TEXT — muted token (#767575 / #484848 / #484847 / #3a3a3a) */
+html.light [style*="color:#767575"],
+html.light [style*="color: #767575"],
+html.light [style*="color:#484848"],
+html.light [style*="color: #484848"],
+html.light [style*="color:#484847"],
+html.light [style*="color: #484847"],
+html.light [style*="color:#3a3a3a"],
+html.light [style*="color: #3a3a3a"] {
+  color: var(--c-text-muted) !important;
+}
+/* — SURFACE BACKGROUNDS — dark "card" colors → light surfaces.
+   Hits Vocalex tip cards (#161717), lab modules (#0e0e0e / #1f2020),
+   Takes panel rows (#191a1a / #252626) etc. We map to layered
+   neutrals so adjacent surfaces still have visual separation. */
+html.light [style*="background:#0e0e0e"],
+html.light [style*="background: #0e0e0e"],
+html.light [style*="background-color:#0e0e0e"],
+html.light [style*="background-color: #0e0e0e"] {
+  background: var(--app-surface-lowest) !important;
+}
+html.light [style*="background:#161717"],
+html.light [style*="background: #161717"],
+html.light [style*="background-color:#161717"],
+html.light [style*="background-color: #161717"],
+html.light [style*="background:#191a1a"],
+html.light [style*="background: #191a1a"],
+html.light [style*="background-color:#191a1a"],
+html.light [style*="background-color: #191a1a"] {
+  background: var(--app-surface-high) !important;
+}
+html.light [style*="background:#1f2020"],
+html.light [style*="background: #1f2020"],
+html.light [style*="background-color:#1f2020"],
+html.light [style*="background-color: #1f2020"],
+html.light [style*="background:#252626"],
+html.light [style*="background: #252626"],
+html.light [style*="background-color:#252626"],
+html.light [style*="background-color: #252626"],
+html.light [style*="background:#2c2c2c"],
+html.light [style*="background: #2c2c2c"] {
+  background: var(--app-surface-highest) !important;
+}
+/* — BORDERS — dark "card" border colors → soft grey borders so
+   the light-remapped surfaces still have a visible edge. */
+html.light [style*="border: 1px solid #1f2020"],
+html.light [style*="border:1px solid #1f2020"],
+html.light [style*="border: 1px solid #252626"],
+html.light [style*="border:1px solid #252626"],
+html.light [style*="border: 1px solid #161717"],
+html.light [style*="border:1px solid #161717"] {
+  border-color: rgba(0,0,0,0.08) !important;
+}
+
+/* Same remap for the system "auto" theme when OS is light. */
+@media (prefers-color-scheme: light) {
+  :root.theme-system [style*="color:#e7e5e4"],
+  :root.theme-system [style*="color: #e7e5e4"],
+  :root.theme-system [style*="color:#eee"],
+  :root.theme-system [style*="color: #eee"],
+  :root.theme-system [style*="color:#ddd"],
+  :root.theme-system [style*="color: #ddd"],
+  :root.theme-system [style*="color:#f5f5f5"],
+  :root.theme-system [style*="color: #f5f5f5"] {
+    color: var(--c-text-primary) !important;
+  }
+  :root.theme-system [style*="color:#acabaa"],
+  :root.theme-system [style*="color: #acabaa"],
+  :root.theme-system [style*="color:#adaaaa"],
+  :root.theme-system [style*="color: #adaaaa"],
+  :root.theme-system [style*="color:#ccc"],
+  :root.theme-system [style*="color: #ccc"] {
+    color: var(--c-text-secondary) !important;
+  }
+  :root.theme-system [style*="color:#767575"],
+  :root.theme-system [style*="color: #767575"],
+  :root.theme-system [style*="color:#484848"],
+  :root.theme-system [style*="color: #484848"],
+  :root.theme-system [style*="color:#484847"],
+  :root.theme-system [style*="color: #484847"],
+  :root.theme-system [style*="color:#3a3a3a"],
+  :root.theme-system [style*="color: #3a3a3a"] {
+    color: var(--c-text-muted) !important;
+  }
+}
+
+/* System preference: auto-apply light when OS is in light mode and user chose system */
+:root.theme-system {
+  color-scheme: light dark;
+}
+@media (prefers-color-scheme: light) {
+  :root.theme-system {
+    --app-bg: #f2f1ef;
+    --app-surface-lowest: #e5e4e2;
+    --app-surface-low: #e9e8e6;
+    --app-surface: #eeedeb;
+    --app-surface-high: #f4f3f1;
+    --app-surface-highest: #faf9f7;
+
+    --c-text-primary:   #1a1a1a;
+    --c-text-secondary: #6e6d6b;
+    --c-text-muted:     #b2b1b0;
+
+    --add-bar-border: 1px dashed rgba(0,0,0,0.18);
+
+    --sidebar-hover-bg: rgba(0, 0, 0, 0.03);
+    --sidebar-active-bg: rgba(0, 0, 0, 0.05);
+    --sidebar-bg: rgba(255, 255, 255, 0.75);
+    --sidebar-shadow: 0 10px 30px rgba(0,0,0,0.08);
+    --popover-bg: rgba(255, 255, 255, 0.80);
+    --popover-shadow: 0 10px 30px rgba(0,0,0,0.08);
+    --profile-avatar-bg: rgba(0, 0, 0, 0.06);
+    --profile-avatar-color: var(--c-text-primary);
+    --profile-avatar-border: 0 0 0 1px rgba(0, 0, 0, 0.08);
+    --hub-card-bg: rgba(0, 0, 0, 0.01);
+    --hub-card-pressed-bg: rgba(0, 0, 0, 0.04);
+    --hub-card-border: rgba(0, 0, 0, 0.08);
+    --hub-card-icon-bg: rgba(0, 0, 0, 0.03);
+    --hub-card-icon-border: rgba(0, 0, 0, 0.06);
+  }
+}
+
+/* ===== Material Symbols ===== */
+.material-symbols-outlined {
+  font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+  font-family: 'Material Symbols Outlined';
+  font-style: normal;
+  font-size: 24px;
+  line-height: 1;
+  letter-spacing: normal;
+  text-transform: none;
+  display: inline-block;
+  white-space: nowrap;
+  word-wrap: normal;
+  direction: ltr;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ===== View Transition (theme crossfade) ===== */
+::view-transition-old(root) {
+  animation: vt-fade-out 250ms cubic-bezier(0.4, 0, 0.2, 1) both;
+  z-index: 2;
+}
+::view-transition-new(root) {
+  animation: none;
+  opacity: 1;
+  z-index: 1;
+}
+@keyframes vt-fade-out {
+  from { opacity: 1; }
+  to   { opacity: 0; }
+}
+
+/* ===== Circular Reveal Transition ===== */
+[data-studio-theme-vt="active"] ::view-transition-group(root) {
+  animation: none;
+}
+[data-studio-theme-vt="active"] ::view-transition-old(root) {
+  animation: none;
+  opacity: 1;
+  z-index: 1;
+}
+[data-studio-theme-vt="active"] ::view-transition-new(root) {
+  clip-path: circle(0px at var(--x, 50%) var(--y, 50%));
+  animation: reveal var(--studio-theme-vt-duration, 500ms) cubic-bezier(0.22, 1, 0.36, 1) both;
+  opacity: 1;
+  z-index: 2;
+  will-change: clip-path;
+}
+
+@keyframes reveal {
+  from {
+    clip-path: circle(0px at var(--x, 50%) var(--y, 50%));
+  }
+  to {
+    clip-path: circle(var(--r, 120vmax) at var(--x, 50%) var(--y, 50%));
+  }
+}
+
+/* When theme is transitioning, add color transitions to all elements
+   Exempt: elements inside [data-theme-exempt] keep their own transitions */
+html.theme-transitioning *:not([data-theme-exempt] *):not([data-theme-exempt]),
+html.theme-transitioning *:not([data-theme-exempt] *):not([data-theme-exempt])::before,
+html.theme-transitioning *:not([data-theme-exempt] *):not([data-theme-exempt])::after {
+  transition:
+    background-color 300ms cubic-bezier(0.4, 0, 0.2, 1),
+    color            300ms cubic-bezier(0.4, 0, 0.2, 1),
+    border-color     300ms cubic-bezier(0.4, 0, 0.2, 1),
+    box-shadow       300ms cubic-bezier(0.4, 0, 0.2, 1),
+    fill             300ms cubic-bezier(0.4, 0, 0.2, 1),
+    stroke           300ms cubic-bezier(0.4, 0, 0.2, 1) !important;
+}
+
+/* ===== Global Base ===== */
+@layer base {
+  * {
+    -webkit-tap-highlight-color: transparent;
+    box-sizing: border-box;
+    /* Propagate crisp text rendering to every element */
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  html, body {
+    height: 100dvh;
+    overflow: hidden;
+    background-color: var(--app-bg);
+    color: var(--c-text-primary);
+    transition: background-color 300ms cubic-bezier(0.4, 0, 0.2, 1),
+                color 300ms cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  #root {
+    height: 100dvh;
+    overflow: hidden;
+    background-color: var(--app-bg);
+    transition: background-color 300ms cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  body {
+    font-family: 'Manrope', sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    touch-action: manipulation;
+    overscroll-behavior: none;
+  }
+
+}
+
+/* ===== Smooth Scrollbar ===== */
+@layer utilities {
+  .no-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+    /* Let the compositor handle touch scrolling without waiting for JS */
+    touch-action: pan-y;
+    -webkit-overflow-scrolling: touch;
+    /* Scope layout/style calculations to this element and its subtree */
+    contain: layout style;
+  }
+  .no-scrollbar::-webkit-scrollbar { display: none; }
+
+  ::-webkit-scrollbar { width: 4px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb {
+    background: rgba(72, 72, 72, 0.15);
+    border-radius: 10px;
+  }
+
+  /* ===== Glassmorphism Nav ===== */
+  .glass-nav {
+    /* 20px blur is ~9x cheaper than 60px (cost scales quadratically) yet still looks liquid glass */
+    backdrop-filter: blur(20px) saturate(180%) brightness(1.04);
+    -webkit-backdrop-filter: blur(20px) saturate(180%) brightness(1.04);
+    /* Keep the nav on its own compositor layer — it animates every scroll event */
+    will-change: transform;
+    /* Prevent the blur from leaking into parent stacking contexts */
+    isolation: isolate;
+  }
+
+  /* ===== Panel Transitions ===== */
+  .panel-transition {
+    transition: opacity 320ms cubic-bezier(0.4, 0, 0.2, 1),
+                transform 320ms cubic-bezier(0.4, 0, 0.2, 1);
+    /* will-change removed — permanent GPU compositing degrades subpixel text AA */
+  }
+
+  .panel-visible {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+
+  .panel-hidden-down {
+    opacity: 0;
+    transform: translateY(12px) scale(0.97);
+    pointer-events: none;
+  }
+
+  /* ===== AMOLED surface classes ===== */
+  /* No explicit transition needed — the @property animation on :root handles it */
+  .app-bg           { background-color: var(--app-bg); }
+  .app-surface      { background-color: var(--app-surface); }
+  .app-surface-low  { background-color: var(--app-surface-low); }
+  .app-surface-high { background-color: var(--app-surface-high); }
+  .app-surface-lowest { background-color: var(--app-surface-lowest); }
+
+  /* ===== Butter smooth button interactions ===== */
+  .btn-smooth {
+    transition: transform 150ms cubic-bezier(0.34, 1.56, 0.64, 1),
+                opacity 150ms ease,
+                background-color 200ms ease,
+                box-shadow 200ms ease;
+  }
+  .btn-smooth:active {
+    transform: scale(0.93);
+  }
+
+  /* ===== Card hover ===== */
+  .card-hover {
+    transition: background-color 200ms ease,
+                transform 200ms cubic-bezier(0.34, 1.56, 0.64, 1),
+                border-color 200ms ease;
+  }
+  .card-hover:active {
+    transform: scale(0.97);
+  }
+
+  /* ===== Spring scale animation ===== */
+  @keyframes spring-in {
+    0%   { transform: scale(0.92) translateY(6px); opacity: 0; }
+    60%  { transform: scale(1.02) translateY(-1px); opacity: 1; }
+    100% { transform: scale(1) translateY(0); opacity: 1; }
+  }
+
+  .spring-in {
+    animation: spring-in 400ms cubic-bezier(0.34, 1.56, 0.64, 1) both;
+  }
+
+  /* ===== Content slide-up fade (category drill-down) ===== */
+  @keyframes content-enter {
+    from { opacity: 0; transform: translateY(14px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+  .content-enter {
+    animation: content-enter 240ms cubic-bezier(0.25, 0.46, 0.45, 0.94) both;
+  }
+
+  /* ===== Library tab fade (Explore ↔ Discover) =====
+     Heavy lists (hundreds of song cards / chord diagrams) animate badly with
+     transform/scale because the browser has to repaint a large subtree mid-mount.
+     A pure opacity fade is buttery smooth even with thousands of children. */
+  @keyframes library-tab-fade {
+    from { opacity: 0; }
+    to   { opacity: 1; }
+  }
+  .library-tab-fade {
+    animation: library-tab-fade 220ms cubic-bezier(0.16, 1, 0.3, 1) both;
+    will-change: opacity;
+  }
+
+  /* ===== Slide in from right (song/preset editor) ===== */
+  @keyframes slide-from-right {
+    from { opacity: 0; transform: translateX(18px); }
+    to   { opacity: 1; transform: translateX(0); }
+  }
+  .slide-from-right {
+    animation: slide-from-right 260ms cubic-bezier(0.25, 0.46, 0.45, 0.94) both;
+  }
+
+  /* ===== Range slider ===== */
+  input[type="range"] {
+    -webkit-appearance: none;
+    background: transparent;
+    cursor: pointer;
+  }
+  input[type="range"]::-webkit-slider-runnable-track {
+    background: var(--app-surface-high);
+    height: 4px;
+    border-radius: 9999px;
+  }
+  input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    height: 18px;
+    width: 18px;
+    background: var(--accent-from, #679cff);
+    border-radius: 50%;
+    margin-top: -7px;
+    transition: transform 150ms cubic-bezier(0.34, 1.56, 0.64, 1);
+  }
+  input[type="range"]::-webkit-slider-thumb:active {
+    transform: scale(1.3);
+  }
+  input[type="range"]::-moz-range-thumb {
+    height: 18px;
+    width: 18px;
+    background: var(--accent-from, #679cff);
+    border: none;
+    border-radius: 50%;
+    transition: transform 150ms cubic-bezier(0.34, 1.56, 0.64, 1);
+  }
+  input[type="range"]::-moz-range-thumb:active {
+    transform: scale(1.3);
+  }
+  input[type="range"]::-moz-range-track {
+    background: var(--app-surface-high);
+    height: 4px;
+    border-radius: 9999px;
+  }
+
+  /* ===== Splash screen entry ===== */
+  @keyframes splash-logo-in {
+    from { transform: scale(0.72) translateY(6px); opacity: 0; }
+    to   { transform: scale(1)    translateY(0);   opacity: 1; }
+  }
+  @keyframes splash-wordmark-in {
+    from { transform: translateY(8px); opacity: 0; }
+    to   { transform: translateY(0);   opacity: 1; }
+  }
+
+  /* ===== Bottom sheet slide-up / slide-down ===== */
+  @keyframes sheet-up {
+    from { transform: translate3d(0, 100%, 0); opacity: 0; }
+    to   { transform: translate3d(0, 0, 0);   opacity: 1; }
+  }
+  @keyframes sheet-down {
+    from { transform: translate3d(0, 0, 0);   opacity: 1; }
+    to   { transform: translate3d(0, 100%, 0); opacity: 0; }
+  }
+  @keyframes fade-out {
+    from { opacity: 1; }
+    to   { opacity: 0; }
+  }
+  @keyframes fade-in {
+    from { opacity: 0; }
+    to   { opacity: 1; }
+  }
+  /* Bottom-sheet entrance/exit pair — slide + soft scale.
+     Used by ProgressionGenerator and any sheet that needs a clean,
+     symmetric open/close (the existing `spring-in` is one-shot only). */
+  @keyframes sheet-enter {
+    from { transform: translate3d(0, 24px, 0) scale(0.985); opacity: 0; }
+    to   { transform: translate3d(0, 0, 0)   scale(1);     opacity: 1; }
+  }
+  @keyframes sheet-exit {
+    from { transform: translate3d(0, 0, 0)   scale(1);     opacity: 1; }
+    to   { transform: translate3d(0, 24px, 0) scale(0.985); opacity: 0; }
+  }
+  .sheet-enter { animation: sheet-enter 280ms cubic-bezier(0.22, 1, 0.36, 1) both; }
+  .sheet-exit  { animation: sheet-exit  220ms cubic-bezier(0.4, 0, 1, 1) both; }
+  .overlay-fade-in  { animation: fade-in  220ms ease-out both; }
+  .overlay-fade-out { animation: fade-out 200ms ease-in  both; }
+
+  /* ===== Panel section transitions — unified across all apps =================
+     Directional horizontal slide + crossfade.
+     Enter:  spring deceleration  — content glides in and settles naturally.
+     Exit:   quick ease-in        — old content leaves without lingering.
+     Translate is intentionally small (16 px) for a refined, iOS-like feel.
+     --panel-dur      controls enter speed (default 280 ms).
+     --panel-exit-dur controls exit  speed (default 180 ms, ~65 % of enter). */
+
+  @keyframes panel-enter-right {
+    from { transform: translate3d(16px, 0, 0); opacity: 0; }
+    to   { transform: translate3d(0,    0, 0); opacity: 1; }
+  }
+  @keyframes panel-enter-left {
+    from { transform: translate3d(-16px, 0, 0); opacity: 0; }
+    to   { transform: translate3d(0,     0, 0); opacity: 1; }
+  }
+  @keyframes panel-exit-left {
+    from { transform: translate3d(0,     0, 0); opacity: 1; }
+    to   { transform: translate3d(-16px, 0, 0); opacity: 0; }
+  }
+  @keyframes panel-exit-right {
+    from { transform: translate3d(0,    0, 0); opacity: 1; }
+    to   { transform: translate3d(16px, 0, 0); opacity: 0; }
+  }
+
+  /* Enter — spring deceleration (cubic-bezier(0.16, 1, 0.3, 1)) */
+  .panel-enter-right {
+    animation: panel-enter-right var(--panel-dur, 280ms) cubic-bezier(0.16, 1, 0.3, 1) both;
+  }
+  .panel-enter-left {
+    animation: panel-enter-left  var(--panel-dur, 280ms) cubic-bezier(0.16, 1, 0.3, 1) both;
+  }
+  /* Exit — ease-in so content leaves quickly and cleanly */
+  .panel-exit-left {
+    animation: panel-exit-left  var(--panel-exit-dur, 180ms) cubic-bezier(0.4, 0, 1, 1) both;
+  }
+  .panel-exit-right {
+    animation: panel-exit-right var(--panel-exit-dur, 180ms) cubic-bezier(0.4, 0, 1, 1) both;
+  }
+
+  /* ===== Live Mode chord transitions ===== */
+  @keyframes live-chord-in-right {
+    from { opacity: 0; transform: translateX(18px); }
+    to   { opacity: 1; transform: translateX(0);    }
+  }
+  @keyframes live-chord-in-left {
+    from { opacity: 0; transform: translateX(-18px); }
+    to   { opacity: 1; transform: translateX(0);     }
+  }
+
+  /* ===== Live Mode chord progress countdown ===== */
+  @keyframes chord-countdown {
+    from { transform: scaleX(1); }
+    to   { transform: scaleX(0); }
+  }
+  @keyframes active-dot-appear {
+    from { transform: scale(0.4) scaleX(0.3); opacity: 0; }
+    60%  { transform: scale(1.08); }
+    to   { transform: scale(1); opacity: 1; }
+  }
+
+  /* ===== Live Mode chord bloom on arrival ===== */
+  @keyframes chord-bloom {
+    0%   { opacity: 0.55; transform: scale(0.95); }
+    45%  { opacity: 1;    transform: scale(1.06); }
+    100% { opacity: 0;    transform: scale(1.35); }
+  }
+
+  /* ===== Live Mode fullscreen enter / exit ===== */
+  @keyframes live-mode-enter {
+    from { transform: translateY(100%); opacity: 0; }
+    to   { transform: translateY(0);    opacity: 1; }
+  }
+  @keyframes live-mode-exit {
+    from { transform: translateY(0);    opacity: 1; }
+    to   { transform: translateY(100%); opacity: 0; }
+  }
+
+  /* ===== Live Mode BPM progress bar ===== */
+  @keyframes live-progress {
+    from { width: 0%; }
+    to   { width: 100%; }
+  }
+
+  @keyframes menu-pop {
+    from { opacity: 0; transform: scale(0.88) translateY(-8px); }
+    to   { opacity: 1; transform: scale(1)    translateY(0);    }
+  }
+
+  @keyframes hub-drop-in {
+    from { opacity: 0; transform: translateY(-14px); }
+    to   { opacity: 1; transform: translateY(0);     }
+  }
+
+  @keyframes hub-rise-in {
+    from { opacity: 0; transform: translateY(22px); }
+    to   { opacity: 1; transform: translateY(0);    }
+  }
+
+  @keyframes hub-nav-in {
+    from { opacity: 0; transform: translateX(-50%) translateY(20px); }
+    to   { opacity: 1; transform: translateX(-50%) translateY(0);    }
+  }
+
+  @keyframes hub-return-enter {
+    from { opacity: 0; transform: scale3d(1.10, 1.10, 1); }
+    to   { opacity: 1; transform: scale3d(1, 1, 1);       }
+  }
+
+  @keyframes mode-enter {
+    from { opacity: 0; transform: scale3d(0.96, 0.96, 1) translate3d(0, 12px, 0); }
+    to   { opacity: 1; transform: scale3d(1, 1, 1) translate3d(0, 0, 0);          }
+  }
+
+  @keyframes drumHamburgerIn {
+    from { opacity: 0; transform: translateY(-6px); }
+    to   { opacity: 1; transform: translateY(0);    }
+  }
+  @keyframes drumHamburgerOut {
+    from { opacity: 1; transform: translateY(0);    }
+    to   { opacity: 0; transform: translateY(-8px); }
+  }
+
+  /* ===== Reduced motion (system) ===== */
+  @media (prefers-reduced-motion: reduce) {
+    .panel-transition,
+    .btn-smooth,
+    .card-hover,
+    .spring-in {
+      transition: none !important;
+      animation: none !important;
+    }
+  }
+
+  /* ===== Animation Speed setting ===== */
+  html[data-anim="reduced"] *,
+  html[data-anim="reduced"] *::before,
+  html[data-anim="reduced"] *::after {
+    animation-duration: 0.001ms !important;
+    animation-delay: 0ms !important;
+    transition-duration: 0.001ms !important;
+    transition-delay: 0ms !important;
+  }
+  html[data-anim="fast"] .panel-transition,
+  html[data-anim="fast"] .btn-smooth,
+  html[data-anim="fast"] .card-hover {
+    transition-duration: 80ms !important;
+  }
+  html[data-anim="fast"] .spring-in {
+    animation-duration: 160ms !important;
+  }
+  html[data-anim="fast"] .sheet-enter { animation-duration: 160ms !important; }
+  html[data-anim="fast"] .sheet-exit  { animation-duration: 130ms !important; }
+  html[data-anim="fast"] .overlay-fade-in,
+  html[data-anim="fast"] .overlay-fade-out { animation-duration: 120ms !important; }
+  html[data-anim="fast"] .content-enter {
+    animation-duration: 100ms !important;
+  }
+  html[data-anim="fast"] .slide-from-right {
+    animation-duration: 110ms !important;
+  }
+}
+
+/* ===== Font size CSS vars (defaults = medium) ===== */
+:root {
+  --font-base: 14px;
+  --font-sm:   12px;
+  --font-xs:   10px;
+  --font-lg:   18px;
+  --font-xl:   24px;
+  --font-hero: 2.8rem;
+
+  /* ===== Density CSS vars (defaults = comfortable) ===== */
+  --density-pad:      16px;
+  --density-row-pad:  14px 20px;
+  --density-gap:      12px;
+  --density-card-gap: 10px;
+}
+
+/* ===== Groovex design tokens ===== */
+:root {
+  --gx-bg: var(--app-bg);
+  --gx-surface: var(--app-surface);
+  --gx-surface-low: var(--app-surface-low);
+  --gx-surface-high: var(--app-surface-high);
+  --gx-surface-lowest: var(--app-surface-lowest);
+  --gx-accent: var(--studio-accent-from);
+  --gx-accent-container: var(--studio-accent-to);
+  --gx-accent-dim: var(--studio-accent-soft);
+}
+
+html.light {
+  --gx-bg: #f5f5f7;
+  --gx-surface: #ffffff;
+  --gx-surface-low: #f9f9fb;
+  --gx-surface-high: #eaeaea;
+  --gx-surface-lowest: #ffffff;
+}
+
+html.light .groovex-root {
+  background: var(--gx-bg) !important;
+  color: var(--c-text-primary) !important;
+}
+
+html.light .groovex-root .spring-in {
+  background: var(--gx-bg) !important;
+}
+
+html.light .groovex-root h1,
+html.light .groovex-root h2,
+html.light .groovex-root h3,
+html.light .groovex-root h4 {
+  color: var(--c-text-primary) !important;
+}
+
+html.light .groovex-root p[style*="color:#ffffff"],
+html.light .groovex-root p[style*="color: #ffffff"],
+html.light .groovex-root span[style*="color:#ffffff"],
+html.light .groovex-root span[style*="color: #ffffff"],
+html.light .groovex-root span[style*="color:#fff"],
+html.light .groovex-root span[style*="color: #fff"],
+html.light .groovex-root div[style*="color:#ffffff"],
+html.light .groovex-root div[style*="color: #ffffff"] {
+  color: var(--c-text-primary) !important;
+}
+
+html.light .groovex-root button.btn-smooth[style*="rgba(255,255,255,0.02)"] {
+  background: rgba(0, 0, 0, 0.02) !important;
+  border-color: rgba(0, 0, 0, 0.06) !important;
+}
+
+html.light .groovex-root button.btn-smooth[style*="rgba(255,255,255,0.02)"]:hover {
+  background: rgba(0, 0, 0, 0.04) !important;
+}
+
+html.light .groovex-root button[style*="rgba(255,255,255,0.03)"],
+html.light .groovex-root button[style*="rgba(255,255,255,0.08)"],
+html.light .groovex-root div[style*="rgba(255,255,255,0.08)"] {
+  background: var(--gx-surface) !important;
+  border-color: rgba(0, 0, 0, 0.08) !important;
+  color: var(--c-text-primary) !important;
+}
+
+html.light .groovex-root button[style*="rgba(255,255,255,0.03)"]:hover,
+html.light .groovex-root button[style*="rgba(255,255,255,0.08)"]:hover {
+  background: var(--gx-surface-high) !important;
+}
+
+html.light .groovex-root button[style*="rgba(37,99,235,0.15)"] {
+  background: rgba(37, 99, 235, 0.12) !important;
+  border-color: rgba(37, 99, 235, 0.35) !important;
+  color: #2563eb !important;
+}
+
+html.light .groovex-root div[style*="background:rgba(255,255,255,0.03)"],
+html.light .groovex-root div[style*="background: rgba(255,255,255,0.03)"] {
+  background: rgba(0, 0, 0, 0.03) !important;
+  border-color: rgba(0, 0, 0, 0.06) !important;
+}
+
+html.light .groovex-root span[style*="background:#000000"],
+html.light .groovex-root span[style*="background: #000000"] {
+  background: var(--gx-bg) !important;
+}
+
+html.light .groovex-root div[style*="rgba(255,255,255,0.02)"],
+html.light .groovex-root div[style*="rgba(255,255,255,0.08)"] {
+  background: var(--gx-surface-low) !important;
+  border-color: rgba(0, 0, 0, 0.08) !important;
+}
+
+html.light .groovex-root button:disabled {
+  color: var(--c-text-muted) !important;
+  border-color: rgba(0, 0, 0, 0.04) !important;
+  background: rgba(0, 0, 0, 0.02) !important;
+}
+
+html.light .groovex-root button[style*="rgba(255,255,255,0.08)"][disabled] {
+  background: rgba(0, 0, 0, 0.05) !important;
+  color: rgba(0, 0, 0, 0.2) !important;
+}
+
+html.light .groovex-root button[style*="background:rgba(239,68,68,0.15)"],
+html.light .groovex-root button[style*="background: rgba(239,68,68,0.15)"] {
+  color: #dc2626 !important;
+  border-color: rgba(239, 68, 68, 0.35) !important;
+}
+
+.gx-slider {
+  -webkit-appearance: none;
+  appearance: none;
+  height: 4px;
+  border-radius: 9999px;
+  background: var(--gx-surface-high);
+  outline: none;
+  cursor: pointer;
+}
+.gx-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 16px;
+  height: 16px;
+  border-radius: 9999px;
+  background: var(--gx-accent);
+  border: none;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.3);
+  cursor: pointer;
+}
+.gx-slider::-moz-range-thumb {
+  width: 16px;
+  height: 16px;
+  border-radius: 9999px;
+  background: var(--gx-accent);
+  border: none;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.3);
+  cursor: pointer;
+}
+.gx-slider:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+@keyframes gx-fade-up {
+  from { opacity: 0; transform: translateY(18px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes gx-fade-in {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+@keyframes gx-scale-in {
+  from { opacity: 0; transform: scale(0.92); }
+  to   { opacity: 1; transform: scale(1); }
+}
+@keyframes gx-pulse-bar {
+  0%, 100% { transform: scaleY(0.4); }
+  50%      { transform: scaleY(1); }
+}
+@keyframes gx-glow-pulse {
+  0%, 100% { opacity: 0.2; transform: scale(1); }
+  50%      { opacity: 0.35; transform: scale(1.05); }
+}
+
+.gx-visualizer-bar {
+  animation: gx-pulse-bar 1.2s ease-in-out infinite;
+}
+
+@keyframes gx-wave-shimmer {
+  0%   { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+.gx-progress-wave {
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(255,255,255,0.35) 25%,
+    rgba(255,255,255,0.5) 50%,
+    rgba(255,255,255,0.35) 75%,
+    transparent 100%
+  );
+  background-size: 200% 100%;
+  animation: gx-wave-shimmer 2s ease-in-out infinite;
+}
+
+.gx-hero-enter   { animation: gx-scale-in 500ms cubic-bezier(0.34,1.56,0.64,1) both; }
+.gx-fade-up-1    { animation: gx-fade-up 400ms 80ms cubic-bezier(0.0,0.0,0.2,1) both; }
+.gx-fade-up-2    { animation: gx-fade-up 400ms 160ms cubic-bezier(0.0,0.0,0.2,1) both; }
+.gx-fade-up-3    { animation: gx-fade-up 400ms 240ms cubic-bezier(0.0,0.0,0.2,1) both; }
+.gx-fade-up-4    { animation: gx-fade-up 400ms 320ms cubic-bezier(0.0,0.0,0.2,1) both; }
+
+/* ===== Performance mode — strips GPU-heavy effects ===== */
+[data-perf-mode="on"] * {
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+
+/* ── Gradient Border utilities ───────────────────────────────────────────────
+   Two complementary patterns:
+   1. .gb-wrap + .gb-inner  — wrapper pattern (add 1px padding outside the card)
+   2. .gb-border-ring       — overlay pattern (abs-pos inside a position:relative)
+
+   Slow conic-gradient rotation via @property --gb-angle (declared above the
+   @import so it sits at stylesheet top level as required by the spec).
+   GPU-only: only --gb-angle (a registered CSS custom property) animates;
+   no layout properties are touched.
+   ─────────────────────────────────────────────────────────────────────────── */
+
+@keyframes gb-spin {
+  to { --gb-angle: 360deg; }
+}
+
+@keyframes border-trail {
+  to { --border-trail-angle: 360deg; }
+}
+
+/* — Wrapper pattern — */
+.gb-wrap {
+  padding: 1px;
+  background: conic-gradient(
+    from var(--gb-angle),
+    color-mix(in srgb, var(--accent-from, #679cff) var(--gb-mix, 38%), transparent),
+    color-mix(in srgb, var(--accent-to,   #679cff) var(--gb-mix, 38%), transparent),
+    color-mix(in srgb, var(--accent-from, #679cff) var(--gb-mix, 38%), transparent)
+  );
+  animation: gb-spin var(--gb-dur, 14s) linear infinite;
+}
+
+.gb-inner {
+  background: var(--gb-inner-bg, var(--app-surface));
+  border-radius: inherit;
+}
+
+/* — Ring overlay pattern —
+   Place an element with this class as a child of any position:relative card.
+   The mask cuts a 1 px ring from the gradient so only the border is visible. */
+.gb-border-ring {
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  padding: 1px;
+  background: conic-gradient(
+    from var(--gb-angle),
+    color-mix(in srgb, var(--accent-from, #679cff) var(--gb-mix, 45%), transparent),
+    color-mix(in srgb, var(--accent-to,   #679cff) var(--gb-mix, 45%), transparent),
+    color-mix(in srgb, var(--accent-from, #679cff) var(--gb-mix, 45%), transparent)
+  );
+  mask:
+    linear-gradient(#fff 0 0) content-box,
+    linear-gradient(#fff 0 0);
+  mask-composite: exclude;
+  -webkit-mask-composite: xor;
+  animation: gb-spin var(--gb-dur, 14s) linear infinite;
+  pointer-events: none;
+  z-index: 9;
+}
+
+/* Light-mode: softer blend */
+@media (prefers-color-scheme: light) {
+  .gb-wrap, .gb-border-ring { --gb-mix: 28%; }
+}
+
+
+/* Reduced motion: freeze the rotation, keep the static gradient tint */
+@media (prefers-reduced-motion: reduce) {
+  .gb-wrap      { animation: none; }
+  .gb-border-ring { animation: none; }
+}
+
+/* ─── Studio Solar System Intro ───────────────────────────────────────────── */
+
+/* Center "sun" — spring scale-in with slight overshoot */
+@keyframes solar-glow-pulse {
+  0%, 100% { transform: translate(-50%, -50%) scale(1);    opacity: 0.7; }
+  50%      { transform: translate(-50%, -50%) scale(1.18); opacity: 1;   }
+}
+
+@keyframes solar-sun-in {
+  from { opacity: 0; transform: translate(-50%, -52%) scale(0.35); }
+  to   { opacity: 1; transform: translate(-50%, -52%) scale(1);    }
+}
+
+/* Orbit ring — pure opacity fade */
+@keyframes solar-ring-in {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+/* Planet icons — fade in only (transform is handled by rAF) */
+@keyframes solar-planet-in {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+/* Star field — slow breathing pulse */
+@keyframes solar-twinkle {
+  0%, 100% { opacity: 0;    }
+  50%      { opacity: 0.45; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  /* If somehow the component renders despite the prefers-reduced-motion check,
+     kill all animations instantly so nothing moves. */
+  [data-solar-intro] * { animation: none !important; transition: none !important; }
+}
+
+/* ── Predictive Back Gesture Animations ───────────────────────────────────── */
+
+/* Black out HTML/body behind the scaling card during gesture to make margins pop */
+.predictive-back-active,
+.predictive-back-active body {
+  background: #000000 !important;
+}
+
+/* Viewport scaling and border-rounding (only when NO subpage/overlay sheet is open) */
+.predictive-back-active:not(.predictive-back-has-overlay) .app-main-layout {
+  transform: scale(calc(1 - var(--back-progress) * 0.065)) !important;
+  border-radius: calc(var(--back-progress) * 20px) !important;
+  transform-origin: calc(50% + var(--back-edge) * 50%) 50% !important;
+  overflow: hidden !important;
+  box-shadow: 0 10px 35px rgba(0, 0, 0, 0.5) !important;
+}
+
+/* Viewport layout remains flat when overlays/sheets are open */
+.predictive-back-active.predictive-back-has-overlay .app-main-layout {
+  transform: none !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+}
+
+/* Overlay transitions (modals, sheets, sheets-overlays) */
+.predictive-back-active .sheet-overlay,
+.predictive-back-active .modal-overlay,
+.predictive-back-active [role="dialog"],
+.predictive-back-active .settings-panel-sheet,
+.predictive-back-active .profile-panel-sheet {
+  transform: translateX(calc(var(--back-progress) * 100% * var(--back-edge))) scale(calc(1 - var(--back-progress) * 0.05)) !important;
+  opacity: calc(1 - var(--back-progress) * 0.5) !important;
+  transform-origin: center left !important;
+}
+
+/* Transition restore animations when gesture completes/cancels */
+:not(.predictive-back-active) .app-main-layout,
+:not(.predictive-back-active) .sheet-overlay,
+:not(.predictive-back-active) .modal-overlay,
+:not(.predictive-back-active) [role="dialog"],
+:not(.predictive-back-active) .settings-panel-sheet,
+:not(.predictive-back-active) .profile-panel-sheet {
+  transition: transform 300ms cubic-bezier(0.16, 1, 0.3, 1), 
+              opacity 300ms cubic-bezier(0.16, 1, 0.3, 1), 
+              border-radius 300ms cubic-bezier(0.16, 1, 0.3, 1) !important;
+}
+
+/* Instant finger tracking with no lag transition when gesture is active */
+.predictive-back-active .app-main-layout,
+.predictive-back-active .sheet-overlay,
+.predictive-back-active .modal-overlay,
+.predictive-back-active [role="dialog"],
+.predictive-back-active .settings-panel-sheet,
+.predictive-back-active .profile-panel-sheet {
+  transition: none !important;
+}
+
+/* Underflow safety panels to prevent bottom gaps during springy gestures, bounces, or keyboard resizes */
+.profile-panel-sheet::after,
+.settings-panel-sheet::after,
+.sheet-overlay [role="dialog"]::after,
+[role="dialog"]::after {
+  content: '';
+  position: absolute;
+  top: 99%; /* overlap slightly to prevent line bleed */
+  left: 0;
+  right: 0;
+  height: 200px;
+  background: inherit;
+  border-radius: 0;
+  pointer-events: none;
+}
+
+/* Programmatic premium scale-bounce animation for button presses */
+.predictive-back-press-active .app-main-layout {
+  animation: predictiveBackPressAnim 280ms cubic-bezier(0.34, 1.56, 0.64, 1) !important;
+}
+
+.predictive-back-press-active .sheet-overlay,
+.predictive-back-press-active .modal-overlay,
+.predictive-back-press-active [role="dialog"],
+.predictive-back-press-active .settings-panel-sheet,
+.predictive-back-press-active .profile-panel-sheet {
+  animation: predictiveBackPressOverlayAnim 280ms cubic-bezier(0.34, 1.56, 0.64, 1) !important;
+}
+
+@keyframes predictiveBackPressAnim {
+  0% {
+    transform: scale(1);
+    border-radius: 0px;
+  }
+  35% {
+    transform: scale(0.95);
+    border-radius: 16px;
+  }
+  100% {
+    transform: scale(1);
+    border-radius: 0px;
+  }
+}
+
+@keyframes predictiveBackPressOverlayAnim {
+  0% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  35% {
+    transform: scale(0.96);
+    opacity: 0.85;
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+/* Custom loading skeletons shimmer system */
+@keyframes studio-shimmer-anim {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+.studio-shimmer {
+  position: relative;
+  overflow: hidden;
+  background-color: var(--app-surface-high) !important;
+}
+
+.studio-shimmer::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  transform: translateX(-100%);
+  background-image: linear-gradient(
+    90deg,
+    rgba(255, 255, 255, 0) 0%,
+    rgba(255, 255, 255, 0.04) 25%,
+    rgba(255, 255, 255, 0.1) 50%,
+    rgba(255, 255, 255, 0.04) 75%,
+    rgba(255, 255, 255, 0) 100%
+  ) !important;
+  animation: studio-shimmer-anim 1.6s infinite linear !important;
+}
+
+:root.light .studio-shimmer {
+  background-color: var(--app-surface-low) !important;
+}
+
+:root.light .studio-shimmer::after {
+  background-image: linear-gradient(
+    90deg,
+    rgba(0, 0, 0, 0) 0%,
+    rgba(0, 0, 0, 0.02) 25%,
+    rgba(0, 0, 0, 0.06) 50%,
+    rgba(0, 0, 0, 0.02) 75%,
+    rgba(0, 0, 0, 0) 100%
+  ) !important;
+}
+
+/* Subtle accent loading line for smart loading (150-400ms) */
+@keyframes studio-accent-loader-anim {
+  0% {
+    left: -30%;
+    width: 30%;
+  }
+  50% {
+    left: 100%;
+    width: 30%;
+  }
+  100% {
+    left: -30%;
+    width: 30%;
+  }
+}
+
+.studio-accent-loader {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: rgba(128, 128, 128, 0.1);
+  z-index: 10000;
+  overflow: hidden;
+}
+
+.studio-accent-loader::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: -30%;
+  width: 30%;
+  background: var(--accent-from, var(--color-primary-container, #007aff));
+  animation: studio-accent-loader-anim 1.5s infinite ease-in-out;
+}
+
+/* Page depth effect when any sheet or modal overlay is open (disabled to fix zoomed-out visual bug)
+.has-modal-open .app-main-layout,
+.has-modal-open .app-sub-app-container {
+  transform: scale(0.96) translateY(-8px) !important;
+  opacity: 0.85 !important;
+  border-radius: 20px !important;
+  pointer-events: none !important;
+}
+
+html.has-modal-open,
+html.has-modal-open body {
+  background: #000000 !important;
+}
+*/
+
+/* Scroll fade mask utility */
+.scroll-fade-container {
+  position: relative;
+  width: 100%;
+}
+.scroll-fade-content {
+  overflow-x: auto;
+  width: 100%;
+  display: flex;
+  gap: 8px;
+  transition: mask-image 200ms ease, -webkit-mask-image 200ms ease;
+}
+.fade-both {
+  mask-image: linear-gradient(to right, transparent, black 16px, black calc(100% - 16px), transparent);
+  -webkit-mask-image: linear-gradient(to right, transparent, black 16px, black calc(100% - 16px), transparent);
+}
+.fade-left {
+  mask-image: linear-gradient(to right, transparent, black 16px, black 100%);
+  -webkit-mask-image: linear-gradient(to right, transparent, black 16px, black 100%);
+}
+.fade-right {
+  mask-image: linear-gradient(to right, black, black calc(100% - 16px), transparent);
+  -webkit-mask-image: linear-gradient(to right, black, black calc(100% - 16px), transparent);
+}
+.fade-none {
+  mask-image: none;
+  -webkit-mask-image: none;
+}
+
+/* ===== Desktop / Wide Viewport Adaptations ==========================================
+   These rules make the mobile-first UI feel at home on laptop and desktop screens.
+   They never override existing mobile behaviour; they layer on top via min-width.
+   =================================================================================== */
+
+@media (min-width: 768px) {
+  /* ── Center-constrain the main Hub scroll area content ── */
+  /* StudioHub wraps everything inside a scrollable div; each tab's inner
+     content already sets padding: 0 20px. We bump horizontal auto-margin
+     and cap width so it doesn't stretch across ultrawide monitors. */
+  [data-hub-tab-content],
+  .hub-desktop-constrain,
+  .settings-panel-sheet {
+    max-width: 640px;
+    margin-left: auto;
+    margin-right: auto;
+  }
+
+  /* ── Card hover lift effect (desktop only) ── */
+  .card-hover:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 24px rgba(0, 0, 0, 0.15);
+  }
+
+  /* ── Interactive row hover tint ── */
+  .setting-row-interactive:hover {
+    background: rgba(128, 128, 128, 0.06);
+  }
+
+  /* ── Updater hero card gets a subtle lift ── */
+  .updater-hero-card:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12);
+    transition: transform 200ms ease, box-shadow 200ms ease;
+  }
+
+  /* ── CTA buttons get a desktop hover glow ── */
+  .updater-cta-btn:hover {
+    filter: brightness(1.08);
+    transform: translateY(-1px);
+    box-shadow: 0 6px 24px rgba(0, 0, 0, 0.2);
+    transition: filter 200ms ease, transform 200ms ease, box-shadow 200ms ease;
+  }
+
+  /* ── Ensure buttons show pointer cursor on desktop ── */
+  button, [role="button"] {
+    cursor: pointer;
+  }
+}
+
+/* Wider desktop (1024px+): two-column settings layout seed */
+@media (min-width: 1024px) {
+  [data-hub-tab-content],
+  .hub-desktop-constrain,
+  .settings-panel-sheet {
+    max-width: 720px;
+  }
+}
+
+html.compact-desktop {
+  --density-pad: 8px !important;
+  --density-row-pad: 6px 14px !important;
+  --density-gap: 6px !important;
+  --density-card-gap: 4px !important;
+}
+
+/* ── Landing Page Animations & 3D Marquee ────────────────────── */
+@keyframes marquee-scroll {
+  0% { transform: translateX(0%); }
+  100% { transform: translateX(-50%); }
+}
+
+.animate-marquee-scroll {
+  display: flex;
+  width: max-content;
+  animation: marquee-scroll 45s linear infinite;
+}
+
+.perspective-1000 {
+  perspective: 1000px;
+}
+
+.perspective-2000 {
+  perspective: 2000px;
+}
+
+.glow-blue {
+  box-shadow: 0 0 30px rgba(0, 122, 255, 0.12);
+}
+
+.glow-blue-hover:hover {
+  box-shadow: 0 0 40px rgba(0, 122, 255, 0.25);
+}
+
+.bg-grid-pattern {
+  background-size: 40px 40px;
+  background-image: linear-gradient(to right, rgba(255, 255, 255, 0.03) 1px, transparent 1px),
+                    linear-gradient(to bottom, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
+}
+
+/* ── Landing Page Scrolling & Typography overrides ── */
+html.landing-route {
+  height: auto !important;
+  min-height: 100% !important;
+  overflow: auto !important;
+  overflow-y: auto !important;
+  overflow-x: hidden !important;
+}
+
+html.landing-route body,
+html.landing-route #root {
+  height: auto !important;
+  min-height: 100% !important;
+  overflow: visible !important;
+}
+
+.landing-font-heading {
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  letter-spacing: -0.04em;
+}
+
+.landing-font-body {
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  letter-spacing: -0.01em;
+}
+
+/* ── Web Desktop Minimal Redesign overrides ── */
+/* Default (Dark Theme) */
+html.web-desktop {
+  --app-bg: #050505 !important;
+  --app-surface-lowest: #000000 !important;
+  --app-surface-low: #09090b !important;
+  --app-surface: #0e0e11 !important;
+  --app-surface-high: #18181b !important;
+  --app-surface-highest: #27272a !important;
+  --c-text-primary: #f4f4f5 !important;
+  --c-text-secondary: #a1a1aa !important;
+  --c-text-muted: #52525b !important;
+}
+
+/* AMOLED Theme */
+html.web-desktop.amoled {
+  --app-bg: #000000 !important;
+  --app-surface-lowest: #000000 !important;
+  --app-surface-low: #030303 !important;
+  --app-surface: #080808 !important;
+  --app-surface-high: #121212 !important;
+  --app-surface-highest: #1a1a1a !important;
+  --c-text-primary: #f4f4f5 !important;
+  --c-text-secondary: #a1a1aa !important;
+  --c-text-muted: #52525b !important;
+}
+
+/* Light Theme */
+html.web-desktop.light {
+  --app-bg: #f5f5f7 !important;
+  --app-surface-lowest: #e5e5ea !important;
+  --app-surface-low: #f2f2f7 !important;
+  --app-surface: #ffffff !important;
+  --app-surface-high: #fafafa !important;
+  --app-surface-highest: #ffffff !important;
+  --c-text-primary: #1d1d1f !important;
+  --c-text-secondary: #86868b !important;
+  --c-text-muted: #c7c7cc !important;
+}
+
+/* Light AMOLED (Pure White) Theme */
+html.web-desktop.light.amoled {
+  --app-bg: #ffffff !important;
+  --app-surface-lowest: #f0f0f0 !important;
+  --app-surface-low: #f4f4f4 !important;
+  --app-surface: #ffffff !important;
+  --app-surface-high: #fafafa !important;
+  --app-surface-highest: #ffffff !important;
+  --c-text-primary: #000000 !important;
+  --c-text-secondary: #555555 !important;
+  --c-text-muted: #999999 !important;
+}
+
+/* System Light Theme Override */
+@media (prefers-color-scheme: light) {
+  html.web-desktop.theme-system {
+    --app-bg: #f5f5f7 !important;
+    --app-surface-lowest: #e5e5ea !important;
+    --app-surface-low: #f2f2f7 !important;
+    --app-surface: #ffffff !important;
+    --app-surface-high: #fafafa !important;
+    --app-surface-highest: #ffffff !important;
+    --c-text-primary: #1d1d1f !important;
+    --c-text-secondary: #86868b !important;
+    --c-text-muted: #c7c7cc !important;
+  }
+}
+
+html.web-desktop .gb-wrap {
+  background: transparent !important;
+  padding: 0 !important;
+  border: 1px solid rgba(255, 255, 255, 0.08) !important;
+  animation: none !important;
+  box-shadow: none !important;
+}
+
+html.web-desktop.light .gb-wrap {
+  border: 1px solid rgba(0, 0, 0, 0.08) !important;
+}
+
+@media (prefers-color-scheme: light) {
+  html.web-desktop.theme-system .gb-wrap {
+    border: 1px solid rgba(0, 0, 0, 0.08) !important;
+  }
+}
+
+html.web-desktop .gb-inner {
+  border-radius: inherit !important;
+  background: var(--app-surface-low) !important;
+}
+
+html.web-desktop .card-hover {
+  border: 1px solid rgba(255, 255, 255, 0.06) !important;
+  border-radius: 12px !important;
+  box-shadow: none !important;
+  background: rgba(9, 9, 11, 0.4) !important;
+}
+
+html.web-desktop.light .card-hover {
+  border: 1px solid rgba(0, 0, 0, 0.06) !important;
+  background: rgba(255, 255, 255, 0.6) !important;
+}
+
+@media (prefers-color-scheme: light) {
+  html.web-desktop.theme-system .card-hover {
+    border: 1px solid rgba(0, 0, 0, 0.06) !important;
+    background: rgba(255, 255, 255, 0.6) !important;
+  }
+}
+
+html.web-desktop .card-hover:hover {
+  border-color: rgba(255, 255, 255, 0.12) !important;
+  background: rgba(14, 14, 17, 0.6) !important;
+}
+
+html.web-desktop.light .card-hover:hover {
+  border-color: rgba(0, 0, 0, 0.12) !important;
+  background: rgba(255, 255, 255, 0.95) !important;
+}
+
+@media (prefers-color-scheme: light) {
+  html.web-desktop.theme-system .card-hover:hover {
+    border-color: rgba(0, 0, 0, 0.12) !important;
+    background: rgba(255, 255, 255, 0.95) !important;
+  }
+}
+
+html.web-desktop .app-sub-app-container {
+  background: #050505 !important;
+  transition: background 300ms cubic-bezier(0.4, 0, 0.2, 1) !important;
+}
+
+html.web-desktop.amoled .app-sub-app-container {
+  background: #000000 !important;
+}
+
+html.web-desktop.light .app-sub-app-container {
+  background: #f5f5f7 !important;
+}
+
+html.web-desktop.light.amoled .app-sub-app-container {
+  background: #ffffff !important;
+}
+
+@media (prefers-color-scheme: light) {
+  html.web-desktop.theme-system .app-sub-app-container {
+    background: #f5f5f7 !important;
+  }
+}

@@ -4,9 +4,20 @@
   "license": "MIT",
   "scripts": {
     "preinstall": "node -e \"const fs=require('fs');for(const f of ['package-lock.json','yarn.lock'])try{fs.unlinkSync(f)}catch{};const ua=process.env.npm_config_user_agent||'';if(!ua.startsWith('pnpm/')){console.error('Use pnpm instead');process.exit(1)}\"",
-    "build": "pnpm run typecheck && pnpm -r --if-present run build",
+    "build": "pnpm build:web && pnpm build:android:web",
+    "build:web": "pnpm --filter @workspace/studio-web build",
+    "build:android:web": "pnpm --filter @workspace/studio-android build",
+    "build:android": "pnpm --filter @workspace/studio-android android:build",
     "typecheck:libs": "tsc --build",
-    "typecheck": "pnpm run typecheck:libs && pnpm -r --filter \"./artifacts/**\" --filter \"./scripts\" --if-present run typecheck"
+    "typecheck:web": "pnpm run typecheck:libs && pnpm --filter @workspace/studio-web typecheck",
+    "typecheck:android": "pnpm run typecheck:libs && pnpm --filter @workspace/studio-android typecheck",
+    "test:web": "pnpm --filter @workspace/studio-web test",
+    "test:android": "pnpm --filter @workspace/studio-android test",
+    "version:web": "node scripts/version-manager.mjs web",
+    "version:android": "node scripts/version-manager.mjs android",
+    "lint:imports": "node scripts/enforce-import-boundaries.mjs",
+    "check:versions": "node scripts/verify-versions-consistency.mjs",
+    "scope:check": "node scripts/enforce-platform-scope.mjs"
   },
   "private": true,
   "devDependencies": {

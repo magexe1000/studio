@@ -1,10 +1,14 @@
-### Added
-- Added adaptive Web navigation rails for laptop/desktop screen widths.
-- Added Web-specific internal app navigation tabs for tablet/iPad screen widths.
-- Added Web-specific internal app navigation for Chordex, Drumex, Stagex, Groovex, and Vocalex.
+### Fixed
+- Restored Stagex bottom-navigation section switching.
+- Corrected Stagex plus-button and element-picker interaction.
+- Corrected Stagex eye/visibility control behavior.
+- Corrected parent-to-iframe command delivery in Android WebView.
+- Improved selected-element controls.
+- Prevented transition states from leaving Studio on a black screen.
+- Added recovery actions when a Studio module fails to load.
 
 ### Improved
-- Improved Web shortcuts and deep shortcuts to target sub-sections.
-- Repositioned back buttons inline to prevent overlap in Web layouts.
-
-### Fixed
+- Unified Help Center and FAQ & Support into Help & Support.
+- Added searchable support content and functional troubleshooting actions.
+- Improved transition cleanup when switching between Studio apps.
+- Improved Stagex interaction diagnostics and event handling.

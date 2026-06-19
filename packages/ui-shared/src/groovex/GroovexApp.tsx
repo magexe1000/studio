@@ -1,0 +1,349 @@
+import { useChordStore, ACCENT_COLORS, useT, useBackHandler, useLiquidGlassNav, useNavCollapsed, useNavHidden, useIsWebDesktop } from '@workspace/studio-core';
+import { lazy, Suspense, useEffect, useRef, useState } from 'react';
+import { useGroovexStore, type GroovexView } from './useGroovexStore';
+import { AppModeMenuLogo } from '../components/AppModeMenuLogo';
+import WebAppSectionDock from '../components/WebAppSectionDock';
+
+const GroovexLibrary = lazy(() => import('./GroovexLibrary'));
+const GroovexPlayer = lazy(() => import('./GroovexPlayer'));
+const GroovexPreferences = lazy(() => import('./GroovexPreferences'));
+
+const VIEW_ORDER: GroovexView[] = ['library', 'player', 'preferences'];
+
+export default function GroovexApp() {
+  const isWebDesktop = useIsWebDesktop();
+  const { view, setView, activeSongId } = useGroovexStore();
+  const [viewAnim, setViewAnim] = useState<'panel-enter-right' | 'panel-enter-left'>('panel-enter-right');
+  const [isLargeDesktop, setIsLargeDesktop] = useState(() => {
+    return typeof window !== 'undefined' && window.innerWidth >= 1024;
+  });
+
+  useEffect(() => {
+    if (!isWebDesktop) return;
+    const handleResize = () => {
+      setIsLargeDesktop(window.innerWidth >= 1024);
+    };
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, [isWebDesktop]);
+
+  function navigate(next: GroovexView) {
+    const oldIdx = VIEW_ORDER.indexOf(view);
+    const newIdx = VIEW_ORDER.indexOf(next);
+    setViewAnim(newIdx >= oldIdx ? 'panel-enter-right' : 'panel-enter-left');
+    setView(next);
+  }
+
+  function handleBack() {
+    if (view === 'player') {
+      navigate('library');
+    } else {
+      window.dispatchEvent(new Event('studio-hub-return'));
+    }
+  }
+
+  useBackHandler('nested', () => {
+    if (view === 'player') {
+      navigate('library');
+      return true;
+    }
+    if (view === 'preferences') {
+      navigate('library');
+      return true;
+    }
+    return false;
+  }, [view]);
+
+  return (
+    <div className="groovex-root" style={{
+      height: '100dvh', display: 'flex', flexDirection: 'column',
+      background: 'var(--app-bg)',
+      fontFamily: 'Manrope, sans-serif',
+      paddingTop: 'env(safe-area-inset-top)',
+      overflow: 'hidden',
+    }}>
+
+      {!isWebDesktop && (
+        <header style={{
+          display: 'flex', alignItems: 'center',
+          padding: '24px 24px 4px', flexShrink: 0,
+          background: 'var(--gx-bg)',
+        }}>
+          <div style={{
+            overflow: 'hidden',
+            flexShrink: 0,
+            width: view === 'player' ? '40px' : '0px',
+            opacity: view === 'player' ? 1 : 0,
+            transition: 'width 300ms cubic-bezier(0.34,1.1,0.64,1), opacity 200ms ease',
+          }}>
+            <button
+              onClick={handleBack}
+              className="btn-smooth"
+              aria-label="Back"
+              style={{
+                width: '32px', height: '32px', borderRadius: '50%',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                background: 'var(--gx-surface-high)',
+                border: '1px solid rgba(128,128,128,0.15)',
+                cursor: 'pointer', padding: 0,
+                transition: 'background 500ms cubic-bezier(0.4,0,0.2,1)',
+              }}
+            >
+              <span className="material-symbols-outlined" style={{ color: 'var(--c-text-primary)', fontSize: 18 }}>arrow_back</span>
+            </button>
+          </div>
+          <AppModeMenuLogo />
+        </header>
+      )}
+
+      <div 
+        style={{ 
+          display: 'flex', 
+          flexDirection: (isWebDesktop && isLargeDesktop) ? 'row' : 'column', 
+          flex: 1, 
+          width: '100%', 
+          height: '100%', 
+          overflow: 'hidden' 
+        }}
+      >
+        {isWebDesktop && (
+          <WebAppSectionDock 
+            app="groovex" 
+            activeSection={view === 'player' ? 'library' : view} 
+            onChangeSection={navigate} 
+          />
+        )}
+        <div style={{ flex: 1, overflow: 'hidden', position: 'relative', paddingTop: isWebDesktop ? '20px' : '0px', paddingBottom: '0px', display: 'flex', flexDirection: 'column' }}>
+          <Suspense fallback={null}>
+            <div key={view} className={viewAnim} style={{ height: '100%', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+              {view === 'library' && <GroovexLibrary />}
+              {view === 'player' && <GroovexPlayer />}
+              {view === 'preferences' && <GroovexPreferences />}
+            </div>
+          </Suspense>
+        </div>
+      </div>
+
+      {view !== 'player' && !isWebDesktop && (
+        <GroovexNav view={view} setView={navigate} hasActiveSong={!!activeSongId} />
+      )}
+    </div>
+  );
+}
+
+const NAV_ORDER: GroovexView[] = ['library', 'preferences'];
+
+function GroovexNav({ view, setView, hasActiveSong }: {
+  view: GroovexView;
+  setView: (v: GroovexView) => void;
+  hasActiveSong: boolean;
+}) {
+  const { settings } = useChordStore();
+  const groovexVis = settings.perApp?.groovex ?? { theme: 'dark', accentColor: 'blue', amoledMode: false };
+  const isLight = settings.theme === 'light' || (settings.theme === 'system' && typeof window !== 'undefined' && window.matchMedia('(prefers-color-scheme: light)').matches);
+  const accent = ACCENT_COLORS[groovexVis.accentColor as keyof typeof ACCENT_COLORS] ?? ACCENT_COLORS.blue;
+  const amoledBg = groovexVis.amoledMode
+    ? 'rgba(0,0,0,0.96)'
+    : (isLight ? 'rgba(255, 255, 255, 0.40)' : 'rgba(26,26,30,0.82)');
+
+  const t = useT();
+  const items: { id: GroovexView; icon: string; label: string }[] = [
+    { id: 'library', icon: 'library_music', label: t.groovex.library },
+    { id: 'preferences', icon: 'tune', label: t.groovex.preferences },
+  ];
+
+  const navRef = useRef<HTMLElement | null>(null);
+  const btnRefs = useRef<(HTMLButtonElement | null)[]>([]);
+  const prevIdxRef = useRef(NAV_ORDER.indexOf(view));
+  const stretchTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const [pill, setPill] = useState<{ left: number; right: number; ready: boolean }>({ left: 0, right: 0, ready: false });
+  const [pressedId, setPressedId] = useState<GroovexView | null>(null);
+  const navCollapsed = useNavCollapsed();
+  const navHidden    = useNavHidden();
+  const [expandedH, setExpandedH] = useState(56);
+  const [expandedW, setExpandedW] = useState(280);
+  useEffect(() => {
+    if (navRef.current) {
+      setExpandedH(navRef.current.offsetHeight);
+      setExpandedW(navRef.current.offsetWidth);
+    }
+  }, []);
+
+  const measureBtn = (idx: number): { left: number; right: number } | null => {
+    const btn = btnRefs.current[idx];
+    const nav = navRef.current;
+    if (!btn || !nav) return null;
+    const navRect = nav.getBoundingClientRect();
+    const btnRect = btn.getBoundingClientRect();
+    return { left: btnRect.left - navRect.left, right: btnRect.right - navRect.left };
+  };
+
+  useEffect(() => {
+    const m = measureBtn(NAV_ORDER.indexOf(view));
+    if (m) setPill({ left: m.left, right: m.right, ready: true });
+  }, []);
+
+  useEffect(() => {
+    const newIdx = NAV_ORDER.indexOf(view);
+    const oldIdx = prevIdxRef.current;
+    if (newIdx === oldIdx) return;
+    prevIdxRef.current = newIdx;
+    const newM = measureBtn(newIdx);
+    if (!newM) return;
+
+    if (stretchTimeoutRef.current) {
+      clearTimeout(stretchTimeoutRef.current);
+      stretchTimeoutRef.current = null;
+      setPill(p => ({ ...p, left: newM.left, right: newM.right }));
+      return;
+    }
+
+    if (newIdx > oldIdx) {
+      setPill(p => ({ ...p, right: newM.right }));
+      stretchTimeoutRef.current = setTimeout(() => {
+        setPill(p => ({ ...p, left: newM.left }));
+        stretchTimeoutRef.current = null;
+      }, 90);
+    } else {
+      setPill(p => ({ ...p, left: newM.left }));
+      stretchTimeoutRef.current = setTimeout(() => {
+        setPill(p => ({ ...p, right: newM.right }));
+        stretchTimeoutRef.current = null;
+      }, 90);
+    }
+
+    return () => {
+      if (stretchTimeoutRef.current) {
+        clearTimeout(stretchTimeoutRef.current);
+        stretchTimeoutRef.current = null;
+      }
+    };
+  }, [view]);
+
+  useLiquidGlassNav(navRef as React.RefObject<HTMLElement | null>);
+
+  return (
+    <nav
+      ref={navRef}
+      className="glass-nav"
+      style={{
+        position: 'fixed',
+        bottom: 'var(--nav-safe-bottom)',
+        left: '50%',
+        transform: `translateX(-50%) translateY(${navHidden ? 'calc(100% + 32px)' : '0px'})`,
+        width: '70%',
+        maxWidth: '280px',
+        height: `${expandedH}px`,
+        borderRadius: '2rem',
+        border: `1px solid ${isLight ? 'rgba(0,0,0,0.10)' : 'rgba(255,255,255,0.32)'}`,
+        background: amoledBg,
+        boxShadow: isLight
+          ? '0 8px 32px rgba(0,0,0,0.14), 0 1.5px 0 rgba(255,255,255,0.80) inset'
+          : '0 12px 48px rgba(0,0,0,0.50), 0 1.5px 0 rgba(255,255,255,0.08) inset',
+        backdropFilter: 'blur(20px)',
+        WebkitBackdropFilter: 'blur(20px)',
+        zIndex: 50,
+        overflow: 'hidden',
+        pointerEvents: (navHidden || navCollapsed) ? 'none' : 'auto',
+        clipPath: navCollapsed
+          ? `inset(${Math.max(0, expandedH - 5)}px ${Math.max(0, Math.floor((expandedW - 90) / 2))}px 0 ${Math.max(0, Math.floor((expandedW - 90) / 2))}px round 99px)`
+          : 'inset(0 0 0 0 round 2rem)',
+        willChange: 'clip-path, transform',
+        transition: [
+          navCollapsed
+            ? 'clip-path 500ms cubic-bezier(0.4,0,0.2,1)'
+            : 'clip-path 380ms cubic-bezier(0.16,1,0.3,1)',
+          navCollapsed
+            ? 'transform 500ms cubic-bezier(0.4,0,0.2,1)'
+            : 'transform 380ms cubic-bezier(0.16,1,0.3,1)',
+        ].join(', '),
+      }}
+    >
+      <div style={{
+        position: 'absolute', inset: 0,
+        display: 'flex', alignItems: 'center', justifyContent: 'space-around',
+        padding: '4px 8px',
+        opacity: navCollapsed ? 0 : 1,
+        transition: navCollapsed ? 'opacity 100ms ease' : 'opacity 350ms ease 180ms',
+        willChange: 'opacity',
+      }}>
+      {pill.ready && (
+        <div
+          aria-hidden
+          style={{
+            position: 'absolute',
+            top: 4,
+            left: pill.left,
+            width: pill.right - pill.left,
+            height: 'calc(100% - 8px)',
+            borderRadius: 9999,
+            background: isLight ? 'rgba(0,0,0,0.06)' : 'rgba(255,255,255,0.09)',
+            border: isLight ? '1.5px solid rgba(0,0,0,0.14)' : '1.5px solid rgba(255,255,255,0.30)',
+            boxShadow: isLight
+              ? 'inset 0 1px 0 rgba(255,255,255,0.90), 0 2px 8px rgba(0,0,0,0.10)'
+              : 'inset 0 1px 0 rgba(255,255,255,0.40), 0 2px 16px rgba(255,255,255,0.06)',
+            backdropFilter: 'blur(8px)',
+            WebkitBackdropFilter: 'blur(8px)',
+            pointerEvents: 'none',
+            zIndex: 0,
+            opacity: 1,
+            transition: 'left 300ms cubic-bezier(0.16,1,0.3,1), width 300ms cubic-bezier(0.16,1,0.3,1)',
+          }}
+        />
+      )}
+
+      {items.map((item, i) => {
+        const active = view === item.id;
+        const pressed = pressedId === item.id;
+        return (
+          <button
+            key={item.id}
+            ref={el => { btnRefs.current[i] = el; }}
+            onPointerDown={() => setPressedId(item.id)}
+            onPointerUp={() => setPressedId(null)}
+            onPointerLeave={() => setPressedId(null)}
+            onPointerCancel={() => setPressedId(null)}
+            onClick={() => setView(item.id)}
+            style={{
+              flex: 1,
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: 3,
+              padding: '8px 4px',
+              borderRadius: 9999,
+              background: 'transparent',
+              border: 'none',
+              cursor: 'pointer',
+              color: active ? (isLight ? accent.from : '#fff') : 'var(--c-text-secondary)',
+              position: 'relative',
+              zIndex: 1,
+              opacity: 1,
+              transform: pressed ? 'scale(0.91)' : 'scale(1)',
+              transition: 'color 130ms ease, transform 120ms cubic-bezier(0.34, 1.56, 0.64, 1)',
+            }}
+          >
+            <span className="material-symbols-outlined" style={{
+              fontSize: 21,
+              fontVariationSettings: active ? "'FILL' 1" : "'FILL' 0",
+            }}>{item.icon}</span>
+            <span style={{
+              fontFamily: 'Inter, sans-serif',
+              fontWeight: 700,
+              fontSize: '9.5px',
+              letterSpacing: '0.08em',
+              textTransform: 'uppercase',
+              lineHeight: 1,
+              whiteSpace: 'nowrap',
+            }}>
+              {item.label}
+            </span>
+          </button>
+        );
+      })}
+      </div>
+    </nav>
+  );
+}
