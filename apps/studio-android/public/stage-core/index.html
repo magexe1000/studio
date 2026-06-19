@@ -5036,10 +5036,12 @@ window.addEventListener('message', function(e) {
    * We look up the function in window and call it.  This works even when   *
    * contentWindow direct access is restricted by the Android WebView.      */
   window.addEventListener('message', function (e) {
-    var isAllowedOrigin = !e.origin || e.origin === 'null' || e.origin === window.location.origin ||
-      e.origin === 'https://localhost' ||
-      e.origin === 'http://localhost' ||
-      e.origin === 'capacitor://localhost';
+    var origin = e.origin || '';
+    var isAllowedOrigin = !origin || origin === 'null' || origin === 'about:blank' ||
+      origin === window.location.origin ||
+      origin.indexOf('https://localhost') === 0 ||
+      origin.indexOf('http://localhost') === 0 ||
+      origin.indexOf('capacitor://localhost') === 0;
     if (!isAllowedOrigin) return;
     if (!e.data || e.data.type !== 'sc-call') return;
     var fn  = e.data.fn;

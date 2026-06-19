@@ -1092,7 +1092,15 @@ ComposedPath: ${path.slice(0, 3).join(' > ')}`;
       injectStartOnPicker(iframe);
     };
     iframe.addEventListener('load', handleLoad);
-    if (iframe.contentDocument && iframe.contentDocument.readyState === 'complete') {
+    let docComplete = false;
+    try {
+      if (iframe.contentDocument && iframe.contentDocument.readyState === 'complete') {
+        docComplete = true;
+      }
+    } catch (e) {
+      console.warn('Failed to access contentDocument on mount:', e);
+    }
+    if (docComplete) {
       handleLoad();
     }
     return () => iframe.removeEventListener('load', handleLoad);
@@ -1100,11 +1108,12 @@ ComposedPath: ${path.slice(0, 3).join(' > ')}`;
 
   useEffect(() => {
     const onMsg = (e: MessageEvent) => {
-      const isAllowedOrigin = e.origin === 'null' ||
-        e.origin === window.location.origin ||
-        e.origin === 'https://localhost' ||
-        e.origin === 'http://localhost' ||
-        e.origin === 'capacitor://localhost';
+      const origin = e.origin || '';
+      const isAllowedOrigin = !origin || origin === 'null' ||
+        origin === window.location.origin ||
+        origin.startsWith('https://localhost') ||
+        origin.startsWith('http://localhost') ||
+        origin.startsWith('capacitor://localhost');
       if (!isAllowedOrigin) return;
       if (e.source !== iframeRef.current?.contentWindow) return;
 
@@ -1172,7 +1181,7 @@ ComposedPath: ${path.slice(0, 3).join(' > ')}`;
       }
     } catch {}
     try {
-      iframe.contentWindow?.postMessage({ type: 'sc-landscape', landscape: isLandscape }, window.location.origin);
+      iframe.contentWindow?.postMessage({ type: 'sc-landscape', landscape: isLandscape }, '*');
     } catch {}
   }, [isLandscape]);
 
@@ -2148,6 +2157,7 @@ ComposedPath: ${path.slice(0, 3).join(' > ')}`;
               <button
                 key={label}
                 onClick={fn}
+                onTouchEnd={(e) => { e.preventDefault(); fn(); }}
                 title={label}
                 aria-label={label}
                 data-testid={testid}
@@ -2166,6 +2176,7 @@ ComposedPath: ${path.slice(0, 3).join(' > ')}`;
 
             <button
               onClick={() => callIframe('openPresetsPanel')}
+              onTouchEnd={(e) => { e.preventDefault(); callIframe('openPresetsPanel'); }}
               title={tr.stagex.toolPresets}
               style={{
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
@@ -2181,6 +2192,7 @@ ComposedPath: ${path.slice(0, 3).join(' > ')}`;
 
             <button
               onClick={() => { setCurView('Export'); callIframe('switchView', 'Export'); }}
+              onTouchEnd={(e) => { e.preventDefault(); setCurView('Export'); callIframe('switchView', 'Export'); }}
               title={tr.stagex.toolExport}
               style={{
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
@@ -2201,6 +2213,7 @@ ComposedPath: ${path.slice(0, 3).join(' > ')}`;
           <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
             <button
               onClick={() => callIframe('toggleExportOptions')}
+              onTouchEnd={(e) => { e.preventDefault(); callIframe('toggleExportOptions'); }}
               title="Sections"
               style={{
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
@@ -2215,6 +2228,7 @@ ComposedPath: ${path.slice(0, 3).join(' > ')}`;
             </button>
             <button
               onClick={openPdfSheet}
+              onTouchEnd={(e) => { e.preventDefault(); openPdfSheet(); }}
               title="Export PDF"
               style={{
                 display: 'flex', alignItems: 'center', justifyContent: 'center',

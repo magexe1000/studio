@@ -26,7 +26,7 @@ import { useMemo } from 'react';
 import { Capacitor } from '@capacitor/core';
 
 /** Canonical semver string used by the OTA comparator. */
-export const NATIVE_VERSION = '3.6.42';
+export const NATIVE_VERSION = '3.6.43';
 export const WEB_VERSION = '4.0.0';
 export const APP_VERSION = Capacitor.isNativePlatform() ? NATIVE_VERSION : WEB_VERSION;
 
@@ -61,9 +61,8 @@ export const APP_CHANGELOG_SECTIONS: ChangelogSection[] = [
   {
     heading: "Fixed",
     items: [
-      "Restored missing theme and layout CSS variables in separated platform build.",
-      "Fixed Stagex onTouchEnd responsiveness for eye, plus, and rotate buttons on Android.",
-      "Added transition active lock safety watchdog to prevent stuck screens.",
+      "Fixed Back-to-Hub navigation gray screen freeze.",
+      "Reconnected Stagex controls and canvas touch events.",
     ],
   },
 ];
@@ -73,6 +72,8 @@ export const APP_CHANGELOG_SECTIONS_NATIVE: ChangelogSection[] = [
   {
     heading: "Fixed",
     items: [
+      "Fixed Back-to-Hub navigation gray screen freeze.",
+      "Reconnected Stagex controls and canvas touch events.",
       "Restored Stagex bottom-navigation section switching.",
       "Corrected Stagex plus-button and element-picker interaction.",
       "Corrected Stagex eye/visibility control behavior.",
@@ -99,6 +100,8 @@ export const APP_CHANGELOG_SECTIONS_ES: ChangelogSection[] = [
   {
     heading: "Corregido",
     items: [
+      "Corregido el congelamiento de pantalla gris al volver a la consola principal (Hub).",
+      "Reconectados los controles y eventos táctiles de Stagex.",
       "Restaurado el cambio de sección en la navegación inferior de Stagex.",
       "Corregida la interacción del botón más y el selector de elementos en Stagex.",
       "Corregido el comportamiento del control de ojo/visibilidad en Stagex.",

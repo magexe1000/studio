@@ -41,6 +41,7 @@ import {
 } from '@workspace/ui-shared';
 
 import { BottomNav } from '@workspace/ui-android';
+import { Capacitor } from '@capacitor/core';
 
 import "./index.css";
 
@@ -379,7 +380,12 @@ export default function App() {
       window.history.pushState({ chordex: 'app' }, '');
     };
 
-    const handlePop = () => onBack();
+    const handlePop = () => {
+      if (Capacitor.isNativePlatform()) {
+        return;
+      }
+      onBack();
+    };
     window.addEventListener('popstate', handlePop);
 
     let capRemove: (() => void) | null = null;
@@ -497,7 +503,7 @@ export default function App() {
         </Suspense>
       </div>
 
-      <AnimatePresence mode="popLayout">
+      <AnimatePresence>
         {isSubAppActive && (
           <motion.div
             key={activeAppToRender || 'none'}

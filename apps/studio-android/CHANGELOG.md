@@ -14,6 +14,13 @@ Conventions:
 - List the user-visible changes only. Internal refactors, tooling,
   and CI tweaks do not need a bullet.
 
+## 3.6.43
+
+### Fixed
+- Fixed Back-to-Hub navigation gray screen freeze.
+- Reconnected Stagex controls and canvas touch events.
+
+
 ## 3.6.42
 
 ### Fixed
