@@ -11,13 +11,22 @@ const androidDir = path.join(repoRoot, 'apps/studio-android/android');
 console.log('=== RUNNING GRADLE SIGNING REGRESSION TESTS ===');
 
 const gradlew = process.platform === 'win32' ? '.\\gradlew.bat' : './gradlew';
+const gradlewPath = path.join(androidDir, process.platform === 'win32' ? 'gradlew.bat' : 'gradlew');
+
+if (process.platform !== 'win32') {
+  try {
+    fs.chmodSync(gradlewPath, 0o755);
+    console.log(`✓ Marked ${gradlewPath} as executable.`);
+  } catch (err) {
+    console.warn(`Warning: Failed to chmod ${gradlewPath}:`, err.message);
+  }
+}
 
 // Case A: PR CI debug build configuration check
 console.log('Testing Case A: PR CI debug configuration...');
 const caseAEnv = {
   ...process.env,
   CI: 'true',
-  STUDIO_PRODUCTION_RELEASE: undefined,
   ANDROID_KEYSTORE_PASSWORD: '',
   ANDROID_KEY_PASSWORD: '',
   ANDROID_KEY_ALIAS: ''
@@ -27,8 +36,15 @@ delete caseAEnv.STUDIO_PRODUCTION_RELEASE;
 const resA = spawnSync(gradlew, ['help'], {
   cwd: androidDir,
   env: caseAEnv,
-  shell: process.platform === 'win32',
+  shell: true,
 });
+if (resA.status !== 0) {
+  console.error('Case A failed execution details:');
+  console.error('status:', resA.status);
+  console.error('error:', resA.error);
+  console.error('stdout:', resA.stdout?.toString());
+  console.error('stderr:', resA.stderr?.toString());
+}
 assert.strictEqual(resA.status, 0, 'Case A should succeed configuration check without production signing secrets.');
 console.log('✓ Case A passed (PR CI debug configuration successfully processed).');
 
@@ -45,8 +61,14 @@ const caseBEnv = {
 const resB = spawnSync(gradlew, ['help'], {
   cwd: androidDir,
   env: caseBEnv,
-  shell: process.platform === 'win32',
+  shell: true,
 });
+if (resB.status === 0) {
+  console.error('Case B failed execution details:');
+  console.error('status:', resB.status);
+  console.error('stdout:', resB.stdout?.toString());
+  console.error('stderr:', resB.stderr?.toString());
+}
 assert.notStrictEqual(resB.status, 0, 'Case B should fail configuration check when STUDIO_PRODUCTION_RELEASE=true but signing secrets are missing.');
 console.log('✓ Case B passed (Production release without secrets correctly failed closed).');
 
