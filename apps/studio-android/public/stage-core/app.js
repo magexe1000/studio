@@ -2152,15 +2152,15 @@ function createElementDOM(el) {
   }, { passive: true });
 
   // Resize toolbar buttons
-  wrap.querySelector('[data-action="smaller"]').addEventListener('pointerdown', e => {
+  wrap.querySelector('[data-action="smaller"]').addEventListener('mousedown', e => {
     e.stopPropagation();
     scaleElementBy(el, -10);
   });
-  wrap.querySelector('[data-action="larger"]').addEventListener('pointerdown', e => {
+  wrap.querySelector('[data-action="larger"]').addEventListener('mousedown', e => {
     e.stopPropagation();
     scaleElementBy(el, +10);
   });
-  wrap.querySelector('[data-action="rotate"]').addEventListener('pointerdown', e => {
+  wrap.querySelector('[data-action="rotate"]').addEventListener('mousedown', e => {
     e.stopPropagation();
     el.rotation = (el.rotation + 45) % 360;
     const iconWrap = wrap.querySelector('.el-icon-wrap');
@@ -2170,7 +2170,7 @@ function createElementDOM(el) {
     repositionResizeBar(wrap);
   });
   const removeBtn = wrap.querySelector('[data-action="remove"]');
-  removeBtn.addEventListener('pointerdown', e => { e.stopPropagation(); removeSelected(); });
+  removeBtn.addEventListener('mousedown', e => { e.stopPropagation(); removeSelected(); });
   removeBtn.addEventListener('click',     e => { e.stopPropagation(); });
 
   layer.appendChild(wrap);
@@ -2235,7 +2235,7 @@ function setPropState(newState) {
     }
   }
   try {
-    window.parent.postMessage({ type: 'sc-prop-state', state: newState }, window.location.origin);
+    window.parent.postMessage({ type: 'sc-prop-state', state: newState }, '*');
   } catch(e) {}
 }
 function _getPropState() {
@@ -2618,35 +2618,6 @@ function updatePhantomUI(on) {
   knob.style.transform = on ? 'translateX(20px)' : 'translateX(0)';
   knob.style.background = on ? '#fff' : '#adaaaa';
 }
-
-window.deleteSelectedElement = removeSelected;
-
-window.rotateSelectedElement = function() {
-  if (state.selectedId) {
-    var el = state.elements.find(function(x) { return x.id === state.selectedId; });
-    if (el) {
-      el.rotation = (el.rotation + 45) % 360;
-      var dom = document.getElementById('elem-' + el.id);
-      if (dom) {
-        var iconWrap = dom.querySelector('.el-icon-wrap');
-        if (iconWrap) iconWrap.style.transform = 'rotate(' + el.rotation + 'deg)';
-        repositionResizeBar(dom);
-      }
-      var inputRot = document.getElementById('input-rotation');
-      if (inputRot) inputRot.value = el.rotation;
-      pushHistory();
-    }
-  }
-};
-
-window.scaleSelectedElement = function(delta) {
-  if (state.selectedId) {
-    var el = state.elements.find(function(x) { return x.id === state.selectedId; });
-    if (el) {
-      scaleElementBy(el, delta);
-    }
-  }
-};
 
 function removeSelected() {
   if (!state.selectedId) return;
@@ -3349,7 +3320,7 @@ function _applyCableHover(newIdx) {
     });
 
     // Close context menu on outside click
-    document.addEventListener('pointerdown', function(e) {
+    document.addEventListener('mousedown', function(e) {
       const menu = document.getElementById('cable-context-menu');
       if (menu && !menu.contains(e.target)) _closeCableMenu();
     }, true);
@@ -9577,10 +9548,12 @@ function downloadQRCode() {
 
   window.addEventListener('message', function (e) {
     if (!e.data || typeof e.data !== 'object') return;
-    var isAllowedOrigin = !e.origin || e.origin === window.location.origin ||
-      e.origin === 'https://localhost' ||
-      e.origin === 'http://localhost' ||
-      e.origin === 'capacitor://localhost';
+    var origin = e.origin || '';
+    var isAllowedOrigin = !origin || origin === 'null' || origin === 'about:blank' ||
+      origin === window.location.origin ||
+      origin.indexOf('https://localhost') === 0 ||
+      origin.indexOf('http://localhost') === 0 ||
+      origin.indexOf('capacitor://localhost') === 0;
     if (!isAllowedOrigin) return;
     var t = e.data.type;
     if (t === 'sc-sync-snapshot') {
