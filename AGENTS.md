@@ -87,3 +87,84 @@ pnpm scope:check --platform shared
 - **Isolation boundaries**: Sub-app sync payloads execute concurrently via `Promise.allSettled()`. Each Firestore operation has a 6-second timeout, with an overall run limit of 10 seconds capped by an `AbortController`.
 - **Auth Swapping**: An `epoch` atomic counter is incremented on every `attachSyncEngine` / `detachSyncEngine` auth boundaries. This causes in-flight runs to discard write promises on mismatch, preventing cross-UID contamination on sign-out/sign-in swaps.
 
+
+---
+
+## 6. Studio Engineering Protocol v1.0 (Permanent Project Rule)
+
+### Core Principle
+Stability is more important than feature velocity. A feature is not considered complete when it compiles; it is only complete when:
+- It works.
+- Existing functionality still works.
+- Platform boundaries remain intact.
+- Release validation passes.
+- Regressions are ruled out.
+Never trade reliability for speed.
+
+### Change Classification
+Before modifying code, classify the change into one of the following categories:
+- **Category A**: Android-only
+- **Category B**: Web-only
+- **Category C**: Shared cross-platform
+- **Category D**: Infrastructure / CI / Build pipeline
+Every task must explicitly identify its category before implementation. Do not modify unrelated categories.
+
+### Platform Isolation Rule
+Never assume a Web implementation can be copied directly into Android. When adapting Web functionality to Android, you must adapt:
+1. Web-specific dependencies
+2. Android-specific constraints
+3. Layout
+4. Safe areas
+5. Viewport behavior
+6. Gestures & touch interactions
+7. Keyboard behavior & safe areas
+8. Navigation & back button behavior
+9. Performance characteristics
+Android must feel native. Never force a desktop-oriented implementation into Android unchanged.
+
+### No Blind Reuse Rule
+Before reusing code, check if it depends on: mouse events, hover states, desktop viewport assumptions, browser-only APIs, iframe assumptions, keyboard shortcuts, or Web-only routing. If so, adapt it before integrating.
+
+### Regression Prevention Protocol
+Before changing any module, create a short impact map of:
+- Affected files
+- Affected modules
+- Affected platform(s)
+Verify these assumptions after implementation.
+
+### No Collateral Damage Rule
+Do not modify working systems unless absolutely required. If fixing one component (e.g. Stagex), do not casually modify unrelated components (e.g. Chordex, Drumex, Hub, Update system, Sync system, Themes, Authentication). Every unrelated modification requires justification.
+
+### Implementation Pipeline
+1. Understand existing architecture.
+2. Identify platform boundaries.
+3. Implement minimal required changes.
+4. Run targeted validation.
+5. Run regression validation.
+6. Prepare release candidate.
+
+### Android Adaptation Checklist
+Verify: touch interactions, pointer events, gestures, back button, swipe-back, safe areas, notch handling, keyboard behavior, scrolling, orientation changes, and performance.
+
+### UI Wiring Protocol
+For every visible control, verify: UI element → handler → action → state update → visible result. Do not mark a control functional merely because it renders, compiles, or a handler exists. Trace the full chain.
+
+### Stagex Rule
+Any redesign of Stagex must preserve: add button, save, export, setup, preferences, stage editor, element selection, element movement, element editing, and navigation. Visual redesigns must never disconnect functionality; functionality always wins.
+
+### Performance Rule
+Reduce: unnecessary rerenders, duplicate listeners, duplicate polling, duplicate effects, hidden background work, and excessive logging. Measure actual impact instead of optimization theater.
+
+### Loop Prevention Rule
+Do not repeatedly reopen identical files, rerun identical searches, reread unchanged plans, or regenerate identical reports. Checkpoint conclusions and move on.
+
+### Release Gate
+Before any publication, verify: version alignment, package ID, signing certificate, APK integrity, release manifest, update eligibility, and platform separation. If any check fails, STOP. Do not publish.
+
+### Post-Implementation Review
+Every completed task must answer:
+1. What changed?
+2. Why was it necessary?
+3. Which platforms were affected?
+4. What regressions were checked?
+5. What remains risky?
