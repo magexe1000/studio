@@ -1,5 +1,5 @@
 import { type AppKey } from '@workspace/studio-core';
-import { lazy, Suspense, useCallback, useEffect, useRef, useState } from 'react';
+import { lazy, Suspense, useCallback, useEffect, useRef, useState, useMemo } from 'react';
 import { createPortal, flushSync } from 'react-dom';
 import { motion, AnimatePresence } from 'motion/react';
 import {
@@ -11,7 +11,8 @@ import {
   resetNav,
   setNavHidden,
   setNavLocked,
-  handleGlobalBack
+  handleGlobalBack,
+  useStatusBar
 } from '@workspace/studio-core';
 
 import {
@@ -62,7 +63,227 @@ export default function App() {
   const exitToastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const lastBackTime = useRef<number>(0);
 
+  const [transitionActive, setTransitionActive] = useState(false);
+
+  // Synchronize transitionActive with window.studioTransitionActive
+  useEffect(() => {
+    try {
+      Object.defineProperty(window, 'studioTransitionActive', {
+        get() {
+          return transitionActive;
+        },
+        set(val) {
+          setTransitionActive(!!val);
+        },
+        configurable: true
+      });
+    } catch (e) {
+      console.warn('Failed to defineProperty studioTransitionActive', e);
+      (window as any).studioTransitionActive = transitionActive;
+    }
+    return () => {
+      try {
+        delete (window as any).studioTransitionActive;
+      } catch (e) {}
+    };
+  }, [transitionActive]);
+
+  // 1.2-second safety watchdog for transitionActive
+  useEffect(() => {
+    let watchdogTimer: ReturnType<typeof setTimeout> | undefined;
+    if (transitionActive) {
+      watchdogTimer = setTimeout(() => {
+        console.warn('[Safety] transitionActive watchdog triggered! Forcing reset to Hub.');
+        setTransitionActive(false);
+        updateSettings({ appMode: 'hub' });
+        window.dispatchEvent(new CustomEvent('studio:reset-hub-zooming'));
+      }, 1200);
+    }
+    return () => {
+      if (watchdogTimer) clearTimeout(watchdogTimer);
+    };
+  }, [transitionActive, updateSettings]);
+
+  // ── Sync Active Theme & AMOLED Mode ──
+  const activeApp = settings.appMode || 'hub';
+  const activeVis = useMemo(() => {
+    const appKey = activeApp as AppKey;
+    return settings.perApp?.[appKey] ?? {
+      theme: settings.theme ?? 'dark',
+      accentColor: settings.accentColor ?? 'blue',
+      amoledMode: settings.amoledMode ?? false,
+    };
+  }, [activeApp, settings.perApp, settings.theme, settings.accentColor, settings.amoledMode]);
+
+  useEffect(() => {
+    const applyTheme = (skipTransitioningClass = false) => {
+      const root = document.documentElement;
+      if (!skipTransitioningClass) {
+        root.classList.add('theme-transitioning');
+      }
+      activeVis.amoledMode ? root.classList.add('amoled') : root.classList.remove('amoled');
+
+      const h = new Date().getHours();
+      const lightStart = settings.dynamicLightStart ?? 7;
+      const lightEnd   = settings.dynamicLightEnd   ?? 20;
+      const isDaytime  = h >= lightStart && h < lightEnd;
+
+      root.classList.remove('light', 'theme-system');
+      if (activeVis.theme === 'light') root.classList.add('light');
+      else if (activeVis.theme === 'system') root.classList.add('theme-system');
+      else if (activeVis.theme === 'dynamic' && isDaytime) root.classList.add('light');
+
+      const isLight = activeVis.theme === 'light' ||
+        (activeVis.theme === 'system' && window.matchMedia('(prefers-color-scheme: light)').matches) ||
+        (activeVis.theme === 'dynamic' && isDaytime);
+      const color = activeVis.amoledMode ? (isLight ? '#ffffff' : '#000000') : (isLight ? '#f5f5f5' : '#111116');
+      let tag = document.querySelector<HTMLMetaElement>('meta[name="theme-color"]');
+      if (!tag) {
+        tag = document.createElement('meta');
+        tag.name = 'theme-color';
+        document.head.appendChild(tag);
+      }
+      tag.content = color;
+
+      if (!skipTransitioningClass) {
+        setTimeout(() => {
+          root.classList.remove('theme-transitioning');
+        }, 350);
+      }
+    };
+
+    applyTheme();
+  }, [activeVis.theme, activeVis.amoledMode, settings.dynamicLightStart, settings.dynamicLightEnd]);
+
+  // Re-apply dynamic theme every minute
+  useEffect(() => {
+    if (activeVis.theme !== 'dynamic') return;
+    const id = setInterval(() => {
+      const s = useChordStore.getState().settings;
+      const h = new Date().getHours();
+      const isDaytime = h >= (s.dynamicLightStart ?? 7) && h < (s.dynamicLightEnd ?? 20);
+      const root = document.documentElement;
+      root.classList.remove('light');
+      if (isDaytime) root.classList.add('light');
+    }, 60_000);
+    return () => clearInterval(id);
+  }, [activeVis.theme]);
+
+  // Sync Accent variables
+  const hubAccentKey = activeVis.accentColor ?? 'blue';
+  const accent = useMemo(() =>
+    hubAccentKey === 'custom'
+      ? { from: `hsl(${settings.customAccentHue ?? 220}, 75%, 65%)`, mid: `hsl(${settings.customAccentHue ?? 220}, 80%, 55%)`, to: `hsl(${((settings.customAccentHue ?? 220) + 25) % 360}, 85%, 42%)` }
+      : (ACCENT_COLORS[hubAccentKey as keyof typeof ACCENT_COLORS] ?? ACCENT_COLORS.blue),
+  [hubAccentKey, settings.customAccentHue]);
+
+  useEffect(() => {
+    const root = document.documentElement;
+    root.classList.add('theme-transitioning');
+    root.style.setProperty('--accent-from', accent.from);
+    root.style.setProperty('--accent-to',   accent.to);
+    root.style.setProperty('--accent-mid',  accent.mid);
+    
+    const colorToRgbStr = (colorStr: string) => {
+      if (colorStr.startsWith('rgb')) {
+        const m = colorStr.match(/\d+/g);
+        return m ? m.slice(0, 3).join(', ') : '0, 122, 255';
+      }
+      if (colorStr.startsWith('#')) {
+        const hex = colorStr.replace('#', '');
+        const r = parseInt(hex.substring(0, 2), 16);
+        const g = parseInt(hex.substring(2, 4), 16);
+        const b = parseInt(hex.substring(4, 6), 16);
+        return `${r}, ${g}, ${b}`;
+      }
+      return '0, 122, 255';
+    };
+
+    root.style.setProperty('--accent-from-rgb', colorToRgbStr(accent.from));
+    root.style.setProperty('--accent-to-rgb',   colorToRgbStr(accent.to));
+    root.style.setProperty('--accent-mid-rgb',  colorToRgbStr(accent.mid));
+    
+    const tId = setTimeout(() => {
+      root.classList.remove('theme-transitioning');
+    }, 350);
+    return () => clearTimeout(tId);
+  }, [accent]);
+
+  // Sync Native Status Bar
+  useStatusBar(activeVis.theme, activeVis.amoledMode);
+
+  // Sync Animation speed & Performance mode
+  useEffect(() => {
+    const isReduced = preferences.reduceMotion || settings.animationSpeed === 'reduced';
+    document.documentElement.setAttribute('data-anim', isReduced ? 'reduced' : settings.animationSpeed);
+  }, [settings.animationSpeed, preferences.reduceMotion]);
+
+  useEffect(() => {
+    const root = document.documentElement;
+    if (settings.performanceMode) root.setAttribute('data-perf-mode', 'on');
+    else root.removeAttribute('data-perf-mode');
+  }, [settings.performanceMode]);
+
+  // High refresh rate tick
+  useEffect(() => {
+    const root = document.documentElement;
+    if (!settings.highRefreshRate) {
+      root.removeAttribute('data-hifps');
+      return;
+    }
+    root.setAttribute('data-hifps', 'on');
+    let rafId = 0;
+    let stopped = false;
+    const tick = () => {
+      if (stopped) return;
+      rafId = requestAnimationFrame(tick);
+    };
+    rafId = requestAnimationFrame(tick);
+    return () => {
+      stopped = true;
+      cancelAnimationFrame(rafId);
+      root.removeAttribute('data-hifps');
+    };
+  }, [settings.highRefreshRate]);
+
+  // Sync Font Size
+  useEffect(() => {
+    const root = document.documentElement;
+    const sizes = {
+      small:  { base: '13px', sm: '11px', xs: '9px',  lg: '16px', xl: '20px', hero: '2.2rem' },
+      medium: { base: '14px', sm: '12px', xs: '10px', lg: '18px', xl: '24px', hero: '2.8rem' },
+      large:  { base: '16px', sm: '13px', xs: '11px', lg: '20px', xl: '26px', hero: '3.2rem' },
+    };
+    const s = sizes[settings.fontSize] || sizes.medium;
+    root.style.setProperty('--font-base', s.base);
+    root.style.setProperty('--font-sm',   s.sm);
+    root.style.setProperty('--font-xs',   s.xs);
+    root.style.setProperty('--font-lg',   s.lg);
+    root.style.setProperty('--font-xl',   s.xl);
+    root.style.setProperty('--font-hero', s.hero);
+  }, [settings.fontSize]);
+
+  // Sync Display Density
+  useEffect(() => {
+    const root = document.documentElement;
+    const densities = {
+      compact:     { pad: '10px', rowPad: '10px 20px', gap: '8px',  cardGap: '6px'  },
+      comfortable: { pad: '16px', rowPad: '14px 20px', gap: '12px', cardGap: '10px' },
+      spacious:    { pad: '22px', rowPad: '20px 24px', gap: '18px', cardGap: '16px' },
+    };
+    const d = densities[settings.displayDensity] || densities.comfortable;
+    root.style.setProperty('--density-pad',      d.pad);
+    root.style.setProperty('--density-row-pad',  d.rowPad);
+    root.style.setProperty('--density-gap',      d.gap);
+    root.style.setProperty('--density-card-gap', d.cardGap);
+  }, [settings.displayDensity]);
+
   const returnToStudioHub = useCallback((isSwipeSuccess = false) => {
+    if (transitionActive) {
+      console.warn('[Navigation] Return to hub request ignored: transition in progress.');
+      return;
+    }
+
     // 1. Close active modals/sheets/overlays
     window.dispatchEvent(new CustomEvent('studio:close-all-sheets'));
     window.dispatchEvent(new CustomEvent('studio:close-all-modals'));
@@ -74,7 +295,7 @@ export default function App() {
     document.documentElement.classList.remove('has-modal-open');
 
     // 2. Set transition active lock
-    (window as any).studioTransitionActive = true;
+    setTransitionActive(true);
 
     // Reset Hub's zoom/opacity animation state immediately so it starts fading in as the sub-app exits
     window.dispatchEvent(new CustomEvent('studio:reset-hub-zooming'));
@@ -100,9 +321,9 @@ export default function App() {
     }
 
     setTimeout(() => {
-      (window as any).studioTransitionActive = false;
+      setTransitionActive(false);
     }, 370);
-  }, [updateSettings, preferences.rememberLastAppSection]);
+  }, [updateSettings, preferences.rememberLastAppSection, transitionActive]);
 
   const returnToStudioHubRef = useRef(returnToStudioHub);
   useEffect(() => {

@@ -185,7 +185,6 @@ export default function App() {
   }, [route]);
 
   const isWebDesktop = useIsWebDesktop();
-  const { preferences } = useStudioPreferences();
   const [isLargeDesktop, setIsLargeDesktop] = useState(() => {
     return typeof window !== 'undefined' && window.innerWidth >= 1024;
   });

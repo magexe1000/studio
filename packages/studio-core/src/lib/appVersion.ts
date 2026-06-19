@@ -26,7 +26,7 @@ import { useMemo } from 'react';
 import { Capacitor } from '@capacitor/core';
 
 /** Canonical semver string used by the OTA comparator. */
-export const NATIVE_VERSION = '3.6.40';
+export const NATIVE_VERSION = '3.6.42';
 export const WEB_VERSION = '4.0.0';
 export const APP_VERSION = Capacitor.isNativePlatform() ? NATIVE_VERSION : WEB_VERSION;
 
@@ -61,10 +61,9 @@ export const APP_CHANGELOG_SECTIONS: ChangelogSection[] = [
   {
     heading: "Fixed",
     items: [
-      "Fixed Stagex same-origin bridge and allowed null origins.",
-      "Resolved ScreenOrientation.lock UI thread blocking issues.",
-      "Fixed element picker pointer-events and touch interactions.",
-      "Restored Stagex bottom-navigation and system back gesture handling.",
+      "Restored missing theme and layout CSS variables in separated platform build.",
+      "Fixed Stagex onTouchEnd responsiveness for eye, plus, and rotate buttons on Android.",
+      "Added transition active lock safety watchdog to prevent stuck screens.",
     ],
   },
 ];

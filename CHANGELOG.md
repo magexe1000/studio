@@ -14,6 +14,14 @@ Conventions:
 - List the user-visible changes only. Internal refactors, tooling,
   and CI tweaks do not need a bullet.
 
+## 3.6.42
+
+### Fixed
+- Restored missing theme and layout CSS variables in separated platform build.
+- Fixed Stagex onTouchEnd responsiveness for eye, plus, and rotate buttons on Android.
+- Added transition active lock safety watchdog to prevent stuck screens.
+
+
 ## 3.6.41
 
 ### Fixed

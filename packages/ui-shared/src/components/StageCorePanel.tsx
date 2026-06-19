@@ -2325,6 +2325,7 @@ ComposedPath: ${path.slice(0, 3).join(' > ')}`;
         {curView === 'Editor' && (
           <button
             onClick={toggleStageExpanded}
+            onTouchEnd={(e) => { e.preventDefault(); toggleStageExpanded(); }}
             aria-label={isStageExpanded ? "Exit Landscape View" : "Enter Landscape View"}
             style={{
               position: 'absolute',
@@ -2368,6 +2369,7 @@ ComposedPath: ${path.slice(0, 3).join(' > ')}`;
             id="stagex-eye-button"
             data-testid="stagex-eye-button"
             onClick={() => callIframe('toggleGigMode')}
+            onTouchEnd={(e) => { e.preventDefault(); callIframe('toggleGigMode'); }}
             aria-label={liveMode ? tr.stagex.exitLiveMode : tr.stagex.enterLiveMode}
             style={{
               position: 'absolute',
@@ -2411,6 +2413,7 @@ ComposedPath: ${path.slice(0, 3).join(' > ')}`;
             id="stagex-plus-button"
             data-testid="stagex-plus-button"
             onClick={handleFabTap}
+            onTouchEnd={(e) => { e.preventDefault(); handleFabTap(); }}
             aria-label={tr.stagex.addInstrument}
             style={{
               position: 'absolute',
@@ -2590,6 +2593,7 @@ ComposedPath: ${path.slice(0, 3).join(' > ')}`;
                   key={view}
                   ref={el => { stageBtnRefs.current[i] = el; }}
                   onClick={() => handleNavTap(view)}
+                  onTouchEnd={(e) => { e.preventDefault(); handleNavTap(view); }}
                   className="stage-nav-btn"
                   style={{
                     flex: 1,

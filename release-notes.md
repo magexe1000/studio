@@ -1,5 +1,4 @@
 ### Fixed
-- Fixed Stagex same-origin bridge and allowed null origins.
-- Resolved ScreenOrientation.lock UI thread blocking issues.
-- Fixed element picker pointer-events and touch interactions.
-- Restored Stagex bottom-navigation and system back gesture handling.
+- Restored missing theme and layout CSS variables in separated platform build.
+- Fixed Stagex onTouchEnd responsiveness for eye, plus, and rotate buttons on Android.
+- Added transition active lock safety watchdog to prevent stuck screens.
