@@ -1,3 +1,4 @@
+import { setBackHandler, useBackHandler, useChordStore, ACCENT_COLORS, translations, useT, useLiquidGlassNav, useNavCollapsed, setNavCollapsed, useIsWebDesktop } from '@workspace/studio-core';
 import { useRef, useEffect, useCallback, useState, useMemo } from 'react';
 import { motion } from 'motion/react';
 import {
@@ -9,18 +10,6 @@ import {
   WebToolbar,
   WebButton
 } from '@workspace/ui-shared';
-import {
-  setBackHandler,
-  useBackHandler,
-  useChordStore,
-  ACCENT_COLORS,
-  translations,
-  useT,
-  useLiquidGlassNav,
-  useNavCollapsed,
-  setNavCollapsed,
-  useIsWebDesktop
-} from '@workspace/studio-core';
 import { Capacitor } from '@capacitor/core';
 import { ScreenOrientation } from '@capacitor/screen-orientation';
 
@@ -207,7 +196,7 @@ const STAGEX_LIBRARY: Record<string, { name: string; icon: string; type: string 
     { name: 'Drum Kit',    icon: 'drum',              type: 'Acoustic Drums' },
     { name: 'E-Drums',     icon: 'cx-edrum',         type: 'Electronic Drums' },
     { name: 'Percussion',  icon: 'cx-percussion',    type: 'Percussion' },
-    { name: 'Caj├│n',       icon: 'cx-cajon',          type: 'Caj├│n' },
+    { name: 'Cajón',       icon: 'cx-cajon',          type: 'Cajón' },
   ],
   inst: [
     { name: 'Elec Guitar', icon: 'cx-elec-guitar',   type: 'Electric Guitar' },
@@ -475,11 +464,20 @@ export default function StagexPanel() {
     return saved || s.settings.defaultStageView || 'Editor';
   });
 
+  const curViewRef = useRef(curView);
+  curViewRef.current = curView;
+
   useEffect(() => {
     useChordStore.getState().setLastSession({ stagexView: curView });
   }, [curView]);
 
-  /* ΓöÇΓöÇ Glassmorphism bottom nav state ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ */
+  const returnToStudioHub = useCallback(() => {
+    if (typeof (window as any).returnToStudioHub === 'function') {
+      (window as any).returnToStudioHub();
+    }
+  }, []);
+
+  /* ── Glassmorphism bottom nav state ─────────────────────── */
   const stageNavRef    = useRef<HTMLDivElement | null>(null);
   useLiquidGlassNav(stageNavRef as React.RefObject<HTMLElement | null>);
   const stageBtnRefs   = useRef<(HTMLButtonElement | null)[]>([]);
@@ -487,6 +485,7 @@ export default function StagexPanel() {
   const stageStretchRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [stagePill, setStagePill] = useState<{ left: number; right: number; ready: boolean }>({ left: 0, right: 0, ready: false });
   const [fabOpen, setFabOpen] = useState(false);
+  const [hasOpenOverlay, setHasOpenOverlay] = useState(false);
   const [liveMode, setLiveMode] = useState(false);
   const [iframeLoading, setIframeLoading] = useState(true);
   const navCollapsed = useNavCollapsed();
@@ -498,34 +497,385 @@ export default function StagexPanel() {
   const [pdfFileName, setPdfFileName] = useState('');
   const [pdfBusy, setPdfBusy] = useState(false);
   const [canShareFiles, setCanShareFiles] = useState(false);
-  // Scenes feature (v3.0.63+) ΓÇö picker for which stage plot(s) to include
+  // Scenes feature (v3.0.63+) — picker for which stage plot(s) to include
   const [pdfSceneInfo, setPdfSceneInfo] = useState<{ count: number; currentIdx: number; names: string[] }>({ count: 1, currentIdx: 0, names: ['Scene 1'] });
   const [pdfSceneChoice, setPdfSceneChoice] = useState<'current' | 'all' | number>('current');
   const [isStageExpanded, setIsStageExpanded] = useState(false);
 
-  const toggleStageExpanded = async () => {
-    const nextVal = !isStageExpanded;
-    setRotationTransition(true);
+  // ── Diagnostics & Safe Mode state ──────────────────────────
+  const [showDiagnostics, setShowDiagnostics] = useState(() => {
     try {
-      if (nextVal) {
-        if (Capacitor.isNativePlatform()) {
-          await ScreenOrientation.lock({ orientation: 'landscape' });
-        } else if (window.screen && window.screen.orientation && (window.screen.orientation as any).lock) {
-          await (window.screen.orientation as any).lock('landscape');
+      return localStorage.getItem('stagex_diagnostics_enabled') === 'true';
+    } catch {
+      return false;
+    }
+  });
+  const [safeMode, setSafeMode] = useState(() => {
+    try {
+      return localStorage.getItem('stagex_safe_mode_enabled') === 'true';
+    } catch {
+      return false;
+    }
+  });
+
+  const [diagTaps, setDiagTaps] = useState({
+    bottomNav: 0,
+    plus: 0,
+    eye: 0,
+    picker: 0,
+    toolbar: 0,
+    sentMsgs: 0,
+    recvMsgs: 0,
+  });
+
+  const [lastDiagLog, setLastDiagLog] = useState<string>('System initialized.');
+
+  const logDiagnostic = useCallback((msg: string) => {
+    setLastDiagLog(prev => {
+      const lines = prev.split('\n');
+      if (lines.length > 25) {
+        return msg + '\n' + lines.slice(0, 25).join('\n');
+      }
+      return msg + '\n' + prev;
+    });
+  }, []);
+
+  useEffect(() => {
+    const handler = (e: Event) => {
+      const detail = (e as CustomEvent).detail;
+      setShowDiagnostics(!!detail);
+    };
+    window.addEventListener('stagex:diagnostics-toggle', handler);
+    return () => window.removeEventListener('stagex:diagnostics-toggle', handler);
+  }, []);
+
+  // Safe Mode CSS injection
+  useEffect(() => {
+    const applySafeMode = (doc: Document, active: boolean) => {
+      let el = doc.getElementById('stagex-safe-mode-css');
+      if (active) {
+        if (!el) {
+          el = doc.createElement('style');
+          el.id = 'stagex-safe-mode-css';
+          el.textContent = `
+            * {
+              transition: none !important;
+              animation: none !important;
+              backdrop-filter: none !important;
+              -webkit-backdrop-filter: none !important;
+            }
+            .modal-backdrop, .overlay, #presets-backdrop, #sc-dial-backdrop {
+              display: none !important;
+              pointer-events: none !important;
+            }
+          `;
+          doc.head.appendChild(el);
         }
       } else {
-        if (Capacitor.isNativePlatform()) {
-          await ScreenOrientation.lock({ orientation: 'portrait' });
-        } else if (window.screen && window.screen.orientation && (window.screen.orientation as any).lock) {
-          await (window.screen.orientation as any).lock('portrait');
-        }
+        if (el) el.remove();
       }
-      setIsStageExpanded(nextVal);
-    } catch (e) {
-      console.warn('Screen orientation lock/unlock failed:', e);
-    } finally {
-      setTimeout(() => setRotationTransition(false), 320);
+    };
+
+    applySafeMode(document, safeMode);
+    try {
+      const iframeDoc = iframeRef.current?.contentDocument;
+      if (iframeDoc) applySafeMode(iframeDoc, safeMode);
+    } catch {}
+  }, [safeMode, iframeLoading]);
+
+  // Capture touch event targets
+  useEffect(() => {
+    if (!showDiagnostics) return;
+
+    const handleEvent = (name: string, isIframe: boolean) => (e: Event) => {
+      const pe = e as PointerEvent;
+      const target = e.target as HTMLElement | null;
+      if (!target) return;
+
+      const style = window.getComputedStyle(target);
+      const bounds = target.getBoundingClientRect();
+      const path: string[] = [];
+      let curr: HTMLElement | null = target;
+      while (curr) {
+        let tag = curr.tagName.toLowerCase();
+        if (curr.id) tag += '#' + curr.id;
+        if (curr.className && typeof curr.className === 'string') {
+          tag += '.' + curr.className.split(/\s+/).slice(0, 2).join('.');
+        }
+        path.push(tag);
+        curr = curr.parentElement;
+      }
+
+      // Check if it's bottomNav, plus, or eye
+      let controlName = 'none';
+      if (target.closest('.glass-nav') || target.closest('.stage-nav-btn')) {
+        controlName = 'bottomNav';
+      } else if (target.closest('#stagex-plus-button') || target.id === 'stagex-plus-button') {
+        controlName = 'plus';
+      } else if (target.closest('#stagex-eye-button') || target.id === 'stagex-eye-button') {
+        controlName = 'eye';
+      } else if (isIframe && (target.closest('#sc-dial-backdrop') || target.closest('.sc-dial-chip') || target.closest('#sc-item-sheet'))) {
+        controlName = 'picker';
+      } else if (isIframe && (target.closest('#sc-vtools') || target.closest('#sc-vtools-body') || target.closest('.el-resize-bar') || target.closest('.el-resize-btn'))) {
+        controlName = 'toolbar';
+      }
+
+      // If click event, increment corresponding diagnostic counter
+      if (e.type === 'click' && controlName !== 'none') {
+        setDiagTaps(prev => ({
+          ...prev,
+          [controlName]: prev[controlName as keyof typeof prev] + 1
+        }));
+      }
+
+      const hitElement = isIframe
+        ? (iframeRef.current?.contentDocument?.elementFromPoint(pe.clientX || 0, pe.clientY || 0) as HTMLElement | null)
+        : (document.elementFromPoint(pe.clientX || 0, pe.clientY || 0) as HTMLElement | null);
+
+      const logMsg = `[${isIframe ? 'IFRAME' : 'PARENT'} - ${e.type.toUpperCase()}]
+Target: ${target.tagName.toLowerCase()}${target.id ? '#' + target.id : ''}
+Hit target (elementFromPoint): ${hitElement ? hitElement.tagName.toLowerCase() + (hitElement.id ? '#' + hitElement.id : '') : 'none'}
+pointer-events: ${style.pointerEvents} | z-index: ${style.zIndex || 'auto'}
+Bounds: L=${Math.round(bounds.left)} T=${Math.round(bounds.top)} W=${Math.round(bounds.width)} H=${Math.round(bounds.height)}
+ComposedPath: ${path.slice(0, 3).join(' > ')}`;
+
+      logDiagnostic(logMsg);
+    };
+
+    const attach = (doc: Document, isIframe: boolean) => {
+      ['pointerdown', 'pointerup', 'click'].forEach(evt => {
+        doc.addEventListener(evt, handleEvent(evt, isIframe), true);
+      });
+    };
+
+    const detach = (doc: Document, isIframe: boolean) => {
+      ['pointerdown', 'pointerup', 'click'].forEach(evt => {
+        doc.removeEventListener(evt, handleEvent(evt, isIframe), true);
+      });
+    };
+
+    attach(document, false);
+
+    let iframeDoc: Document | null = null;
+    try {
+      iframeDoc = iframeRef.current?.contentDocument || null;
+      if (iframeDoc) attach(iframeDoc, true);
+    } catch {}
+
+    return () => {
+      detach(document, false);
+      if (iframeDoc) {
+        try { detach(iframeDoc, true); } catch {}
+      }
+    };
+  }, [showDiagnostics, logDiagnostic]);
+
+  // ── Automated interaction test runner ───────────────────────
+  const [testActive, setTestActive] = useState(false);
+  const [testCycle, setTestCycle] = useState(0);
+  const [testStep, setTestStep] = useState('');
+
+  const runInteractionTest = async () => {
+    if (testActive) return;
+    setTestActive(true);
+    setTestCycle(0);
+    setTestStep('Starting test...');
+    logDiagnostic('[TEST START] Running 25 cycles of interaction test...');
+
+    const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
+
+    const checkHitTarget = (el: HTMLElement, name: string): boolean => {
+      const rect = el.getBoundingClientRect();
+      const cx = rect.left + rect.width / 2;
+      const cy = rect.top + rect.height / 2;
+      const hit = document.elementFromPoint(cx, cy);
+      if (!hit) {
+        logDiagnostic(`[TEST ERROR] Hit target for ${name} at (${cx}, ${cy}) is null`);
+        return false;
+      }
+      if (hit !== el && !el.contains(hit) && !hit.contains(el)) {
+        logDiagnostic(`[TEST ERROR] Hit target for ${name} is intercepted by: ${hit.tagName.toLowerCase()}${hit.id ? '#' + hit.id : ''}${hit.className ? '.' + hit.className.split(' ').join('.') : ''}`);
+        return false;
+      }
+      return true;
+    };
+
+    try {
+      for (let cycle = 1; cycle <= 25; cycle++) {
+        setTestCycle(cycle);
+        logDiagnostic(`[CYCLE ${cycle}/25] Beginning...`);
+
+        // 1. Ensure we are in Editor view
+        setTestStep('Ensuring Editor view...');
+        if ((curViewRef.current as any) !== 'Editor') {
+          handleNavTap('Editor');
+          await delay(300);
+        }
+
+        // 2. Tap Setup tab
+        setTestStep('Tapping Setup tab...');
+        const setupBtn = stageBtnRefs.current[1];
+        if (!setupBtn) throw new Error('Setup button ref missing');
+        if (!checkHitTarget(setupBtn, 'Setup tab')) throw new Error('Setup tab click intercepted');
+        setupBtn.click();
+        await delay(400);
+        if (!['SetupHub', 'Rider', 'Setlist', 'Gear', 'Members'].includes(curViewRef.current as any)) {
+          throw new Error('Section did not switch to Setup');
+        }
+
+        // 3. Tap Preferences tab
+        setTestStep('Tapping Preferences tab...');
+        const prefBtn = stageBtnRefs.current[2];
+        if (!prefBtn) throw new Error('Preferences button ref missing');
+        if (!checkHitTarget(prefBtn, 'Preferences tab')) throw new Error('Preferences tab click intercepted');
+        prefBtn.click();
+        await delay(400);
+        if ((curViewRef.current as any) !== 'Preferences') {
+          throw new Error('Section did not switch to Preferences');
+        }
+
+        // 4. Return to Editor
+        setTestStep('Returning to Editor...');
+        const editorBtn = stageBtnRefs.current[0];
+        if (!editorBtn) throw new Error('Editor button ref missing');
+        if (!checkHitTarget(editorBtn, 'Editor tab')) throw new Error('Editor tab click intercepted');
+        editorBtn.click();
+        await delay(400);
+        if ((curViewRef.current as any) !== 'Editor') {
+          throw new Error('Section did not switch back to Editor');
+        }
+
+        // 5. Tap Plus button
+        setTestStep('Tapping Plus button...');
+        const plusBtn = document.getElementById('stagex-plus-button');
+        if (!plusBtn) throw new Error('Plus button missing');
+        if (!checkHitTarget(plusBtn, 'Plus button')) throw new Error('Plus button click intercepted');
+        plusBtn.click();
+        await delay(400);
+        if (!fabOpen) throw new Error('FAB did not open / picker not visible');
+
+        // 6. Select element inside iframe
+        setTestStep('Selecting element in picker...');
+        const iframe = iframeRef.current;
+        if (!iframe || !iframe.contentDocument) throw new Error('Iframe not loaded');
+        const win = iframe.contentWindow as any;
+        const doc = iframe.contentDocument;
+        const chip = doc.querySelector('.sc-dial-chip') as HTMLElement | null;
+        if (!chip) throw new Error('No element chips found in picker');
+        chip.click();
+        await delay(600);
+        if (win.state.elements.length === 0) throw new Error('Element was not added to stage');
+        const newEl = win.state.elements[win.state.elements.length - 1];
+        const newElId = newEl.id;
+
+        // 7. Tap Eye button (first time)
+        setTestStep('Tapping Eye button (enable live)...');
+        const eyeBtn = document.getElementById('stagex-eye-button');
+        if (!eyeBtn) throw new Error('Eye button missing');
+        if (!checkHitTarget(eyeBtn, 'Eye button')) throw new Error('Eye button click intercepted');
+        eyeBtn.click();
+        await delay(400);
+        if (!liveMode) throw new Error('Live mode did not activate');
+
+        // 8. Tap Eye button (second time)
+        setTestStep('Tapping Eye button (disable live)...');
+        if (!checkHitTarget(eyeBtn, 'Eye button')) throw new Error('Eye button click intercepted');
+        eyeBtn.click();
+        await delay(400);
+        if (liveMode) throw new Error('Live mode did not deactivate');
+
+        // 9. Select element and run toolbar actions
+        setTestStep('Selecting element on canvas...');
+        win.selectElement(newElId);
+        await delay(300);
+
+        setTestStep('Rotating element...');
+        const initialRotation = newEl.rotation || 0;
+        callIframe('rotateSelectedElement');
+        await delay(400);
+        if (newEl.rotation === initialRotation) throw new Error('Element rotation did not change');
+
+        setTestStep('Scaling element up...');
+        const initialScale = newEl.scale || 100;
+        callIframe('scaleSelectedElement', 10);
+        await delay(400);
+        if ((newEl.scale || 100) <= initialScale) throw new Error('Element scale did not increase');
+
+        setTestStep('Scaling element down...');
+        const currentScale = newEl.scale || 100;
+        callIframe('scaleSelectedElement', -10);
+        await delay(400);
+        if ((newEl.scale || 100) >= currentScale) throw new Error('Element scale did not decrease');
+
+        setTestStep('Deleting element...');
+        callIframe('deleteSelectedElement');
+        await delay(500);
+        if (win.state.elements.some((e: any) => e.id === newElId)) {
+          throw new Error('Element was not deleted from stage');
+        }
+
+        // 10. Rotate orientation (landscape then portrait)
+        setTestStep('Rotating to landscape...');
+        toggleStageExpanded();
+        await delay(800);
+
+        setTestStep('Rotating back to portrait...');
+        toggleStageExpanded();
+        await delay(800);
+
+        // 11. Return to Hub
+        setTestStep('Returning to Hub...');
+        if (typeof (window as any).returnToStudioHub === 'function') {
+          (window as any).returnToStudioHub();
+          await delay(800);
+        } else {
+          throw new Error('returnToStudioHub function missing');
+        }
+
+        // 12. Reopen Stagex
+        setTestStep('Reopening Stagex...');
+        const store = useChordStore.getState();
+        store.updateSettings({ appMode: 'stage' });
+        await delay(1000);
+      }
+
+      setTestActive(false);
+      setTestStep('Test Complete');
+      logDiagnostic('[TEST PASSED] All 25 cycles completed successfully!');
+    } catch (err: any) {
+      setTestActive(false);
+      setTestStep('Test Failed');
+      logDiagnostic(`[TEST FAILED] ${err.message || err}`);
+      console.error(err);
     }
+  };
+
+  const toggleStageExpanded = () => {
+    const nextVal = !isStageExpanded;
+    setRotationTransition(true);
+    setIsStageExpanded(nextVal);
+    
+    (async () => {
+      try {
+        if (nextVal) {
+          if (Capacitor.isNativePlatform()) {
+            await ScreenOrientation.lock({ orientation: 'landscape' });
+          } else if (window.screen && window.screen.orientation && (window.screen.orientation as any).lock) {
+            await (window.screen.orientation as any).lock('landscape');
+          }
+        } else {
+          if (Capacitor.isNativePlatform()) {
+            await ScreenOrientation.lock({ orientation: 'portrait' });
+          } else if (window.screen && window.screen.orientation && (window.screen.orientation as any).lock) {
+            await (window.screen.orientation as any).lock('portrait');
+          }
+        }
+      } catch (e) {
+        console.warn('Screen orientation lock/unlock failed:', e);
+      }
+    })();
+
+    setTimeout(() => setRotationTransition(false), 320);
   };
 
   useEffect(() => {
@@ -549,58 +899,54 @@ export default function StagexPanel() {
   }, []);
 
   const openPdfSheet = useCallback(() => {
-    try {
-      const doc = iframeRef.current?.contentDocument;
-      const name = doc?.getElementById('exp-project-name')?.textContent?.trim() || 'Stagex_Export';
-      setPdfFileName(name);
-    } catch {
-      setPdfFileName('Stagex_Export');
-    }
-    // Read scene info from iframe so the picker reflects the project state
-    try {
-      const win = iframeRef.current?.contentWindow as (Window & { __getSceneInfo?: () => { count: number; currentIdx: number; names: string[] } }) | null;
-      const info = win?.__getSceneInfo?.();
-      if (info && typeof info.count === 'number' && info.count > 0) {
-        setPdfSceneInfo({ count: info.count, currentIdx: info.currentIdx ?? 0, names: info.names || [] });
-      } else {
-        setPdfSceneInfo({ count: 1, currentIdx: 0, names: ['Scene 1'] });
-      }
-    } catch {
-      setPdfSceneInfo({ count: 1, currentIdx: 0, names: ['Scene 1'] });
-    }
+    setPdfFileName('Stagex_Export');
+    setPdfSceneInfo({ count: 1, currentIdx: 0, names: ['Scene 1'] });
     setPdfSceneChoice('current');
     setPdfBusy(false);
     setPdfSheetOpen(true);
+    try {
+      iframeRef.current?.contentWindow?.postMessage({ type: 'requestSceneInfo' }, '*');
+    } catch (e) {}
   }, []);
 
   const runPdfExport = useCallback(async (action: 'save' | 'share') => {
-    const win = iframeRef.current?.contentWindow as (Window & { exportPDFWithOptions?: (o: { name: string; action: string; scene?: 'current' | 'all' | number }) => Promise<void> }) | null;
-    if (!win?.exportPDFWithOptions) return;
     setPdfBusy(true);
     try {
-      await win.exportPDFWithOptions({
-        name: pdfFileName.trim() || 'Stagex_Export',
-        action,
-        scene: pdfSceneChoice,
-      });
-    } finally {
+      iframeRef.current?.contentWindow?.postMessage({
+        type: 'sc-call',
+        fn: 'exportPDFWithOptions',
+        arg: {
+          name: pdfFileName.trim() || 'Stagex_Export',
+          action,
+          scene: pdfSceneChoice,
+        }
+      }, '*');
+    } catch (e) {}
+    // Reset state after a short delay since the export runs asynchronously inside the iframe
+    setTimeout(() => {
       setPdfBusy(false);
       setPdfSheetOpen(false);
-    }
+    }, 1500);
   }, [pdfFileName, pdfSceneChoice]);
 
+  const mediaQueryString = useMemo(() => {
+    return (typeof window !== 'undefined' && Capacitor.isNativePlatform())
+      ? '(orientation: landscape)'
+      : '(orientation: landscape) and (max-width: 960px)';
+  }, []);
+
   const [isLandscape, setIsLandscape] = useState(
-    () => typeof window !== 'undefined' && window.matchMedia('(orientation: landscape) and (max-width: 960px)').matches
+    () => typeof window !== 'undefined' && window.matchMedia(mediaQueryString).matches
   );
   useEffect(() => {
-    const mql = window.matchMedia('(orientation: landscape) and (max-width: 960px)');
+    const mql = window.matchMedia(mediaQueryString);
     const handler = (e: MediaQueryListEvent) => {
       setIsLandscape(e.matches);
       if (!e.matches) setLandscapeNavHidden(false);
     };
     mql.addEventListener('change', handler);
     return () => mql.removeEventListener('change', handler);
-  }, []);
+  }, [mediaQueryString]);
 
   const [rotationTransition, setRotationTransition] = useState(false);
   useEffect(() => {
@@ -627,7 +973,7 @@ export default function StagexPanel() {
   })();
   const isAmoled  = isLight ? false : (isWebDesktop ? true : stageVis.amoledMode);
 
-  const baseOrigin = (typeof window !== 'undefined' && Capacitor.isNativePlatform()) ? 'https://localhost' : '';
+  const baseOrigin = typeof window !== 'undefined' ? window.location.origin : '';
   const iframeSrc = useRef(
     `${baseOrigin}/stage-core/index.html#${isLight ? 'light' : 'dark'},${encodeURIComponent(accent.from)},${encodeURIComponent(accent.to)},${isAmoled ? '1' : '0'}`
   ).current;
@@ -638,9 +984,10 @@ export default function StagexPanel() {
 
   const lastCallTime = useRef(0);
   // Functions that are idempotent navigation actions and should never be
-  // throttled ΓÇö spam-tapping Stage/Setup/Preferences must always feel instant.
+  // throttled — spam-tapping Stage/Setup/Preferences must always feel instant.
   const NO_THROTTLE_FNS = new Set(['switchView', 'stageGoBack']);
-  const callIframe = useCallback((fn: string, arg?: string) => {
+  const pendingAcks = useRef<Map<string, { fn: string; timer: ReturnType<typeof setTimeout> }>>(new Map());
+  const callIframe = useCallback((fn: string, arg?: string | number) => {
     if (!NO_THROTTLE_FNS.has(fn)) {
       const now = Date.now();
       if (now - lastCallTime.current < 200) return;
@@ -648,18 +995,33 @@ export default function StagexPanel() {
     }
     const iframe = iframeRef.current;
     if (!iframe) return;
+
+    // Increment sent message counter
+    setDiagTaps(prev => ({ ...prev, sentMsgs: prev.sentMsgs + 1 }));
+
+    const msgId = Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+    
+    // Set up ACK timeout
+    const timeout = setTimeout(() => {
+      console.warn(`[Diagnostics] No ACK received for command: ${fn} (msgId: ${msgId})`);
+      logDiagnostic(`[ERROR] No ACK for ${fn}`);
+    }, 1500);
+    pendingAcks.current.set(msgId, { fn, timer: timeout });
+
     try {
       const win = iframe.contentWindow as Record<string, unknown> | null;
       const f = win?.[fn];
       if (typeof f === 'function') {
-        arg !== undefined ? (f as (a: string) => void)(arg) : (f as () => void)();
+        arg !== undefined ? (f as (a: string | number) => void)(arg) : (f as () => void)();
+        clearTimeout(timeout);
+        pendingAcks.current.delete(msgId);
         return;
       }
     } catch {}
     try {
-      iframe.contentWindow?.postMessage({ type: 'sc-call', fn, arg }, '*');
+      iframe.contentWindow?.postMessage({ type: 'sc-call', fn, arg, msgId }, '*');
     } catch {}
-  }, []);
+  }, [logDiagnostic]);
 
   useEffect(() => {
     const iframe = iframeRef.current;
@@ -691,10 +1053,10 @@ export default function StagexPanel() {
                 if(t&&t.closest&&t.closest('#bottom-toolbar,#properties-panel'))return;
                 var y=t.scrollTop;
                 if(typeof y!=='number')return;
-                if(y<30){window.parent.postMessage({type:'sc-scroll-dir',down:false},window.location.origin);ly=y;return;}
+                if(y<30){window.parent.postMessage({type:'sc-scroll-dir',down:false},'*');ly=y;return;}
                 var dy=y-ly;
                 if(Math.abs(dy)<6)return;
-                window.parent.postMessage({type:'sc-scroll-dir',down:dy>0},window.location.origin);
+                window.parent.postMessage({type:'sc-scroll-dir',down:dy>0},'*');
                 ly=y;
               }
               document.addEventListener('scroll',h,{passive:true,capture:true});
@@ -709,10 +1071,6 @@ export default function StagexPanel() {
         };
       } catch {}
 
-      // Prefer the last-visited view from the session over the user's
-      // pinned default ΓÇö but only when session restore is enabled. If
-      // disabled (or neither is set), use the pinned default; the iframe
-      // loads its native default ('Editor') if both are unset.
       const s2 = useChordStore.getState();
       const savedStageView = s2.settings.restoreLastSession ? s2.lastSession?.stagexView : undefined;
       const defView = savedStageView || settings.defaultStageView;
@@ -734,24 +1092,71 @@ export default function StagexPanel() {
       injectStartOnPicker(iframe);
     };
     iframe.addEventListener('load', handleLoad);
-    if (iframe.contentDocument && iframe.contentDocument.readyState === 'complete') {
+    let docComplete = false;
+    try {
+      if (iframe.contentDocument && iframe.contentDocument.readyState === 'complete') {
+        docComplete = true;
+      }
+    } catch (e) {
+      console.warn('Failed to access contentDocument on mount:', e);
+    }
+    if (docComplete) {
       handleLoad();
     }
     return () => iframe.removeEventListener('load', handleLoad);
-  }, [accent.from, accent.to, stageVis.theme, isAmoled, isWebDesktop]);
+  }, [accent.from, accent.to, stageVis.theme, isAmoled, isWebDesktop, settings.defaultStageView]);
 
   useEffect(() => {
     const onMsg = (e: MessageEvent) => {
-      if (e.origin !== window.location.origin) return;
+      const origin = e.origin || '';
+      const isAllowedOrigin = !origin || origin === 'null' ||
+        origin === window.location.origin ||
+        origin.startsWith('https://localhost') ||
+        origin.startsWith('http://localhost') ||
+        origin.startsWith('capacitor://localhost');
+      if (!isAllowedOrigin) return;
       if (e.source !== iframeRef.current?.contentWindow) return;
+
+      // Increment received message counter
+      setDiagTaps(prev => ({ ...prev, recvMsgs: prev.recvMsgs + 1 }));
+
+      if (showDiagnostics) {
+        logDiagnostic(`[MSG RECV] type: ${e.data?.type || 'unknown'} | data: ${JSON.stringify(e.data || {})}`);
+      }
+
+      if (e.data?.type === 'sc-ack') {
+        const msgId = e.data.msgId;
+        if (pendingAcks.current.has(msgId)) {
+          clearTimeout(pendingAcks.current.get(msgId)!.timer);
+          pendingAcks.current.delete(msgId);
+          logDiagnostic(`[ACK] Received ACK for command: ${e.data.fn}`);
+        }
+        return;
+      }
+
       if (e.data?.type === 'sc-dial-state') setFabOpen(!!e.data.open);
       if (e.data?.type === 'sc-scroll-dir') setNavCollapsed(!!e.data.down);
       if (e.data?.type === 'sc-prop-state') setPropPanelOpen(e.data.state === 'open' || e.data.state === 'peek');
       if (e.data?.type === 'sc-live-mode') setLiveMode(!!e.data.on);
+      if (e.data?.type === 'sc-overlay-state') setHasOpenOverlay(!!e.data.open);
+      if (e.data?.type === 'sc-scene-info' && e.data.info) {
+        setPdfSceneInfo({
+          count: e.data.info.count || 1,
+          currentIdx: e.data.info.currentIdx || 0,
+          names: e.data.info.names || ['Scene 1']
+        });
+      }
+      if (e.data?.type === 'sc-back-bubble') {
+        if (isStageExpanded) {
+          toggleStageExpanded();
+        } else {
+          returnToStudioHub();
+        }
+      }
     };
     window.addEventListener('message', onMsg);
     return () => window.removeEventListener('message', onMsg);
-  }, []);
+  }, [showDiagnostics, logDiagnostic]);
 
   // Register this iframe with the cloud sync engine so it can request
   // snapshots and push restores through postMessage.
@@ -804,30 +1209,17 @@ export default function StagexPanel() {
   }, [pdfSheetOpen]);
 
   useBackHandler('nested', () => {
-    // 1. If iframe has an open overlay/modal/sheet, let the iframe handle it
-    try {
-      const win = iframeRef.current?.contentWindow as any;
-      if (win && typeof win.stageHasOpenOverlay === 'function' && win.stageHasOpenOverlay()) {
-        return win.stageGoBack() ?? false;
-      }
-    } catch (e) {}
-
-    // 2. Otherwise, if stage is expanded (landscape mode), exit it (item 5)
-    if (isStageExpanded) {
-      toggleStageExpanded();
+    if (!iframeReady.current) {
+      returnToStudioHub();
       return true;
     }
-
-    // 3. Otherwise, let the iframe handle the next level (deselect selection, return page, etc.)
     try {
-      const win = iframeRef.current?.contentWindow as any;
-      if (win && typeof win.stageGoBack === 'function') {
-        return win.stageGoBack() ?? false;
-      }
-    } catch (e) {}
-
-    return false;
-  }, [isStageExpanded]);
+      iframeRef.current?.contentWindow?.postMessage({ type: 'sc-back-request' }, '*');
+    } catch (e) {
+      returnToStudioHub();
+    }
+    return true;
+  }, [returnToStudioHub]);
 
   const hasWebHeader = !isWebDesktop || (curView === 'Editor' || curView === 'Export' || showBack);
   const collapseHeader = (isLandscape && curView === 'Editor') || liveMode || !hasWebHeader || isStageExpanded;
@@ -849,7 +1241,7 @@ export default function StagexPanel() {
 
   const handleNavTap = useCallback((view: string) => {
     setNavCollapsed(false);
-    // Optimistically update curView so the top toolbar swaps immediately ΓÇö
+    // Optimistically update curView so the top toolbar swaps immediately —
     // don't wait for the iframe's __onViewChange callback to round-trip,
     // which can race on iframe reloads and leave the wrong toolbar showing.
     if (view === 'Setup') {
@@ -865,14 +1257,14 @@ export default function StagexPanel() {
     callIframe('toggleSCDial');
   }, [callIframe]);
 
-  /* ΓöÇΓöÇ Glassmorphism pill bg ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ */
+  /* ── Glassmorphism pill bg ──────────────────────────────── */
   const stagePillBg = isAmoled
     ? 'rgba(4,4,4,0.88)'
     : isLight
       ? 'rgba(255, 255, 255, 0.40)'
       : 'rgba(26,26,30,0.82)';
 
-  /* ΓöÇΓöÇ Pill measurement helpers ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ */
+  /* ── Pill measurement helpers ───────────────────────────── */
   const measureStageBtn = (idx: number) => {
     const btn = stageBtnRefs.current[idx];
     const nav = stageNavRef.current;
@@ -933,7 +1325,7 @@ export default function StagexPanel() {
       if (item.imageData) {
         return <img src={item.imageData} style={{ width: '20px', height: '20px', objectFit: 'contain' }} alt="" />;
       }
-      return <span style={{ fontSize: '18px', lineHeight: 1 }}>{item.emoji || '≡ƒÄ╡'}</span>;
+      return <span style={{ fontSize: '18px', lineHeight: 1 }}>{item.emoji || '🎵'}</span>;
     }
     const svgPath = STAGEX_ICON_MAP[item.icon];
     if (svgPath) {
@@ -1755,7 +2147,7 @@ export default function StagexPanel() {
 
             {(
               [
-                // v3.0.56: Auto-arrange removed from top toolbar ΓÇö its
+                // v3.0.56: Auto-arrange removed from top toolbar — its
                 // function moved into the iframe vertical sidebar slot
                 // that already shows `auto_fix_high`. Live mode (eye)
                 // moved out of the top toolbar to a floating button
@@ -1767,6 +2159,7 @@ export default function StagexPanel() {
               <button
                 key={label}
                 onClick={fn}
+                onTouchEnd={(e) => { e.preventDefault(); fn(); }}
                 title={label}
                 aria-label={label}
                 data-testid={testid}
@@ -1785,6 +2178,7 @@ export default function StagexPanel() {
 
             <button
               onClick={() => callIframe('openPresetsPanel')}
+              onTouchEnd={(e) => { e.preventDefault(); callIframe('openPresetsPanel'); }}
               title={tr.stagex.toolPresets}
               style={{
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
@@ -1800,6 +2194,7 @@ export default function StagexPanel() {
 
             <button
               onClick={() => { setCurView('Export'); callIframe('switchView', 'Export'); }}
+              onTouchEnd={(e) => { e.preventDefault(); setCurView('Export'); callIframe('switchView', 'Export'); }}
               title={tr.stagex.toolExport}
               style={{
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
@@ -1820,6 +2215,7 @@ export default function StagexPanel() {
           <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
             <button
               onClick={() => callIframe('toggleExportOptions')}
+              onTouchEnd={(e) => { e.preventDefault(); callIframe('toggleExportOptions'); }}
               title="Sections"
               style={{
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
@@ -1834,6 +2230,7 @@ export default function StagexPanel() {
             </button>
             <button
               onClick={openPdfSheet}
+              onTouchEnd={(e) => { e.preventDefault(); openPdfSheet(); }}
               title="Export PDF"
               style={{
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
@@ -1885,7 +2282,62 @@ export default function StagexPanel() {
           </div>
         )}
 
-        {/* ΓöÇΓöÇ Stage Expand/Rotate Toggle ΓöÇΓöÇ */}
+        {showDiagnostics && (
+          <div style={{
+            position: 'absolute', top: 'env(safe-area-inset-top)', left: 8, right: 8,
+            background: 'rgba(12,12,14,0.95)', border: '1px solid rgba(255,255,255,0.12)',
+            borderRadius: 16, padding: 12, zIndex: 99999,
+            fontFamily: 'monospace', fontSize: 10, color: '#40c057',
+            boxShadow: '0 8px 32px rgba(0,0,0,0.8)',
+            maxHeight: '40vh', overflowY: 'auto',
+            display: 'flex', flexDirection: 'column', gap: 8
+          }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid rgba(255,255,255,0.08)', paddingBottom: 6 }}>
+              <span style={{ fontWeight: 800, color: '#fff' }}>STAGEX DIAGNOSTICS</span>
+              <div style={{ display: 'flex', gap: 6 }}>
+                <button
+                  onClick={() => {
+                    const next = !safeMode;
+                    setSafeMode(next);
+                    localStorage.setItem('stagex_safe_mode_enabled', next ? 'true' : 'false');
+                    logDiagnostic(`[Safe Mode] ${next ? 'ENABLED' : 'DISABLED'}`);
+                  }}
+                  style={{ padding: '3px 6px', background: safeMode ? '#e63946' : '#2a2a30', color: '#fff', border: 'none', borderRadius: 4, fontSize: 8, cursor: 'pointer' }}
+                >
+                  {safeMode ? 'Disable Safe Mode' : 'Enable Safe Mode'}
+                </button>
+                <button
+                  onClick={runInteractionTest}
+                  disabled={testActive}
+                  style={{ padding: '3px 6px', background: testActive ? '#ffb703' : '#3b5bdb', color: '#fff', border: 'none', borderRadius: 4, fontSize: 8, cursor: 'pointer' }}
+                >
+                  {testActive ? `Cycle ${testCycle} (${testStep})` : 'Run Test'}
+                </button>
+                <button
+                  onClick={() => setDiagTaps({ bottomNav: 0, plus: 0, eye: 0, picker: 0, toolbar: 0, sentMsgs: 0, recvMsgs: 0 })}
+                  style={{ padding: '3px 6px', background: '#495057', color: '#fff', border: 'none', borderRadius: 4, fontSize: 8, cursor: 'pointer' }}
+                >
+                  Reset
+                </button>
+              </div>
+            </div>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 4, background: 'rgba(0,0,0,0.3)', padding: 6, borderRadius: 8 }}>
+              <div>Nav: {diagTaps.bottomNav}</div>
+              <div>Plus: {diagTaps.plus}</div>
+              <div>Eye: {diagTaps.eye}</div>
+              <div>Pick: {diagTaps.picker}</div>
+              <div>Tool: {diagTaps.toolbar}</div>
+              <div>Sent: {diagTaps.sentMsgs}</div>
+              <div>Recv: {diagTaps.recvMsgs}</div>
+              <div style={{ color: safeMode ? '#ff6b6b' : '#a0a0a5' }}>Safe: {safeMode ? 'ON' : 'OFF'}</div>
+            </div>
+            <pre style={{ margin: 0, whiteSpace: 'pre-wrap', maxHeight: '18vh', overflowY: 'auto', background: 'rgba(0,0,0,0.5)', padding: 6, borderRadius: 6 }}>
+              {lastDiagLog}
+            </pre>
+          </div>
+        )}
+
+        {/* ── Stage Expand/Rotate Toggle ── */}
         {curView === 'Editor' && (
           <button
             onClick={toggleStageExpanded}
@@ -1893,7 +2345,7 @@ export default function StagexPanel() {
             aria-label={isStageExpanded ? "Exit Landscape View" : "Enter Landscape View"}
             style={{
               position: 'absolute',
-              bottom: (isLandscapeEditor ? 14 : 90) + 110,
+              bottom: isLandscapeEditor ? 124 : 'calc(max(10px, env(safe-area-inset-bottom)) + 76px + 100px + 16px)',
               right: 17,
               width: 44,
               height: 44,
@@ -1927,7 +2379,7 @@ export default function StagexPanel() {
           </button>
         )}
 
-        {/* ΓöÇΓöÇ Live-mode toggle (eye) ΓÇö stacked 8px above the FAB ΓöÇΓöÇ */}
+        {/* ── Live-mode toggle (eye) — stacked 8px above the FAB ── */}
         {curView === 'Editor' && (
           <button
             id="stagex-eye-button"
@@ -1937,7 +2389,7 @@ export default function StagexPanel() {
             aria-label={liveMode ? tr.stagex.exitLiveMode : tr.stagex.enterLiveMode}
             style={{
               position: 'absolute',
-              bottom: (isLandscapeEditor ? 14 : 90) + 50 + 8,
+              bottom: isLandscapeEditor ? 72 : 'calc(max(10px, env(safe-area-inset-bottom)) + 76px + 50px + 8px)',
               right: 17,
               width: 44,
               height: 44,
@@ -1971,7 +2423,7 @@ export default function StagexPanel() {
           </button>
         )}
 
-        {/* ΓöÇΓöÇ FAB: add instrument ΓöÇΓöÇ */}
+        {/* ── FAB: add instrument ── */}
         {curView === 'Editor' && (
           <button
             id="stagex-plus-button"
@@ -1981,7 +2433,7 @@ export default function StagexPanel() {
             aria-label={tr.stagex.addInstrument}
             style={{
               position: 'absolute',
-              bottom: isLandscapeEditor ? 14 : 90,
+              bottom: isLandscapeEditor ? 14 : 'calc(max(10px, env(safe-area-inset-bottom)) + 76px)',
               right: 14,
               width: 50,
               height: 50,
@@ -2071,7 +2523,7 @@ export default function StagexPanel() {
           </button>
         )}
 
-        {/* ΓöÇΓöÇ Glassmorphism bottom nav ΓÇö matches Chordex BottomNav ΓöÇΓöÇ */}
+        {/* ── Glassmorphism bottom nav — matches Chordex BottomNav ── */}
         <div
           ref={stageNavRef}
           className="glass-nav"
@@ -2157,6 +2609,7 @@ export default function StagexPanel() {
                   key={view}
                   ref={el => { stageBtnRefs.current[i] = el; }}
                   onClick={() => handleNavTap(view)}
+                  onTouchEnd={(e) => { e.preventDefault(); handleNavTap(view); }}
                   className="stage-nav-btn"
                   style={{
                     flex: 1,
@@ -2200,7 +2653,7 @@ export default function StagexPanel() {
         </div>
       </div>
 
-      {/* ΓöÇΓöÇ PDF Export Bottom Sheet ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ */}
+      {/* ── PDF Export Bottom Sheet ───────────────────────── */}
       {pdfSheetOpen && (
         <>
           <div

@@ -2619,6 +2619,35 @@ function updatePhantomUI(on) {
   knob.style.background = on ? '#fff' : '#adaaaa';
 }
 
+window.deleteSelectedElement = removeSelected;
+
+window.rotateSelectedElement = function() {
+  if (state.selectedId) {
+    var el = state.elements.find(function(x) { return x.id === state.selectedId; });
+    if (el) {
+      el.rotation = (el.rotation + 45) % 360;
+      var dom = document.getElementById('elem-' + el.id);
+      if (dom) {
+        var iconWrap = dom.querySelector('.el-icon-wrap');
+        if (iconWrap) iconWrap.style.transform = 'rotate(' + el.rotation + 'deg)';
+        repositionResizeBar(dom);
+      }
+      var inputRot = document.getElementById('input-rotation');
+      if (inputRot) inputRot.value = el.rotation;
+      pushHistory();
+    }
+  }
+};
+
+window.scaleSelectedElement = function(delta) {
+  if (state.selectedId) {
+    var el = state.elements.find(function(x) { return x.id === state.selectedId; });
+    if (el) {
+      scaleElementBy(el, delta);
+    }
+  }
+};
+
 function removeSelected() {
   if (!state.selectedId) return;
   const id  = state.selectedId;
@@ -9548,12 +9577,10 @@ function downloadQRCode() {
 
   window.addEventListener('message', function (e) {
     if (!e.data || typeof e.data !== 'object') return;
-    var origin = e.origin || '';
-    var isAllowedOrigin = !origin || origin === 'null' || origin === 'about:blank' ||
-      origin === window.location.origin ||
-      origin.indexOf('https://localhost') === 0 ||
-      origin.indexOf('http://localhost') === 0 ||
-      origin.indexOf('capacitor://localhost') === 0;
+    var isAllowedOrigin = !e.origin || e.origin === window.location.origin ||
+      e.origin === 'https://localhost' ||
+      e.origin === 'http://localhost' ||
+      e.origin === 'capacitor://localhost';
     if (!isAllowedOrigin) return;
     var t = e.data.type;
     if (t === 'sc-sync-snapshot') {

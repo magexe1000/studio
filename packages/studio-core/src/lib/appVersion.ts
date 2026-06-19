@@ -26,7 +26,7 @@ import { useMemo } from 'react';
 import { Capacitor } from '@capacitor/core';
 
 /** Canonical semver string used by the OTA comparator. */
-export const NATIVE_VERSION = '3.6.44';
+export const NATIVE_VERSION = '3.6.45';
 export const WEB_VERSION = '4.0.0';
 export const APP_VERSION = Capacitor.isNativePlatform() ? NATIVE_VERSION : WEB_VERSION;
 
@@ -61,11 +61,10 @@ export const APP_CHANGELOG_SECTIONS: ChangelogSection[] = [
   {
     heading: "Fixed",
     items: [
-      "Restored stable Stagex editor functionality and touch controls on Android.",
-      "Optimized Android WebView performance and Hub transition times.",
-      "Corrected Stagex plus-button and element-picker interaction.",
-      "Restored Setup and Preferences tab switching within Stagex.",
-      "Fixed elements scaling, rotation, deletion, and selection on canvas.",
+      "Reverted the old Stagex restoration and adapted the modern Web Stagex design for Android.",
+      "Fixed layout alignment to prevent bottom navigation overlaps on Samsung SM-S921B.",
+      "Resolved cross-frame SecurityErrors by implementing asynchronous postMessage channels.",
+      "Restored functional Stagex controls: Add picker, Setup/Preferences tabs, Save, PDF export, and Back-to-Hub navigation.",
     ],
   },
 ];

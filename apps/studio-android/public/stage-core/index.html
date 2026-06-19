@@ -4806,13 +4806,7 @@ DOMPurify.addHook('uponSanitizeAttribute', function(node, data) {
 
 <script>
 window.addEventListener('message', function(e) {
-  var origin = e.origin || '';
-  var isAllowedOrigin = !origin || origin === 'null' || origin === 'about:blank' ||
-    origin === window.location.origin ||
-    origin.indexOf('https://localhost') === 0 ||
-    origin.indexOf('http://localhost') === 0 ||
-    origin.indexOf('capacitor://localhost') === 0;
-  if (!isAllowedOrigin) return;
+  if (e.origin !== window.location.origin) return;
   if (e.data === 'stage-core-return-hub') {
     window.parent.dispatchEvent(new CustomEvent('studio-hub-return'));
   }
@@ -5039,21 +5033,69 @@ window.addEventListener('message', function(e) {
    * contentWindow direct access is restricted by the Android WebView.      */
   window.addEventListener('message', function (e) {
     var origin = e.origin || '';
-  var isAllowedOrigin = !origin || origin === 'null' || origin === 'about:blank' ||
-    origin === window.location.origin ||
-    origin.indexOf('https://localhost') === 0 ||
-    origin.indexOf('http://localhost') === 0 ||
-    origin.indexOf('capacitor://localhost') === 0;
-  if (!isAllowedOrigin) return;
+    var isAllowedOrigin = !origin || origin === 'null' || origin === 'about:blank' ||
+      origin === window.location.origin ||
+      origin.indexOf('https://localhost') === 0 ||
+      origin.indexOf('http://localhost') === 0 ||
+      origin.indexOf('capacitor://localhost') === 0;
+    if (!isAllowedOrigin) return;
+
+    if (e.data && e.data.type === 'sc-back-request') {
+      if (typeof window.stageHasOpenOverlay === 'function' && window.stageHasOpenOverlay()) {
+        if (typeof window.stageGoBack === 'function') window.stageGoBack();
+      } else {
+        if (typeof _curView !== 'undefined' && _curView !== 'Editor') {
+          if (typeof window.stageGoBack === 'function') window.stageGoBack();
+        } else {
+          window.parent.postMessage({ type: 'sc-back-bubble' }, '*');
+        }
+      }
+      return;
+    }
+
+    if (e.data && e.data.type === 'requestSceneInfo') {
+      if (typeof window.__getSceneInfo === 'function') {
+        var info = window.__getSceneInfo();
+        window.parent.postMessage({ type: 'sc-scene-info', info: info }, '*');
+      }
+      return;
+    }
+
     if (!e.data || e.data.type !== 'sc-call') return;
     var fn  = e.data.fn;
     var arg = e.data.arg;
+    var msgId = e.data.msgId;
     if (typeof fn !== 'string') return;
     var target = window[fn];
     if (typeof target === 'function') {
-      try { arg !== undefined ? target(arg) : target(); } catch (err) { /* ignore */ }
+      try {
+        arg !== undefined ? target(arg) : target();
+        if (msgId) {
+          window.parent.postMessage({ type: 'sc-ack', msgId: msgId, fn: fn }, '*');
+        }
+      } catch (err) { /* ignore */ }
     }
   }, false);
+
+  /* ── MutationObserver state sync to track open overlays ── */
+  (function() {
+    var lastState = false;
+    function checkOverlays() {
+      var currentState = false;
+      if (typeof window.stageHasOpenOverlay === 'function') {
+        currentState = window.stageHasOpenOverlay();
+      }
+      if (currentState !== lastState) {
+        lastState = currentState;
+        window.parent.postMessage({ type: 'sc-overlay-state', open: currentState }, '*');
+      }
+    }
+    try {
+      var observer = new MutationObserver(checkOverlays);
+      observer.observe(document.body, { attributes: true, subtree: true, attributeFilter: ['class', 'style'] });
+    } catch(e) {}
+    setInterval(checkOverlays, 300);
+  })();
 
   /* ── Remove native Stagex header entirely on load ───────────────── */
   function removeNativeHeader() {

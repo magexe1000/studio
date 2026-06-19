@@ -1,6 +1,5 @@
 ### Fixed
-- Restored stable Stagex editor functionality and touch controls on Android.
-- Optimized Android WebView performance and Hub transition times.
-- Corrected Stagex plus-button and element-picker interaction.
-- Restored Setup and Preferences tab switching within Stagex.
-- Fixed elements scaling, rotation, deletion, and selection on canvas.
+- Reverted the old Stagex restoration and adapted the modern Web Stagex design for Android.
+- Fixed layout alignment to prevent bottom navigation overlaps on Samsung SM-S921B.
+- Resolved cross-frame SecurityErrors by implementing asynchronous postMessage channels.
+- Restored functional Stagex controls: Add picker, Setup/Preferences tabs, Save, PDF export, and Back-to-Hub navigation.

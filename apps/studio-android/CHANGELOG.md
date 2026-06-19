@@ -11,8 +11,13 @@ Conventions:
 - One H2 heading per version: `## X.Y.Z` (no leading `v`).
 - Bullets start with `- ` and use plain English a non-technical user
   can parse. Keep each line short — the modal's text area is narrow.
-- List the user-visible changes only. Internal refactors, tooling,
-  and CI tweaks do not need a bullet.
+## 3.6.45
+
+### Fixed
+- Reverted the old Stagex restoration and adapted the modern Web Stagex design for Android.
+- Fixed layout alignment to prevent bottom navigation overlaps on Samsung SM-S921B.
+- Resolved cross-frame SecurityErrors by implementing asynchronous postMessage channels.
+- Restored functional Stagex controls: Add picker, Setup/Preferences tabs, Save, PDF export, and Back-to-Hub navigation.
 
 ## 3.6.44
 
