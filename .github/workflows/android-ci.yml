@@ -77,11 +77,11 @@ jobs:
       - name: Typecheck Android
         run: pnpm typecheck:android
 
+      - name: Build Web and Android Web Assets
+        run: pnpm build
+
       - name: Run Android Architecture Smoke Tests
         run: pnpm test:android
-
-      - name: Build Android Web Assets
-        run: pnpm build:android:web
 
       - name: Capacitor Sync
         run: pnpm --filter @workspace/studio-android android:sync
