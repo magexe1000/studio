@@ -458,7 +458,7 @@ select option { background: #0e0e0e; color: #fff; }
     transition: all 0.15s;
     touch-action: manipulation;
     -webkit-tap-highlight-color: transparent;
-    pointer-events: all;
+    pointer-events: auto;
     user-select: none;
     -webkit-user-select: none;
   }
@@ -2357,7 +2357,7 @@ html[data-amoled="1"] ::-webkit-scrollbar-thumb { background: #1a1a1a !important
 #presets-panel.preset-open {
   transform: translateY(0) scale(1);
   opacity: 1;
-  pointer-events: all;
+  pointer-events: auto;
 }
 
 /* ── Header ── */

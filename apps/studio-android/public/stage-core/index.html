@@ -1673,10 +1673,10 @@ html[data-theme="light"] #stage-empty-state  { color: #bbb !important; }
   pointer-events: none;
 }
 #sc-fab-wrap.mob-hidden { display: none !important; }
-#sc-fab-wrap.sc-dial-open { pointer-events: all; }
+#sc-fab-wrap.sc-dial-open { pointer-events: auto; }
 
 #sc-fab-btn {
-  pointer-events: all;
+  pointer-events: auto;
   touch-action: manipulation;
   width: 50px; height: 50px;
   border-radius: 50%;
@@ -1737,7 +1737,7 @@ html[data-theme="light"] #stage-empty-state  { color: #bbb !important; }
 #sc-fab-wrap.sc-dial-open .sc-dial-chip {
   transform: translateY(0) scale(1);
   opacity: 1;
-  pointer-events: all;
+  pointer-events: auto;
 }
 
 /* Tap-outside backdrop */
@@ -1814,7 +1814,7 @@ html[data-theme="light"] .sc-dial-chip {
 #sc-item-sheet.sc-sheet-open {
   transform: translateY(0) scale(1);
   opacity: 1;
-  pointer-events: all;
+  pointer-events: auto;
 }
 
 #sc-item-sheet-header {
@@ -4806,7 +4806,11 @@ DOMPurify.addHook('uponSanitizeAttribute', function(node, data) {
 
 <script>
 window.addEventListener('message', function(e) {
-  if (e.origin !== window.location.origin) return;
+  var isAllowedOrigin = !e.origin || e.origin === 'null' || e.origin === window.location.origin ||
+    e.origin === 'https://localhost' ||
+    e.origin === 'http://localhost' ||
+    e.origin === 'capacitor://localhost';
+  if (!isAllowedOrigin) return;
   if (e.data === 'stage-core-return-hub') {
     window.parent.dispatchEvent(new CustomEvent('studio-hub-return'));
   }
@@ -5032,7 +5036,7 @@ window.addEventListener('message', function(e) {
    * We look up the function in window and call it.  This works even when   *
    * contentWindow direct access is restricted by the Android WebView.      */
   window.addEventListener('message', function (e) {
-    var isAllowedOrigin = !e.origin || e.origin === window.location.origin ||
+    var isAllowedOrigin = !e.origin || e.origin === 'null' || e.origin === window.location.origin ||
       e.origin === 'https://localhost' ||
       e.origin === 'http://localhost' ||
       e.origin === 'capacitor://localhost';

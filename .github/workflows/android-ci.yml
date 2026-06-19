@@ -66,6 +66,9 @@ jobs:
           if [ "${{ github.head_ref }}" = "refactor/separate-web-android-pipelines" ]; then
             echo "Skipping platform scope check for architecture separation PR"
             pnpm scope:check --platform apk --base HEAD
+          elif [ -n "${{ github.base_ref }}" ]; then
+            git fetch origin ${{ github.base_ref }}:origin/${{ github.base_ref }} --depth=1 || true
+            pnpm scope:check --platform apk --base origin/${{ github.base_ref }}
           else
             git fetch origin main:origin/main --depth=1 || true
             pnpm scope:check --platform apk --base origin/main
@@ -126,15 +129,15 @@ jobs:
           fi
           
           # Validate versionName
-          if ! echo "$BADGING" | grep -q "versionName='3.6.36'"; then
-            echo "::error::Invalid versionName! Expected 3.6.36"
+          if ! echo "$BADGING" | grep -q "versionName='3.6.40'"; then
+            echo "::error::Invalid versionName! Expected 3.6.40"
             echo "Badging: $(echo "$BADGING" | grep 'package:')"
             exit 1
           fi
           
           # Validate versionCode
-          if ! echo "$BADGING" | grep -q "versionCode='63'"; then
-            echo "::error::Invalid versionCode! Expected 63"
+          if ! echo "$BADGING" | grep -q "versionCode='67'"; then
+            echo "::error::Invalid versionCode! Expected 67"
             echo "Badging: $(echo "$BADGING" | grep 'package:')"
             exit 1
           fi

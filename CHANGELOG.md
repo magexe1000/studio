@@ -14,6 +14,15 @@ Conventions:
 - List the user-visible changes only. Internal refactors, tooling,
   and CI tweaks do not need a bullet.
 
+## 3.6.40
+
+### Fixed
+- Fixed Stagex same-origin bridge and allowed null origins.
+- Resolved ScreenOrientation.lock UI thread blocking issues.
+- Fixed element picker pointer-events and touch interactions.
+- Restored Stagex bottom-navigation and system back gesture handling.
+
+
 ## 3.6.36
 
 ### Fixed

@@ -840,29 +840,32 @@ ComposedPath: ${path.slice(0, 3).join(' > ')}`;
     }
   };
 
-  const toggleStageExpanded = async () => {
+  const toggleStageExpanded = () => {
     const nextVal = !isStageExpanded;
     setRotationTransition(true);
-    try {
-      if (nextVal) {
-        if (Capacitor.isNativePlatform()) {
-          await ScreenOrientation.lock({ orientation: 'landscape' });
-        } else if (window.screen && window.screen.orientation && (window.screen.orientation as any).lock) {
-          await (window.screen.orientation as any).lock('landscape');
+    setIsStageExpanded(nextVal);
+    
+    (async () => {
+      try {
+        if (nextVal) {
+          if (Capacitor.isNativePlatform()) {
+            await ScreenOrientation.lock({ orientation: 'landscape' });
+          } else if (window.screen && window.screen.orientation && (window.screen.orientation as any).lock) {
+            await (window.screen.orientation as any).lock('landscape');
+          }
+        } else {
+          if (Capacitor.isNativePlatform()) {
+            await ScreenOrientation.lock({ orientation: 'portrait' });
+          } else if (window.screen && window.screen.orientation && (window.screen.orientation as any).lock) {
+            await (window.screen.orientation as any).lock('portrait');
+          }
         }
-      } else {
-        if (Capacitor.isNativePlatform()) {
-          await ScreenOrientation.lock({ orientation: 'portrait' });
-        } else if (window.screen && window.screen.orientation && (window.screen.orientation as any).lock) {
-          await (window.screen.orientation as any).lock('portrait');
-        }
+      } catch (e) {
+        console.warn('Screen orientation lock/unlock failed:', e);
       }
-      setIsStageExpanded(nextVal);
-    } catch (e) {
-      console.warn('Screen orientation lock/unlock failed:', e);
-    } finally {
-      setTimeout(() => setRotationTransition(false), 320);
-    }
+    })();
+
+    setTimeout(() => setRotationTransition(false), 320);
   };
 
   useEffect(() => {
@@ -926,18 +929,24 @@ ComposedPath: ${path.slice(0, 3).join(' > ')}`;
     }
   }, [pdfFileName, pdfSceneChoice]);
 
+  const mediaQueryString = useMemo(() => {
+    return (typeof window !== 'undefined' && Capacitor.isNativePlatform())
+      ? '(orientation: landscape)'
+      : '(orientation: landscape) and (max-width: 960px)';
+  }, []);
+
   const [isLandscape, setIsLandscape] = useState(
-    () => typeof window !== 'undefined' && window.matchMedia('(orientation: landscape) and (max-width: 960px)').matches
+    () => typeof window !== 'undefined' && window.matchMedia(mediaQueryString).matches
   );
   useEffect(() => {
-    const mql = window.matchMedia('(orientation: landscape) and (max-width: 960px)');
+    const mql = window.matchMedia(mediaQueryString);
     const handler = (e: MediaQueryListEvent) => {
       setIsLandscape(e.matches);
       if (!e.matches) setLandscapeNavHidden(false);
     };
     mql.addEventListener('change', handler);
     return () => mql.removeEventListener('change', handler);
-  }, []);
+  }, [mediaQueryString]);
 
   const [rotationTransition, setRotationTransition] = useState(false);
   useEffect(() => {
@@ -964,7 +973,7 @@ ComposedPath: ${path.slice(0, 3).join(' > ')}`;
   })();
   const isAmoled  = isLight ? false : (isWebDesktop ? true : stageVis.amoledMode);
 
-  const baseOrigin = (typeof window !== 'undefined' && Capacitor.isNativePlatform()) ? 'https://localhost' : '';
+  const baseOrigin = typeof window !== 'undefined' ? window.location.origin : '';
   const iframeSrc = useRef(
     `${baseOrigin}/stage-core/index.html#${isLight ? 'light' : 'dark'},${encodeURIComponent(accent.from)},${encodeURIComponent(accent.to)},${isAmoled ? '1' : '0'}`
   ).current;
@@ -1091,7 +1100,8 @@ ComposedPath: ${path.slice(0, 3).join(' > ')}`;
 
   useEffect(() => {
     const onMsg = (e: MessageEvent) => {
-      const isAllowedOrigin = e.origin === window.location.origin ||
+      const isAllowedOrigin = e.origin === 'null' ||
+        e.origin === window.location.origin ||
         e.origin === 'https://localhost' ||
         e.origin === 'http://localhost' ||
         e.origin === 'capacitor://localhost';

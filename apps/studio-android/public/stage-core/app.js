@@ -2152,15 +2152,15 @@ function createElementDOM(el) {
   }, { passive: true });
 
   // Resize toolbar buttons
-  wrap.querySelector('[data-action="smaller"]').addEventListener('mousedown', e => {
+  wrap.querySelector('[data-action="smaller"]').addEventListener('pointerdown', e => {
     e.stopPropagation();
     scaleElementBy(el, -10);
   });
-  wrap.querySelector('[data-action="larger"]').addEventListener('mousedown', e => {
+  wrap.querySelector('[data-action="larger"]').addEventListener('pointerdown', e => {
     e.stopPropagation();
     scaleElementBy(el, +10);
   });
-  wrap.querySelector('[data-action="rotate"]').addEventListener('mousedown', e => {
+  wrap.querySelector('[data-action="rotate"]').addEventListener('pointerdown', e => {
     e.stopPropagation();
     el.rotation = (el.rotation + 45) % 360;
     const iconWrap = wrap.querySelector('.el-icon-wrap');
@@ -2170,7 +2170,7 @@ function createElementDOM(el) {
     repositionResizeBar(wrap);
   });
   const removeBtn = wrap.querySelector('[data-action="remove"]');
-  removeBtn.addEventListener('mousedown', e => { e.stopPropagation(); removeSelected(); });
+  removeBtn.addEventListener('pointerdown', e => { e.stopPropagation(); removeSelected(); });
   removeBtn.addEventListener('click',     e => { e.stopPropagation(); });
 
   layer.appendChild(wrap);
@@ -3349,7 +3349,7 @@ function _applyCableHover(newIdx) {
     });
 
     // Close context menu on outside click
-    document.addEventListener('mousedown', function(e) {
+    document.addEventListener('pointerdown', function(e) {
       const menu = document.getElementById('cable-context-menu');
       if (menu && !menu.contains(e.target)) _closeCableMenu();
     }, true);
