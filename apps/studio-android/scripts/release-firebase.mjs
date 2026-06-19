@@ -103,7 +103,7 @@ console.log('release-firebase: → Running early validation checks...');
 
 // A. GH_TOKEN check
 const ghToken = (process.env.GH_TOKEN || process.env.GITHUB_TOKEN || '').trim();
-if (!ghToken || ghToken === 'github_pat_antigravitydummytoken') {
+if (!ghToken) {
   console.error('\x1b[31mrelease-firebase: ✗ GITHUB_TOKEN / GH_TOKEN env variable is missing or invalid. Refusing to start release pipeline.\x1b[0m');
   process.exit(1);
 }
@@ -608,10 +608,13 @@ const runGh = (args) => {
   });
 };
 
+const currentCommit = spawnSync('git', ['rev-parse', 'HEAD'], { encoding: 'utf8' }).stdout.trim();
+console.log(`release-firebase: Target commit for release tag: ${currentCommit}`);
+
 const viewRes = runGh(['release', 'view', tag, '--repo', 'MAGEXE1000/Studio']);
 if (viewRes.status !== 0) {
-  console.log(`release-firebase: Release ${tag} not found. Creating it...`);
-  const createRes = runGh(['release', 'create', tag, '--title', titleText, '--notes-file', releaseNotesFile, '--repo', 'MAGEXE1000/Studio']);
+  console.log(`release-firebase: Release ${tag} not found. Creating it pointing to target commit ${currentCommit}...`);
+  const createRes = runGh(['release', 'create', tag, '--title', titleText, '--notes-file', releaseNotesFile, '--target', currentCommit, '--repo', 'MAGEXE1000/Studio']);
   if (createRes.status !== 0) {
     console.error(`release-firebase: ✗ Failed to create GitHub Release: ${createRes.stderr.toString()}`);
     process.exit(1);
