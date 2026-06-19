@@ -62,3 +62,28 @@ pnpm scope:check --platform web
 pnpm scope:check --platform apk
 pnpm scope:check --platform shared
 ```
+
+---
+
+## 5. Detailed Operations & Reference Manuals
+
+### A. OTA Update Banner System & Dev Testing
+- **Trigger**: The application checks `public/version.json` on boot. An in-app update banner morphs (width/height/border-radius transition) into a small pulsing pill after ~6 seconds (or on user minimize). Tapping it launches the update modal.
+- **Single Source of Truth**: The coordinate constant `APP_VERSION` in `packages/studio-core/src/lib/appVersion.ts` is the single source of truth.
+- **Dev Banner Testing Override**: The `predev` workspace hook runs version synchronization with the `--preserve-newer` flag. This allows developers to manually edit `public/version.json` to a higher version (e.g. `3.0.1`) and add a custom changelog mock to demo banner morphs and animation behavior locally without the file being overwritten on package restarts.
+- **Production Builds**: The `prebuild` hook deliberately omits `--preserve-newer`, overwriting `public/version.json` to prevent local overrides from entering production release tracks.
+
+### B. Android OTA Native Bundle Release Procedure
+- **Plugin Hook**: The over-the-air native bundle swap on Android is managed via `@capgo/capacitor-updater@^6`.
+- **First Paint Watchdog Safety**: `src/lib/capgoUpdater.ts` registers a lazy native bridge calling `notifyBundleReady()` *before* React's `createRoot()` mount in `main.tsx`. This ensures slow first paints do not trigger Capgo's automatic bundle rollback watchdog.
+- **OTA Base URL Config**: The APK build requires `VITE_OTA_BASE_URL` baked into the bundle pointing to the Firebase public tracking endpoint (e.g. `https://studio-30f44.web.app`). If empty, `versionJsonUrl()` fails closed and logs a Native Updater configuration error, disabling background update polling.
+- **OTA Deployment Flow**:
+  1. Bump the coordinates `APP_VERSION` in `packages/studio-core/src/lib/appVersion.ts`.
+  2. Run `npm run release:firebase`. This triggers automated package compression into `firebase-public/ota/`, writes the release metadata manifests to `firebase-public/version.json`, and uploads assets to Firebase Hosting.
+
+### C. Cloud Sync Engine Queue Architecture
+- **State Machine Rules**: Sync phases cycle strictly through: `'idle' | 'syncing' | 'success' | 'error'`.
+- **Lock Management**: Callers hook into `enqueueRun(reason, mode)`. This locks an in-flight `runPromise` wrapper. Concurrent sync triggers share the same in-flight execution promise, with a max queue depth of 1 pending followup run.
+- **Isolation boundaries**: Sub-app sync payloads execute concurrently via `Promise.allSettled()`. Each Firestore operation has a 6-second timeout, with an overall run limit of 10 seconds capped by an `AbortController`.
+- **Auth Swapping**: An `epoch` atomic counter is incremented on every `attachSyncEngine` / `detachSyncEngine` auth boundaries. This causes in-flight runs to discard write promises on mismatch, preventing cross-UID contamination on sign-out/sign-in swaps.
+
