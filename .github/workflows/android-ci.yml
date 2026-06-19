@@ -63,10 +63,7 @@ jobs:
 
       - name: Run APK Platform Scope Check
         run: |
-          if [ "${{ github.head_ref }}" = "refactor/separate-web-android-pipelines" ]; then
-            echo "Skipping platform scope check for architecture separation PR"
-            pnpm scope:check --platform apk --base HEAD
-          elif [ -n "${{ github.base_ref }}" ]; then
+          if [ -n "${{ github.base_ref }}" ]; then
             git fetch origin ${{ github.base_ref }}:origin/${{ github.base_ref }} --depth=1 || true
             pnpm scope:check --platform apk --base origin/${{ github.base_ref }}
           else

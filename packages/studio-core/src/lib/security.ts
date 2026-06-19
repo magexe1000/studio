@@ -17,6 +17,16 @@ function getDeviceId(): string {
     if (typeof window === 'undefined') return 'dev_unknown';
     let id = localStorage.getItem(DEVICE_ID_KEY);
     if (!id) {
+      // Fallback to other legacy or alternative keys in localStorage
+      const alternativeKeys = ['studioDeviceId', 'chordexDeviceId', 'appDeviceId', 'deviceId'];
+      for (const k of alternativeKeys) {
+        const val = localStorage.getItem(k);
+        if (val && val.trim()) {
+          id = val.trim();
+          localStorage.setItem(DEVICE_ID_KEY, id);
+          return id;
+        }
+      }
       id = `dev_${Math.random().toString(36).slice(2)}_${Date.now().toString(36)}`;
       localStorage.setItem(DEVICE_ID_KEY, id);
     }

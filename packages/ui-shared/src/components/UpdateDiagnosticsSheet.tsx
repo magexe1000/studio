@@ -111,6 +111,7 @@ export default function UpdateDiagnosticsSheet({ open, onClose }: Props) {
       '=== COMPREHENSIVE DEBUG LOGS ===',
       `App Version (APP_VERSION): ${otaDebugLogs.appVersion}`,
       `APK Version (Wrapper): ${otaDebugLogs.nativeApkVersion || 'N/A'}`,
+      ...(otaDebugLogs.nativePlatformDetected && otaDebugLogs.nativeApkVersion && otaDebugLogs.nativeApkVersion !== 'N/A' && otaDebugLogs.appVersion !== otaDebugLogs.nativeApkVersion ? ['VERSION_MISMATCH_DETECTED'] : []),
       `Update System: APK only`,
       `OTA System: disabled`,
       `AppInstaller Available: ${otaDebugLogs.appInstallerAvailable}`,
@@ -341,6 +342,24 @@ export default function UpdateDiagnosticsSheet({ open, onClose }: Props) {
             WebkitOverflowScrolling: 'touch',
           }}
         >
+          {otaDebugLogs.nativePlatformDetected && otaDebugLogs.nativeApkVersion && otaDebugLogs.nativeApkVersion !== 'N/A' && otaDebugLogs.appVersion !== otaDebugLogs.nativeApkVersion && (
+            <div style={{
+              background: 'rgba(239, 68, 68, 0.1)',
+              border: '1px solid #ef4444',
+              borderRadius: 8,
+              padding: '10px 14px',
+              color: '#ef4444',
+              fontWeight: 800,
+              fontSize: 13,
+              fontFamily: 'Manrope',
+              textAlign: 'center',
+              marginBottom: 16,
+              letterSpacing: '0.04em'
+            }}>
+              VERSION_MISMATCH_DETECTED
+            </div>
+          )}
+
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px 24px', marginBottom: 12 }}>
             <div style={{ minWidth: 120, flex: 1 }}>
               <DiagnosticField label="Device Model" value={otaDiagnostics.deviceModel} />

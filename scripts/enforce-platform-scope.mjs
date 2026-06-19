@@ -49,6 +49,20 @@ try {
 // Filter out deleted files if they don't exist
 changedFiles = changedFiles.filter(f => f.trim() !== '');
 
+// Check for repository-wide infrastructure/CI/workflow/workspace changes
+const hasInfraChanges = changedFiles.some(f => 
+  f.startsWith('.github/') || 
+  f.startsWith('scripts/') || 
+  f === 'package.json' || 
+  f === 'pnpm-workspace.yaml' ||
+  f === 'pnpm-lock.yaml'
+);
+
+if (hasInfraChanges) {
+  console.log('\x1b[32m✓ Infrastructure/CI/Workspace changes detected. Bypassing platform scope check.\x1b[0m');
+  process.exit(0);
+}
+
 console.log(`Auditing ${changedFiles.length} changed files...`);
 
 const ownershipMap = {

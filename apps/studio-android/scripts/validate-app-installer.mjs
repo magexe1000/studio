@@ -388,6 +388,30 @@ if (fs.existsSync(paths.apkPath)) {
     }
     console.log(`✓ APK versionName is ${versionNameVal} (matches expected ${expectedVersionName}).`);
 
+    // 5. Verify inner web assets version matches
+    const zip = new AdmZip(paths.apkPath);
+    const versionEntry = zip.getEntry('assets/public/version.json');
+    assert(versionEntry, 'Web assets not bundled correctly: assets/public/version.json is missing in the APK!', EXIT_CODES.RELEASE_VALIDATION);
+    
+    let innerVersionJson;
+    try {
+      innerVersionJson = JSON.parse(versionEntry.getData().toString('utf8'));
+    } catch (e) {
+      assert(false, `Failed to parse assets/public/version.json inside APK: ${e.message}`, EXIT_CODES.RELEASE_VALIDATION);
+    }
+    
+    assert(
+      innerVersionJson && innerVersionJson.version === expectedVersionName,
+      `Web assets version mismatch! Expected version ${expectedVersionName} inside version.json, but found ${innerVersionJson ? innerVersionJson.version : 'null'}`,
+      EXIT_CODES.RELEASE_VALIDATION
+    );
+    assert(
+      innerVersionJson && innerVersionJson.versionCode === versionCodeVal,
+      `Web assets versionCode mismatch! Expected versionCode ${versionCodeVal} inside version.json, but found ${innerVersionJson ? innerVersionJson.versionCode : 'null'}`,
+      EXIT_CODES.RELEASE_VALIDATION
+    );
+    console.log(`✓ APK web assets version is ${innerVersionJson.version} (versionCode ${innerVersionJson.versionCode}) matches wrapper version.`);
+
   } catch (err) {
     assert(false, `Failed to verify manifest configuration: ${err.message}`, EXIT_CODES.RELEASE_VALIDATION);
   }

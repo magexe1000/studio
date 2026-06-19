@@ -761,6 +761,9 @@ let activeCheckPromise: Promise<CentralizedOtaState> | null = null;
 let activeDownloadPromise: Promise<void> | null = null;
 let activeApplyPromise: Promise<void> | null = null;
 
+let lastCheckedTime = 0;
+const MIN_AUTO_CHECK_INTERVAL_MS = 15 * 60 * 1000; // 15 minutes rate limit for auto updates
+
 /**
  * Centralized checkForUpdate: racing fetches in parallel, resolving
  * immediately, checking seen/dismissed locks, and locking concurrent requests.
@@ -768,6 +771,15 @@ let activeApplyPromise: Promise<void> | null = null;
 export function checkForUpdate(isManual = false): Promise<CentralizedOtaState> {
   // 1. Synchronously return if check is already running
   if (activeCheckPromise) return activeCheckPromise;
+
+  // Rate limit non-manual auto updates to avoid infinite loops on focus changes, etc.
+  if (!isManual) {
+    const now = Date.now();
+    if (now - lastCheckedTime < MIN_AUTO_CHECK_INTERVAL_MS) {
+      console.log('[OTA] Skipping auto-check, checked recently (rate limited).');
+      return Promise.resolve(globalOtaState);
+    }
+  }
 
   // 2. Synchronous early return if check is unnecessary
   if (globalOtaState.updateState === 'downloading_ota' || 
@@ -820,13 +832,7 @@ export function checkForUpdate(isManual = false): Promise<CentralizedOtaState> {
       otaDebugLogs.finalPathExecuted = 'N/A';
 
       if (isNative()) {
-        try {
-          const { CapacitorUpdater } = await import('@capgo/capacitor-updater');
-          const active = await CapacitorUpdater.current();
-          otaDebugLogs.currentOtaVersion = active?.bundle?.version || 'builtin';
-        } catch {
-          otaDebugLogs.currentOtaVersion = 'Error';
-        }
+        otaDebugLogs.currentOtaVersion = 'disabled';
 
         // Pre-fill AppInstaller diagnostics
         try {
@@ -1183,6 +1189,7 @@ export function checkForUpdate(isManual = false): Promise<CentralizedOtaState> {
       return globalOtaState;
     } finally {
       activeCheckPromise = null;
+      lastCheckedTime = Date.now();
     }
   })();
 

@@ -49,7 +49,10 @@ export async function initializeDeviceId(): Promise<string> {
       const { value } = await Preferences.get({ key: 'studioDeviceId' });
       if (value && value.trim()) {
         cachedDeviceId = value.trim();
-        try { localStorage.setItem('studioDeviceId', cachedDeviceId); } catch {}
+        try {
+          localStorage.setItem('studioDeviceId', cachedDeviceId);
+          localStorage.setItem('chordex_device_id', cachedDeviceId);
+        } catch {}
         return cachedDeviceId;
       }
     } catch {}

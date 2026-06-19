@@ -16,7 +16,6 @@ const standardDeps = {
   "@capacitor/screen-orientation": "^6.0.4",
   "@capacitor/share": "^6.0.1",
   "@capacitor/status-bar": "^6.0.1",
-  "@capgo/capacitor-updater": "^6.43.5",
   "@fontsource/inter": "^5.2.8",
   "@fontsource/manrope": "^5.2.8",
   "@radix-ui/react-dropdown-menu": "^2.1.16",

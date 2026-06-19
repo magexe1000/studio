@@ -26,7 +26,7 @@ import { useMemo } from 'react';
 import { Capacitor } from '@capacitor/core';
 
 /** Canonical semver string used by the OTA comparator. */
-export const NATIVE_VERSION = '3.6.40';
+export const NATIVE_VERSION = '3.6.41';
 export const WEB_VERSION = '4.0.0';
 export const APP_VERSION = Capacitor.isNativePlatform() ? NATIVE_VERSION : WEB_VERSION;
 
@@ -59,24 +59,10 @@ export interface ChangelogSection {
 
 export const APP_CHANGELOG_SECTIONS: ChangelogSection[] = [
   {
-    heading: "Improved",
-    items: [
-      "Unified Help Center and FAQ & Support into Help & Support.",
-      "Added searchable support content and functional troubleshooting actions.",
-      "Improved transition cleanup when switching between Studio apps.",
-      "Improved Stagex interaction diagnostics and event handling.",
-    ],
-  },
-  {
     heading: "Fixed",
     items: [
-      "Restored Stagex bottom-navigation section switching.",
-      "Corrected Stagex plus-button and element-picker interaction.",
-      "Corrected Stagex eye/visibility control behavior.",
-      "Corrected parent-to-iframe command delivery in Android WebView.",
-      "Improved selected-element controls.",
-      "Prevented transition states from leaving Studio on a black screen.",
-      "Added recovery actions when a Studio module fails to load.",
+      "Resolved global style and layout regressions in the separated monorepo architecture.",
+      "Added Tailwind CSS source path configuration for shared workspace packages.",
     ],
   },
 ];

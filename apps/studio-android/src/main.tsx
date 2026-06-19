@@ -4,16 +4,12 @@ import { TolgeeProvider } from "@tolgee/react";
 import App from "./App";
 import {
   tolgee,
-  notifyBundleReady,
   ensureNotificationPermission,
   seedAudioAssets,
   NATIVE_VERSION
 } from "@workspace/studio-core";
 import { Capacitor } from "@capacitor/core";
 import "./index.css";
-
-// Tell the Capgo updater plugin that this bundle booted successfully.
-void notifyBundleReady();
 
 // Ask for notification permission on first launch.
 void ensureNotificationPermission();

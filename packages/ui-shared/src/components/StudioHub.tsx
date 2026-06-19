@@ -2190,9 +2190,7 @@ function HubSettings({
 
       try {
         if (isNative()) {
-          const { CapacitorUpdater } = await import('@capgo/capacitor-updater');
-          const current = await CapacitorUpdater.current();
-          setDevOtaVersion(current?.bundle?.version || 'builtin');
+          setDevOtaVersion('disabled');
         } else {
           setDevOtaVersion('N/A — Web build');
         }
@@ -2409,11 +2407,16 @@ function HubSettings({
   };
 
   const getDiagnosticsText = () => {
+    const isNativePlat = isNative();
+    const wrapperVersion = otaDebugLogs.nativeApkVersion || 'Unknown';
+    const hasMismatch = isNativePlat && wrapperVersion !== 'Unknown' && wrapperVersion !== 'N/A' && APP_VERSION !== wrapperVersion;
+
     return [
       '=== STUDIO DIAGNOSTICS REPORT ===',
       `Timestamp: ${new Date().toISOString()}`,
       `App Version: ${APP_VERSION}`,
       `Device Model: ${isNative() ? 'Native Device' : 'Web Browser'}`,
+      ...(hasMismatch ? ['', 'VERSION_MISMATCH_DETECTED', `App Version (${APP_VERSION}) does not match APK Wrapper Version (${wrapperVersion})`, ''] : []),
       '',
       '=== APK UPDATE DIAGNOSTICS ===',
       `App Version: ${APP_VERSION}`,

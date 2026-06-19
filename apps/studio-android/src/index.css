@@ -12,6 +12,10 @@
    element styling; the @font-face comes from Google Fonts. */
 @import "tailwindcss";
 
+@source "../../packages/ui-shared/src/**/*.tsx";
+@source "../../packages/ui-android/src/**/*.tsx";
+@source "../../packages/studio-core/src/**/*.ts";
+
 /* ── Gradient Border System ─────────────────────────────────────────────────
    @property must live at the top level (outside any @layer / @media).
    Used by .gb-wrap (wrapper pattern) and .gb-border-ring (overlay pattern). */

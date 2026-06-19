@@ -8,6 +8,15 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = path.resolve(__dirname, '..');
 const androidDir = path.join(repoRoot, 'apps/studio-android/android');
 
+// On local dev systems, if JAVA_HOME points to a JDK version Gradle doesn't support (like JDK 25),
+// try to fall back to adoptium JDK 21 if it is installed.
+if (process.platform === 'win32') {
+  const jdk21Path = 'C:\\Program Files\\Eclipse Adoptium\\jdk-21.0.11.10-hotspot';
+  if (fs.existsSync(jdk21Path)) {
+    process.env.JAVA_HOME = jdk21Path;
+  }
+}
+
 console.log('=== RUNNING GRADLE SIGNING REGRESSION TESTS ===');
 
 const gradlew = process.platform === 'win32' ? '.\\gradlew.bat' : './gradlew';
