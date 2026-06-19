@@ -26,7 +26,7 @@ import { useMemo } from 'react';
 import { Capacitor } from '@capacitor/core';
 
 /** Canonical semver string used by the OTA comparator. */
-export const NATIVE_VERSION = '3.6.43';
+export const NATIVE_VERSION = '3.6.44';
 export const WEB_VERSION = '4.0.0';
 export const APP_VERSION = Capacitor.isNativePlatform() ? NATIVE_VERSION : WEB_VERSION;
 
@@ -38,11 +38,11 @@ export const APP_VERSION_LABEL = `${APP_VERSION_TAG} ${APP_VERSION}`;
 
 /** Release date for the CURRENT bundle, shown alongside the version pill
  *  in the changelog sheet. ISO-8601 (`YYYY-MM-DD`). */
-export const APP_VERSION_DATE = '2026-06-19'; // 3.6.40
+export const APP_VERSION_DATE = '2026-06-19'; // 3.6.44
 // Note: keep ISO-8601. Bump together with APP_VERSION on each release.
 
 export const APP_COMMIT_SHA = import.meta.env.VITE_GIT_COMMIT_SHA || 'c9e77a16';
-export const APP_BUILD_TIMESTAMP = import.meta.env.VITE_BUILD_TIMESTAMP || '6/16/2026, 1:15:07 PM CST';
+export const APP_BUILD_TIMESTAMP = import.meta.env.VITE_BUILD_TIMESTAMP || '6/19/2026, 4:08:00 PM CST';
 
 /**
  * Changelog for the CURRENT release — shown to the user the first
@@ -61,8 +61,11 @@ export const APP_CHANGELOG_SECTIONS: ChangelogSection[] = [
   {
     heading: "Fixed",
     items: [
-      "Fixed Back-to-Hub navigation gray screen freeze.",
-      "Reconnected Stagex controls and canvas touch events.",
+      "Restored stable Stagex editor functionality and touch controls on Android.",
+      "Optimized Android WebView performance and Hub transition times.",
+      "Corrected Stagex plus-button and element-picker interaction.",
+      "Restored Setup and Preferences tab switching within Stagex.",
+      "Fixed elements scaling, rotation, deletion, and selection on canvas.",
     ],
   },
 ];
@@ -72,24 +75,11 @@ export const APP_CHANGELOG_SECTIONS_NATIVE: ChangelogSection[] = [
   {
     heading: "Fixed",
     items: [
-      "Fixed Back-to-Hub navigation gray screen freeze.",
-      "Reconnected Stagex controls and canvas touch events.",
-      "Restored Stagex bottom-navigation section switching.",
+      "Restored stable Stagex editor functionality and touch controls on Android.",
+      "Optimized Android WebView performance and Hub transition times.",
       "Corrected Stagex plus-button and element-picker interaction.",
-      "Corrected Stagex eye/visibility control behavior.",
-      "Corrected parent-to-iframe command delivery in Android WebView.",
-      "Improved selected-element controls.",
-      "Prevented transition states from leaving Studio on a black screen.",
-      "Added recovery actions when a Studio module fails to load.",
-    ],
-  },
-  {
-    heading: "Improved",
-    items: [
-      "Unified Help Center and FAQ & Support into Help & Support.",
-      "Added searchable support content and functional troubleshooting actions.",
-      "Improved transition cleanup when switching between Studio apps.",
-      "Improved Stagex interaction diagnostics and event handling.",
+      "Restored Setup and Preferences tab switching within Stagex.",
+      "Fixed elements scaling, rotation, deletion, and selection on canvas.",
     ],
   },
 ];
@@ -100,24 +90,11 @@ export const APP_CHANGELOG_SECTIONS_ES: ChangelogSection[] = [
   {
     heading: "Corregido",
     items: [
-      "Corregido el congelamiento de pantalla gris al volver a la consola principal (Hub).",
-      "Reconectados los controles y eventos táctiles de Stagex.",
-      "Restaurado el cambio de sección en la navegación inferior de Stagex.",
+      "Restaurada la funcionalidad estable del editor Stagex y sus controles táctiles en Android.",
+      "Rendimiento de Android WebView optimizado y tiempos de transición de Hub reducidos.",
       "Corregida la interacción del botón más y el selector de elementos en Stagex.",
-      "Corregido el comportamiento del control de ojo/visibilidad en Stagex.",
-      "Corregida la entrega de comandos parent-to-iframe en Android WebView.",
-      "Mejorados los controles de los elementos seleccionados.",
-      "Evitado que los estados de transición dejen a Studio en una pantalla negra.",
-      "Añadidas acciones de recuperación cuando un módulo de Studio no se carga.",
-    ],
-  },
-  {
-    heading: "Mejorado",
-    items: [
-      "Unificados el Centro de ayuda y Preguntas frecuentes y soporte en Ayuda y soporte.",
-      "Añadido contenido de soporte con búsqueda y acciones funcionales de solución de problemas.",
-      "Mejorada la limpieza de transiciones al cambiar entre aplicaciones de Studio.",
-      "Mejorados los diagnósticos de interacción y el manejo de eventos en Stagex.",
+      "Restaurado el cambio de pestañas de Setup y Preferences en Stagex.",
+      "Corregida la rotación, escalado, eliminación y selección de elementos en el lienzo.",
     ],
   },
 ];

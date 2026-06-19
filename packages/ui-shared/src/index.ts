@@ -67,3 +67,8 @@ export * from './components/ui/dropdown-menu';
 export * from './components/ui/encrypted-text';
 
 export { useGroovexStore } from './groovex/useGroovexStore';
+export { AppModeMenuLogo } from './components/AppModeMenuLogo';
+export { WebToolbar, WebButton } from './components/WebDesignSystem';
+export { default as WebAppSectionDock } from './components/WebAppSectionDock';
+
+

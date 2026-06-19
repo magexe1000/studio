@@ -36,11 +36,10 @@ import {
   DrumEditor,
   GroovexApp,
   VocalexApp,
-  StageCorePanel,
   ErrorBoundary
 } from '@workspace/ui-shared';
 
-import { BottomNav } from '@workspace/ui-android';
+import { BottomNav, StageCorePanel } from '@workspace/ui-android';
 import { Capacitor } from '@capacitor/core';
 
 import "./index.css";

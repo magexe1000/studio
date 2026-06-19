@@ -14,6 +14,15 @@ Conventions:
 - List the user-visible changes only. Internal refactors, tooling,
   and CI tweaks do not need a bullet.
 
+## 3.6.44
+
+### Fixed
+- Restored stable Stagex editor functionality and touch controls on Android.
+- Optimized Android WebView performance and Hub transition times.
+- Corrected Stagex plus-button and element-picker interaction.
+- Restored Setup and Preferences tab switching within Stagex.
+- Fixed elements scaling, rotation, deletion, and selection on canvas.
+
 ## 3.6.43
 
 ### Fixed
