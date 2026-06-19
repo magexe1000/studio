@@ -16,7 +16,8 @@
     "version:web": "node scripts/version-manager.mjs web",
     "version:android": "node scripts/version-manager.mjs android",
     "lint:imports": "node scripts/enforce-import-boundaries.mjs",
-    "check:versions": "node scripts/verify-versions-consistency.mjs"
+    "check:versions": "node scripts/verify-versions-consistency.mjs",
+    "scope:check": "node scripts/enforce-platform-scope.mjs"
   },
   "private": true,
   "devDependencies": {

@@ -35,7 +35,7 @@ function assert(condition, message, exitCode = EXIT_CODES.APP_INSTALLER_VALIDATI
 
 // 0. Verify releaseType and native changes
 const releaseType = process.env.RELEASE_TYPE || 'both';
-const isDevPreview = process.argv.includes('--development-preview');
+const isDevPreview = process.argv.includes('--development-preview') && process.env.STUDIO_PRODUCTION_RELEASE !== 'true';
 
 if (!isDevPreview) {
   try {

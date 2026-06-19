@@ -64,6 +64,11 @@ try {
   execSync('node scripts/verify-bundle-separation.mjs', { stdio: 'inherit', cwd: repoRoot });
   console.log('✓ Bundle Separation Tests passed.');
 
+  // 7. Run Gradle signing regression tests
+  console.log('Running Gradle Signing Regression Tests...');
+  execSync('node scripts/test-gradle-signing.mjs', { stdio: 'inherit', cwd: repoRoot });
+  console.log('✓ Gradle Signing Regression Tests passed.');
+
   console.log('\x1b[32m=== ALL SMOKE TESTS PASSED SUCCESSFULLY ===\x1b[0m');
   process.exit(0);
 } catch (error) {

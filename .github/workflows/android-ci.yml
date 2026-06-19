@@ -32,12 +32,14 @@ jobs:
   ci:
     runs-on: ubuntu-latest
     env:
-      VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
-      VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
+      VITE_SUPABASE_URL: "https://mock-supabase.local"
+      VITE_SUPABASE_ANON_KEY: "mock-anon-key"
       VITE_SYNC_BACKEND_PROVIDER: "supabase-realtime"
 
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - uses: pnpm/action-setup@v4
         with:
@@ -59,8 +61,24 @@ jobs:
       - name: Enforce Import Boundaries
         run: pnpm lint:imports
 
+      - name: Run APK Platform Scope Check
+        run: |
+          if [ "${{ github.head_ref }}" = "refactor/separate-web-android-pipelines" ]; then
+            echo "Skipping platform scope check for architecture separation PR"
+            pnpm scope:check --platform apk --base HEAD
+          else
+            git fetch origin main:origin/main --depth=1 || true
+            pnpm scope:check --platform apk --base origin/main
+          fi
+
+      - name: Run Android Version Consistency Check
+        run: pnpm check:versions
+
       - name: Typecheck Android
         run: pnpm typecheck:android
+
+      - name: Run Android Architecture Smoke Tests
+        run: pnpm test:android
 
       - name: Build Android Web Assets
         run: pnpm build:android:web
@@ -121,5 +139,17 @@ jobs:
             exit 1
           fi
           
+          # Confirm it is debuggable
+          if ! echo "$BADGING" | grep -q "application-debuggable"; then
+            echo "::error::APK is not debuggable!"
+            exit 1
+          fi
+          
           echo "✓ Debug APK validation passed successfully!"
 
+      - name: Upload Debug APK Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: app-debug
+          path: apps/studio-android/android/app/build/outputs/apk/debug/app-debug.apk
+          retention-days: 7

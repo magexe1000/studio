@@ -9,7 +9,7 @@ const appRoot = path.resolve(__dirname, '..');
 const repoRoot = path.resolve(__dirname, '../../..');
 
 const releaseType = 'apk';
-const isDevPreview = process.argv.includes('--development-preview');
+const isDevPreview = process.argv.includes('--development-preview') && process.env.STUDIO_PRODUCTION_RELEASE !== 'true';
 
 console.log('generate-release-metadata: → Running AppInstaller contract validation...');
 const args = ['scripts/validate-app-installer.mjs'];
