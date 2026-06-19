@@ -80,11 +80,11 @@ jobs:
       - name: Build Web and Android Web Assets
         run: pnpm build
 
-      - name: Run Android Architecture Smoke Tests
-        run: pnpm test:android
-
       - name: Capacitor Sync
         run: pnpm --filter @workspace/studio-android android:sync
+
+      - name: Run Android Architecture Smoke Tests
+        run: pnpm test:android
 
       - name: Build Debug APK
         run: |
