@@ -24,7 +24,7 @@ This document is a machine-readable record mapping the legacy file structure of 
 | R100 | `tsconfig.json` | `apps/studio-web/tsconfig.json` | WEB | source | Web TypeScript environment. |
 | R100 | `tsconfig.json` | `apps/studio-android/tsconfig.json` | ANDROID | source | Android WebView TypeScript environment. |
 | R100 | `package.json` | `apps/studio-web/package.json` | WEB | source | Authoritative source for Web v4.0.0. |
-| R100 | `package.json` | `apps/studio-android/package.json` | ANDROID | source | Authoritative source for Android v3.6.31. |
+| R100 | `package.json` | `apps/studio-android/package.json` | ANDROID | source | Authoritative source for Android v3.6.36. |
 | R100 | `src/main.tsx` | `apps/studio-web/src/main.tsx` | WEB | source | Startup entry for Web App. |
 | R100 | `src/main.tsx` | `apps/studio-android/src/main.tsx` | ANDROID | source | Startup entry for Android WebView. |
 | R100 | `src/App.tsx` | `apps/studio-web/src/App.tsx` | WEB | source | Web-specific layout & landing routes. |

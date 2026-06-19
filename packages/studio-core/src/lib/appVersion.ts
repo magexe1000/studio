@@ -26,7 +26,7 @@ import { useMemo } from 'react';
 import { Capacitor } from '@capacitor/core';
 
 /** Canonical semver string used by the OTA comparator. */
-export const NATIVE_VERSION = '3.6.31';
+export const NATIVE_VERSION = '3.6.36';
 export const WEB_VERSION = '4.0.0';
 export const APP_VERSION = Capacitor.isNativePlatform() ? NATIVE_VERSION : WEB_VERSION;
 
@@ -38,7 +38,7 @@ export const APP_VERSION_LABEL = `${APP_VERSION_TAG} ${APP_VERSION}`;
 
 /** Release date for the CURRENT bundle, shown alongside the version pill
  *  in the changelog sheet. ISO-8601 (`YYYY-MM-DD`). */
-export const APP_VERSION_DATE = '2026-06-15'; // 3.6.31
+export const APP_VERSION_DATE = '2026-06-16'; // 3.6.36
 // Note: keep ISO-8601. Bump together with APP_VERSION on each release.
 
 export const APP_COMMIT_SHA = import.meta.env.VITE_GIT_COMMIT_SHA || 'c9e77a16';
@@ -59,11 +59,24 @@ export interface ChangelogSection {
 
 export const APP_CHANGELOG_SECTIONS: ChangelogSection[] = [
   {
+    heading: "Improved",
+    items: [
+      "Unified Help Center and FAQ & Support into Help & Support.",
+      "Added searchable support content and functional troubleshooting actions.",
+      "Improved transition cleanup when switching between Studio apps.",
+      "Improved Stagex interaction diagnostics and event handling.",
+    ],
+  },
+  {
     heading: "Fixed",
     items: [
-      "Fixed Android native mobile layout regressions in Stagex and Setup panels.",
-      "Fixed Stagex element visibility and same-origin protocol mismatch.",
-      "Removed duplicate Back buttons and aligned bottom navigation in WebView.",
+      "Restored Stagex bottom-navigation section switching.",
+      "Corrected Stagex plus-button and element-picker interaction.",
+      "Corrected Stagex eye/visibility control behavior.",
+      "Corrected parent-to-iframe command delivery in Android WebView.",
+      "Improved selected-element controls.",
+      "Prevented transition states from leaving Studio on a black screen.",
+      "Added recovery actions when a Studio module fails to load.",
     ],
   },
 ];

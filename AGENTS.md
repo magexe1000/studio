@@ -31,7 +31,7 @@ Every task must be classified into one of the following platform scopes:
 * **Build Boundaries**: Android-only changes must not intentionally trigger Netlify builds.
 * **UI Purity**: Never copy complete Web layouts directly into Android. Never copy Android navigation (like BottomNav) directly into Web.
 * **No Silent Expansions**: Never silently expand a task to both platforms.
-* **Version Control**: Never silently bump versions. Maintain Web at `4.0.0` and Android at `3.6.31` (versionCode `58`).
+* **Version Control**: Never silently bump versions. Maintain Web at `4.0.0` and Android at `3.6.36` (versionCode `63`).
 * **Security & Tokens**: Never retrieve, print, or embed credentials, secrets, or GitHub tokens in Git URLs. Never commit keystore files.
 * **Fail-Closed Release Validation**: Never weaken production signing or metadata verification. Production release flows must enforce exactly the expected signer certificate fingerprint: `900cf259185c81100cda8bb08571fa23552e9789131cf07a8f4056e4d4129206`.
 * **Testing Integrity**: Never describe untested behavior as verified. Never describe no-op tests as passing tests.

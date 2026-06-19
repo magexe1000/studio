@@ -126,15 +126,15 @@ jobs:
           fi
           
           # Validate versionName
-          if ! echo "$BADGING" | grep -q "versionName='3.6.31'"; then
-            echo "::error::Invalid versionName! Expected 3.6.31"
+          if ! echo "$BADGING" | grep -q "versionName='3.6.36'"; then
+            echo "::error::Invalid versionName! Expected 3.6.36"
             echo "Badging: $(echo "$BADGING" | grep 'package:')"
             exit 1
           fi
           
           # Validate versionCode
-          if ! echo "$BADGING" | grep -q "versionCode='58'"; then
-            echo "::error::Invalid versionCode! Expected 58"
+          if ! echo "$BADGING" | grep -q "versionCode='63'"; then
+            echo "::error::Invalid versionCode! Expected 63"
             echo "Badging: $(echo "$BADGING" | grep 'package:')"
             exit 1
           fi
