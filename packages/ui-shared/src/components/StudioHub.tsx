@@ -1,4 +1,4 @@
-import { useBackHandler, subscribeAuth, signOut, type AuthUser, subscribeSyncStatus, syncNow, type SyncStatus, deviceId, getConflictLogs, clearConflictLogs, createCloudBackup, getSyncDiagnostics, pushLocalSettingsToCloud, pullCloudSettingsFromCloud, registerDevice, registerCurrentDevice, reconnectDevices, useChordStore, ACCENT_COLORS, type Theme, type AnimationSpeed, type DisplayDensity, type AppKey, type PerAppVisuals, useNavHidden, useNavCollapsed, useScrollHide, useT, APP_VERSION_LABEL, APP_VERSION_TAG, APP_VERSION_DATE, compareSemver, APP_VERSION, getChangelogSections, useOtaUpdate, otaDebugLogs, otaDiagnostics, checkForUpdate, resetOtaUpdateState, isAppInstallerAvailable, applyUpdate, isNative, fadeToBlackAndReload, notifyOtaAvailable, resolveApkUrl, downloadAndInstallApk, resolveReleasePageUrl, useLiquidGlassNav, useIsWebDesktop, useStudioPreferences } from '@workspace/studio-core';
+import { useBackHandler, subscribeAuth, signOut, type AuthUser, subscribeSyncStatus, syncNow, type SyncStatus, deviceId, getConflictLogs, clearConflictLogs, createCloudBackup, getSyncDiagnostics, pushLocalSettingsToCloud, pullCloudSettingsFromCloud, registerDevice, registerCurrentDevice, reconnectDevices, useChordStore, ACCENT_COLORS, type Theme, type AnimationSpeed, type DisplayDensity, type AppKey, type PerAppVisuals, useNavHidden, useNavCollapsed, useScrollHide, useT, APP_VERSION_LABEL, APP_VERSION_TAG, APP_VERSION_DATE, compareSemver, APP_VERSION, getChangelogSections, useOtaUpdate, otaDebugLogs, otaDiagnostics, checkForUpdate, resetOtaUpdateState, isAppInstallerAvailable, applyUpdate, isNative, fadeToBlackAndReload, notifyOtaAvailable, resolveApkUrl, downloadAndInstallApk, resolveReleasePageUrl, useLiquidGlassNav, useIsWebDesktop, useStudioPreferences, registerDebugProvider, unregisterDebugProvider } from '@workspace/studio-core';
 import React, { useState, useRef, useEffect, useLayoutEffect, lazy, Suspense, useMemo, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import { motion } from 'motion/react';
@@ -15,6 +15,8 @@ import { EncryptedText } from './ui/encrypted-text';
 import ProfileDropdown from './kokonutui/profile-dropdown';
 import SmartLoading from './SmartLoading';
 import { StudioSkeletonProfile, StudioSkeletonList } from './StudioSkeleton';
+import DevToolsDashboard from './DevToolsDashboard';
+
 
 // AccountCard pulls Firebase (auth + firestore). Lazy-load it so Firebase
 // stays out of the initial bundle graph; only fetched when Settings tab opens.
@@ -244,6 +246,23 @@ export default function StudioHub() {
   const devTapsRef = useRef(0);
   const [devToast, setDevToast] = useState<string | null>(null);
   const [devToastTimer, setDevToastTimer] = useState<number | null>(null);
+
+  useEffect(() => {
+    registerDebugProvider({
+      id: 'hub',
+      name: 'Studio Hub',
+      getDebugState: () => ({
+        activeTab: tab,
+        zooming,
+        authStatus: authUser ? 'Signed In' : 'Signed Out',
+        theme: settings.theme,
+        language: settings.language
+      })
+    });
+    return () => {
+      unregisterDebugProvider('hub');
+    };
+  }, [tab, zooming, authUser, settings.theme, settings.language]);
 
 
   const showDevToast = (msg: string) => {
@@ -4207,7 +4226,7 @@ User Agent: [Automatically Generated]
       case 'updater':
         return renderUpdaterContent();
       case 'developer':
-        return renderDeveloperContent();
+        return <DevToolsDashboard accent={accent} onBack={goBack} />;
       case 'about':
         return renderAboutContent();
       case 'debug':
@@ -4295,9 +4314,7 @@ User Agent: [Automatically Generated]
     if (page === 'developer') {
       return (
         <div key={pageKey} className="settings-panel-sheet" style={subStyle}>
-          <style>{HUB_SETTINGS_CSS}</style>
-          <SettingsSubHeader title="Developer Options" onBack={goBack} />
-          {renderDeveloperContent()}
+          <DevToolsDashboard accent={accent} onBack={goBack} />
         </div>
       );
     }

@@ -6,10 +6,14 @@ import {
   tolgee,
   ensureNotificationPermission,
   seedAudioAssets,
-  NATIVE_VERSION
+  NATIVE_VERSION,
+  initDevToolsFramework
 } from "@workspace/studio-core";
 import { Capacitor } from "@capacitor/core";
 import "./index.css";
+
+// Initialize DevTools
+initDevToolsFramework();
 
 // Ask for notification permission on first launch.
 void ensureNotificationPermission();

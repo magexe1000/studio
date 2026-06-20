@@ -1,4 +1,4 @@
-import { useChordStore, ACCENT_COLORS, useT, useBackHandler, useLiquidGlassNav, useNavCollapsed, useNavHidden, useIsWebDesktop } from '@workspace/studio-core';
+import { useChordStore, ACCENT_COLORS, useT, useBackHandler, useLiquidGlassNav, useNavCollapsed, useNavHidden, useIsWebDesktop, registerDebugProvider, unregisterDebugProvider } from '@workspace/studio-core';
 import { lazy, Suspense, useEffect, useRef, useState } from 'react';
 import { useGroovexStore, type GroovexView } from './useGroovexStore';
 import { AppModeMenuLogo } from '../components/AppModeMenuLogo';
@@ -26,6 +26,22 @@ export default function GroovexApp() {
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
   }, [isWebDesktop]);
+
+  useEffect(() => {
+    registerDebugProvider({
+      id: 'groovex',
+      name: 'Groovex App',
+      getDebugState: () => ({
+        activeSongId: activeSongId || 'none',
+        currentView: view,
+        playbackState: activeSongId ? 'active' : 'stopped',
+        grooveState: useGroovexStore.getState()
+      })
+    });
+    return () => {
+      unregisterDebugProvider('groovex');
+    };
+  }, [view, activeSongId]);
 
   function navigate(next: GroovexView) {
     const oldIdx = VIEW_ORDER.indexOf(view);

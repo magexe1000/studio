@@ -1,4 +1,4 @@
-import { useChordStore, ACCENT_COLORS, useT, setBackHandler, useNavCollapsed, setNavCollapsed, useLiquidGlassNav, DRUM_LIBRARY, LIBRARY_CATEGORIES, LIBRARY_GENRES, type LibraryCategory, type LibraryGenre, type LibraryPattern, useIsWebDesktop } from '@workspace/studio-core';
+import { useChordStore, ACCENT_COLORS, useT, setBackHandler, useNavCollapsed, setNavCollapsed, useLiquidGlassNav, DRUM_LIBRARY, LIBRARY_CATEGORIES, LIBRARY_GENRES, type LibraryCategory, type LibraryGenre, type LibraryPattern, useIsWebDesktop, registerDebugProvider, unregisterDebugProvider } from '@workspace/studio-core';
 import {
   memo, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState,
 } from 'react';
@@ -1776,6 +1776,31 @@ export default function DrumEditor() {
   useEffect(() => {
     useChordStore.getState().setLastSession({ drumexTab: activeTab });
   }, [activeTab]);
+
+  useEffect(() => {
+    registerDebugProvider({
+      id: 'drumex',
+      name: 'Drumex Editor',
+      getDebugState: () => ({
+        activePatternId,
+        patternsCount: patterns?.length || 0,
+        activeTab,
+        isPlaying: drumScheduler?.isPlaying || false,
+        tempo: pattern?.bpm || 120,
+        swing: pattern?.swing || 0,
+        kitType: kitType || 'house',
+        houseKitMic,
+        loopRange: pattern?.loopRange || null,
+        soundState: {
+          houseCrashModel,
+          cymbalPack
+        }
+      })
+    });
+    return () => {
+      unregisterDebugProvider('drumex');
+    };
+  }, [activePatternId, patterns, activeTab, pattern, kitType, houseKitMic, houseCrashModel, cymbalPack]);
   const [playing, setPlaying]               = useState(false);
   const [looping, setLooping]               = useState(() => drumPrefs.loopPlayback);
   const [countingIn, setCountingIn]         = useState(false);

@@ -1,4 +1,4 @@
-import { setBackHandler, useBackHandler, useChordStore, ACCENT_COLORS, translations, useT, useLiquidGlassNav, useNavCollapsed, setNavCollapsed, useIsWebDesktop } from '@workspace/studio-core';
+import { setBackHandler, useBackHandler, useChordStore, ACCENT_COLORS, translations, useT, useLiquidGlassNav, useNavCollapsed, setNavCollapsed, useIsWebDesktop, registerDebugProvider, unregisterDebugProvider } from '@workspace/studio-core';
 import { useRef, useEffect, useCallback, useState, useMemo } from 'react';
 import { motion } from 'motion/react';
 import {
@@ -1158,8 +1158,6 @@ ComposedPath: ${path.slice(0, 3).join(' > ')}`;
     return () => window.removeEventListener('message', onMsg);
   }, [showDiagnostics, logDiagnostic]);
 
-  // Register this iframe with the cloud sync engine so it can request
-  // snapshots and push restores through postMessage.
   useEffect(() => {
     let cancelled = false;
     void import('@workspace/studio-core').then(({ registerStageIframe }) => {
@@ -1171,6 +1169,38 @@ ComposedPath: ${path.slice(0, 3).join(' > ')}`;
       void import('@workspace/studio-core').then(({ registerStageIframe }) => registerStageIframe(null));
     };
   }, []);
+
+  useEffect(() => {
+    registerDebugProvider({
+      id: 'stagex',
+      name: 'Stagex Editor',
+      getDebugState: () => ({
+        activeImplementation: 'Modern Web Adaptation (Android)',
+        activeStageCorePanel: 'v3.6.45',
+        iframeLoaded: !iframeLoading,
+        iframeReady: iframeReady.current,
+        bridgeConnected: iframeReady.current && !iframeLoading,
+        bridgeMessagesSent: diagTaps.sentMsgs,
+        bridgeMessagesReceived: diagTaps.recvMsgs,
+        activeTab: curView,
+        selectedElement: 'none',
+        overlayState: hasOpenOverlay ? 'open' : 'closed',
+        diagTaps,
+        controlState: {
+          Add: { rendered: true, lastError: null },
+          Setup: { rendered: true, lastError: null },
+          Preferences: { rendered: true, lastError: null },
+          Save: { rendered: true, lastError: null },
+          Export: { rendered: true, lastError: null },
+          Visibility: { rendered: true, lastError: null },
+          Rotate: { rendered: true, lastError: null }
+        }
+      })
+    });
+    return () => {
+      unregisterDebugProvider('stagex');
+    };
+  }, [iframeLoading, curView, hasOpenOverlay, diagTaps]);
 
   useEffect(() => {
     const iframe = iframeRef.current;

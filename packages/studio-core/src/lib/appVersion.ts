@@ -26,7 +26,7 @@ import { useMemo } from 'react';
 import { Capacitor } from '@capacitor/core';
 
 /** Canonical semver string used by the OTA comparator. */
-export const NATIVE_VERSION = '3.6.45';
+export const NATIVE_VERSION = '3.6.46';
 export const WEB_VERSION = '4.0.0';
 export const APP_VERSION = Capacitor.isNativePlatform() ? NATIVE_VERSION : WEB_VERSION;
 
@@ -38,11 +38,11 @@ export const APP_VERSION_LABEL = `${APP_VERSION_TAG} ${APP_VERSION}`;
 
 /** Release date for the CURRENT bundle, shown alongside the version pill
  *  in the changelog sheet. ISO-8601 (`YYYY-MM-DD`). */
-export const APP_VERSION_DATE = '2026-06-19'; // 3.6.44
+export const APP_VERSION_DATE = '2026-06-20'; // 3.6.46
 // Note: keep ISO-8601. Bump together with APP_VERSION on each release.
 
 export const APP_COMMIT_SHA = import.meta.env.VITE_GIT_COMMIT_SHA || 'c9e77a16';
-export const APP_BUILD_TIMESTAMP = import.meta.env.VITE_BUILD_TIMESTAMP || '6/19/2026, 4:08:00 PM CST';
+export const APP_BUILD_TIMESTAMP = import.meta.env.VITE_BUILD_TIMESTAMP || '6/20/2026, 12:00:00 AM CST';
 
 /**
  * Changelog for the CURRENT release — shown to the user the first
@@ -59,12 +59,11 @@ export interface ChangelogSection {
 
 export const APP_CHANGELOG_SECTIONS: ChangelogSection[] = [
   {
-    heading: "Fixed",
+    heading: "Added",
     items: [
-      "Reverted the old Stagex restoration and adapted the modern Web Stagex design for Android.",
-      "Fixed layout alignment to prevent bottom navigation overlaps on Samsung SM-S921B.",
-      "Resolved cross-frame SecurityErrors by implementing asynchronous postMessage channels.",
-      "Restored functional Stagex controls: Add picker, Setup/Preferences tabs, Save, PDF export, and Back-to-Hub navigation.",
+      "Created a centralized Developer Tools / Debugging Tools system accessible via Settings.",
+      "Support for runtime log, error, event, performance, and network sniffing.",
+      "App-specific diagnostic panels for Chordex, Stagex, Drumex, Groovex, Vocalex, and Hub.",
     ],
   },
 ];
@@ -72,13 +71,11 @@ export const APP_CHANGELOG_SECTIONS: ChangelogSection[] = [
 /** Native English version of the current changelog for Android. */
 export const APP_CHANGELOG_SECTIONS_NATIVE: ChangelogSection[] = [
   {
-    heading: "Fixed",
+    heading: "Added",
     items: [
-      "Restored stable Stagex editor functionality and touch controls on Android.",
-      "Optimized Android WebView performance and Hub transition times.",
-      "Corrected Stagex plus-button and element-picker interaction.",
-      "Restored Setup and Preferences tab switching within Stagex.",
-      "Fixed elements scaling, rotation, deletion, and selection on canvas.",
+      "Created a centralized Developer Tools system accessible via Settings.",
+      "Added support for runtime log, error, event, performance, and network sniffing.",
+      "Added app-specific diagnostic panels for Chordex, Stagex, Drumex, Groovex, Vocalex, and Hub.",
     ],
   },
 ];
@@ -87,13 +84,11 @@ export const APP_CHANGELOG_SECTIONS_NATIVE: ChangelogSection[] = [
  *  by `ChangelogSheet` based on `settings.language`. */
 export const APP_CHANGELOG_SECTIONS_ES: ChangelogSection[] = [
   {
-    heading: "Corregido",
+    heading: "Añadido",
     items: [
-      "Restaurada la funcionalidad estable del editor Stagex y sus controles táctiles en Android.",
-      "Rendimiento de Android WebView optimizado y tiempos de transición de Hub reducidos.",
-      "Corregida la interacción del botón más y el selector de elementos en Stagex.",
-      "Restaurado el cambio de pestañas de Setup y Preferences en Stagex.",
-      "Corregida la rotación, escalado, eliminación y selección de elementos en el lienzo.",
+      "Creado un sistema centralizado de herramientas de desarrollo accesible a través de Configuración.",
+      "Añadido soporte para registro en tiempo de ejecución, errores, eventos, rendimiento y red.",
+      "Paneles de diagnóstico específicos para Chordex, Stagex, Drumex, Groovex, Vocalex y Hub.",
     ],
   },
 ];
@@ -101,24 +96,11 @@ export const APP_CHANGELOG_SECTIONS_ES: ChangelogSection[] = [
 /** German version of the current changelog. */
 export const APP_CHANGELOG_SECTIONS_DE: ChangelogSection[] = [
   {
-    heading: "Behoben",
+    heading: "Hinzugefügt",
     items: [
-      "Wiederherstellung des Bereichswechsels in der Stagex-Navigation unten.",
-      "Korrektur der Interaktion von Plus-Button und Element-Picker in Stagex.",
-      "Korrektur des Verhaltens der Augensymbol- und Sichtbarkeitssteuerung.",
-      "Korrektur der parent-to-iframe Befehlsübertragungen in Android WebView.",
-      "Verbesserte Steuerung für ausgewählte Elemente.",
-      "Verhindert, dass Übergangszustände Studio auf einem schwarzen Bildschirm hinterlassen.",
-      "Wiederherstellungsaktionen bei fehlgeschlagenem Laden von Studio-Modulen hinzugefügt.",
-    ],
-  },
-  {
-    heading: "Verbessert",
-    items: [
-      "Zusammenführung von Hilfe-Center und FAQ & Support in Hilfe & Support.",
-      "Durchsuchbare Support-Inhalte und funktionale Fehlerbehebungsaktionen hinzugefügt.",
-      "Verbesserte Übergangsbereinigung beim Wechsel zwischen Studio-Apps.",
-      "Verbesserte Stagex Interaktionsdiagnosen und Ereignisbehandlung.",
+      "Zentrales Entwicklertools-System über die Einstellungen hinzugefügt.",
+      "Unterstützung für Laufzeit-Logs, Fehler, Events, Performance und Netzwerk-Sniffing.",
+      "App-spezifische Diagnose-Panels für Chordex, Stagex, Drumex, Groovex, Vocalex und Hub.",
     ],
   },
 ];

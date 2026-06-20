@@ -1,4 +1,4 @@
-import { useBackHandler, useChordStore, ACCENT_COLORS, type AppKey, useT, resetNav, setNavCollapsed, useNavHidden, useNavCollapsed, useLiquidGlassNav, useIsWebDesktop } from '@workspace/studio-core';
+import { useBackHandler, useChordStore, ACCENT_COLORS, type AppKey, useT, resetNav, setNavCollapsed, useNavHidden, useNavCollapsed, useLiquidGlassNav, useIsWebDesktop, registerDebugProvider, unregisterDebugProvider } from '@workspace/studio-core';
 import { useState, useRef, useEffect, lazy, Suspense } from 'react';
 import { AppModeMenuLogo } from '../components/AppModeMenuLogo';
 import { subscribeVocalexBack } from './headerBack';
@@ -115,6 +115,24 @@ export default function VocalexApp() {
     }
     return false;
   })();
+
+  useEffect(() => {
+    registerDebugProvider({
+      id: 'vocalex',
+      name: 'Vocalex App',
+      getDebugState: () => ({
+        activeTab,
+        visibleTab,
+        exitingTab,
+        slideDirection: slideDir,
+        accentColor: activeVis.accentColor,
+        isLight
+      })
+    });
+    return () => {
+      unregisterDebugProvider('vocalex');
+    };
+  }, [activeTab, visibleTab, exitingTab, slideDir, activeVis.accentColor, isLight]);
 
   const durMs = settings.animationSpeed === 'fast' ? 200 : settings.animationSpeed === 'reduced' ? 0 : 280;
 

@@ -1,4 +1,7 @@
-import { tolgee } from '@workspace/studio-core';
+import { tolgee, initDevToolsFramework } from '@workspace/studio-core';
+
+// Initialize DevTools
+initDevToolsFramework();
 import { createRoot } from "react-dom/client";
 import { TolgeeProvider } from "@tolgee/react";
 import App from "./App";

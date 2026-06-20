@@ -1,4 +1,4 @@
-import { useScrollHide, getChordById, getRelatedChords, suggestNextChord, useChordStore, ACCENT_COLORS, useT, setBackHandler, playChord, stopChordPlayback, type GuitarChordData, useIsWebDesktop } from '@workspace/studio-core';
+import { useScrollHide, getChordById, getRelatedChords, suggestNextChord, useChordStore, ACCENT_COLORS, useT, setBackHandler, playChord, stopChordPlayback, type GuitarChordData, useIsWebDesktop, registerDebugProvider, unregisterDebugProvider } from '@workspace/studio-core';
 import React, { useState, useCallback, useMemo, useRef, useEffect } from 'react';
 import AnimatedActionButton from '../components/animata/container/animated-border-trail';
 import GuitarDiagram from '../components/GuitarDiagram';
@@ -72,6 +72,26 @@ export default function ChordPanel() {
   const [showFinder, setShowFinder] = useState(false);
   const [showGenerator, setShowGenerator] = useState(false);
   const [chordPlaying, setChordPlaying] = useState(false);
+
+  useEffect(() => {
+    registerDebugProvider({
+      id: 'chordex',
+      name: 'Chordex Editor',
+      getDebugState: () => ({
+        selectedChordId,
+        activePanel,
+        currentProgressionChords,
+        recentChordsCount: recentChords?.length || 0,
+        transposeState: useChordStore.getState().transpositions,
+        finderOpen: showFinder,
+        generatorOpen: showGenerator,
+        playingState: chordPlaying ? 'playing' : 'stopped'
+      })
+    });
+    return () => {
+      unregisterDebugProvider('chordex');
+    };
+  }, [selectedChordId, activePanel, currentProgressionChords, recentChords, showFinder, showGenerator, chordPlaying]);
 
   // Register back handler when Chord panel is active and the finder is open.
   // Generator owns its own back-handler while open (registered in the modal),

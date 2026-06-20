@@ -70,5 +70,7 @@ export { useGroovexStore } from './groovex/useGroovexStore';
 export { AppModeMenuLogo } from './components/AppModeMenuLogo';
 export { WebToolbar, WebButton } from './components/WebDesignSystem';
 export { default as WebAppSectionDock } from './components/WebAppSectionDock';
+export { default as DevToolsDashboard } from './components/DevToolsDashboard';
+
 
 
