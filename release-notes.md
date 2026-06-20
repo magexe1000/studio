@@ -1,4 +1,7 @@
 ### Added
-- Created a centralized Developer Tools / Debugging Tools system accessible via Settings.
-- Support for runtime log, error, event, performance, and network sniffing.
-- App-specific diagnostic panels for Chordex, Stagex, Drumex, Groovex, Vocalex, and Hub.
+- Upgraded the Developer Tools UI to be fully phone-adapted with collapsible sections and safe area layouts.
+- Added a dedicated Stagex diagnostics panel showing detailed postMessage ACK telemetry.
+- Preserved the legacy Update Diagnostics page and added sub-navigation.
+
+### Fixed
+- Fixed the Stagex iframe postMessage ACK bridge error by adding robust try-catch wrapping and diagnostics.
