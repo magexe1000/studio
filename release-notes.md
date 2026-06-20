@@ -1,6 +1,8 @@
 ### Added
-- Dedicated Warnings Inspector in Developer Tools with duplicate count grouping and mobile-friendly scrolling.
+- Integrated Warnings Inspector inside the Logs view in Developer Tools.
+- Added Missing Assets sniffer to Network Request tab to group and diagnose 404 errors.
 
 ### Fixed
-- Resolved console module parsing bug to correctly categorize system and infrastructure warnings under true source modules instead of defaulting to Studio Hub.
-- Refined Stagex landscape layout, removing bottom collapse arrows, center-aligning left toolbar vertically, and elevating the vertical drawer to clear FAB/Eye buttons.
+- Packaged complete Drumex audio assets inside the APK, preventing 404 remote preloading issues.
+- Fixed 'View Warnings' WebView touch propagation and overlay response delays on Android.
+- Polished Stagex landscape mode: adjusted canvas zoom, decreased toolbar toggle size, increased scenes tab touch targets with ontouchend fast-tap, and positioned element drawer above Add button.

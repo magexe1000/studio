@@ -867,7 +867,15 @@ export default function DevToolsDashboard({ accent, onBack }: Props) {
             </span>
           </div>
           <button
-            onClick={() => setShowWarnings(!showWarnings)}
+            onClick={(e) => {
+              e.stopPropagation();
+              setShowWarnings(!showWarnings);
+            }}
+            onTouchEnd={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              setShowWarnings(!showWarnings);
+            }}
             style={{
               padding: '4px 10px',
               borderRadius: '6px',
@@ -887,7 +895,15 @@ export default function DevToolsDashboard({ accent, onBack }: Props) {
           <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginTop: 4 }}>
             <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
               <button
-                onClick={handleCopyAll}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleCopyAll();
+                }}
+                onTouchEnd={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  handleCopyAll();
+                }}
                 style={{
                   padding: '4px 8px',
                   borderRadius: '6px',
@@ -965,7 +981,15 @@ export default function DevToolsDashboard({ accent, onBack }: Props) {
 
                   <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 2 }}>
                     <button
-                      onClick={() => handleCopyWarning(w.message, w.module)}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleCopyWarning(w.message, w.module);
+                      }}
+                      onTouchEnd={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        handleCopyWarning(w.message, w.module);
+                      }}
                       style={{
                         padding: '2px 6px',
                         borderRadius: '4px',
@@ -1318,51 +1342,184 @@ export default function DevToolsDashboard({ accent, onBack }: Props) {
     </div>
   );
 
-  const renderNetworkTab = () => (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <span style={{ fontSize: 13, fontWeight: 700 }}>Network Request Sniffer</span>
-        <button onClick={clearNetworkRequests} style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)', color: '#fff', borderRadius: 6, fontSize: 10, padding: '4px 10px', cursor: 'pointer' }}>
-          Clear
-        </button>
-      </div>
-      
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-        {network.length === 0 ? (
-          <div style={{ textAlign: 'center', padding: 20, color: 'rgba(255,255,255,0.4)', fontSize: 12 }}>No HTTP requests logged.</div>
-        ) : (
-          network.slice().reverse().map((req, i) => {
-            const isError = req.error || (req.status && req.status >= 400);
-            const color = isError ? '#ef4444' : '#10b981';
-            return (
-              <div key={i} style={{
-                padding: 12,
-                background: 'rgba(255,255,255,0.02)',
-                border: `1px solid ${isError ? 'rgba(239,68,68,0.2)' : 'rgba(255,255,255,0.06)'}`,
-                borderRadius: 10
-              }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11, fontFamily: 'monospace', marginBottom: 6 }}>
-                  <span style={{ color: '#fbbf24', fontWeight: 800 }}>{req.method}</span>
-                  <span style={{ color }}>{req.status ? `HTTP ${req.status}` : req.error ? 'FAILED' : 'PENDING'}</span>
+  const renderNetworkTab = () => {
+    const missingAssets = network.reduce((acc, req) => {
+      if (req.status === 404) {
+        let pathOnly = req.url;
+        try {
+          const urlObj = new URL(req.url);
+          pathOnly = urlObj.pathname;
+        } catch {
+          const queryIdx = req.url.indexOf('?');
+          pathOnly = queryIdx >= 0 ? req.url.substring(0, queryIdx) : req.url;
+        }
+
+        let module = 'general';
+        const lowerPath = pathOnly.toLowerCase();
+        if (lowerPath.includes('drums/')) {
+          module = 'drumex';
+        } else if (lowerPath.includes('stage-core/') || lowerPath.includes('stagex/')) {
+          module = 'stagex';
+        } else if (lowerPath.includes('chordex/')) {
+          module = 'chordex';
+        } else if (lowerPath.includes('groovex/')) {
+          module = 'groovex';
+        } else if (lowerPath.includes('vocalex/')) {
+          module = 'vocalex';
+        }
+
+        let suggestedCause = 'Asset missing from local build assets.';
+        if (lowerPath.includes('drums/')) {
+          suggestedCause = 'Drums asset ignored by aapt packaging rule or missing from public/drums.';
+        } else if (lowerPath.endsWith('.map')) {
+          suggestedCause = 'Source maps excluded in production build.';
+        }
+
+        const existing = acc.find(a => a.path === pathOnly);
+        if (existing) {
+          existing.count++;
+          if (req.timestamp < existing.firstSeen) existing.firstSeen = req.timestamp;
+          if (req.timestamp > existing.lastSeen) existing.lastSeen = req.timestamp;
+        } else {
+          acc.push({
+            path: pathOnly,
+            count: 1,
+            firstSeen: req.timestamp,
+            lastSeen: req.timestamp,
+            module,
+            suggestedCause
+          });
+        }
+      }
+      return acc;
+    }, [] as Array<{
+      path: string;
+      count: number;
+      firstSeen: number;
+      lastSeen: number;
+      module: string;
+      suggestedCause: string;
+    }>);
+
+    return (
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <span style={{ fontSize: 13, fontWeight: 700 }}>Network Request Sniffer</span>
+          <button onClick={clearNetworkRequests} style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)', color: '#fff', borderRadius: 6, fontSize: 10, padding: '4px 10px', cursor: 'pointer' }}>
+            Clear
+          </button>
+        </div>
+
+        {missingAssets.length > 0 && (
+          <div style={{
+            background: 'rgba(239, 68, 68, 0.05)',
+            border: '1px solid rgba(239, 68, 68, 0.15)',
+            borderRadius: 12,
+            padding: 14,
+            display: 'flex',
+            flexDirection: 'column',
+            gap: 10
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+              <span className="material-symbols-outlined" style={{ color: '#ef4444', fontSize: 18 }}>error</span>
+              <span style={{ fontSize: '13px', fontWeight: 800, color: '#ef4444' }}>
+                Missing Assets ({missingAssets.length})
+              </span>
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8, maxHeight: 180, overflowY: 'auto' }}>
+              {missingAssets.map((asset, idx) => (
+                <div key={idx} style={{
+                  padding: '8px 10px',
+                  background: 'rgba(0,0,0,0.2)',
+                  borderRadius: '8px',
+                  border: '1px solid rgba(255,255,255,0.04)',
+                  fontSize: '11px',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: 4
+                }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                      <span style={{
+                        background: 'rgba(239, 68, 68, 0.1)',
+                        color: '#ef4444',
+                        padding: '1px 5px',
+                        borderRadius: '4px',
+                        fontWeight: 700,
+                        fontSize: '9px'
+                      }}>404</span>
+                      <span style={{ color: 'rgba(255,255,255,0.4)', fontWeight: 600 }}>
+                        Module: {asset.module}
+                      </span>
+                      {asset.count > 1 && (
+                        <span style={{
+                          background: 'rgba(255,255,255,0.1)',
+                          color: '#fff',
+                          padding: '1px 5px',
+                          borderRadius: '4px',
+                          fontWeight: 700,
+                          fontSize: '9px'
+                        }}>
+                          ×{asset.count}
+                        </span>
+                      )}
+                    </div>
+                    <span style={{ color: 'rgba(255,255,255,0.25)', fontSize: '9px' }}>
+                      Seen: {new Date(asset.lastSeen).toLocaleTimeString()}
+                    </span>
+                  </div>
+                  <div style={{ color: '#fff', wordBreak: 'break-all', fontFamily: 'monospace', fontWeight: 600 }}>
+                    {asset.path}
+                  </div>
+                  <div style={{ color: '#ef4444', opacity: 0.9, fontSize: '10px' }}>
+                    <strong>Cause:</strong> {asset.suggestedCause}
+                  </div>
+                  <div style={{ color: 'rgba(255,255,255,0.3)', fontSize: '9px' }}>
+                    First seen: {new Date(asset.firstSeen).toLocaleTimeString()}
+                  </div>
                 </div>
-                <div style={{ fontSize: 12, wordBreak: 'break-all', fontFamily: 'monospace', color: '#fff' }}>{req.url}</div>
-                {req.headers && Object.keys(req.headers).length > 0 && (
-                  <div style={{ marginTop: 6, fontSize: 10, color: 'rgba(255,255,255,0.4)', fontFamily: 'monospace' }}>
-                    Headers: {JSON.stringify(req.headers)}
-                  </div>
-                )}
-                {req.error && (
-                  <div style={{ marginTop: 6, fontSize: 11, color: '#fca5a5', fontFamily: 'monospace' }}>
-                    Error: {req.error}
-                  </div>
-                )}
-              </div>
-            );
-          })
+              ))}
+            </div>
+          </div>
         )}
+
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+          {network.length === 0 ? (
+            <div style={{ textAlign: 'center', padding: 20, color: 'rgba(255,255,255,0.4)', fontSize: 12 }}>No HTTP requests logged.</div>
+          ) : (
+            network.slice().reverse().map((req, i) => {
+              const isError = req.error || (req.status && req.status >= 400);
+              const color = isError ? '#ef4444' : '#10b981';
+              return (
+                <div key={i} style={{
+                  padding: 12,
+                  background: 'rgba(255,255,255,0.02)',
+                  border: `1px solid ${isError ? 'rgba(239,68,68,0.2)' : 'rgba(255,255,255,0.06)'}`,
+                  borderRadius: 10
+                }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11, fontFamily: 'monospace', marginBottom: 6 }}>
+                    <span style={{ color: '#fbbf24', fontWeight: 800 }}>{req.method}</span>
+                    <span style={{ color }}>{req.status ? `HTTP ${req.status} ${req.statusText || ''}`.trim() : req.error ? 'FAILED' : 'PENDING'}</span>
+                  </div>
+                  <div style={{ fontSize: 12, wordBreak: 'break-all', fontFamily: 'monospace', color: '#fff' }}>{req.url}</div>
+                  {req.headers && Object.keys(req.headers).length > 0 && (
+                    <div style={{ marginTop: 6, fontSize: 10, color: 'rgba(255,255,255,0.4)', fontFamily: 'monospace' }}>
+                      Headers: {JSON.stringify(req.headers)}
+                    </div>
+                  )}
+                  {req.error && (
+                    <div style={{ marginTop: 6, fontSize: 11, color: '#fca5a5', fontFamily: 'monospace' }}>
+                      Error: {req.error}
+                    </div>
+                  )}
+                </div>
+              );
+            })
+          )}
+        </div>
       </div>
-    </div>
-  );
+    );
+  };
 
   const renderStorageTab = () => (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
@@ -1950,6 +2107,7 @@ export default function DevToolsDashboard({ accent, onBack }: Props) {
             {activeTab === 'errors' && renderErrorsTab()}
             {activeTab === 'events' && renderEventsTab()}
             {activeTab === 'nav' && renderNavTab()}
+            <WarningsInspector />
           </div>
         </div>
       )}

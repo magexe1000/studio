@@ -5775,16 +5775,16 @@ function renderScenesBar() {
   const tabsHtml = state.scenes.map((s, i) => {
     const active = (i === state.currentSceneIdx);
     return `
-      <button onclick="switchScene(${i})" title="${s.name}"
+      <button onclick="switchScene(${i})" ontouchend="event.preventDefault();switchScene(${i})" title="${s.name}"
         oncontextmenu="event.preventDefault();renameScenePrompt(${i});return false;"
         class="sc-scene-btn ${active ? 'active' : ''}">
         <span>${s.name}</span>
-        ${state.scenes.length > 1 ? `<span onclick="event.stopPropagation();removeScene(${i})" class="sc-scene-close">×</span>` : ''}
+        ${state.scenes.length > 1 ? `<span onclick="event.stopPropagation();removeScene(${i})" ontouchend="event.preventDefault();event.stopPropagation();removeScene(${i})" class="sc-scene-close">×</span>` : ''}
       </button>`;
   }).join('');
   
   const addHtml = state.scenes.length < SCENES_MAX
-    ? `<button onclick="addScene()" title="${state.lang === 'es' ? 'Añadir escena' : 'Add scene'}" class="sc-scene-add-btn">
+    ? `<button onclick="addScene()" ontouchend="event.preventDefault();addScene()" title="${state.lang === 'es' ? 'Añadir escena' : 'Add scene'}" class="sc-scene-add-btn">
          <span class="material-symbols-outlined" style="font-size:14px;line-height:1;">add</span>
        </button>`
     : '';

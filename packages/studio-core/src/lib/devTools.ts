@@ -304,11 +304,34 @@ export function recordNetworkRequest(method: string, url: string, init?: Request
   return id;
 }
 
+const STATUS_TEXTS: Record<number, string> = {
+  200: 'OK',
+  201: 'Created',
+  204: 'No Content',
+  301: 'Moved Permanently',
+  302: 'Found',
+  304: 'Not Modified',
+  400: 'Bad Request',
+  401: 'Unauthorized',
+  403: 'Forbidden',
+  404: 'Not Found',
+  500: 'Internal Server Error',
+  502: 'Bad Gateway',
+  503: 'Service Unavailable',
+  504: 'Gateway Timeout'
+};
+
 export function recordNetworkResponse(id: string, status: number, statusText: string) {
   const req = networkBuffer.find(n => n.id === id);
   if (req) {
     req.status = status;
-    req.statusText = statusText;
+    let actualStatusText = statusText;
+    if (status === 404) {
+      actualStatusText = 'Not Found';
+    } else if (!actualStatusText) {
+      actualStatusText = STATUS_TEXTS[status] || `HTTP ${status}`;
+    }
+    req.statusText = actualStatusText;
     notifyListeners();
   }
 }

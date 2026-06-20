@@ -26,7 +26,7 @@ import { useMemo } from 'react';
 import { Capacitor } from '@capacitor/core';
 
 /** Canonical semver string used by the OTA comparator. */
-export const NATIVE_VERSION = '3.6.51';
+export const NATIVE_VERSION = '3.6.52';
 export const WEB_VERSION = '4.0.0';
 export const APP_VERSION = Capacitor.isNativePlatform() ? NATIVE_VERSION : WEB_VERSION;
 
@@ -38,7 +38,7 @@ export const APP_VERSION_LABEL = `${APP_VERSION_TAG} ${APP_VERSION}`;
 
 /** Release date for the CURRENT bundle, shown alongside the version pill
  *  in the changelog sheet. ISO-8601 (`YYYY-MM-DD`). */
-export const APP_VERSION_DATE = '2026-06-20'; // 3.6.51
+export const APP_VERSION_DATE = '2026-06-20'; // 3.6.52
 // Note: keep ISO-8601. Bump together with APP_VERSION on each release.
 
 export const APP_COMMIT_SHA = import.meta.env.VITE_GIT_COMMIT_SHA || '78ef3651';
@@ -61,14 +61,16 @@ export const APP_CHANGELOG_SECTIONS: ChangelogSection[] = [
   {
     heading: "Added",
     items: [
-      "Dedicated Warnings Inspector in Developer Tools with duplicate count grouping and mobile-friendly scrolling.",
+      "Integrated Warnings Inspector inside the Logs view in Developer Tools.",
+      "Added Missing Assets sniffer to Network Request tab to group and diagnose 404 errors.",
     ],
   },
   {
     heading: "Fixed",
     items: [
-      "Resolved console module parsing bug to correctly categorize system and infrastructure warnings under true source modules instead of defaulting to Studio Hub.",
-      "Refined Stagex landscape layout, removing bottom collapse arrows, center-aligning left toolbar vertically, and elevating the vertical drawer to clear FAB/Eye buttons.",
+      "Packaged complete Drumex audio assets inside the APK, preventing 404 remote preloading issues.",
+      "Fixed 'View Warnings' WebView touch propagation and overlay response delays on Android.",
+      "Polished Stagex landscape mode: adjusted canvas zoom, decreased toolbar toggle size, increased scenes tab touch targets with ontouchend fast-tap, and positioned element drawer above Add button.",
     ],
   },
 ];
