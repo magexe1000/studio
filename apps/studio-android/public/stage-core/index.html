@@ -55,6 +55,37 @@
     if (sc_s.amoled) document.documentElement.setAttribute('data-amoled', '1');
   } catch(e) {}
 })();
+
+window.logIframeDiagnostic = function (detail, extra) {
+  try {
+    var payload = { type: 'sc-diagnostic', detail: detail };
+    if (extra) {
+      for (var key in extra) {
+        if (extra.hasOwnProperty(key)) {
+          payload[key] = extra[key];
+        }
+      }
+    }
+    window.parent.postMessage(payload, '*');
+  } catch (e) {}
+};
+
+window.addEventListener('error', function (e) {
+  window.logIframeDiagnostic('sc-runtime-error', {
+    error: e.message || String(e.error),
+    stack: e.error && e.error.stack ? e.error.stack : '',
+    source: e.filename ? e.filename + ':' + e.lineno + ':' + e.colno : 'window.onerror'
+  });
+});
+
+window.addEventListener('unhandledrejection', function (e) {
+  var reason = e.reason || '';
+  window.logIframeDiagnostic('sc-runtime-error', {
+    error: reason.message || String(reason),
+    stack: reason.stack || '',
+    source: 'unhandledrejection'
+  });
+});
 </script>
 <base href="/stage-core/">
 <meta charset="utf-8"/>
@@ -5031,36 +5062,7 @@ window.addEventListener('message', function(e) {
    * React parent posts { type:'sc-call', fn:'functionName', arg?:'...' }  *
    * We look up the function in window and call it.  This works even when   *
    * contentWindow direct access is restricted by the Android WebView.      */
-  function logIframeDiagnostic(detail, extra) {
-    try {
-      var payload = { type: 'sc-diagnostic', detail: detail };
-      if (extra) {
-        for (var key in extra) {
-          if (extra.hasOwnProperty(key)) {
-            payload[key] = extra[key];
-          }
-        }
-      }
-      window.parent.postMessage(payload, '*');
-    } catch (e) {}
-  }
-
-  window.addEventListener('error', function (e) {
-    logIframeDiagnostic('sc-runtime-error', {
-      error: e.message || String(e.error),
-      stack: e.error && e.error.stack ? e.error.stack : '',
-      source: e.filename ? e.filename + ':' + e.lineno + ':' + e.colno : 'window.onerror'
-    });
-  });
-
-  window.addEventListener('unhandledrejection', function (e) {
-    var reason = e.reason || '';
-    logIframeDiagnostic('sc-runtime-error', {
-      error: reason.message || String(reason),
-      stack: reason.stack || '',
-      source: 'unhandledrejection'
-    });
-  });
+  var logIframeDiagnostic = window.logIframeDiagnostic;
 
   logIframeDiagnostic('sc-runtime-ready');
   logIframeDiagnostic('sc-listener-installed');
@@ -5110,13 +5112,36 @@ window.addEventListener('message', function(e) {
 
     logIframeDiagnostic('sc-command-received', { fn: fn });
 
-    var target = window[fn];
-    if (typeof target === 'function') {
+    var handler = null;
+    if (fn === 'switchView') {
+      handler = window.switchView;
+    } else if (fn === 'toggleSCDial') {
+      handler = window.toggleSCDial;
+    } else if (fn === 'toggleGigMode') {
+      handler = window.toggleGigMode;
+    } else if (fn === 'stageGoBack') {
+      handler = window.stageGoBack;
+    } else if (fn === 'openPresetsPanel') {
+      handler = window.openPresetsPanel;
+    } else if (fn === 'exportPDFWithOptions') {
+      handler = window.exportPDFWithOptions;
+    } else {
+      handler = window[fn];
+    }
+
+    if (typeof handler === 'function') {
       try {
-        arg !== undefined ? target(arg) : target();
+        arg !== undefined ? handler(arg) : handler();
         logIframeDiagnostic('sc-command-dispatched', { fn: fn });
         if (msgId) {
-          window.parent.postMessage({ type: 'sc-ack', msgId: msgId, fn: fn }, '*');
+          window.parent.postMessage({
+            type: 'sc-ack',
+            msgId: msgId,
+            command: fn,
+            status: 'success',
+            handlerName: fn,
+            error: ''
+          }, '*');
           logIframeDiagnostic('sc-ack-sent', { fn: fn, msgId: msgId });
         }
       } catch (err) {
@@ -5124,9 +5149,29 @@ window.addEventListener('message', function(e) {
           fn: fn,
           error: err.message || String(err)
         });
+        if (msgId) {
+          window.parent.postMessage({
+            type: 'sc-nack',
+            msgId: msgId,
+            command: fn,
+            status: 'error',
+            handlerName: fn,
+            error: err.message || String(err)
+          }, '*');
+        }
       }
     } else {
       logIframeDiagnostic('sc-command-handler-missing', { fn: fn });
+      if (msgId) {
+        window.parent.postMessage({
+          type: 'sc-nack',
+          msgId: msgId,
+          command: fn,
+          status: 'missing',
+          handlerName: fn,
+          error: 'Handler missing or not a function'
+        }, '*');
+      }
     }
   }, false);
 

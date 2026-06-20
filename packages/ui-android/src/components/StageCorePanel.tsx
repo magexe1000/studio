@@ -1188,6 +1188,36 @@ ComposedPath: ${path.slice(0, 3).join(' > ')}`;
         return;
       }
 
+      if (e.data?.type === 'sc-nack') {
+        const msgId = e.data.msgId;
+        const cmd = e.data.command || 'unknown';
+        const status = e.data.status || 'unknown';
+        const handlerName = e.data.handlerName || 'unknown';
+        const errorMsg = e.data.error || 'unknown error';
+
+        if (pendingAcks.current.has(msgId)) {
+          clearTimeout(pendingAcks.current.get(msgId)!.timer);
+          pendingAcks.current.delete(msgId);
+          logDiagnostic(`[NACK] Received NACK for command: ${cmd} (status: ${status}, error: ${errorMsg})`);
+        }
+
+        const diagnostics = getStagexDiagnostics();
+        const missingHandlers = [...(diagnostics.missingHandlers || [])];
+        if (status === 'missing' && !missingHandlers.includes(handlerName)) {
+          missingHandlers.push(handlerName);
+        }
+
+        updateStagexDiagnostics({
+          nackCount: diagnostics.nackCount + 1,
+          lastNack: cmd,
+          lastMissingHandler: status === 'missing' ? handlerName : diagnostics.lastMissingHandler,
+          lastFailedHandler: status === 'error' ? handlerName : diagnostics.lastFailedHandler,
+          lastError: status === 'error' ? `Handler error in command ${cmd}: ${errorMsg}` : diagnostics.lastError,
+          missingHandlers
+        });
+        return;
+      }
+
       if (e.data?.type === 'sc-dial-state') setFabOpen(!!e.data.open);
       if (e.data?.type === 'sc-scroll-dir') setNavCollapsed(!!e.data.down);
       if (e.data?.type === 'sc-prop-state') setPropPanelOpen(e.data.state === 'open' || e.data.state === 'peek');

@@ -5822,6 +5822,11 @@ window.duplicateScene = duplicateScene;
 window.addSceneFromSheet = addSceneFromSheet;
 window.removeSceneFromSheet = removeSceneFromSheet;
 
+window.switchView = switchView;
+window.toggleSCDial = toggleSCDial;
+window.toggleGigMode = toggleGigMode;
+window.openPresetsPanel = openPresetsPanel;
+
 function setAutosaveUI(mode) {
   const dot = document.getElementById('autosave-dot');
   const lbl = document.getElementById('status-save');
@@ -6040,60 +6045,6 @@ function removeScene(idx) {
     saveProject();
   }, { title: title, okText: deleteBtnText, cancelText: cancelBtnText, isDestructive: true });
 }
-
-function renderScenesBar() {
-  const bar = document.getElementById('sc-scenes-bar');
-  if (!bar) return;
-  _ensureScenes();
-  if (state.currentView !== 'Editor') {
-    bar.style.display = 'none';
-    return;
-  }
-  bar.style.display = 'flex';
-  const tabsHtml = state.scenes.map((s, i) => {
-    const active = (i === state.currentSceneIdx);
-    return `
-      <button onclick="switchScene(${i})" title="${s.name}"
-        oncontextmenu="event.preventDefault();renameScenePrompt(${i});return false;"
-        class="sc-scene-btn ${active ? 'active' : ''}">
-        <span>${s.name}</span>
-        ${state.scenes.length > 1 ? `<span onclick="event.stopPropagation();removeScene(${i})" class="sc-scene-close">×</span>` : ''}
-      </button>`;
-  }).join('');
-  
-  const addHtml = state.scenes.length < SCENES_MAX
-    ? `<button onclick="addScene()" title="${state.lang === 'es' ? 'Añadir escena' : 'Add scene'}" class="sc-scene-add-btn">
-         <span class="material-symbols-outlined" style="font-size:14px;line-height:1;">add</span>
-       </button>`
-    : '';
-
-  bar.innerHTML = DOMPurify.sanitize(
-    `<span class="sc-scene-label">${state.lang === 'es' ? 'Escenas' : 'Scenes'}</span>` +
-    tabsHtml + addHtml
-  );
-  requestAnimationFrame(positionScenesBar);
-}
-
-function positionScenesBar() {}
-
-function renameScenePrompt(idx) {
-  _ensureScenes();
-  if (idx < 0 || idx >= state.scenes.length) return;
-  const cur = state.scenes[idx].name;
-  const nv = window.prompt(state.lang === 'es' ? 'Nombre de la escena:' : 'Scene name:', cur);
-  if (nv == null) return;
-  const v = String(nv).trim().slice(0, 24);
-  if (!v) return;
-  state.scenes[idx].name = v;
-  renderScenesBar();
-  saveProject();
-}
-
-// Expose for inline onclick handlers
-window.switchScene = switchScene;
-window.addScene = addScene;
-window.removeScene = removeScene;
-window.renameScenePrompt = renameScenePrompt;
 
 // ══════════════════════════════════════════════════════════
 //  SAVE / EXPORT
@@ -9535,6 +9486,7 @@ function downloadQRCode() {
         }
       } catch (e) {}
     }
+  }
   window.stageHasOpenOverlay = function() {
     const ccm = document.getElementById('cable-context-menu');
     if (ccm && ccm.classList.contains('visible')) return true;

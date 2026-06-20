@@ -1720,6 +1720,10 @@ export function registerStageIframe(iframe: HTMLIFrameElement | null) {
   stageIframe = iframe;
 }
 
+export function getStageIframe() {
+  return stageIframe;
+}
+
 function handleStageMessage(data: unknown) {
   if (!data || typeof data !== 'object') return;
   const m = data as { type?: string; data?: StagexSnapshot };

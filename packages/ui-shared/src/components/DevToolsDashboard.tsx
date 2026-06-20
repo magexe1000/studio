@@ -19,7 +19,8 @@ import {
   getStagexDiagnostics,
   resetStagexDiagnostics,
   otaDiagnostics,
-  otaDebugLogs
+  otaDebugLogs,
+  getStageIframe
 } from '@workspace/studio-core';
 
 interface Props {
@@ -34,6 +35,108 @@ export default function DevToolsDashboard({ accent, onBack }: Props) {
   const [subView, setSubView] = useState<'dashboard' | 'updater' | 'stagex'>('dashboard');
   const [activeTab, setActiveTab] = useState<TabId>('logs');
   const [versionUpdates, setVersionUpdates] = useState(0);
+
+  const [expandedLogIndices, setExpandedLogIndices] = useState<Record<number, boolean>>({});
+  const [updaterTabMode, setUpdaterTabMode] = useState<'modern' | 'legacy'>('modern');
+  const [selfTestRunning, setSelfTestRunning] = useState(false);
+  const [selfTestResults, setSelfTestResults] = useState<Array<{
+    command: string;
+    arg?: any;
+    status: 'pending' | 'success' | 'nack_missing' | 'nack_error' | 'timeout';
+    latency?: number;
+    error?: string;
+  }>>([]);
+
+  const runSelfTest = async () => {
+    const iframe = getStageIframe();
+    if (!iframe || !iframe.contentWindow) {
+      showToast('Stagex iframe is not active or available.');
+      return;
+    }
+
+    setSelfTestRunning(true);
+    const tests = [
+      { command: 'switchView', arg: 'SetupHub' },
+      { command: 'switchView', arg: 'Assistant' },
+      { command: 'switchView', arg: 'Editor' },
+      { command: 'toggleSCDial' },
+      { command: 'toggleGigMode' },
+      { command: 'openPresetsPanel' }
+    ];
+
+    const results: typeof selfTestResults = tests.map(t => ({
+      command: t.command,
+      arg: t.arg,
+      status: 'pending'
+    }));
+    setSelfTestResults(results);
+
+    for (let i = 0; i < tests.length; i++) {
+      const test = tests[i];
+      const startTime = performance.now();
+      const msgId = 'test_' + Date.now() + '_' + Math.random().toString(36).substring(2, 9);
+      
+      const runSingleTest = () => {
+        return new Promise<{ status: typeof results[0]['status']; error?: string }>((resolve) => {
+          const listener = (event: MessageEvent) => {
+            const data = event.data;
+            if (!data || typeof data !== 'object') return;
+            if (data.msgId !== msgId) return;
+
+            if (data.type === 'sc-ack') {
+              window.removeEventListener('message', listener);
+              clearTimeout(timer);
+              resolve({ status: 'success' });
+            } else if (data.type === 'sc-nack') {
+              window.removeEventListener('message', listener);
+              clearTimeout(timer);
+              resolve({
+                status: data.status === 'missing' ? 'nack_missing' : 'nack_error',
+                error: data.error || 'NACK received'
+              });
+            }
+          };
+
+          window.addEventListener('message', listener);
+
+          const timer = setTimeout(() => {
+            window.removeEventListener('message', listener);
+            resolve({ status: 'timeout', error: 'No response (timeout after 1500ms)' });
+          }, 1500);
+
+          try {
+            iframe.contentWindow!.postMessage({
+              type: 'sc-call',
+              fn: test.command,
+              arg: test.arg,
+              msgId
+            }, '*');
+          } catch (err: any) {
+            window.removeEventListener('message', listener);
+            clearTimeout(timer);
+            resolve({ status: 'nack_error', error: err.message || String(err) });
+          }
+        });
+      };
+
+      const outcome = await runSingleTest();
+      const latency = Math.round(performance.now() - startTime);
+
+      results[i] = {
+        ...test,
+        status: outcome.status,
+        latency,
+        error: outcome.error
+      };
+      setSelfTestResults([...results]);
+      
+      // Delay slightly between commands to let state settle
+      await new Promise(resolve => setTimeout(resolve, 300));
+    }
+
+    setSelfTestRunning(false);
+    showToast('Stagex Bridge Self-Test completed.');
+  };
 
   // Filters
   const [logLevelFilter, setLogLevelFilter] = useState<'all' | 'info' | 'warn' | 'error'>('all');
@@ -62,6 +165,18 @@ export default function DevToolsDashboard({ accent, onBack }: Props) {
   const perf = useMemo(() => getPerfStats(), [versionUpdates]);
   const activeProviders = useMemo(() => getDebugProviders(), [versionUpdates]);
   const stagex = useMemo(() => getStagexDiagnostics(), [versionUpdates]);
+
+  const errorCount = errors.length + logs.filter(l => l.level === 'error').length;
+  const warningCount = logs.filter(l => l.level === 'warn').length;
+
+  const stagexStatus = useMemo(() => {
+    if (!stagex.iframeMounted) return 'Not Mounted';
+    if (stagex.handlerFailed || stagex.handlerMissing || stagex.timeoutCount > 5) return 'Broken';
+    if (stagex.stageCoreReadyReceived && stagex.iframeListenerInstalled) return 'Connected';
+    return 'Initializing';
+  }, [stagex]);
+
+  const otaStatus = otaDebugLogs.updateDecision || 'Idle';
 
   // Extract unique module list from logs
   const logModules = useMemo(() => {
@@ -208,73 +323,134 @@ export default function DevToolsDashboard({ accent, onBack }: Props) {
   const renderUpdaterView = () => {
     return (
       <div style={{ display: 'flex', flexDirection: 'column', gap: 4, paddingBottom: 'max(20px, env(safe-area-inset-bottom))' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
-          <span style={{ fontSize: 13, fontWeight: 700, color: 'rgba(255,255,255,0.4)' }}>Updater Diagnostics</span>
+        {/* Toggle between Legacy & Modern */}
+        <div style={{ display: 'flex', gap: 6, marginBottom: 12, background: 'rgba(255,255,255,0.03)', padding: 4, borderRadius: 8 }}>
           <button
-            onClick={() => {
-              window.dispatchEvent(new CustomEvent('studio:ota-check-manual'));
-              showToast('Manual update check triggered.');
-            }}
+            onClick={() => setUpdaterTabMode('modern')}
             style={{
-              padding: '6px 12px',
-              borderRadius: 8,
-              background: accent.from,
-              color: '#fff',
+              flex: 1,
+              padding: '6px 10px',
+              borderRadius: 6,
+              background: updaterTabMode === 'modern' ? 'rgba(255,255,255,0.08)' : 'transparent',
+              color: updaterTabMode === 'modern' ? '#fff' : 'rgba(255,255,255,0.4)',
               border: 'none',
               fontFamily: 'Manrope',
-              fontWeight: 700,
               fontSize: '11px',
+              fontWeight: 700,
               cursor: 'pointer'
             }}
           >
-            Check Update
+            Modern Diagnostics
+          </button>
+          <button
+            onClick={() => setUpdaterTabMode('legacy')}
+            style={{
+              flex: 1,
+              padding: '6px 10px',
+              borderRadius: 6,
+              background: updaterTabMode === 'legacy' ? 'rgba(255,255,255,0.08)' : 'transparent',
+              color: updaterTabMode === 'legacy' ? '#fff' : 'rgba(255,255,255,0.4)',
+              border: 'none',
+              fontFamily: 'Manrope',
+              fontSize: '11px',
+              fontWeight: 700,
+              cursor: 'pointer'
+            }}
+          >
+            Legacy Diagnostics
           </button>
         </div>
 
-        <CollapsibleSection
-          title="Device Info"
-          collapsed={updaterCollapsed.device}
-          onToggle={() => setUpdaterCollapsed(prev => ({ ...prev, device: !prev.device }))}
-        >
-          <DiagnosticField label="Device Model" value={otaDiagnostics.deviceModel} />
-          <DiagnosticField label="Android Version" value={otaDiagnostics.androidVersion} />
-          <DiagnosticField label="Permission State" value={otaDiagnostics.permissionState} />
-          <DiagnosticField label="Timestamp" value={otaDiagnostics.timestamp} />
-        </CollapsibleSection>
+        {updaterTabMode === 'modern' ? (
+          <div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+              <span style={{ fontSize: 13, fontWeight: 700, color: 'rgba(255,255,255,0.4)' }}>Modern OTA Telemetry</span>
+              <button
+                onClick={() => {
+                  window.dispatchEvent(new CustomEvent('studio:ota-check-manual'));
+                  showToast('Manual update check triggered.');
+                }}
+                style={{
+                  padding: '6px 12px',
+                  borderRadius: 8,
+                  background: accent.from,
+                  color: '#fff',
+                  border: 'none',
+                  fontFamily: 'Manrope',
+                  fontWeight: 700,
+                  fontSize: '11px',
+                  cursor: 'pointer'
+                }}
+              >
+                Check Update
+              </button>
+            </div>
 
-        <CollapsibleSection
-          title="Update Decision"
-          collapsed={updaterCollapsed.decision}
-          onToggle={() => setUpdaterCollapsed(prev => ({ ...prev, decision: !prev.decision }))}
-        >
-          <DiagnosticField label="Update Decision" value={otaDebugLogs.updateDecision || 'N/A'} />
-          <DiagnosticField label="Update Decision Reason" value={otaDebugLogs.updateDecisionReason || 'N/A'} />
-          <DiagnosticField label="Installed versionCode" value={otaDebugLogs.installedVersionCode !== null ? String(otaDebugLogs.installedVersionCode) : 'N/A'} />
-          <DiagnosticField label="Remote versionCode" value={otaDebugLogs.remoteVersionCode !== null ? String(otaDebugLogs.remoteVersionCode) : 'N/A'} />
-          <DiagnosticField label="Version Comparison" value={otaDebugLogs.versionComparisonResult || 'N/A'} />
-        </CollapsibleSection>
+            <CollapsibleSection
+              title="Modern Download Info"
+              collapsed={updaterCollapsed.ota}
+              onToggle={() => setUpdaterCollapsed(prev => ({ ...prev, ota: !prev.ota }))}
+            >
+              <DiagnosticField label="Download URL Used" value={otaDiagnostics.downloadUrl || 'N/A'} />
+              <DiagnosticField label="APK Path" value={otaDiagnostics.apkPath || 'N/A'} />
+              <DiagnosticField label="File Size" value={otaDiagnostics.fileSize || 'N/A'} />
+              <DiagnosticField label="SHA-256 Expected" value={otaDiagnostics.shaExpected || 'N/A'} />
+              <DiagnosticField label="SHA-256 Calculated" value={otaDiagnostics.shaCalculated || 'N/A'} />
+              <DiagnosticField label="Installer Result" value={otaDiagnostics.installerResult || 'N/A'} />
+            </CollapsibleSection>
+          </div>
+        ) : (
+          <div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+              <span style={{ fontSize: 13, fontWeight: 700, color: 'rgba(255,255,255,0.4)' }}>Legacy Updater Diagnostics</span>
+            </div>
 
-        <CollapsibleSection
-          title="OTA Verification"
-          collapsed={updaterCollapsed.ota}
-          onToggle={() => setUpdaterCollapsed(prev => ({ ...prev, ota: !prev.ota }))}
-        >
-          <DiagnosticField label="Installer App Available" value={String(otaDebugLogs.appInstallerAvailable)} />
-          <DiagnosticField label="Vite App Version" value={otaDebugLogs.appVersion} />
-          <DiagnosticField label="Native Wrapper Version" value={otaDebugLogs.nativeApkVersion || 'N/A'} />
-          <DiagnosticField label="Expected SHA-256" value={otaDiagnostics.shaExpected} />
-          <DiagnosticField label="Calculated SHA-256" value={otaDiagnostics.shaCalculated} />
-        </CollapsibleSection>
+            <CollapsibleSection
+              title="Device Info"
+              collapsed={updaterCollapsed.device}
+              onToggle={() => setUpdaterCollapsed(prev => ({ ...prev, device: !prev.device }))}
+            >
+              <DiagnosticField label="Device Model" value={otaDiagnostics.deviceModel} />
+              <DiagnosticField label="Android Version" value={otaDiagnostics.androidVersion} />
+              <DiagnosticField label="Permission State" value={otaDiagnostics.permissionState} />
+              <DiagnosticField label="Timestamp" value={otaDiagnostics.timestamp} />
+            </CollapsibleSection>
 
-        <CollapsibleSection
-          title="Errors & Stack Trace"
-          collapsed={updaterCollapsed.errors}
-          onToggle={() => setUpdaterCollapsed(prev => ({ ...prev, errors: !prev.errors }))}
-        >
-          <DiagnosticField label="Exception Message" value={otaDiagnostics.exceptionMessage} />
-          <DiagnosticField label="Failure Stack Trace" value={otaDiagnostics.failureReason} isCode />
-          <DiagnosticField label="Installer Result" value={otaDiagnostics.installerResult} isCode />
-        </CollapsibleSection>
+            <CollapsibleSection
+              title="Update Decision"
+              collapsed={updaterCollapsed.decision}
+              onToggle={() => setUpdaterCollapsed(prev => ({ ...prev, decision: !prev.decision }))}
+            >
+              <DiagnosticField label="Update Decision" value={otaDebugLogs.updateDecision || 'N/A'} />
+              <DiagnosticField label="Update Decision Reason" value={otaDebugLogs.updateDecisionReason || 'N/A'} />
+              <DiagnosticField label="Installed versionCode" value={otaDebugLogs.installedVersionCode !== null ? String(otaDebugLogs.installedVersionCode) : 'N/A'} />
+              <DiagnosticField label="Remote versionCode" value={otaDebugLogs.remoteVersionCode !== null ? String(otaDebugLogs.remoteVersionCode) : 'N/A'} />
+              <DiagnosticField label="Version Comparison" value={otaDebugLogs.versionComparisonResult || 'N/A'} />
+            </CollapsibleSection>
+
+            <CollapsibleSection
+              title="OTA Verification"
+              collapsed={updaterCollapsed.ota}
+              onToggle={() => setUpdaterCollapsed(prev => ({ ...prev, ota: !prev.ota }))}
+            >
+              <DiagnosticField label="Installer App Available" value={String(otaDebugLogs.appInstallerAvailable)} />
+              <DiagnosticField label="Vite App Version" value={otaDebugLogs.appVersion} />
+              <DiagnosticField label="Native Wrapper Version" value={otaDebugLogs.nativeApkVersion || 'N/A'} />
+              <DiagnosticField label="Expected SHA-256" value={otaDiagnostics.shaExpected} />
+              <DiagnosticField label="Calculated SHA-256" value={otaDiagnostics.shaCalculated} />
+            </CollapsibleSection>
+
+            <CollapsibleSection
+              title="Errors & Stack Trace"
+              collapsed={updaterCollapsed.errors}
+              onToggle={() => setUpdaterCollapsed(prev => ({ ...prev, errors: !prev.errors }))}
+            >
+              <DiagnosticField label="Exception Message" value={otaDiagnostics.exceptionMessage} />
+              <DiagnosticField label="Failure Stack Trace" value={otaDiagnostics.failureReason} isCode />
+              <DiagnosticField label="Installer Result" value={otaDiagnostics.installerResult} isCode />
+            </CollapsibleSection>
+          </div>
+        )}
       </div>
     );
   };
@@ -288,6 +464,7 @@ export default function DevToolsDashboard({ accent, onBack }: Props) {
           <button
             onClick={() => {
               resetStagexDiagnostics();
+              setSelfTestResults([]);
               showToast('Stagex diagnostics reset.');
             }}
             style={{
@@ -304,6 +481,121 @@ export default function DevToolsDashboard({ accent, onBack }: Props) {
           >
             Reset Stats
           </button>
+        </div>
+
+        {/* ROOT CAUSE DETECTION */}
+        {(stagex.missingHandlers?.length > 0 || stagex.handlerFailed || stagex.timeoutCount > 0 || !stagex.iframeMounted || stagex.lastError !== 'none') && (
+          <div style={{
+            background: 'rgba(239, 68, 68, 0.08)',
+            border: '1px solid rgba(239, 68, 68, 0.25)',
+            borderRadius: '12px',
+            padding: '12px 14px',
+            marginBottom: '12px',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: 6
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6, color: '#ef4444', fontWeight: 800, fontSize: 13 }}>
+              <span className="material-symbols-outlined" style={{ fontSize: 18 }}>warning</span>
+              Root Cause Diagnostics Alert
+            </div>
+            
+            <ul style={{ margin: 0, paddingLeft: 18, fontSize: 11, color: '#fca5a5', display: 'flex', flexDirection: 'column', gap: 4 }}>
+              {!stagex.iframeMounted && (
+                <li><strong>Bridge Failure:</strong> Stagex IFrame is not mounted in the DOM.</li>
+              )}
+              {stagex.iframeMounted && !stagex.stageCoreReadyReceived && (
+                <li><strong>Bridge Failure:</strong> IFrame loaded, but stage-core ready message was never received.</li>
+              )}
+              {stagex.missingHandlers?.length > 0 && (
+                <li><strong>Missing Handlers:</strong> Parent called functions not exported to window: <code style={{ background: 'rgba(0,0,0,0.3)', padding: '2px 4px', borderRadius: 4 }}>{stagex.missingHandlers.join(', ')}</code></li>
+              )}
+              {stagex.handlerFailed && (
+                <li><strong>Handler Exception:</strong> Runtime exception raised during command execution. Check error trace below.</li>
+              )}
+              {stagex.timeoutCount > 0 && (
+                <li><strong>ACK Failure:</strong> {stagex.timeoutCount} commands timed out without receiving an ACK/NACK.</li>
+              )}
+              {stagex.lastError !== 'none' && stagex.lastError !== 'N/A' && (
+                <li><strong>Last Exception:</strong> <code style={{ display: 'block', margin: '4px 0 0', padding: '6px', background: 'rgba(0,0,0,0.3)', borderRadius: 4, fontFamily: 'monospace', fontSize: 10, wordBreak: 'break-all', whiteSpace: 'pre-wrap' }}>{stagex.lastError}</code></li>
+              )}
+            </ul>
+          </div>
+        )}
+
+        {/* SELF TEST SECTION */}
+        <div style={{
+          background: 'rgba(255, 255, 255, 0.02)',
+          border: '1px solid rgba(255, 255, 255, 0.06)',
+          borderRadius: '14px',
+          padding: '14px',
+          marginBottom: '12px'
+        }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+            <div>
+              <span style={{ fontWeight: 800, fontSize: 13, display: 'block' }}>Stagex Bridge Self-Test</span>
+              <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.4)' }}>Verifies each runtime command executes & returns ACK/NACK</span>
+            </div>
+            <button
+              onClick={runSelfTest}
+              disabled={selfTestRunning}
+              style={{
+                padding: '8px 14px',
+                borderRadius: '10px',
+                background: selfTestRunning ? 'rgba(255,255,255,0.1)' : `linear-gradient(135deg, ${accent.from}, ${accent.to})`,
+                border: 'none',
+                color: selfTestRunning ? 'rgba(255,255,255,0.4)' : '#fff',
+                fontWeight: 700,
+                fontSize: '11px',
+                cursor: selfTestRunning ? 'not-allowed' : 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: 6
+              }}
+            >
+              {selfTestRunning ? 'Running...' : 'Run Self-Test'}
+            </button>
+          </div>
+
+          {selfTestResults.length > 0 && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 6, background: 'rgba(0,0,0,0.2)', padding: 10, borderRadius: 8 }}>
+              {selfTestResults.map((res, i) => {
+                let statusColor = '#fbbf24'; // pending
+                let statusIcon = 'hourglass_empty';
+                let statusText = 'Pending';
+
+                if (res.status === 'success') {
+                  statusColor = '#10b981';
+                  statusIcon = 'check_circle';
+                  statusText = `ACK (${res.latency}ms)`;
+                } else if (res.status === 'nack_missing') {
+                  statusColor = '#ef4444';
+                  statusIcon = 'cancel';
+                  statusText = `NACK: Missing`;
+                } else if (res.status === 'nack_error') {
+                  statusColor = '#ef4444';
+                  statusIcon = 'error';
+                  statusText = `NACK: Error`;
+                } else if (res.status === 'timeout') {
+                  statusColor = '#f59e0b';
+                  statusIcon = 'timer';
+                  statusText = 'Timeout';
+                }
+
+                return (
+                  <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: 11, padding: '4px 0', borderBottom: i < selfTestResults.length - 1 ? '1px solid rgba(255,255,255,0.03)' : 'none' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                      <span className="material-symbols-outlined" style={{ fontSize: 14, color: statusColor }}>{statusIcon}</span>
+                      <span style={{ fontFamily: 'monospace', fontWeight: 700 }}>
+                        {res.command}({res.arg ? `'${res.arg}'` : ''})
+                      </span>
+                    </div>
+                    <span style={{ color: statusColor, fontWeight: 800, fontSize: 10 }}>{statusText}</span>
+                  </div>
+                );
+              })}
+            </div>
+          )}
         </div>
 
         <CollapsibleSection
@@ -327,19 +619,26 @@ export default function DevToolsDashboard({ accent, onBack }: Props) {
         >
           <DiagnosticField label="Messages Sent Count" value={String(stagex.messagesSent)} />
           <DiagnosticField label="Messages Received Count" value={String(stagex.messagesReceived)} />
-          <DiagnosticField label="ACK Received Count" value={String(stagex.ackCount)} />
+          <DiagnosticField label="ACK Count" value={String(stagex.ackCount)} />
+          <DiagnosticField label="NACK Count" value={String(stagex.nackCount || 0)} />
           <DiagnosticField label="Timeout Count" value={String(stagex.timeoutCount)} />
         </CollapsibleSection>
 
         <CollapsibleSection
-          title="Trace History & Last Message"
+          title="Command Registry Details"
           collapsed={stagexCollapsed.trace}
           onToggle={() => setStagexCollapsed(prev => ({ ...prev, trace: !prev.trace }))}
         >
+          <DiagnosticField label="Available Handlers" value={(stagex.availableHandlers || []).join(', ')} />
+          <DiagnosticField label="Missing Handlers" value={(stagex.missingHandlers || []).join(', ') || 'none'} />
+          <DiagnosticField label="Registry Keys" value="switchView, toggleSCDial, toggleGigMode, stageGoBack, openPresetsPanel, exportPDFWithOptions" />
           <DiagnosticField label="Last Command Sent" value={stagex.lastCommandSent} />
           <DiagnosticField label="Last Message ID" value={stagex.lastMsgId} />
           <DiagnosticField label="Last ACK Received Timestamp" value={stagex.lastAckReceived} />
+          <DiagnosticField label="Last NACK Command" value={stagex.lastNack || 'none'} />
           <DiagnosticField label="Last Timeout Command" value={stagex.lastTimeout} />
+          <DiagnosticField label="Last Missing Handler" value={stagex.lastMissingHandler || 'none'} />
+          <DiagnosticField label="Last Failed Handler" value={stagex.lastFailedHandler || 'none'} />
         </CollapsibleSection>
 
         <CollapsibleSection
@@ -443,6 +742,76 @@ export default function DevToolsDashboard({ accent, onBack }: Props) {
           <span className="material-symbols-outlined" style={{ fontSize: 16 }}>content_copy</span>
           Copy Diagnostics
         </button>
+      </div>
+
+      {/* SYSTEM HEALTH SUMMARY */}
+      <div style={{
+        padding: '12px 16px',
+        margin: '12px 16px 4px',
+        background: 'rgba(255,255,255,0.02)',
+        border: '1px solid rgba(255,255,255,0.06)',
+        borderRadius: '16px',
+        display: 'grid',
+        gridTemplateColumns: 'repeat(3, 1fr)',
+        gap: '10px 8px',
+        fontSize: '11px',
+        flexShrink: 0
+      }}>
+        <div>
+          <span style={{ color: 'rgba(255,255,255,0.4)', display: 'block', marginBottom: 2 }}>App Version</span>
+          <span style={{ fontWeight: 800, color: '#fff' }}>v{APP_VERSION}</span>
+        </div>
+        <div>
+          <span style={{ color: 'rgba(255,255,255,0.4)', display: 'block', marginBottom: 2 }}>Android Version</span>
+          <span style={{ fontWeight: 800, color: '#fff' }}>{otaDiagnostics.androidVersion || 'N/A'}</span>
+        </div>
+        <div>
+          <span style={{ color: 'rgba(255,255,255,0.4)', display: 'block', marginBottom: 2 }}>Device</span>
+          <span style={{ fontWeight: 800, color: '#fff', textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap', display: 'block' }} title={otaDiagnostics.deviceModel || 'Browser'}>
+            {otaDiagnostics.deviceModel || 'Browser'}
+          </span>
+        </div>
+        <div>
+          <span style={{ color: 'rgba(255,255,255,0.4)', display: 'block', marginBottom: 2 }}>Theme</span>
+          <span style={{ fontWeight: 800, color: '#fff' }}>{settings.theme === 'light' ? 'Light' : 'Dark'}</span>
+        </div>
+        <div>
+          <span style={{ color: 'rgba(255,255,255,0.4)', display: 'block', marginBottom: 2 }}>Developer Mode</span>
+          <span style={{ fontWeight: 800, color: settings.developerMode ? '#10b981' : '#ef4444' }}>
+            {settings.developerMode ? 'ON' : 'OFF'}
+          </span>
+        </div>
+        <div>
+          <span style={{ color: 'rgba(255,255,255,0.4)', display: 'block', marginBottom: 2 }}>Errors / Warnings</span>
+          <span style={{ fontWeight: 800, color: errorCount > 0 ? '#ef4444' : warningCount > 0 ? '#f59e0b' : '#10b981' }}>
+            {errorCount} E / {warningCount} W
+          </span>
+        </div>
+        <div style={{ gridColumn: 'span 2' }}>
+          <span style={{ color: 'rgba(255,255,255,0.4)', display: 'block', marginBottom: 2 }}>Stagex Status</span>
+          <span style={{
+            fontWeight: 800,
+            color: stagexStatus === 'Connected' ? '#10b981' : stagexStatus === 'Broken' ? '#ef4444' : '#f59e0b',
+            display: 'flex',
+            alignItems: 'center',
+            gap: 4
+          }}>
+            <span style={{
+              width: 6,
+              height: 6,
+              borderRadius: '50%',
+              backgroundColor: stagexStatus === 'Connected' ? '#10b981' : stagexStatus === 'Broken' ? '#ef4444' : '#f59e0b',
+              display: 'inline-block'
+            }} />
+            {stagexStatus}
+          </span>
+        </div>
+        <div>
+          <span style={{ color: 'rgba(255,255,255,0.4)', display: 'block', marginBottom: 2 }}>OTA Status</span>
+          <span style={{ fontWeight: 800, color: '#679cff', textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap', display: 'block' }}>
+            {otaStatus}
+          </span>
+        </div>
       </div>
 
       {/* SUB-VIEW HEADER NAVIGATION */}
@@ -639,12 +1008,50 @@ export default function DevToolsDashboard({ accent, onBack }: Props) {
                   ) : (
                     filteredLogs.map((log, i) => {
                       const color = log.level === 'error' ? '#ef4444' : log.level === 'warn' ? '#fbbf24' : '#60a5fa';
+                      const isExpanded = !!expandedLogIndices[i];
+                      
+                      // Split into summary and details
+                      const lines = log.message.split('\n');
+                      const summary = lines[0].substring(0, 100) + (lines[0].length > 100 || lines.length > 1 ? '...' : '');
+                      
                       return (
-                        <div key={i} style={{ padding: '6px 8px', borderBottom: '1px solid rgba(255,255,255,0.04)', fontSize: 11, fontFamily: 'monospace', display: 'flex', gap: 8, alignItems: 'flex-start' }}>
-                          <span style={{ color: 'rgba(255,255,255,0.3)' }}>[{new Date(log.timestamp).toLocaleTimeString()}]</span>
-                          <span style={{ color, fontWeight: 800 }}>[{log.level.toUpperCase()}]</span>
-                          <span style={{ color: '#a78bfa' }}>[{log.module}]</span>
-                          <span style={{ whiteSpace: 'pre-wrap', wordBreak: 'break-word', color: log.level === 'error' ? '#fca5a5' : '#e4e4e7' }}>{log.message}</span>
+                        <div
+                          key={i}
+                          onClick={() => setExpandedLogIndices(prev => ({ ...prev, [i]: !prev[i] }))}
+                          style={{
+                            padding: '10px 12px',
+                            borderBottom: '1px solid rgba(255,255,255,0.04)',
+                            fontSize: '11px',
+                            fontFamily: 'monospace',
+                            cursor: 'pointer',
+                            background: isExpanded ? 'rgba(255,255,255,0.02)' : 'transparent',
+                            transition: 'background 0.2s ease',
+                            display: 'flex',
+                            flexDirection: 'column',
+                            gap: 4
+                          }}
+                        >
+                          <div style={{ display: 'flex', gap: 6, alignItems: 'center', flexWrap: 'wrap' }}>
+                            <span style={{ color: 'rgba(255,255,255,0.3)' }}>[{new Date(log.timestamp).toLocaleTimeString()}]</span>
+                            <span style={{ color, fontWeight: 850, fontSize: '10px', background: `${color}15`, padding: '2px 6px', borderRadius: 4 }}>
+                              {log.level.toUpperCase()}
+                            </span>
+                            <span style={{ color: '#a78bfa', fontWeight: 700 }}>[{log.module}]</span>
+                            <span style={{ color: 'rgba(255,255,255,0.3)', marginLeft: 'auto' }}>
+                              <span className="material-symbols-outlined" style={{ fontSize: 14 }}>
+                                {isExpanded ? 'expand_less' : 'expand_more'}
+                              </span>
+                            </span>
+                          </div>
+                          
+                          <div style={{
+                            color: log.level === 'error' ? '#fca5a5' : '#e4e4e7',
+                            wordBreak: 'break-all',
+                            paddingLeft: 4,
+                            lineHeight: 1.4
+                          }}>
+                            {isExpanded ? log.message : summary}
+                          </div>
                         </div>
                       );
                     })

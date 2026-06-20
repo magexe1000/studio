@@ -71,6 +71,12 @@ export interface StagexDiagnosticsState {
   originRejected: boolean;
   handlerMissing: boolean;
   handlerFailed: boolean;
+  nackCount: number;
+  lastNack: string;
+  lastMissingHandler: string;
+  lastFailedHandler: string;
+  availableHandlers: string[];
+  missingHandlers: string[];
 }
 
 const MAX_ITEMS = 150;
@@ -105,7 +111,13 @@ const stagexDiagnostics: StagexDiagnosticsState = {
   sentWithTargetOriginWildcard: false,
   originRejected: false,
   handlerMissing: false,
-  handlerFailed: false
+  handlerFailed: false,
+  nackCount: 0,
+  lastNack: 'none',
+  lastMissingHandler: 'none',
+  lastFailedHandler: 'none',
+  availableHandlers: ['switchView', 'toggleSCDial', 'toggleGigMode', 'stageGoBack', 'openPresetsPanel', 'exportPDFWithOptions'],
+  missingHandlers: []
 };
 
 export function updateStagexDiagnostics(updates: Partial<StagexDiagnosticsState>) {
@@ -141,7 +153,13 @@ export function resetStagexDiagnostics() {
     sentWithTargetOriginWildcard: false,
     originRejected: false,
     handlerMissing: false,
-    handlerFailed: false
+    handlerFailed: false,
+    nackCount: 0,
+    lastNack: 'none',
+    lastMissingHandler: 'none',
+    lastFailedHandler: 'none',
+    availableHandlers: ['switchView', 'toggleSCDial', 'toggleGigMode', 'stageGoBack', 'openPresetsPanel', 'exportPDFWithOptions'],
+    missingHandlers: []
   });
   notifyListeners();
 }
