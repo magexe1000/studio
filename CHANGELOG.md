@@ -11,6 +11,15 @@ Conventions:
 - One H2 heading per version: `## X.Y.Z` (no leading `v`).
 - Bullets start with `- ` and use plain English a non-technical user
   can parse. Keep each line short — the modal's text area is narrow.
+
+## 3.6.49
+
+### Fixed
+- Optimized 120 Hz display rendering and route animations for extreme responsiveness.
+- Eliminated background gray flashes by enforcing pure black (#000000) layouts and windows.
+- Redesigned Developer Tools into an intuitive dashboard with dedicated sub-view cards.
+- Implemented modular diagnostics copy buttons for individual diagnostic sections.
+
 ## 3.6.48
 
 ### Added

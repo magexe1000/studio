@@ -412,11 +412,7 @@ export default function StagexPanel() {
     return () => window.removeEventListener('storage', handleStorage);
   }, [loadCustomElements]);
 
-  useEffect(() => {
-    if (expandedCats.custom) {
-      loadCustomElements();
-    }
-  }, [expandedCats.custom, loadCustomElements]);
+  // Removed redundant expandedCats.custom loader to optimize performance and prevent duplicate calls.
 
   const handleAddElement = useCallback((item: any) => {
     try {
@@ -977,8 +973,8 @@ ComposedPath: ${path.slice(0, 3).join(' > ')}`;
   const iframeSrc = useRef(
     `${baseOrigin}/stage-core/index.html#${isLight ? 'light' : 'dark'},${encodeURIComponent(accent.from)},${encodeURIComponent(accent.to)},${isAmoled ? '1' : '0'}`
   ).current;
-  const stageBg   = isAmoled ? (isLight ? '#ffffff' : '#000000') : isLight ? '#f2f1ef' : '#0e0e0e';
-  const stageHdr  = isAmoled ? (isLight ? '#ffffff' : '#000000') : isLight ? '#f2f1ef' : '#0e0e0e';
+  const stageBg   = isLight ? '#f2f1ef' : '#000000';
+  const stageHdr  = isLight ? '#f2f1ef' : '#000000';
 
   const showBack = curView === 'Rider' || curView === 'Setlist' || curView === 'Gear' || curView === 'Members' || curView === 'Export';
 

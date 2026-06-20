@@ -1284,7 +1284,7 @@ function DrumExportModal({ patterns, song, accent, onClose }: {
   const isWebDesktop = useIsWebDesktop();
 
   return (
-    <div style={isWebDesktop ? { position: 'fixed', inset: 0, zIndex: 300, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(0, 0, 0, 0.6)', backdropFilter: 'blur(8px)', WebkitBackdropFilter: 'blur(8px)' } : { position: 'fixed', inset: 0, zIndex: 300, background: '#0e0e0e', display: 'flex', flexDirection: 'column', animation: closing ? 'sheet-down 320ms cubic-bezier(0.25,0.46,0.45,0.94) both' : 'sheet-up 340ms cubic-bezier(0.25,0.46,0.45,0.94) both' }}>
+    <div style={isWebDesktop ? { position: 'fixed', inset: 0, zIndex: 300, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(0, 0, 0, 0.6)', backdropFilter: 'blur(8px)', WebkitBackdropFilter: 'blur(8px)' } : { position: 'fixed', inset: 0, zIndex: 300, background: '#000000', display: 'flex', flexDirection: 'column', animation: closing ? 'sheet-down 320ms cubic-bezier(0.25,0.46,0.45,0.94) both' : 'sheet-up 340ms cubic-bezier(0.25,0.46,0.45,0.94) both' }}>
       <div style={isWebDesktop ? { position: 'relative', width: '560px', maxWidth: '90vw', maxHeight: '85vh', background: '#0a0a0c', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '1.25rem', boxShadow: '0 20px 40px rgba(0,0,0,0.55)', display: 'flex', flexDirection: 'column', overflow: 'hidden' } : { display: 'flex', flexDirection: 'column', flex: 1, height: '100%' }}>
         {/* ── Header ── */}
         <div style={{ paddingTop: isWebDesktop ? '0' : 'env(safe-area-inset-top)', background: isWebDesktop ? 'transparent' : '#191a1a', flexShrink: 0, borderBottom: '1px solid rgba(255,255,255,0.05)' }}>

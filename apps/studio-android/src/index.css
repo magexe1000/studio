@@ -125,7 +125,7 @@
   --studio-accent-glow: 0 4px 20px color-mix(in srgb, var(--studio-accent-to) 25%, transparent);
   --studio-accent-border: color-mix(in srgb, var(--studio-accent-to) 30%, transparent);
 
-  --app-bg: #0e0e0e;
+  --app-bg: #000000;
   --app-surface-lowest: #000000;
   --app-surface-low: #131313;
   --app-surface: #191a1a;
@@ -335,7 +335,8 @@ html, body { background: var(--app-bg); }
    inline hexes proved unreliable; using CSS vars is bulletproof.
    ============================================================ */
 :root {
-  --vx-deep:    #0e0e0e;  /* deepest surface (modal backdrops, inputs-on-cards) */
+  --vx-bg:      var(--app-bg);
+  --vx-deep:    #000000;  /* deepest surface (modal backdrops, inputs-on-cards) */
   --vx-card:    #161717;  /* main card background */
   --vx-card-2:  #191a1a;  /* slightly elevated card variant */
   --vx-edge:    #1f2020;  /* card border / muted surface */

@@ -46,6 +46,7 @@ public class MainActivity extends BridgeActivity {
         // Custom WebChromeClient to automatically grant WebView permission requests (e.g. getUserMedia microphone)
         // This bypasses any site-level permission blocks inside WebView once OS permission is granted.
         if (this.bridge != null && this.bridge.getWebView() != null) {
+            this.bridge.getWebView().setBackgroundColor(android.graphics.Color.BLACK);
             this.bridge.getWebView().setWebChromeClient(new com.getcapacitor.BridgeWebChromeClient(this.bridge) {
                 @Override
                 public void onPermissionRequest(final android.webkit.PermissionRequest request) {

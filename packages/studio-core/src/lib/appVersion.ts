@@ -26,7 +26,7 @@ import { useMemo } from 'react';
 import { Capacitor } from '@capacitor/core';
 
 /** Canonical semver string used by the OTA comparator. */
-export const NATIVE_VERSION = '3.6.48';
+export const NATIVE_VERSION = '3.6.49';
 export const WEB_VERSION = '4.0.0';
 export const APP_VERSION = Capacitor.isNativePlatform() ? NATIVE_VERSION : WEB_VERSION;
 
@@ -38,7 +38,7 @@ export const APP_VERSION_LABEL = `${APP_VERSION_TAG} ${APP_VERSION}`;
 
 /** Release date for the CURRENT bundle, shown alongside the version pill
  *  in the changelog sheet. ISO-8601 (`YYYY-MM-DD`). */
-export const APP_VERSION_DATE = '2026-06-20'; // 3.6.48
+export const APP_VERSION_DATE = '2026-06-20'; // 3.6.49
 // Note: keep ISO-8601. Bump together with APP_VERSION on each release.
 
 export const APP_COMMIT_SHA = import.meta.env.VITE_GIT_COMMIT_SHA || 'c9e77a16';
@@ -59,20 +59,12 @@ export interface ChangelogSection {
 
 export const APP_CHANGELOG_SECTIONS: ChangelogSection[] = [
   {
-    heading: "Added",
-    items: [
-      "Created an interactive Stagex Bridge Self-Test runner to verify runtime command execution.",
-      "Added a System Health Summary card at the top of the Developer Tools dashboard for quick mobile check.",
-      "Upgraded the log viewer with a collapsible summary list tailored for phone viewports.",
-      "Added available and missing handlers details to the Stagex diagnostics section.",
-    ],
-  },
-  {
     heading: "Fixed",
     items: [
-      "Fixed Stagex runtime command system on Android by correcting syntax issues and bracket mismatches.",
-      "Resolved the `_orig is not a function` error.",
-      "Upgraded the iframe postMessage bridge to immediately return ACK/NACK and prevent silent timeouts.",
+      "Optimized 120 Hz display rendering and route animations for extreme responsiveness.",
+      "Eliminated background gray flashes by enforcing pure black (#000000) layouts and windows.",
+      "Redesigned Developer Tools into an intuitive dashboard with dedicated sub-view cards.",
+      "Implemented modular diagnostics copy buttons for individual diagnostic sections.",
     ],
   },
 ];
@@ -80,11 +72,12 @@ export const APP_CHANGELOG_SECTIONS: ChangelogSection[] = [
 /** Native English version of the current changelog for Android. */
 export const APP_CHANGELOG_SECTIONS_NATIVE: ChangelogSection[] = [
   {
-    heading: "Added",
+    heading: "Fixed",
     items: [
-      "Created a centralized Developer Tools system accessible via Settings.",
-      "Added support for runtime log, error, event, performance, and network sniffing.",
-      "Added app-specific diagnostic panels for Chordex, Stagex, Drumex, Groovex, Vocalex, and Hub.",
+      "Optimized 120 Hz display rendering and route animations for extreme responsiveness.",
+      "Eliminated background gray flashes by enforcing pure black (#000000) layouts and windows.",
+      "Redesigned Developer Tools into an intuitive dashboard with dedicated sub-view cards.",
+      "Implemented modular diagnostics copy buttons for individual diagnostic sections.",
     ],
   },
 ];
@@ -93,11 +86,12 @@ export const APP_CHANGELOG_SECTIONS_NATIVE: ChangelogSection[] = [
  *  by `ChangelogSheet` based on `settings.language`. */
 export const APP_CHANGELOG_SECTIONS_ES: ChangelogSection[] = [
   {
-    heading: "Añadido",
+    heading: "Corregido",
     items: [
-      "Creado un sistema centralizado de herramientas de desarrollo accesible a través de Configuración.",
-      "Añadido soporte para registro en tiempo de ejecución, errores, eventos, rendimiento y red.",
-      "Paneles de diagnóstico específicos para Chordex, Stagex, Drumex, Groovex, Vocalex y Hub.",
+      "Optimizado el renderizado a 120 Hz y animaciones de rutas para una respuesta extrema.",
+      "Eliminados destellos grises aplicando fondo negro puro (#000000) en layouts y ventanas.",
+      "Rediseñado Herramientas de Desarrollo en un panel intuitivo con tarjetas de sub-vista.",
+      "Copiado modular de diagnósticos para secciones individuales de depuración.",
     ],
   },
 ];
@@ -105,11 +99,12 @@ export const APP_CHANGELOG_SECTIONS_ES: ChangelogSection[] = [
 /** German version of the current changelog. */
 export const APP_CHANGELOG_SECTIONS_DE: ChangelogSection[] = [
   {
-    heading: "Hinzugefügt",
+    heading: "Behoben",
     items: [
-      "Zentrales Entwicklertools-System über die Einstellungen hinzugefügt.",
-      "Unterstützung für Laufzeit-Logs, Fehler, Events, Performance und Netzwerk-Sniffing.",
-      "App-spezifische Diagnose-Panels für Chordex, Stagex, Drumex, Groovex, Vocalex und Hub.",
+      "Optimierte 120-Hz-Rendering- und Routen-Animationen für extreme Reaktionsfähigkeit.",
+      "Graue Hintergrund-Blitze durch rein schwarzes (#000000) Layout und Fenster eliminiert.",
+      "Entwickler-Tools in ein intuitives Dashboard mit Unteransicht-Karten umgestaltet.",
+      "Modulares Kopieren von Diagnosen für einzelne Debug-Bereiche implementiert.",
     ],
   },
 ];

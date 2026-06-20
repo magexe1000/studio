@@ -1164,7 +1164,7 @@ function PaperPreview({ preset, cfg, accent, transposeOffset = 0, storedCustomCh
   const cardFont = cols <= 3 ? '9px'  : cols === 4 ? '7px'  : cols === 5 ? '6px' : '5px';
   const gridGap  = cols <= 3 ? '7px 5px' : cols === 4 ? '5px 4px' : cols === 5 ? '4px 3px' : '3px 2px';
 
-  const bg        = dark ? '#0e0e0e' : (elegant ? '#f5f4f1' : '#ffffff');
+  const bg        = dark ? '#000000' : (elegant ? '#f5f4f1' : '#ffffff');
   const paperColor = dark ? '#181818' : '#ffffff';
   const text    = dark ? '#edeae4' : '#0d0d0d';
   const sub     = dark ? '#888'    : '#5a5f6e';
@@ -1434,7 +1434,7 @@ function ExportModal({ preset, accent, onClose, transposeOffset = 0, storedCusto
   return (
     <div style={{
       position: 'fixed', inset: 0, zIndex: 200,
-      background: '#0e0e0e',
+      background: '#000000',
       display: 'flex', flexDirection: 'column',
       animation: closing
         ? 'sheet-down 320ms cubic-bezier(0.25, 0.46, 0.45, 0.94) both'

@@ -136,7 +136,7 @@ export default function App() {
       const isLight = activeVis.theme === 'light' ||
         (activeVis.theme === 'system' && window.matchMedia('(prefers-color-scheme: light)').matches) ||
         (activeVis.theme === 'dynamic' && isDaytime);
-      const color = activeVis.amoledMode ? (isLight ? '#ffffff' : '#000000') : (isLight ? '#f5f5f5' : '#111116');
+      const color = activeVis.amoledMode ? (isLight ? '#ffffff' : '#000000') : (isLight ? '#f5f5f5' : '#000000');
       let tag = document.querySelector<HTMLMetaElement>('meta[name="theme-color"]');
       if (!tag) {
         tag = document.createElement('meta');
@@ -509,6 +509,7 @@ export default function App() {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
+            transition={{ duration: 0.18, ease: 'easeOut' }}
             style={{
               position: 'absolute',
               inset: 0,

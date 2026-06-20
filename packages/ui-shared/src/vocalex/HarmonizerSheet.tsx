@@ -207,7 +207,7 @@ export default function HarmonizerSheet({ take, accent = '#007aff', onClose, onB
   return (
     <div style={{
       position: 'fixed', inset: 0, zIndex: 200,
-      background: 'var(--vx-bg, #0b0b11)',
+      background: 'var(--vx-bg, #000000)',
       display: 'flex', flexDirection: 'column',
       fontFamily: 'Inter, sans-serif',
     }}>
