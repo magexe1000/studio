@@ -670,6 +670,7 @@ ComposedPath: ${path.slice(0, 3).join(' > ')}`;
   const [testCycle, setTestCycle] = useState(0);
   const [testStep, setTestStep] = useState('');
   const [scenesTestResult, setScenesTestResult] = useState<string>('Not Run');
+  const [sceneTouchTelemetry, setSceneTouchTelemetry] = useState<any[]>([]);
 
   const runInteractionTest = async () => {
     if (testActive) return;
@@ -1293,6 +1294,13 @@ ComposedPath: ${path.slice(0, 3).join(' > ')}`;
       if (e.data?.type === 'sc-prop-state') setPropPanelOpen(e.data.state === 'open' || e.data.state === 'peek');
       if (e.data?.type === 'sc-live-mode') setLiveMode(!!e.data.on);
       if (e.data?.type === 'sc-overlay-state') setHasOpenOverlay(!!e.data.open);
+      if (e.data?.type === 'sc-scene-touch') {
+        setSceneTouchTelemetry(prev => {
+          const next = [...prev, e.data];
+          if (next.length > 5) return next.slice(next.length - 5);
+          return next;
+        });
+      }
       if (e.data?.type === 'sc-scene-info' && e.data.info) {
         setPdfSceneInfo({
           count: e.data.info.count || 1,
@@ -1310,7 +1318,7 @@ ComposedPath: ${path.slice(0, 3).join(' > ')}`;
     };
     window.addEventListener('message', onMsg);
     return () => window.removeEventListener('message', onMsg);
-  }, [showDiagnostics, logDiagnostic]);
+  }, [showDiagnostics, logDiagnostic, setSceneTouchTelemetry]);
 
   useEffect(() => {
     updateStagexDiagnostics({
@@ -1351,6 +1359,7 @@ ComposedPath: ${path.slice(0, 3).join(' > ')}`;
         selectedElement: 'none',
         overlayState: hasOpenOverlay ? 'open' : 'closed',
         scenesTestResult,
+        sceneTouchTelemetry,
         diagTaps,
         controlState: {
           Add: { rendered: true, lastError: null },
@@ -1372,7 +1381,7 @@ ComposedPath: ${path.slice(0, 3).join(' > ')}`;
     return () => {
       unregisterDebugProvider('stagex');
     };
-  }, [iframeLoading, curView, hasOpenOverlay, diagTaps, scenesTestResult, runScenesInputTest]);
+  }, [iframeLoading, curView, hasOpenOverlay, diagTaps, scenesTestResult, sceneTouchTelemetry, runScenesInputTest]);
 
   useEffect(() => {
     const iframe = iframeRef.current;

@@ -5793,7 +5793,116 @@ function renderScenesBar() {
     `<span class="sc-scene-label">${state.lang === 'es' ? 'Escenas' : 'Scenes'}</span>` +
     tabsHtml + addHtml
   );
+  initScenesBarTouchHandler();
   requestAnimationFrame(positionScenesBar);
+}
+
+function initScenesBarTouchHandler() {
+  const bar = document.getElementById('sc-scenes-bar');
+  if (!bar || bar.dataset.touchAttached === 'true') return;
+  bar.dataset.touchAttached = 'true';
+
+  let touchStartData = null;
+
+  bar.addEventListener('touchstart', (e) => {
+    const touch = e.touches[0];
+    if (!touch) return;
+    
+    const btn = touch.target.closest('.sc-scene-btn, .sc-scene-add-btn, .sc-scene-close');
+    if (!btn) return;
+
+    touchStartData = {
+      target: btn,
+      startX: touch.clientX,
+      startY: touch.clientY,
+      startTime: Date.now()
+    };
+
+    try {
+      window.parent.postMessage({
+        type: 'sc-scene-touch',
+        action: 'touchstart',
+        targetClass: btn.className,
+        startX: touch.clientX,
+        startY: touch.clientY,
+        timestamp: Date.now()
+      }, '*');
+    } catch (err) {}
+  }, { passive: true });
+
+  bar.addEventListener('touchend', (e) => {
+    if (!touchStartData) return;
+    
+    const touch = e.changedTouches[0];
+    if (!touch) {
+      touchStartData = null;
+      return;
+    }
+
+    const btn = touch.target.closest('.sc-scene-btn, .sc-scene-add-btn, .sc-scene-close');
+    if (!btn || btn !== touchStartData.target) {
+      touchStartData = null;
+      return;
+    }
+
+    const duration = Date.now() - touchStartData.startTime;
+    const dx = touch.clientX - touchStartData.startX;
+    const dy = touch.clientY - touchStartData.startY;
+    const distance = Math.sqrt(dx * dx + dy * dy);
+    
+    const isValidTap = duration < 350 && distance < 12;
+
+    try {
+      window.parent.postMessage({
+        type: 'sc-scene-touch',
+        action: 'touchend',
+        targetClass: btn.className,
+        distance,
+        duration,
+        isValidTap,
+        endX: touch.clientX,
+        endY: touch.clientY,
+        timestamp: Date.now()
+      }, '*');
+    } catch (err) {}
+
+    if (isValidTap) {
+      e.preventDefault();
+
+      if (btn.classList.contains('sc-scene-close')) {
+        const parentBtn = btn.closest('.sc-scene-btn');
+        if (parentBtn) {
+          const allBtns = Array.from(bar.querySelectorAll('.sc-scene-btn'));
+          const idx = allBtns.indexOf(parentBtn);
+          if (idx !== -1) {
+            removeScene(idx);
+          }
+        }
+      } else if (btn.classList.contains('sc-scene-btn')) {
+        const allBtns = Array.from(bar.querySelectorAll('.sc-scene-btn'));
+        const idx = allBtns.indexOf(btn);
+        if (idx !== -1) {
+          switchScene(idx);
+        }
+      } else if (btn.classList.contains('sc-scene-add-btn')) {
+        addScene();
+      }
+    }
+
+    touchStartData = null;
+  }, { passive: false });
+
+  bar.addEventListener('touchcancel', (e) => {
+    if (!touchStartData) return;
+    try {
+      window.parent.postMessage({
+        type: 'sc-scene-touch',
+        action: 'touchcancel',
+        timestamp: Date.now()
+      }, '*');
+    } catch (err) {}
+    touchStartData = null;
+  }, { passive: true });
 }
 
 function positionScenesBar() {}

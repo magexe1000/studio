@@ -63,6 +63,20 @@ export function syncProfileListener(authUser: { uid: string; email: string | nul
     return;
   }
   
+  const providerKey = useChordStore.getState().settings?.syncBackendProvider;
+  if (providerKey !== 'firebase-firestore-legacy') {
+    const isAdminBypass = adminUIDs.includes(authUser.uid);
+    const defaultProfile: UserProfile = {
+      uid: authUser.uid,
+      email: authUser.email,
+      role: isAdminBypass ? 'admin' : 'free',
+      plan: isAdminBypass ? 'admin' : 'free',
+      subscriptionStatus: isAdminBypass ? 'active' : 'inactive',
+    };
+    notifyProfileChange(defaultProfile);
+    return;
+  }
+  
   const db = getFirebaseDb();
   const isAdminBypass = adminUIDs.includes(authUser.uid);
   

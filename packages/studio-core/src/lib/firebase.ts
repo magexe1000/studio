@@ -107,12 +107,15 @@ function init() {
   }
 }
 
+let firestoreInitStack = 'never';
+
 function initFirestoreOnly() {
   if (_db || !_app) return;
-  const providerKey = useChordStore.getState().settings.syncBackendProvider || 'supabase-realtime';
-  if (providerKey === 'supabase-realtime') {
+  const providerKey = useChordStore.getState().settings?.syncBackendProvider;
+  if (providerKey !== 'firebase-firestore-legacy') {
     return;
   }
+  firestoreInitStack = new Error().stack || 'unknown stack';
 
   // Use initializeFirestore (NOT getFirestore) so we can configure two
   // critical things up front:
@@ -204,8 +207,8 @@ export function getFirebaseAuth(): Auth | null {
 }
 
 export function getFirebaseDb(): Firestore | null {
-  const providerKey = useChordStore.getState().settings.syncBackendProvider || 'supabase-realtime';
-  if (providerKey === 'supabase-realtime') {
+  const providerKey = useChordStore.getState().settings?.syncBackendProvider;
+  if (providerKey !== 'firebase-firestore-legacy') {
     return null;
   }
   init();
@@ -225,8 +228,8 @@ export function getFirebaseProjectId(): string {
 
 export function getFirebaseConfigDetails() {
   init();
-  const providerKey = useChordStore.getState().settings.syncBackendProvider || 'supabase-realtime';
-  if (providerKey !== 'supabase-realtime') {
+  const providerKey = useChordStore.getState().settings?.syncBackendProvider;
+  if (providerKey === 'firebase-firestore-legacy') {
     initFirestoreOnly();
   }
   const app = _app;
@@ -252,8 +255,8 @@ let activeWritesCount = 0;
 let lastFirestoreError = 'none';
 
 export function incrementFirestoreListeners() {
-  const providerKey = useChordStore.getState().settings.syncBackendProvider || 'supabase-realtime';
-  if (providerKey === 'supabase-realtime') return;
+  const providerKey = useChordStore.getState().settings?.syncBackendProvider;
+  if (providerKey !== 'firebase-firestore-legacy') return;
   activeListenersCount++;
 }
 
@@ -262,8 +265,8 @@ export function decrementFirestoreListeners() {
 }
 
 export function incrementFirestoreWrites() {
-  const providerKey = useChordStore.getState().settings.syncBackendProvider || 'supabase-realtime';
-  if (providerKey === 'supabase-realtime') return;
+  const providerKey = useChordStore.getState().settings?.syncBackendProvider;
+  if (providerKey !== 'firebase-firestore-legacy') return;
   activeWritesCount++;
 }
 
@@ -272,19 +275,20 @@ export function decrementFirestoreWrites() {
 }
 
 export function setFirestoreLastError(err: string) {
-  const providerKey = useChordStore.getState().settings.syncBackendProvider || 'supabase-realtime';
-  if (providerKey === 'supabase-realtime') return;
+  const providerKey = useChordStore.getState().settings?.syncBackendProvider;
+  if (providerKey !== 'firebase-firestore-legacy') return;
   lastFirestoreError = err || 'none';
 }
 
 export function getFirestoreDiagnostics() {
-  const providerKey = useChordStore.getState().settings.syncBackendProvider || 'supabase-realtime';
-  const isActive = providerKey !== 'supabase-realtime' && _db !== null;
+  const providerKey = useChordStore.getState().settings?.syncBackendProvider || 'supabase-realtime';
+  const isActive = providerKey === 'firebase-firestore-legacy' && _db !== null;
   return {
     syncProvider: providerKey,
     firestoreRuntimeActive: isActive,
-    firestoreListenChannels: providerKey === 'supabase-realtime' ? 0 : activeListenersCount,
-    firestoreWriteChannels: providerKey === 'supabase-realtime' ? 0 : activeWritesCount,
-    firestoreLastError: providerKey === 'supabase-realtime' ? 'none' : lastFirestoreError
+    firestoreListenChannels: providerKey !== 'firebase-firestore-legacy' ? 0 : activeListenersCount,
+    firestoreWriteChannels: providerKey !== 'firebase-firestore-legacy' ? 0 : activeWritesCount,
+    firestoreLastError: providerKey !== 'firebase-firestore-legacy' ? 'none' : lastFirestoreError,
+    firestoreInitStack
   };
 }

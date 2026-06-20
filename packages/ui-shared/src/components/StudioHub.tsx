@@ -1,4 +1,4 @@
-import { useBackHandler, subscribeAuth, signOut, type AuthUser, subscribeSyncStatus, syncNow, type SyncStatus, deviceId, getConflictLogs, clearConflictLogs, createCloudBackup, getSyncDiagnostics, pushLocalSettingsToCloud, pullCloudSettingsFromCloud, registerDevice, registerCurrentDevice, reconnectDevices, useChordStore, ACCENT_COLORS, type Theme, type AnimationSpeed, type DisplayDensity, type AppKey, type PerAppVisuals, useNavHidden, useNavCollapsed, useScrollHide, useT, APP_VERSION_LABEL, APP_VERSION_TAG, APP_VERSION_DATE, compareSemver, APP_VERSION, getChangelogSections, useOtaUpdate, otaDebugLogs, otaDiagnostics, checkForUpdate, resetOtaUpdateState, isAppInstallerAvailable, applyUpdate, isNative, fadeToBlackAndReload, notifyOtaAvailable, resolveApkUrl, downloadAndInstallApk, resolveReleasePageUrl, useLiquidGlassNav, useIsWebDesktop, useStudioPreferences, registerDebugProvider, unregisterDebugProvider, recordNavigation, getFirestoreDiagnostics } from '@workspace/studio-core';
+import { useBackHandler, subscribeAuth, signOut, type AuthUser, subscribeSyncStatus, syncNow, type SyncStatus, deviceId, getConflictLogs, clearConflictLogs, createCloudBackup, getSyncDiagnostics, pushLocalSettingsToCloud, pullCloudSettingsFromCloud, registerDevice, registerCurrentDevice, reconnectDevices, useChordStore, ACCENT_COLORS, type Theme, type AnimationSpeed, type DisplayDensity, type AppKey, type PerAppVisuals, useNavHidden, useNavCollapsed, useScrollHide, useT, APP_VERSION_LABEL, APP_VERSION_TAG, APP_VERSION_DATE, compareSemver, APP_VERSION, getChangelogSections, useOtaUpdate, otaDebugLogs, otaDiagnostics, checkForUpdate, resetOtaUpdateState, isAppInstallerAvailable, applyUpdate, isNative, fadeToBlackAndReload, notifyOtaAvailable, resolveApkUrl, downloadAndInstallApk, resolveReleasePageUrl, useLiquidGlassNav, useIsWebDesktop, useStudioPreferences, registerDebugProvider, unregisterDebugProvider, recordNavigation, getFirestoreDiagnostics, getNavigationEntries } from '@workspace/studio-core';
 import React, { useState, useRef, useEffect, useLayoutEffect, lazy, Suspense, useMemo, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import { motion } from 'motion/react';
@@ -254,6 +254,8 @@ export default function StudioHub() {
       name: 'Studio Hub',
       getDebugState: () => {
         const diag = getFirestoreDiagnostics();
+        const navEntries = getNavigationEntries();
+        const lastNav = navEntries.length > 0 ? navEntries[navEntries.length - 1] : null;
         return {
           activeTab: tab,
           zooming,
@@ -262,9 +264,16 @@ export default function StudioHub() {
           language: settings.language,
           'Sync Provider': diag.syncProvider,
           'Firestore Runtime Active': diag.firestoreRuntimeActive,
+          'Firestore Disabled (Verified)': !diag.firestoreRuntimeActive,
           'Firestore Listen Channels': diag.firestoreListenChannels,
           'Firestore Write Channels': diag.firestoreWriteChannels,
-          'Firestore Last Error': diag.firestoreLastError
+          'Firestore Last Error': diag.firestoreLastError,
+          'Firestore Init Call Stack': (diag as any).firestoreInitStack || 'never',
+          'Hub Transition Status': (window as any).studioTransitionActive ? 'Active' : 'Completed',
+          'Last Navigation Path': lastNav ? `${lastNav.fromApp} -> ${lastNav.toApp}` : 'none',
+          'Last Navigation Duration': lastNav && lastNav.transitionComplete && lastNav.transitionStart
+            ? `${lastNav.transitionComplete - lastNav.transitionStart}ms`
+            : 'N/A'
         };
       }
     });
@@ -419,7 +428,9 @@ export default function StudioHub() {
     launchTimers.current = [];
 
     const t1 = setTimeout(() => {
-      setZooming(true);
+      if (useChordStore.getState().settings.appMode !== 'hub') {
+        setZooming(true);
+      }
     }, 100);
     const t2 = setTimeout(() => {
       (window as any).studioTransitionActive = false;
