@@ -1,24 +1,24 @@
 {
   "platform": "android",
-  "version": "3.6.53",
-  "versionName": "3.6.53",
-  "versionCode": 80,
-  "version_code": 80,
-  "commit": "96ecc22f",
-  "releasedAt": "6/20/2026, 12:35:00 AM CST",
-  "buildTimestamp": "6/20/2026, 12:35:00 AM CST",
+  "version": "3.6.54",
+  "versionName": "3.6.54",
+  "versionCode": 81,
+  "version_code": 81,
+  "commit": "864e372a",
+  "releasedAt": "6/20/2026, 1:55:00 AM CST",
+  "buildTimestamp": "6/20/2026, 1:55:00 AM CST",
   "updateMode": "refresh",
-  "changelog": "• Rebranded user-facing elements and text from \"Studio\" to \"Livex\" (Livex Hub).\n• Enhanced Developer Tools Warnings view with warning copy and unified diagnostics layout.\n• Fixed the \"View Warnings\" button click responsiveness and event lifecycle on Android.\n• Resolved \"Black Screen Return Bug\" by properly clearing sub-app launch timers on Hub return.\n• Polished Stagex landscape mode: zoomed out stage plot and adjusted left toolbar placement.",
-  "whatsNew": "• Rebranded user-facing elements and text from \"Studio\" to \"Livex\" (Livex Hub).\n• Enhanced Developer Tools Warnings view with warning copy and unified diagnostics layout.\n• Fixed the \"View Warnings\" button click responsiveness and event lifecycle on Android.\n• Resolved \"Black Screen Return Bug\" by properly clearing sub-app launch timers on Hub return.\n• Polished Stagex landscape mode: zoomed out stage plot and adjusted left toolbar placement.",
+  "changelog": "• Cleaned up developer warnings logs by reclassifying false app diagnostics info.\n• Fixed returning black screen bugs by bypassing transition locks and key stabilization.\n• Resolved Drumex sample packaging issues preventing local audio preload 404s.\n• Enhanced Developer Tools with a new live Navigation Diagnostics event tracker.\n• Rebranded user-facing app elements to Livex Hub.",
+  "whatsNew": "• Cleaned up developer warnings logs by reclassifying false app diagnostics info.\n• Fixed returning black screen bugs by bypassing transition locks and key stabilization.\n• Resolved Drumex sample packaging issues preventing local audio preload 404s.\n• Enhanced Developer Tools with a new live Navigation Diagnostics event tracker.\n• Rebranded user-facing app elements to Livex Hub.",
   "releaseNotes": {
     "added": [
-      "Rebranded user-facing elements and text from \"Studio\" to \"Livex\" (Livex Hub).",
-      "Enhanced Developer Tools Warnings view with warning copy and unified diagnostics layout."
+      "Enhanced Developer Tools with a new live Navigation Diagnostics event tracker."
     ],
     "fixed": [
-      "Fixed the \"View Warnings\" button click responsiveness and event lifecycle on Android.",
-      "Resolved \"Black Screen Return Bug\" by properly clearing sub-app launch timers on Hub return.",
-      "Polished Stagex landscape mode: zoomed out stage plot and adjusted left toolbar placement."
+      "Cleaned up developer warnings logs by reclassifying false app diagnostics info.",
+      "Fixed returning black screen bugs by bypassing transition locks and key stabilization.",
+      "Resolved Drumex sample packaging issues preventing local audio preload 404s.",
+      "Rebranded user-facing app elements to Livex Hub."
     ]
   },
   "mandatory": false
