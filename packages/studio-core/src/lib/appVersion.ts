@@ -26,7 +26,7 @@ import { useMemo } from 'react';
 import { Capacitor } from '@capacitor/core';
 
 /** Canonical semver string used by the OTA comparator. */
-export const NATIVE_VERSION = '3.6.50';
+export const NATIVE_VERSION = '3.6.51';
 export const WEB_VERSION = '4.0.0';
 export const APP_VERSION = Capacitor.isNativePlatform() ? NATIVE_VERSION : WEB_VERSION;
 
@@ -38,10 +38,10 @@ export const APP_VERSION_LABEL = `${APP_VERSION_TAG} ${APP_VERSION}`;
 
 /** Release date for the CURRENT bundle, shown alongside the version pill
  *  in the changelog sheet. ISO-8601 (`YYYY-MM-DD`). */
-export const APP_VERSION_DATE = '2026-06-20'; // 3.6.50
+export const APP_VERSION_DATE = '2026-06-20'; // 3.6.51
 // Note: keep ISO-8601. Bump together with APP_VERSION on each release.
 
-export const APP_COMMIT_SHA = import.meta.env.VITE_GIT_COMMIT_SHA || '77ef3650';
+export const APP_COMMIT_SHA = import.meta.env.VITE_GIT_COMMIT_SHA || '78ef3651';
 export const APP_BUILD_TIMESTAMP = import.meta.env.VITE_BUILD_TIMESTAMP || '6/20/2026, 12:00:00 AM CST';
 
 /**
@@ -61,16 +61,14 @@ export const APP_CHANGELOG_SECTIONS: ChangelogSection[] = [
   {
     heading: "Added",
     items: [
-      "Redesigned Developer Tools toggle switch and added live card stats.",
-      "Added multi-app status diagnostics for Hub, Chordex, Drumex, Stagex, Groovex, and Vocalex.",
+      "Dedicated Warnings Inspector in Developer Tools with duplicate count grouping and mobile-friendly scrolling.",
     ],
   },
   {
     heading: "Fixed",
     items: [
-      "Resolved app switching black screen transition issue with cached views.",
-      "Fixed startup routing restoration to prevent default sub-app recovery.",
-      "Improved Stagex landscape layouts, Safe Area offsets, and expanded button touch targets.",
+      "Resolved console module parsing bug to correctly categorize system and infrastructure warnings under true source modules instead of defaulting to Studio Hub.",
+      "Refined Stagex landscape layout, removing bottom collapse arrows, center-aligning left toolbar vertically, and elevating the vertical drawer to clear FAB/Eye buttons.",
     ],
   },
 ];
@@ -80,16 +78,14 @@ export const APP_CHANGELOG_SECTIONS_NATIVE: ChangelogSection[] = [
   {
     heading: "Added",
     items: [
-      "Redesigned Developer Tools toggle switch and added live card stats.",
-      "Added multi-app status diagnostics for Hub, Chordex, Drumex, Stagex, Groovex, and Vocalex.",
+      "Added a dedicated Warnings Inspector to Developer Tools with duplicate grouping.",
     ],
   },
   {
     heading: "Fixed",
     items: [
-      "Resolved app switching black screen transition issue with cached views.",
-      "Fixed startup routing restoration to prevent default sub-app recovery.",
-      "Improved Stagex landscape layouts, Safe Area offsets, and expanded button touch targets.",
+      "Resolved console module parsing bug that caused all infra warnings to list under Studio Hub.",
+      "Refined Stagex landscape layout to center left toolbar and prevent drawer overlap.",
     ],
   },
 ];
@@ -100,16 +96,14 @@ export const APP_CHANGELOG_SECTIONS_ES: ChangelogSection[] = [
   {
     heading: "Añadido",
     items: [
-      "Rediseñado interruptor de Modo Desarrollador e información en tiempo real.",
-      "Diagnósticos dedicados para Studio Hub, Chordex, Drumex, Stagex, Groovex y Vocalex.",
+      "Añadido un inspector de advertencias dedicado con agrupación de duplicados.",
     ],
   },
   {
     heading: "Corregido",
     items: [
-      "Solucionado destello de pantalla negra en transiciones mediante vistas en caché.",
-      "Corregido el error de restauración de inicio abriendo siempre en Studio Hub.",
-      "Corregido diseño horizontal de Stagex, insets de Samsung Android 16 y tap targets.",
+      "Corregido error de análisis de consola que acumulaba advertencias bajo Studio Hub.",
+      "Perfeccionado el diseño horizontal de Stagex con panel elevado y menú centrado.",
     ],
   },
 ];

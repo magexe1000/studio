@@ -487,7 +487,6 @@ export default function StagexPanel() {
   const navCollapsed = useNavCollapsed();
   const [expandedStageH, setExpandedStageH] = useState(52);
   const [expandedStageW, setExpandedStageW] = useState(380);
-  const [landscapeNavHidden, setLandscapeNavHidden] = useState(false);
   const [propPanelOpen, setPropPanelOpen] = useState(false);
   const [pdfSheetOpen, setPdfSheetOpen] = useState(false);
   const [pdfFileName, setPdfFileName] = useState('');
@@ -938,7 +937,6 @@ ComposedPath: ${path.slice(0, 3).join(' > ')}`;
     const mql = window.matchMedia(mediaQueryString);
     const handler = (e: MediaQueryListEvent) => {
       setIsLandscape(e.matches);
-      if (!e.matches) setLandscapeNavHidden(false);
     };
     mql.addEventListener('change', handler);
     return () => mql.removeEventListener('change', handler);
@@ -2583,67 +2581,6 @@ ComposedPath: ${path.slice(0, 3).join(' > ')}`;
           </button>
         )}
 
-        {isLandscapeEditor && landscapeNavHidden && (
-          <button
-            onClick={() => setLandscapeNavHidden(false)}
-            aria-label={tr.stagex.showNav}
-            title={tr.stagex.showNav}
-            style={{
-              position: 'absolute',
-              bottom: 'max(4px, env(safe-area-inset-bottom))',
-              left: '50%',
-              transform: 'translateX(-50%)',
-              width: 48,
-              height: 26,
-              borderRadius: '12px 12px 0 0',
-              background: stagePillBg,
-              border: isLight ? '1px solid rgba(255,255,255,0.55)' : '1px solid rgba(255,255,255,0.10)',
-              borderBottom: 'none',
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              padding: 0,
-              backdropFilter: 'blur(20px)',
-              WebkitBackdropFilter: 'blur(20px)',
-              zIndex: 10,
-            }}
-          >
-            <span className="material-symbols-outlined" style={{ fontSize: 14, color: isLight ? 'rgba(0,0,0,0.4)' : 'rgba(160,160,180,0.8)', lineHeight: 1 }}>expand_less</span>
-          </button>
-        )}
-
-        {isLandscapeEditor && !landscapeNavHidden && !isWebDesktop && (
-          <button
-            onClick={() => setLandscapeNavHidden(true)}
-            aria-label={tr.stagex.hideNav}
-            title={tr.stagex.hideNav}
-            style={{
-              position: 'absolute',
-              bottom: `calc(max(10px, env(safe-area-inset-bottom)) + ${isLandscapeEditor ? 34 : 52}px)`,
-              left: '50%',
-              transform: 'translateX(-50%)',
-              width: 48,
-              height: 26,
-              borderRadius: '12px 12px 0 0',
-              background: stagePillBg,
-              border: isLight ? '1px solid rgba(255,255,255,0.55)' : '1px solid rgba(255,255,255,0.10)',
-              borderBottom: 'none',
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              padding: 0,
-              backdropFilter: 'blur(20px)',
-              WebkitBackdropFilter: 'blur(20px)',
-              zIndex: 11,
-              transition: 'opacity 300ms ease',
-            }}
-          >
-            <span className="material-symbols-outlined" style={{ fontSize: 14, color: isLight ? 'rgba(0,0,0,0.4)' : 'rgba(160,160,180,0.8)', lineHeight: 1 }}>expand_more</span>
-          </button>
-        )}
-
         {/* ── Glassmorphism bottom nav — matches Chordex BottomNav ── */}
         <div
           ref={stageNavRef}
@@ -2654,7 +2591,7 @@ ComposedPath: ${path.slice(0, 3).join(' > ')}`;
             bottom: 'max(10px, env(safe-area-inset-bottom))',
             left: '50%',
             transform: `translateX(-50%) translateY(${
-              liveMode || hideBottomNav || (isLandscapeEditor && landscapeNavHidden) ? 'calc(100% + 32px)' : '0px'
+              liveMode || hideBottomNav ? 'calc(100% + 32px)' : '0px'
             })`,
             pointerEvents: (liveMode || hideBottomNav || navCollapsed) ? 'none' : 'auto',
             opacity: liveMode ? 0 : 1,

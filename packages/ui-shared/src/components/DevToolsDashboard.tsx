@@ -459,6 +459,7 @@ export default function DevToolsDashboard({ accent, onBack }: Props) {
             </CollapsibleSection>
           </div>
         )}
+        <WarningsInspector moduleFilter={['updater', 'apkdownloader']} />
       </div>
     );
   };
@@ -774,6 +775,220 @@ export default function DevToolsDashboard({ accent, onBack }: Props) {
       .catch(() => showToast('Copy failed.'));
   };
 
+  const WarningsInspector = ({ moduleFilter, appKey }: { moduleFilter?: string[]; appKey?: string }) => {
+    const [showWarnings, setShowWarnings] = useState(false);
+
+    const appWarnings = useMemo(() => {
+      return logs.filter(l => {
+        if (l.level !== 'warn') return false;
+        const mod = l.module.toLowerCase();
+        
+        if (appKey) {
+          if (appKey === 'chords') return mod === 'chordex';
+          if (appKey === 'drums') return mod === 'drumex' || mod === 'drums';
+          if (appKey === 'stage') return mod === 'stagex' || mod === 'stage';
+          if (appKey === 'groovex') return mod === 'groovex';
+          if (appKey === 'vocalex') return mod === 'vocalex';
+          if (appKey === 'hub') {
+            return !['chordex', 'drumex', 'drums', 'stagex', 'stage', 'groovex', 'vocalex'].includes(mod);
+          }
+          return false;
+        }
+
+        if (moduleFilter) {
+          return moduleFilter.some(m => m.toLowerCase() === mod);
+        }
+
+        return true;
+      });
+    }, [logs, moduleFilter, appKey]);
+
+    const groupedWarnings = useMemo(() => {
+      const groups: Array<{
+        message: string;
+        level: string;
+        module: string;
+        timestamp: number;
+        count: number;
+      }> = [];
+
+      appWarnings.forEach(w => {
+        const existing = groups.find(g => g.message === w.message && g.module === w.module);
+        if (existing) {
+          existing.count += 1;
+          if (w.timestamp > existing.timestamp) {
+            existing.timestamp = w.timestamp;
+          }
+        } else {
+          groups.push({
+            message: w.message,
+            level: w.level,
+            module: w.module,
+            timestamp: w.timestamp,
+            count: 1
+          });
+        }
+      });
+
+      return groups;
+    }, [appWarnings]);
+
+    if (appWarnings.length === 0) return null;
+
+    const handleCopyWarning = (msg: string, mod: string) => {
+      navigator.clipboard.writeText(`[${mod}] ${msg}`)
+        .then(() => showToast('Warning copied!'))
+        .catch(() => showToast('Copy failed.'));
+    };
+
+    const handleCopyAll = () => {
+      const text = appWarnings.map(w => `[${new Date(w.timestamp).toISOString()}] [${w.module}] [${w.level.toUpperCase()}] ${w.message}`).join('\n');
+      navigator.clipboard.writeText(text)
+        .then(() => showToast('All warnings copied!'))
+        .catch(() => showToast('Copy failed.'));
+    };
+
+    return (
+      <div style={{
+        marginTop: 12,
+        background: 'rgba(245, 158, 11, 0.03)',
+        border: '1px solid rgba(245, 158, 11, 0.15)',
+        borderRadius: '12px',
+        padding: '12px 14px',
+        display: 'flex',
+        flexDirection: 'column',
+        gap: 10
+      }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+            <span className="material-symbols-outlined" style={{ color: '#f59e0b', fontSize: 18 }}>warning</span>
+            <span style={{ fontSize: '13px', fontWeight: 800, color: '#f59e0b' }}>
+              {appWarnings.length} Warnings Detected
+            </span>
+          </div>
+          <button
+            onClick={() => setShowWarnings(!showWarnings)}
+            style={{
+              padding: '4px 10px',
+              borderRadius: '6px',
+              background: 'rgba(245, 158, 11, 0.1)',
+              border: '1px solid rgba(245, 158, 11, 0.2)',
+              color: '#f59e0b',
+              fontWeight: 700,
+              fontSize: '11px',
+              cursor: 'pointer'
+            }}
+          >
+            {showWarnings ? 'Hide Warnings' : 'View Warnings'}
+          </button>
+        </div>
+
+        {showWarnings && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginTop: 4 }}>
+            <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+              <button
+                onClick={handleCopyAll}
+                style={{
+                  padding: '4px 8px',
+                  borderRadius: '6px',
+                  background: 'rgba(255,255,255,0.06)',
+                  border: '1px solid rgba(255,255,255,0.08)',
+                  color: '#fff',
+                  fontSize: '10px',
+                  fontWeight: 700,
+                  cursor: 'pointer'
+                }}
+              >
+                Copy All Warnings
+              </button>
+            </div>
+            
+            <div style={{
+              maxHeight: 200,
+              overflowY: 'auto',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: 8,
+              paddingRight: 4
+            }}>
+              {groupedWarnings.map((w, idx) => (
+                <div key={idx} style={{
+                  padding: '8px 10px',
+                  background: 'rgba(0,0,0,0.2)',
+                  borderRadius: '8px',
+                  border: '1px solid rgba(255,255,255,0.04)',
+                  fontSize: '11px',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: 4
+                }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                      <span style={{
+                        background: 'rgba(245, 158, 11, 0.1)',
+                        color: '#f59e0b',
+                        padding: '1px 5px',
+                        borderRadius: '4px',
+                        fontWeight: 700,
+                        fontSize: '9px'
+                      }}>WARN</span>
+                      <span style={{ color: 'rgba(255,255,255,0.4)', fontWeight: 600 }}>
+                        Module: {w.module}
+                      </span>
+                      {w.count > 1 && (
+                        <span style={{
+                          background: 'rgba(255,255,255,0.1)',
+                          color: '#fff',
+                          padding: '1px 5px',
+                          borderRadius: '4px',
+                          fontWeight: 700,
+                          fontSize: '9px'
+                        }}>
+                          ×{w.count}
+                        </span>
+                      )}
+                    </div>
+                    <span style={{ color: 'rgba(255,255,255,0.25)', fontSize: '9px' }}>
+                      {new Date(w.timestamp).toLocaleTimeString()}
+                    </span>
+                  </div>
+                  
+                  <div style={{
+                    color: '#fff',
+                    wordBreak: 'break-word',
+                    whiteSpace: 'pre-wrap',
+                    lineHeight: 1.3,
+                    fontFamily: 'monospace'
+                  }}>
+                    {w.message}
+                  </div>
+
+                  <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 2 }}>
+                    <button
+                      onClick={() => handleCopyWarning(w.message, w.module)}
+                      style={{
+                        padding: '2px 6px',
+                        borderRadius: '4px',
+                        background: 'rgba(255,255,255,0.04)',
+                        border: '1px solid rgba(255,255,255,0.06)',
+                        color: 'rgba(255,255,255,0.6)',
+                        fontSize: '9px',
+                        fontWeight: 600,
+                        cursor: 'pointer'
+                      }}
+                    >
+                      Copy Warning
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
+    );
+  };
+
   const renderSubViewHeader = (title: string) => {
     const handleGoBack = () => {
       if (title === 'Stagex Diagnostics') {
@@ -783,39 +998,67 @@ export default function DevToolsDashboard({ accent, onBack }: Props) {
       }
     };
 
+    const moduleName = title === 'Apps Diagnostics' ? 'Apps' :
+                       title === 'Stagex Diagnostics' ? 'Stagex' :
+                       title === 'Updater Diagnostics' ? 'Updater' :
+                       title === 'System Diagnostics' ? 'System' :
+                       title === 'Logs & Warnings' ? 'Logs' :
+                       title === 'Performance Diagnostics' ? 'Performance' :
+                       title === 'Network Sniffer' ? 'Network' : '';
+
     return (
       <div style={{
-        padding: '16px 20px',
+        padding: '12px 20px',
         borderBottom: '1px solid rgba(255,255,255,0.08)',
         display: 'flex',
         alignItems: 'center',
-        gap: 12,
+        justifyContent: 'space-between',
         background: '#000000',
         position: 'sticky',
         top: 0,
         zIndex: 100
       }}>
-        <button
-          onClick={handleGoBack}
-          className="btn-smooth"
-          style={{
-            background: 'rgba(255,255,255,0.06)',
-            border: 'none',
-            borderRadius: '999px',
-            width: 36,
-            height: 36,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            cursor: 'pointer',
-            color: '#fff'
-          }}
-        >
-          <span className="material-symbols-outlined" style={{ fontSize: 20 }}>arrow_back</span>
-        </button>
-        <div>
-          <h2 style={{ fontSize: '18px', fontWeight: 800, margin: 0 }}>{title}</h2>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+          <button
+            onClick={handleGoBack}
+            className="btn-smooth"
+            style={{
+              background: 'rgba(255,255,255,0.06)',
+              border: 'none',
+              borderRadius: '999px',
+              width: 36,
+              height: 36,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              cursor: 'pointer',
+              color: '#fff'
+            }}
+          >
+            <span className="material-symbols-outlined" style={{ fontSize: 20 }}>arrow_back</span>
+          </button>
+          <span style={{ fontSize: '16px', fontWeight: 800, color: '#fff' }}>{title}</span>
         </div>
+
+        {moduleName && (
+          <button
+            onClick={() => handleCopyModuleDiagnostics(moduleName)}
+            style={{
+              padding: '6px 12px',
+              borderRadius: '8px',
+              background: 'rgba(255,255,255,0.06)',
+              border: '1px solid rgba(255,255,255,0.08)',
+              color: accent.from,
+              fontWeight: 700,
+              fontSize: '11px',
+              cursor: 'pointer',
+              whiteSpace: 'nowrap',
+              transition: 'all 0.15s ease'
+            }}
+          >
+            Copy Diagnostics
+          </button>
+        )}
       </div>
     );
   };
@@ -1207,101 +1450,42 @@ export default function DevToolsDashboard({ accent, onBack }: Props) {
   );
 
   const renderDashboardCards = () => {
-    const activeAppFriendly = settings.appMode === 'hub' ? 'Studio Hub' :
-      settings.appMode === 'chords' ? 'Chordex' :
-      settings.appMode === 'drums' ? 'Drumex' :
-      settings.appMode === 'stage' ? 'Stagex' :
-      settings.appMode === 'groovex' ? 'Groovex' :
-      settings.appMode === 'vocalex' ? 'Vocalex' : 'Unknown';
-
-    const lastAppFriendly = lastAppRef.current === 'hub' ? 'Studio Hub' :
-      lastAppRef.current === 'chords' ? 'Chordex' :
-      lastAppRef.current === 'drums' ? 'Drumex' :
-      lastAppRef.current === 'stage' ? 'Stagex' :
-      lastAppRef.current === 'groovex' ? 'Groovex' :
-      lastAppRef.current === 'vocalex' ? 'Vocalex' : 'Studio Hub';
-
-    const webViewMatch = navigator.userAgent.match(/Chrome\/([0-9.]+)/);
-    const webViewVer = webViewMatch ? `Chrome ${webViewMatch[1].split('.')[0]}` : 'WebView';
-
-    const lastReq = network.length > 0 ? network[network.length - 1] : null;
-    const lastReqStr = lastReq ? `${lastReq.method} ${lastReq.url.substring(lastReq.url.lastIndexOf('/') + 1) || '/'}` : 'None';
-
-    const activePanelFriendly = settings.appMode === 'chords' ? `Chordex > ${activePanel}` :
-      settings.appMode === 'drums' ? `Drumex` :
-      settings.appMode === 'stage' ? `Stagex` :
-      settings.appMode === 'groovex' ? `Groovex` :
-      settings.appMode === 'vocalex' ? `Vocalex` : 'Studio Hub';
-
     const cards = [
       {
         id: 'apps',
         title: 'Apps',
-        module: 'Apps',
-        action: () => setSubView('apps'),
-        stats: [
-          { label: 'Active app', value: activeAppFriendly },
-          { label: 'Last opened', value: lastAppFriendly },
-          { label: 'Runtime state', value: settings.appMode ? 'Foreground' : 'Background', color: '#10b981' },
-          { label: 'Errors count', value: String(errorCount), color: errorCount > 0 ? '#ef4444' : '#10b981' }
-        ]
+        description: 'View diagnostics and runtime status for Studio applications.',
+        action: () => setSubView('apps')
       },
       {
         id: 'updater',
         title: 'Updater',
-        module: 'Updater',
-        action: () => setSubView('updater'),
-        stats: [
-          { label: 'Installed', value: `v${otaDebugLogs.appVersion || APP_VERSION}` },
-          { label: 'Version code', value: otaDebugLogs.installedVersionCode !== null ? String(otaDebugLogs.installedVersionCode) : '77' },
-          { label: 'OTA status', value: otaDebugLogs.updateDecision || 'Idle', color: '#679cff' },
-          { label: 'Last check', value: otaDiagnostics.timestamp || 'N/A' }
-        ]
+        description: 'Inspect update, OTA and APK diagnostics.',
+        action: () => setSubView('updater')
       },
       {
         id: 'system',
         title: 'System',
-        module: 'System',
-        action: () => { setSubView('system'); setActiveTab('state'); },
-        stats: [
-          { label: 'Android version', value: otaDiagnostics.androidVersion || '16' },
-          { label: 'Device model', value: otaDiagnostics.deviceModel || 'Galaxy S26' },
-          { label: 'Memory usage', value: (window.performance as any)?.memory ? `${Math.round((window.performance as any).memory.usedJSHeapSize / 1024 / 1024)} MB` : '38.4 MB' },
-          { label: 'WebView status', value: webViewVer }
-        ]
+        description: 'View device, runtime and environment information.',
+        action: () => { setSubView('system'); setActiveTab('state'); }
       },
       {
         id: 'logs',
         title: 'Logs',
-        module: 'Logs',
-        action: () => { setSubView('logs'); setActiveTab('logs'); },
-        stats: [
-          { label: 'Log count', value: String(logs.length) },
-          { label: 'Warning count', value: String(warningCount), color: warningCount > 0 ? '#f59e0b' : '#10b981' },
-          { label: 'Error count', value: String(errorCount), color: errorCount > 0 ? '#ef4444' : '#10b981' }
-        ]
+        description: 'View runtime logs, warnings and errors.',
+        action: () => { setSubView('logs'); setActiveTab('logs'); }
       },
       {
         id: 'performance',
         title: 'Performance',
-        module: 'Performance',
-        action: () => { setSubView('performance'); setActiveTab('perf'); },
-        stats: [
-          { label: 'FPS estimate', value: settings.highRefreshRate ? '120 FPS' : '60 FPS', color: '#10b981' },
-          { label: 'Render timing', value: '1.8 ms' },
-          { label: 'Active view', value: activePanelFriendly }
-        ]
+        description: 'Inspect memory, rendering and performance metrics.',
+        action: () => { setSubView('performance'); setActiveTab('perf'); }
       },
       {
         id: 'network',
         title: 'Network',
-        module: 'Network',
-        action: () => { setSubView('network'); setActiveTab('network'); },
-        stats: [
-          { label: 'Connection', value: navigator.onLine ? 'Online' : 'Offline', color: navigator.onLine ? '#10b981' : '#ef4444' },
-          { label: 'Last request', value: lastReqStr },
-          { label: 'Sync status', value: 'Idle', color: '#10b981' }
-        ]
+        description: 'Inspect connectivity and request diagnostics.',
+        action: () => { setSubView('network'); setActiveTab('network'); }
       }
     ];
 
@@ -1327,53 +1511,14 @@ export default function DevToolsDashboard({ accent, onBack }: Props) {
           >
             <div style={{ flex: 1, textAlign: 'left' }}>
               <h3 style={{ fontSize: '15px', fontWeight: 800, color: '#fff', margin: 0 }}>{card.title}</h3>
-              {card.stats && (
-                <div style={{
-                  display: 'grid',
-                  gridTemplateColumns: '1fr 1fr',
-                  gap: '6px 10px',
-                  marginTop: '8px',
-                  fontSize: '11px'
-                }}>
-                  {card.stats.map((s, idx) => (
-                    <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', gap: 6, overflow: 'hidden' }}>
-                      <span style={{ color: 'rgba(255,255,255,0.35)', whiteSpace: 'nowrap' }}>{s.label}:</span>
-                      <span style={{
-                        color: s.color || '#e4e4e7',
-                        fontWeight: 600,
-                        textOverflow: 'ellipsis',
-                        overflow: 'hidden',
-                        whiteSpace: 'nowrap',
-                        textAlign: 'right'
-                      }} title={s.value}>
-                        {s.value}
-                      </span>
-                    </div>
-                  ))}
-                </div>
-              )}
+              <p style={{ fontSize: '12px', color: 'rgba(255,255,255,0.4)', margin: '4px 0 0', lineHeight: '1.4' }}>
+                {card.description}
+              </p>
             </div>
             
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                handleCopyModuleDiagnostics(card.module);
-              }}
-              style={{
-                padding: '6px 12px',
-                borderRadius: '8px',
-                background: 'rgba(255,255,255,0.06)',
-                border: '1px solid rgba(255,255,255,0.08)',
-                color: accent.from,
-                fontWeight: 700,
-                fontSize: '11px',
-                cursor: 'pointer',
-                whiteSpace: 'nowrap',
-                transition: 'all 0.15s ease'
-              }}
-            >
-              Copy Diagnostics
-            </button>
+            <span className="material-symbols-outlined" style={{ color: 'rgba(255,255,255,0.25)', fontSize: 20 }}>
+              chevron_right
+            </span>
           </div>
         ))}
       </div>
@@ -1381,6 +1526,22 @@ export default function DevToolsDashboard({ accent, onBack }: Props) {
   };
 
   const renderAppsView = () => {
+    const getAppWarningsCount = (appKey: string) => {
+      return logs.filter(l => {
+        if (l.level !== 'warn') return false;
+        const mod = l.module.toLowerCase();
+        if (appKey === 'chords') return mod === 'chordex';
+        if (appKey === 'drums') return mod === 'drumex' || mod === 'drums';
+        if (appKey === 'stage') return mod === 'stagex' || mod === 'stage';
+        if (appKey === 'groovex') return mod === 'groovex';
+        if (appKey === 'vocalex') return mod === 'vocalex';
+        if (appKey === 'hub') {
+          return !['chordex', 'drumex', 'drums', 'stagex', 'stage', 'groovex', 'vocalex'].includes(mod);
+        }
+        return false;
+      }).length;
+    };
+
     const appsList = [
       {
         key: 'hub',
@@ -1388,7 +1549,7 @@ export default function DevToolsDashboard({ accent, onBack }: Props) {
         status: settings.appMode === 'hub' ? 'Active' : 'Suspended',
         view: activePanel,
         memory: '24.5 MB',
-        warnings: logs.filter(l => l.level === 'warn' && (l.module === 'Hub' || l.module === 'general')).length,
+        warnings: getAppWarningsCount('hub'),
       },
       {
         key: 'chords',
@@ -1396,7 +1557,7 @@ export default function DevToolsDashboard({ accent, onBack }: Props) {
         status: settings.appMode === 'chords' ? 'Active' : 'Suspended',
         view: activePanel,
         memory: '32.1 MB',
-        warnings: logs.filter(l => l.level === 'warn' && l.module.toLowerCase() === 'chordex').length,
+        warnings: getAppWarningsCount('chords'),
       },
       {
         key: 'drums',
@@ -1404,7 +1565,7 @@ export default function DevToolsDashboard({ accent, onBack }: Props) {
         status: settings.appMode === 'drums' ? 'Active' : 'Suspended',
         view: settings.defaultDrumTab || 'songs',
         memory: '45.8 MB',
-        warnings: logs.filter(l => l.level === 'warn' && (l.module.toLowerCase() === 'drumex' || l.module.toLowerCase() === 'drums')).length,
+        warnings: getAppWarningsCount('drums'),
       },
       {
         key: 'stage',
@@ -1412,7 +1573,7 @@ export default function DevToolsDashboard({ accent, onBack }: Props) {
         status: settings.appMode === 'stage' ? 'Active' : 'Suspended',
         view: settings.defaultStageView || 'Editor',
         memory: '58.2 MB',
-        warnings: logs.filter(l => l.level === 'warn' && (l.module.toLowerCase() === 'stagex' || l.module.toLowerCase() === 'stage')).length,
+        warnings: getAppWarningsCount('stage'),
         hasTelemetry: true
       },
       {
@@ -1421,7 +1582,7 @@ export default function DevToolsDashboard({ accent, onBack }: Props) {
         status: settings.appMode === 'groovex' ? 'Active' : 'Suspended',
         view: 'Library',
         memory: '18.4 MB',
-        warnings: logs.filter(l => l.level === 'warn' && l.module.toLowerCase() === 'groovex').length,
+        warnings: getAppWarningsCount('groovex'),
       },
       {
         key: 'vocalex',
@@ -1429,7 +1590,7 @@ export default function DevToolsDashboard({ accent, onBack }: Props) {
         status: settings.appMode === 'vocalex' ? 'Active' : 'Suspended',
         view: 'Practice',
         memory: '22.9 MB',
-        warnings: logs.filter(l => l.level === 'warn' && l.module.toLowerCase() === 'vocalex').length,
+        warnings: getAppWarningsCount('vocalex'),
       }
     ];
 
@@ -1525,6 +1686,8 @@ export default function DevToolsDashboard({ accent, onBack }: Props) {
                 </button>
               )}
             </div>
+
+            <WarningsInspector appKey={app.key} />
           </div>
         ))}
       </div>
@@ -1579,17 +1742,19 @@ export default function DevToolsDashboard({ accent, onBack }: Props) {
 
           {/* DEV MODE ENABLE SECTION */}
           <div style={{
-            padding: '10px 20px',
+            margin: '16px 20px 4px',
+            padding: '16px 18px',
             background: 'rgba(255,255,255,0.02)',
-            borderBottom: '1px solid rgba(255,255,255,0.06)',
+            border: '1px solid rgba(255,255,255,0.06)',
+            borderRadius: '14px',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'space-between',
             flexShrink: 0
           }}>
-            <div>
-              <span style={{ fontSize: '14px', fontWeight: 700 }}>Developer Mode</span>
-              <p style={{ fontSize: '11px', color: 'rgba(255,255,255,0.4)', margin: '2px 0 0' }}>
+            <div style={{ textAlign: 'left' }}>
+              <h3 style={{ fontSize: '15px', fontWeight: 800, color: '#fff', margin: 0 }}>Developer Mode</h3>
+              <p style={{ fontSize: '12px', color: 'rgba(255,255,255,0.4)', margin: '4px 0 0', lineHeight: '1.4' }}>
                 Diagnostics tracking & developer logs
               </p>
             </div>
@@ -1758,6 +1923,7 @@ export default function DevToolsDashboard({ accent, onBack }: Props) {
             {activeTab === 'state' && renderStateTab()}
             {activeTab === 'storage' && renderStorageTab()}
             {activeTab === 'providers' && renderProvidersTab()}
+            <WarningsInspector moduleFilter={['system', 'general']} />
           </div>
         </div>
       )}
@@ -1793,6 +1959,7 @@ export default function DevToolsDashboard({ accent, onBack }: Props) {
           {renderSubViewHeader('Performance Diagnostics')}
           <div style={{ flex: 1, overflowY: 'auto', padding: '16px 20px' }}>
             {renderPerfTab()}
+            <WarningsInspector moduleFilter={['performance', 'perf']} />
           </div>
         </div>
       )}
@@ -1802,6 +1969,7 @@ export default function DevToolsDashboard({ accent, onBack }: Props) {
           {renderSubViewHeader('Network Sniffer')}
           <div style={{ flex: 1, overflowY: 'auto', padding: '16px 20px' }}>
             {renderNetworkTab()}
+            <WarningsInspector moduleFilter={['network', 'sync']} />
           </div>
         </div>
       )}

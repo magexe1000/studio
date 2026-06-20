@@ -2663,20 +2663,18 @@ html[data-theme="light"] .presets-empty { color: rgba(40,40,50,0.55); }
      Portrait formula is (100vh - 40px); landscape viewports are short so we
      drop the subtracted margin to 16px, giving a much larger 16:9 canvas. */
   #stage-canvas {
-    max-width: min(1080px, calc(100vw - 12px - env(safe-area-inset-left) - env(safe-area-inset-right)), calc((100vh - 16px - env(safe-area-inset-top) - env(safe-area-inset-bottom)) * 16 / 9)) !important;
+    max-width: min(1080px, calc(100vw - 12px - env(safe-area-inset-left) - env(safe-area-inset-right)), calc((100vh - 64px - env(safe-area-inset-top) - env(safe-area-inset-bottom)) * 16 / 9)) !important;
   }
 
   #sc-scenes-bar {
-    max-width: min(1080px, calc(100vw - 32px - env(safe-area-inset-left) - env(safe-area-inset-right)), calc((100vh - 16px - env(safe-area-inset-top) - env(safe-area-inset-bottom)) * 16 / 9)) !important;
+    max-width: min(1080px, calc(100vw - 32px - env(safe-area-inset-left) - env(safe-area-inset-right)), calc((100vh - 64px - env(safe-area-inset-top) - env(safe-area-inset-bottom)) * 16 / 9)) !important;
   }
 
-  /* ── Left toolbar: anchor to top so it can't overflow the bottom edge ──
-     Default "top:50% / translateY(-50%)" centres it, but in landscape the
-     fully-expanded body is often taller than the viewport, clipping both edges. */
+  /* ── Left toolbar: centered vertically and respecting safe-area-inset-left ── */
   #sc-vtools {
-    left: calc(max(16px, env(safe-area-inset-left))) !important;
-    top: calc(max(8px, env(safe-area-inset-top))) !important;
-    transform: none !important;
+    left: calc(max(24px, env(safe-area-inset-left))) !important;
+    top: 50% !important;
+    transform: translateY(-50%) !important;
   }
   /* Cap body height and quietly scroll; hide scrollbar */
   #sc-vtools-body {
@@ -2702,12 +2700,10 @@ html[data-theme="light"] .presets-empty { color: rgba(40,40,50,0.55); }
   }
   #sc-dial-items::-webkit-scrollbar { display: none !important; }
 
-  /* ── Item sub-sheet: recalculate bottom to match repositioned FAB ──
-     Portrait base was bottom:142px (above nav bar + FAB). Landscape:
-     14px edge inset + 50px FAB + 12px gap = 76px. */
+  /* ── Item sub-sheet: recalculate bottom to clear FAB and Eye buttons ── */
   #sc-item-sheet {
-    bottom:     76px !important;
-    max-height: calc(100vh - 90px) !important;
+    bottom:     120px !important;
+    max-height: calc(100vh - 135px) !important;
   }
 }
 

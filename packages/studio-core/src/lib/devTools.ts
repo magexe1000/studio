@@ -400,9 +400,13 @@ export function initDevToolsFramework() {
     // Infer module from bracket prefixes like [Stagex]
     let module = 'general';
     let cleanArgs = args;
-    if (typeof args[0] === 'string' && args[0].startsWith('[') && args[0].endsWith(']')) {
-      module = args[0].slice(1, -1);
-      cleanArgs = args.slice(1);
+    if (typeof args[0] === 'string' && args[0].startsWith('[')) {
+      const closeIdx = args[0].indexOf(']');
+      if (closeIdx > 0) {
+        module = args[0].slice(1, closeIdx);
+        const rest = args[0].slice(closeIdx + 1).trim();
+        cleanArgs = rest ? [rest, ...args.slice(1)] : args.slice(1);
+      }
     }
     addLog('info', module, ...cleanArgs);
   };
@@ -411,9 +415,13 @@ export function initDevToolsFramework() {
     originalConsole!.warn(...args);
     let module = 'general';
     let cleanArgs = args;
-    if (typeof args[0] === 'string' && args[0].startsWith('[') && args[0].endsWith(']')) {
-      module = args[0].slice(1, -1);
-      cleanArgs = args.slice(1);
+    if (typeof args[0] === 'string' && args[0].startsWith('[')) {
+      const closeIdx = args[0].indexOf(']');
+      if (closeIdx > 0) {
+        module = args[0].slice(1, closeIdx);
+        const rest = args[0].slice(closeIdx + 1).trim();
+        cleanArgs = rest ? [rest, ...args.slice(1)] : args.slice(1);
+      }
     }
     addLog('warn', module, ...cleanArgs);
   };
@@ -422,9 +430,13 @@ export function initDevToolsFramework() {
     originalConsole!.error(...args);
     let module = 'general';
     let cleanArgs = args;
-    if (typeof args[0] === 'string' && args[0].startsWith('[') && args[0].endsWith(']')) {
-      module = args[0].slice(1, -1);
-      cleanArgs = args.slice(1);
+    if (typeof args[0] === 'string' && args[0].startsWith('[')) {
+      const closeIdx = args[0].indexOf(']');
+      if (closeIdx > 0) {
+        module = args[0].slice(1, closeIdx);
+        const rest = args[0].slice(closeIdx + 1).trim();
+        cleanArgs = rest ? [rest, ...args.slice(1)] : args.slice(1);
+      }
     }
     addLog('error', module, ...cleanArgs);
     
