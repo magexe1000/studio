@@ -59,6 +59,16 @@ export default function App() {
   const { activePanel, settings, setActivePanel, activePresetId, updateSettings } = useChordStore();
   const { preferences } = useStudioPreferences();
 
+  // Cold Start App Restore Bug: Reset appMode to settings.startupApp || 'hub' if restoreLastSession is false
+  useEffect(() => {
+    const s = useChordStore.getState().settings;
+    if (!s.restoreLastSession) {
+      const defaultApp = s.startupApp || 'hub';
+      console.log(`[Startup] restoreLastSession is false. Resetting appMode to ${defaultApp}.`);
+      useChordStore.getState().updateSettings({ appMode: defaultApp });
+    }
+  }, []);
+
   const [exitToast, setExitToast] = useState(false);
   const exitToastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const lastBackTime = useRef<number>(0);
@@ -518,88 +528,11 @@ export default function App() {
               pointerEvents: activeAppToRender === null ? 'none' : 'auto',
             }}
           >
-            {activeAppToRender === 'groovex' && (
-              <div className="app-sub-app-container" style={{ position: 'relative', width: '100%', height: '100%', overflow: 'hidden' }}>
-                <ErrorBoundary moduleName="Groovex">
-                  <Suspense fallback={<SmartLoading fallbackSkeleton={<GroovexAppSkeleton />} />}><AppEntryTransition><GroovexApp /></AppEntryTransition></Suspense>
-                </ErrorBoundary>
-              </div>
-            )}
-
-            {activeAppToRender === 'vocalex' && (
-              <div className="app-sub-app-container" style={{ position: 'relative', width: '100%', height: '100%', overflow: 'hidden' }}>
-                <ErrorBoundary moduleName="Vocalex">
-                  <Suspense fallback={<SmartLoading fallbackSkeleton={<VocalexTakesSkeleton />} />}><AppEntryTransition><VocalexApp /></AppEntryTransition></Suspense>
-                </ErrorBoundary>
-              </div>
-            )}
-
-            {activeAppToRender === 'stage' && (
-              <div className="app-sub-app-container" style={{ position: 'relative', width: '100%', height: '100%', overflow: 'hidden' }}>
-                <ErrorBoundary moduleName="Stagex">
-                  <Suspense fallback={<SmartLoading fallbackSkeleton={<StagexPanelSkeleton />} />}><AppEntryTransition><StageCorePanel /></AppEntryTransition></Suspense>
-                </ErrorBoundary>
-              </div>
-            )}
-
-            {activeAppToRender === 'drums' && (
-              <div className="app-sub-app-container" style={{ position: 'relative', width: '100%', height: '100%', overflow: 'hidden' }}>
-                <ErrorBoundary moduleName="Drumex"><Suspense fallback={<SmartLoading fallbackSkeleton={<DrumEditorSkeleton />} />}><AppEntryTransition><DrumEditor /></AppEntryTransition></Suspense></ErrorBoundary>
-              </div>
-            )}
-
-            {activeAppToRender === 'chords' && (
-              <div className="app-sub-app-container" style={{ display: 'flex', flexDirection: 'column', width: '100%', height: '100%', overflow: 'hidden', userSelect: 'none', background: 'var(--app-bg)' }}>
-                <AppEntryTransition
-                  className="flex flex-col w-full overflow-hidden select-none app-bg"
-                  style={{
-                    position: 'relative',
-                    height: '100%',
-                    paddingTop: 'env(safe-area-inset-top)',
-                  } as React.CSSProperties}
-                >
-                  <div 
-                    style={{ 
-                      display: 'flex', 
-                      flexDirection: 'column', 
-                      flex: 1, 
-                      width: '100%', 
-                      height: '100%', 
-                      overflow: 'hidden' 
-                    }}
-                  >
-                    <div className="flex-1 overflow-hidden relative" style={{ contain: 'strict' }}>
-                      {ALL_PANELS.map(panel => {
-                        const isVisible = activePanel === panel;
-                        if (!isVisible) return null;
-
-                        return (
-                          <div
-                            key={panel}
-                            style={{
-                              position: 'absolute',
-                              inset: 0,
-                              pointerEvents: 'auto',
-                            }}
-                          >
-                            <ErrorBoundary moduleName="Chordex">
-                              <Suspense fallback={<SmartLoading fallbackSkeleton={<ChordexPanelSkeleton />} />}>
-                                {panel === 'library'  && <LibraryPanel />}
-                                {panel === 'chord'    && <ChordPanel />}
-                                {panel === 'songs'    && <SongsPanel />}
-                                {panel === 'settings' && <SettingsPanel />}
-                              </Suspense>
-                            </ErrorBoundary>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  </div>
-
-                  {settings.appMode === 'chords' && <BottomNav />}
-                </AppEntryTransition>
-              </div>
-            )}
+            <SubAppWrapper
+              app={activeAppToRender as AppKey}
+              activePanel={activePanel}
+              settings={settings}
+            />
           </motion.div>
         )}
       </AnimatePresence>
@@ -636,7 +569,104 @@ export default function App() {
       >
         Press back or swipe again to exit
       </div>,
-      document.body
+        document.body
     );
   }
+}
+
+interface SubAppWrapperProps {
+  app: AppKey;
+  activePanel: string;
+  settings: any;
+}
+
+function SubAppWrapper({ app, activePanel, settings }: SubAppWrapperProps) {
+  const [cachedApp] = useState<AppKey>(app);
+
+  return (
+    <>
+      {cachedApp === 'groovex' && (
+        <div className="app-sub-app-container" style={{ position: 'relative', width: '100%', height: '100%', overflow: 'hidden' }}>
+          <ErrorBoundary moduleName="Groovex">
+            <Suspense fallback={<SmartLoading fallbackSkeleton={<GroovexAppSkeleton />} />}><AppEntryTransition><GroovexApp /></AppEntryTransition></Suspense>
+          </ErrorBoundary>
+        </div>
+      )}
+
+      {cachedApp === 'vocalex' && (
+        <div className="app-sub-app-container" style={{ position: 'relative', width: '100%', height: '100%', overflow: 'hidden' }}>
+          <ErrorBoundary moduleName="Vocalex">
+            <Suspense fallback={<SmartLoading fallbackSkeleton={<VocalexTakesSkeleton />} />}><AppEntryTransition><VocalexApp /></AppEntryTransition></Suspense>
+          </ErrorBoundary>
+        </div>
+      )}
+
+      {cachedApp === 'stage' && (
+        <div className="app-sub-app-container" style={{ position: 'relative', width: '100%', height: '100%', overflow: 'hidden' }}>
+          <ErrorBoundary moduleName="Stagex">
+            <Suspense fallback={<SmartLoading fallbackSkeleton={<StagexPanelSkeleton />} />}><AppEntryTransition><StageCorePanel /></AppEntryTransition></Suspense>
+          </ErrorBoundary>
+        </div>
+      )}
+
+      {cachedApp === 'drums' && (
+        <div className="app-sub-app-container" style={{ position: 'relative', width: '100%', height: '100%', overflow: 'hidden' }}>
+          <ErrorBoundary moduleName="Drumex"><Suspense fallback={<SmartLoading fallbackSkeleton={<DrumEditorSkeleton />} />}><AppEntryTransition><DrumEditor /></AppEntryTransition></Suspense></ErrorBoundary>
+        </div>
+      )}
+
+      {cachedApp === 'chords' && (
+        <div className="app-sub-app-container" style={{ display: 'flex', flexDirection: 'column', width: '100%', height: '100%', overflow: 'hidden', userSelect: 'none', background: 'var(--app-bg)' }}>
+          <AppEntryTransition
+            className="flex flex-col w-full overflow-hidden select-none app-bg"
+            style={{
+              position: 'relative',
+              height: '100%',
+              paddingTop: 'env(safe-area-inset-top)',
+            } as React.CSSProperties}
+          >
+            <div 
+              style={{ 
+                display: 'flex', 
+                flexDirection: 'column', 
+                flex: 1, 
+                width: '100%', 
+                height: '100%', 
+                overflow: 'hidden' 
+              }}
+            >
+              <div className="flex-1 overflow-hidden relative" style={{ contain: 'strict' }}>
+                {ALL_PANELS.map(panel => {
+                  const isVisible = activePanel === panel;
+                  if (!isVisible) return null;
+
+                  return (
+                    <div
+                      key={panel}
+                      style={{
+                        position: 'absolute',
+                        inset: 0,
+                        pointerEvents: 'auto',
+                      }}
+                    >
+                      <ErrorBoundary moduleName="Chordex">
+                        <Suspense fallback={<SmartLoading fallbackSkeleton={<ChordexPanelSkeleton />} />}>
+                          {panel === 'library'  && <LibraryPanel />}
+                          {panel === 'chord'    && <ChordPanel />}
+                          {panel === 'songs'    && <SongsPanel />}
+                          {panel === 'settings' && <SettingsPanel />}
+                        </Suspense>
+                      </ErrorBoundary>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+
+            {cachedApp === 'chords' && <BottomNav />}
+          </AppEntryTransition>
+        </div>
+      )}
+    </>
+  );
 }

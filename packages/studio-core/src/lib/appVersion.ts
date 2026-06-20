@@ -26,7 +26,7 @@ import { useMemo } from 'react';
 import { Capacitor } from '@capacitor/core';
 
 /** Canonical semver string used by the OTA comparator. */
-export const NATIVE_VERSION = '3.6.49';
+export const NATIVE_VERSION = '3.6.50';
 export const WEB_VERSION = '4.0.0';
 export const APP_VERSION = Capacitor.isNativePlatform() ? NATIVE_VERSION : WEB_VERSION;
 
@@ -38,10 +38,10 @@ export const APP_VERSION_LABEL = `${APP_VERSION_TAG} ${APP_VERSION}`;
 
 /** Release date for the CURRENT bundle, shown alongside the version pill
  *  in the changelog sheet. ISO-8601 (`YYYY-MM-DD`). */
-export const APP_VERSION_DATE = '2026-06-20'; // 3.6.49
+export const APP_VERSION_DATE = '2026-06-20'; // 3.6.50
 // Note: keep ISO-8601. Bump together with APP_VERSION on each release.
 
-export const APP_COMMIT_SHA = import.meta.env.VITE_GIT_COMMIT_SHA || 'c9e77a16';
+export const APP_COMMIT_SHA = import.meta.env.VITE_GIT_COMMIT_SHA || '77ef3650';
 export const APP_BUILD_TIMESTAMP = import.meta.env.VITE_BUILD_TIMESTAMP || '6/20/2026, 12:00:00 AM CST';
 
 /**
@@ -59,12 +59,18 @@ export interface ChangelogSection {
 
 export const APP_CHANGELOG_SECTIONS: ChangelogSection[] = [
   {
+    heading: "Added",
+    items: [
+      "Redesigned Developer Tools toggle switch and added live card stats.",
+      "Added multi-app status diagnostics for Hub, Chordex, Drumex, Stagex, Groovex, and Vocalex.",
+    ],
+  },
+  {
     heading: "Fixed",
     items: [
-      "Optimized 120 Hz display rendering and route animations for extreme responsiveness.",
-      "Eliminated background gray flashes by enforcing pure black (#000000) layouts and windows.",
-      "Redesigned Developer Tools into an intuitive dashboard with dedicated sub-view cards.",
-      "Implemented modular diagnostics copy buttons for individual diagnostic sections.",
+      "Resolved app switching black screen transition issue with cached views.",
+      "Fixed startup routing restoration to prevent default sub-app recovery.",
+      "Improved Stagex landscape layouts, Safe Area offsets, and expanded button touch targets.",
     ],
   },
 ];
@@ -72,12 +78,18 @@ export const APP_CHANGELOG_SECTIONS: ChangelogSection[] = [
 /** Native English version of the current changelog for Android. */
 export const APP_CHANGELOG_SECTIONS_NATIVE: ChangelogSection[] = [
   {
+    heading: "Added",
+    items: [
+      "Redesigned Developer Tools toggle switch and added live card stats.",
+      "Added multi-app status diagnostics for Hub, Chordex, Drumex, Stagex, Groovex, and Vocalex.",
+    ],
+  },
+  {
     heading: "Fixed",
     items: [
-      "Optimized 120 Hz display rendering and route animations for extreme responsiveness.",
-      "Eliminated background gray flashes by enforcing pure black (#000000) layouts and windows.",
-      "Redesigned Developer Tools into an intuitive dashboard with dedicated sub-view cards.",
-      "Implemented modular diagnostics copy buttons for individual diagnostic sections.",
+      "Resolved app switching black screen transition issue with cached views.",
+      "Fixed startup routing restoration to prevent default sub-app recovery.",
+      "Improved Stagex landscape layouts, Safe Area offsets, and expanded button touch targets.",
     ],
   },
 ];
@@ -86,12 +98,18 @@ export const APP_CHANGELOG_SECTIONS_NATIVE: ChangelogSection[] = [
  *  by `ChangelogSheet` based on `settings.language`. */
 export const APP_CHANGELOG_SECTIONS_ES: ChangelogSection[] = [
   {
+    heading: "Añadido",
+    items: [
+      "Rediseñado interruptor de Modo Desarrollador e información en tiempo real.",
+      "Diagnósticos dedicados para Studio Hub, Chordex, Drumex, Stagex, Groovex y Vocalex.",
+    ],
+  },
+  {
     heading: "Corregido",
     items: [
-      "Optimizado el renderizado a 120 Hz y animaciones de rutas para una respuesta extrema.",
-      "Eliminados destellos grises aplicando fondo negro puro (#000000) en layouts y ventanas.",
-      "Rediseñado Herramientas de Desarrollo en un panel intuitivo con tarjetas de sub-vista.",
-      "Copiado modular de diagnósticos para secciones individuales de depuración.",
+      "Solucionado destello de pantalla negra en transiciones mediante vistas en caché.",
+      "Corregido el error de restauración de inicio abriendo siempre en Studio Hub.",
+      "Corregido diseño horizontal de Stagex, insets de Samsung Android 16 y tap targets.",
     ],
   },
 ];

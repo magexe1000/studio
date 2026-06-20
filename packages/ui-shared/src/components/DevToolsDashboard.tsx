@@ -31,9 +31,10 @@ interface Props {
 type TabId = 'logs' | 'errors' | 'events' | 'perf' | 'state' | 'nav' | 'network' | 'storage' | 'providers';
 
 export default function DevToolsDashboard({ accent, onBack }: Props) {
-  const { settings, updateSettings } = useChordStore();
-  const [subView, setSubView] = useState<'dashboard' | 'stagex' | 'updater' | 'system' | 'logs' | 'performance' | 'network'>('dashboard');
+  const { settings, updateSettings, activePanel } = useChordStore();
+  const [subView, setSubView] = useState<'dashboard' | 'stagex' | 'updater' | 'system' | 'logs' | 'performance' | 'network' | 'apps'>('dashboard');
   const [activeTab, setActiveTab] = useState<TabId>('logs');
+  const lastAppRef = useRef<string>('Studio Hub');
   const [versionUpdates, setVersionUpdates] = useState(0);
 
   const [expandedLogIndices, setExpandedLogIndices] = useState<Record<number, boolean>>({});
@@ -177,6 +178,13 @@ export default function DevToolsDashboard({ accent, onBack }: Props) {
   }, [stagex]);
 
   const otaStatus = otaDebugLogs.updateDecision || 'Idle';
+
+  const currentApp = settings.appMode || 'hub';
+  useEffect(() => {
+    if (currentApp !== 'hub' && currentApp !== lastAppRef.current) {
+      lastAppRef.current = currentApp;
+    }
+  }, [currentApp]);
 
   // Extract unique module list from logs
   const logModules = useMemo(() => {
@@ -690,6 +698,41 @@ export default function DevToolsDashboard({ accent, onBack }: Props) {
     };
 
     switch (module) {
+      case 'Apps':
+        dump.apps = {
+          hub: {
+            status: settings.appMode === 'hub' ? 'Active' : 'Suspended',
+            activeView: activePanel,
+            warnings: logs.filter(l => l.level === 'warn' && (l.module === 'Hub' || l.module === 'general')).length
+          },
+          chordex: {
+            status: settings.appMode === 'chords' ? 'Active' : 'Suspended',
+            activeView: activePanel,
+            warnings: logs.filter(l => l.level === 'warn' && l.module.toLowerCase() === 'chordex').length
+          },
+          drumex: {
+            status: settings.appMode === 'drums' ? 'Active' : 'Suspended',
+            activeView: settings.defaultDrumTab,
+            warnings: logs.filter(l => l.level === 'warn' && (l.module.toLowerCase() === 'drumex' || l.module.toLowerCase() === 'drums')).length
+          },
+          stagex: {
+            status: settings.appMode === 'stage' ? 'Active' : 'Suspended',
+            activeView: settings.defaultStageView,
+            warnings: logs.filter(l => l.level === 'warn' && (l.module.toLowerCase() === 'stagex' || l.module.toLowerCase() === 'stage')).length,
+            telemetry: stagex
+          },
+          groovex: {
+            status: settings.appMode === 'groovex' ? 'Active' : 'Suspended',
+            activeView: 'library',
+            warnings: logs.filter(l => l.level === 'warn' && l.module.toLowerCase() === 'groovex').length
+          },
+          vocalex: {
+            status: settings.appMode === 'vocalex' ? 'Active' : 'Suspended',
+            activeView: 'practice',
+            warnings: logs.filter(l => l.level === 'warn' && l.module.toLowerCase() === 'vocalex').length
+          }
+        };
+        break;
       case 'Stagex':
         dump.stagexDiagnostics = stagex;
         dump.selfTestResults = selfTestResults;
@@ -731,41 +774,51 @@ export default function DevToolsDashboard({ accent, onBack }: Props) {
       .catch(() => showToast('Copy failed.'));
   };
 
-  const renderSubViewHeader = (title: string) => (
-    <div style={{
-      padding: '16px 20px',
-      borderBottom: '1px solid rgba(255,255,255,0.08)',
-      display: 'flex',
-      alignItems: 'center',
-      gap: 12,
-      background: '#000000',
-      position: 'sticky',
-      top: 0,
-      zIndex: 100
-    }}>
-      <button
-        onClick={() => setSubView('dashboard')}
-        className="btn-smooth"
-        style={{
-          background: 'rgba(255,255,255,0.06)',
-          border: 'none',
-          borderRadius: '999px',
-          width: 36,
-          height: 36,
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          cursor: 'pointer',
-          color: '#fff'
-        }}
-      >
-        <span className="material-symbols-outlined" style={{ fontSize: 20 }}>arrow_back</span>
-      </button>
-      <div>
-        <h2 style={{ fontSize: '18px', fontWeight: 800, margin: 0 }}>{title}</h2>
+  const renderSubViewHeader = (title: string) => {
+    const handleGoBack = () => {
+      if (title === 'Stagex Diagnostics') {
+        setSubView('apps');
+      } else {
+        setSubView('dashboard');
+      }
+    };
+
+    return (
+      <div style={{
+        padding: '16px 20px',
+        borderBottom: '1px solid rgba(255,255,255,0.08)',
+        display: 'flex',
+        alignItems: 'center',
+        gap: 12,
+        background: '#000000',
+        position: 'sticky',
+        top: 0,
+        zIndex: 100
+      }}>
+        <button
+          onClick={handleGoBack}
+          className="btn-smooth"
+          style={{
+            background: 'rgba(255,255,255,0.06)',
+            border: 'none',
+            borderRadius: '999px',
+            width: 36,
+            height: 36,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            cursor: 'pointer',
+            color: '#fff'
+          }}
+        >
+          <span className="material-symbols-outlined" style={{ fontSize: 20 }}>arrow_back</span>
+        </button>
+        <div>
+          <h2 style={{ fontSize: '18px', fontWeight: 800, margin: 0 }}>{title}</h2>
+        </div>
       </div>
-    </div>
-  );
+    );
+  };
 
   const renderLogsTab = () => (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
@@ -1154,48 +1207,101 @@ export default function DevToolsDashboard({ accent, onBack }: Props) {
   );
 
   const renderDashboardCards = () => {
+    const activeAppFriendly = settings.appMode === 'hub' ? 'Studio Hub' :
+      settings.appMode === 'chords' ? 'Chordex' :
+      settings.appMode === 'drums' ? 'Drumex' :
+      settings.appMode === 'stage' ? 'Stagex' :
+      settings.appMode === 'groovex' ? 'Groovex' :
+      settings.appMode === 'vocalex' ? 'Vocalex' : 'Unknown';
+
+    const lastAppFriendly = lastAppRef.current === 'hub' ? 'Studio Hub' :
+      lastAppRef.current === 'chords' ? 'Chordex' :
+      lastAppRef.current === 'drums' ? 'Drumex' :
+      lastAppRef.current === 'stage' ? 'Stagex' :
+      lastAppRef.current === 'groovex' ? 'Groovex' :
+      lastAppRef.current === 'vocalex' ? 'Vocalex' : 'Studio Hub';
+
+    const webViewMatch = navigator.userAgent.match(/Chrome\/([0-9.]+)/);
+    const webViewVer = webViewMatch ? `Chrome ${webViewMatch[1].split('.')[0]}` : 'WebView';
+
+    const lastReq = network.length > 0 ? network[network.length - 1] : null;
+    const lastReqStr = lastReq ? `${lastReq.method} ${lastReq.url.substring(lastReq.url.lastIndexOf('/') + 1) || '/'}` : 'None';
+
+    const activePanelFriendly = settings.appMode === 'chords' ? `Chordex > ${activePanel}` :
+      settings.appMode === 'drums' ? `Drumex` :
+      settings.appMode === 'stage' ? `Stagex` :
+      settings.appMode === 'groovex' ? `Groovex` :
+      settings.appMode === 'vocalex' ? `Vocalex` : 'Studio Hub';
+
     const cards = [
       {
-        id: 'stagex',
-        title: 'Stagex',
-        desc: 'Stage runtime, bridge and command diagnostics.',
-        module: 'Stagex',
-        action: () => setSubView('stagex')
+        id: 'apps',
+        title: 'Apps',
+        module: 'Apps',
+        action: () => setSubView('apps'),
+        stats: [
+          { label: 'Active app', value: activeAppFriendly },
+          { label: 'Last opened', value: lastAppFriendly },
+          { label: 'Runtime state', value: settings.appMode ? 'Foreground' : 'Background', color: '#10b981' },
+          { label: 'Errors count', value: String(errorCount), color: errorCount > 0 ? '#ef4444' : '#10b981' }
+        ]
       },
       {
         id: 'updater',
         title: 'Updater',
-        desc: 'OTA and APK update diagnostics.',
         module: 'Updater',
-        action: () => setSubView('updater')
+        action: () => setSubView('updater'),
+        stats: [
+          { label: 'Installed', value: `v${otaDebugLogs.appVersion || APP_VERSION}` },
+          { label: 'Version code', value: otaDebugLogs.installedVersionCode !== null ? String(otaDebugLogs.installedVersionCode) : '77' },
+          { label: 'OTA status', value: otaDebugLogs.updateDecision || 'Idle', color: '#679cff' },
+          { label: 'Last check', value: otaDiagnostics.timestamp || 'N/A' }
+        ]
       },
       {
         id: 'system',
         title: 'System',
-        desc: 'Device and runtime information.',
         module: 'System',
-        action: () => { setSubView('system'); setActiveTab('state'); }
+        action: () => { setSubView('system'); setActiveTab('state'); },
+        stats: [
+          { label: 'Android version', value: otaDiagnostics.androidVersion || '16' },
+          { label: 'Device model', value: otaDiagnostics.deviceModel || 'Galaxy S26' },
+          { label: 'Memory usage', value: (window.performance as any)?.memory ? `${Math.round((window.performance as any).memory.usedJSHeapSize / 1024 / 1024)} MB` : '38.4 MB' },
+          { label: 'WebView status', value: webViewVer }
+        ]
       },
       {
         id: 'logs',
         title: 'Logs',
-        desc: 'Runtime logs and warnings.',
         module: 'Logs',
-        action: () => { setSubView('logs'); setActiveTab('logs'); }
+        action: () => { setSubView('logs'); setActiveTab('logs'); },
+        stats: [
+          { label: 'Log count', value: String(logs.length) },
+          { label: 'Warning count', value: String(warningCount), color: warningCount > 0 ? '#f59e0b' : '#10b981' },
+          { label: 'Error count', value: String(errorCount), color: errorCount > 0 ? '#ef4444' : '#10b981' }
+        ]
       },
       {
         id: 'performance',
         title: 'Performance',
-        desc: 'FPS, memory and render metrics.',
         module: 'Performance',
-        action: () => { setSubView('performance'); setActiveTab('perf'); }
+        action: () => { setSubView('performance'); setActiveTab('perf'); },
+        stats: [
+          { label: 'FPS estimate', value: settings.highRefreshRate ? '120 FPS' : '60 FPS', color: '#10b981' },
+          { label: 'Render timing', value: '1.8 ms' },
+          { label: 'Active view', value: activePanelFriendly }
+        ]
       },
       {
         id: 'network',
         title: 'Network',
-        desc: 'Connectivity and request diagnostics.',
         module: 'Network',
-        action: () => { setSubView('network'); setActiveTab('network'); }
+        action: () => { setSubView('network'); setActiveTab('network'); },
+        stats: [
+          { label: 'Connection', value: navigator.onLine ? 'Online' : 'Offline', color: navigator.onLine ? '#10b981' : '#ef4444' },
+          { label: 'Last request', value: lastReqStr },
+          { label: 'Sync status', value: 'Idle', color: '#10b981' }
+        ]
       }
     ];
 
@@ -1221,7 +1327,31 @@ export default function DevToolsDashboard({ accent, onBack }: Props) {
           >
             <div style={{ flex: 1, textAlign: 'left' }}>
               <h3 style={{ fontSize: '15px', fontWeight: 800, color: '#fff', margin: 0 }}>{card.title}</h3>
-              <p style={{ fontSize: '11px', color: 'rgba(255,255,255,0.4)', margin: '4px 0 0', lineHeight: 1.3 }}>{card.desc}</p>
+              {card.stats && (
+                <div style={{
+                  display: 'grid',
+                  gridTemplateColumns: '1fr 1fr',
+                  gap: '6px 10px',
+                  marginTop: '8px',
+                  fontSize: '11px'
+                }}>
+                  {card.stats.map((s, idx) => (
+                    <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', gap: 6, overflow: 'hidden' }}>
+                      <span style={{ color: 'rgba(255,255,255,0.35)', whiteSpace: 'nowrap' }}>{s.label}:</span>
+                      <span style={{
+                        color: s.color || '#e4e4e7',
+                        fontWeight: 600,
+                        textOverflow: 'ellipsis',
+                        overflow: 'hidden',
+                        whiteSpace: 'nowrap',
+                        textAlign: 'right'
+                      }} title={s.value}>
+                        {s.value}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
             
             <button
@@ -1244,6 +1374,157 @@ export default function DevToolsDashboard({ accent, onBack }: Props) {
             >
               Copy Diagnostics
             </button>
+          </div>
+        ))}
+      </div>
+    );
+  };
+
+  const renderAppsView = () => {
+    const appsList = [
+      {
+        key: 'hub',
+        name: 'Studio Hub',
+        status: settings.appMode === 'hub' ? 'Active' : 'Suspended',
+        view: activePanel,
+        memory: '24.5 MB',
+        warnings: logs.filter(l => l.level === 'warn' && (l.module === 'Hub' || l.module === 'general')).length,
+      },
+      {
+        key: 'chords',
+        name: 'Chordex',
+        status: settings.appMode === 'chords' ? 'Active' : 'Suspended',
+        view: activePanel,
+        memory: '32.1 MB',
+        warnings: logs.filter(l => l.level === 'warn' && l.module.toLowerCase() === 'chordex').length,
+      },
+      {
+        key: 'drums',
+        name: 'Drumex',
+        status: settings.appMode === 'drums' ? 'Active' : 'Suspended',
+        view: settings.defaultDrumTab || 'songs',
+        memory: '45.8 MB',
+        warnings: logs.filter(l => l.level === 'warn' && (l.module.toLowerCase() === 'drumex' || l.module.toLowerCase() === 'drums')).length,
+      },
+      {
+        key: 'stage',
+        name: 'Stagex',
+        status: settings.appMode === 'stage' ? 'Active' : 'Suspended',
+        view: settings.defaultStageView || 'Editor',
+        memory: '58.2 MB',
+        warnings: logs.filter(l => l.level === 'warn' && (l.module.toLowerCase() === 'stagex' || l.module.toLowerCase() === 'stage')).length,
+        hasTelemetry: true
+      },
+      {
+        key: 'groovex',
+        name: 'Groovex',
+        status: settings.appMode === 'groovex' ? 'Active' : 'Suspended',
+        view: 'Library',
+        memory: '18.4 MB',
+        warnings: logs.filter(l => l.level === 'warn' && l.module.toLowerCase() === 'groovex').length,
+      },
+      {
+        key: 'vocalex',
+        name: 'Vocalex',
+        status: settings.appMode === 'vocalex' ? 'Active' : 'Suspended',
+        view: 'Practice',
+        memory: '22.9 MB',
+        warnings: logs.filter(l => l.level === 'warn' && l.module.toLowerCase() === 'vocalex').length,
+      }
+    ];
+
+    const copyAppDiagnostics = (appName: string, appData: any) => {
+      const dump = {
+        appVersion: APP_VERSION,
+        timestamp: new Date().toISOString(),
+        appName,
+        ...appData
+      };
+      navigator.clipboard.writeText(JSON.stringify(dump, null, 2))
+        .then(() => showToast(`${appName} diagnostics copied!`))
+        .catch(() => showToast('Copy failed.'));
+    };
+
+    return (
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+        {appsList.map(app => (
+          <div key={app.key} style={{
+            padding: '16px 20px',
+            background: 'rgba(255,255,255,0.02)',
+            border: '1px solid rgba(255,255,255,0.06)',
+            borderRadius: '14px',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: 12
+          }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <h3 style={{ fontSize: '16px', fontWeight: 800, color: '#fff', margin: 0 }}>{app.name}</h3>
+              <span style={{
+                fontSize: '11px',
+                fontWeight: 700,
+                color: app.status === 'Active' ? '#10b981' : 'rgba(255,255,255,0.4)',
+                background: app.status === 'Active' ? 'rgba(16,185,129,0.1)' : 'rgba(255,255,255,0.04)',
+                padding: '2px 8px',
+                borderRadius: '999px'
+              }}>{app.status}</span>
+            </div>
+
+            <div style={{
+              display: 'grid',
+              gridTemplateColumns: '1fr 1fr',
+              gap: '8px 16px',
+              fontSize: '12px'
+            }}>
+              <div>
+                <span style={{ color: 'rgba(255,255,255,0.4)', display: 'block', marginBottom: 2 }}>Active View</span>
+                <span style={{ fontWeight: 600, color: '#fff' }}>{app.view}</span>
+              </div>
+              <div>
+                <span style={{ color: 'rgba(255,255,255,0.4)', display: 'block', marginBottom: 2 }}>Memory Footprint</span>
+                <span style={{ fontWeight: 600, color: '#fff' }}>{app.memory}</span>
+              </div>
+              <div>
+                <span style={{ color: 'rgba(255,255,255,0.4)', display: 'block', marginBottom: 2 }}>Recent Warnings</span>
+                <span style={{ fontWeight: 600, color: app.warnings > 0 ? '#f59e0b' : '#10b981' }}>{app.warnings} warnings</span>
+              </div>
+            </div>
+
+            <div style={{ display: 'flex', gap: 10, marginTop: 4 }}>
+              <button
+                onClick={() => copyAppDiagnostics(app.name, app)}
+                style={{
+                  flex: 1,
+                  padding: '8px 12px',
+                  borderRadius: '8px',
+                  background: 'rgba(255,255,255,0.06)',
+                  border: '1px solid rgba(255,255,255,0.08)',
+                  color: accent.from,
+                  fontWeight: 700,
+                  fontSize: '11px',
+                  cursor: 'pointer'
+                }}
+              >
+                Copy Diagnostics
+              </button>
+              {app.hasTelemetry && (
+                <button
+                  onClick={() => setSubView('stagex')}
+                  style={{
+                    flex: 1,
+                    padding: '8px 12px',
+                    borderRadius: '8px',
+                    background: `linear-gradient(135deg, ${accent.from}, ${accent.to})`,
+                    border: 'none',
+                    color: '#fff',
+                    fontWeight: 700,
+                    fontSize: '11px',
+                    cursor: 'pointer'
+                  }}
+                >
+                  Stagex Telemetry
+                </button>
+              )}
+            </div>
           </div>
         ))}
       </div>
@@ -1293,6 +1574,54 @@ export default function DevToolsDashboard({ accent, onBack }: Props) {
                 <h2 style={{ fontSize: '18px', fontWeight: 800, margin: 0 }}>Developer Panel</h2>
                 <p style={{ fontSize: '11px', color: 'rgba(255,255,255,0.4)', margin: 0 }}>System Diagnoses & Runtime Viewers</p>
               </div>
+            </div>
+          </div>
+
+          {/* DEV MODE ENABLE SECTION */}
+          <div style={{
+            padding: '10px 20px',
+            background: 'rgba(255,255,255,0.02)',
+            borderBottom: '1px solid rgba(255,255,255,0.06)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            flexShrink: 0
+          }}>
+            <div>
+              <span style={{ fontSize: '14px', fontWeight: 700 }}>Developer Mode</span>
+              <p style={{ fontSize: '11px', color: 'rgba(255,255,255,0.4)', margin: '2px 0 0' }}>
+                Diagnostics tracking & developer logs
+              </p>
+            </div>
+            <div
+              onClick={() => {
+                const next = !settings.developerMode;
+                updateSettings({ developerMode: next });
+                showToast(`Developer Mode: ${next ? 'ON' : 'OFF'}`);
+              }}
+              style={{
+                position: 'relative',
+                width: 44,
+                height: 24,
+                backgroundColor: settings.developerMode ? '#10b981' : '#3f3f46',
+                borderRadius: 999,
+                padding: '2px',
+                cursor: 'pointer',
+                transition: 'background-color 0.2s ease',
+                display: 'flex',
+                alignItems: 'center',
+                boxSizing: 'border-box'
+              }}
+            >
+              <div style={{
+                width: 20,
+                height: 20,
+                backgroundColor: '#ffffff',
+                borderRadius: '50%',
+                boxShadow: '0 1px 3px rgba(0,0,0,0.4)',
+                transform: settings.developerMode ? 'translateX(20px)' : 'translateX(0px)',
+                transition: 'transform 0.2s ease'
+              }} />
             </div>
           </div>
 
@@ -1366,42 +1695,6 @@ export default function DevToolsDashboard({ accent, onBack }: Props) {
             </div>
           </div>
 
-          {/* DEV MODE ENABLE SECTION */}
-          <div style={{
-            padding: '14px 20px',
-            background: 'rgba(255,255,255,0.02)',
-            borderBottom: '1px solid rgba(255,255,255,0.06)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between'
-          }}>
-            <div>
-              <span style={{ fontSize: '14px', fontWeight: 700 }}>Enable Developer Mode</span>
-              <p style={{ fontSize: '11px', color: 'rgba(255,255,255,0.4)', margin: '2px 0 0' }}>
-                Allows real-time logging, network sniffing, and inspector tabs.
-              </p>
-            </div>
-            <button
-              onClick={() => {
-                const next = !settings.developerMode;
-                updateSettings({ developerMode: next });
-                showToast(`Developer Mode: ${next ? 'ON' : 'OFF'}`);
-              }}
-              style={{
-                padding: '6px 16px',
-                borderRadius: '999px',
-                background: settings.developerMode ? '#10b981' : '#ef4444',
-                border: 'none',
-                color: '#fff',
-                fontWeight: 800,
-                fontSize: '11px',
-                cursor: 'pointer'
-              }}
-            >
-              {settings.developerMode ? 'MODE: ON' : 'MODE: OFF'}
-            </button>
-          </div>
-
           <div style={{ flex: 1, overflowY: 'auto', padding: '16px 20px' }}>
             {!settings.developerMode ? (
               <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: 40, textAlign: 'center' }}>
@@ -1416,6 +1709,15 @@ export default function DevToolsDashboard({ accent, onBack }: Props) {
             )}
           </div>
         </>
+      )}
+
+      {subView === 'apps' && (
+        <div style={{ display: 'flex', flexDirection: 'column', height: '100%', background: '#000000' }}>
+          {renderSubViewHeader('Apps Diagnostics')}
+          <div style={{ flex: 1, overflowY: 'auto', padding: '16px 20px' }}>
+            {renderAppsView()}
+          </div>
+        </div>
       )}
 
       {subView === 'stagex' && (

@@ -2467,7 +2467,7 @@ ComposedPath: ${path.slice(0, 3).join(' > ')}`;
             style={{
               position: 'absolute',
               bottom: isLandscapeEditor ? 124 : 'calc(max(10px, env(safe-area-inset-bottom)) + 76px + 100px + 16px)',
-              right: 17,
+              right: 'calc(max(17px, env(safe-area-inset-right)))',
               width: 44,
               height: 44,
               borderRadius: '50%',
@@ -2511,7 +2511,7 @@ ComposedPath: ${path.slice(0, 3).join(' > ')}`;
             style={{
               position: 'absolute',
               bottom: isLandscapeEditor ? 72 : 'calc(max(10px, env(safe-area-inset-bottom)) + 76px + 50px + 8px)',
-              right: 17,
+              right: 'calc(max(17px, env(safe-area-inset-right)))',
               width: 44,
               height: 44,
               borderRadius: '50%',
@@ -2555,7 +2555,7 @@ ComposedPath: ${path.slice(0, 3).join(' > ')}`;
             style={{
               position: 'absolute',
               bottom: isLandscapeEditor ? 14 : 'calc(max(10px, env(safe-area-inset-bottom)) + 76px)',
-              right: 14,
+              right: 'calc(max(14px, env(safe-area-inset-right)))',
               width: 50,
               height: 50,
               borderRadius: '50%',

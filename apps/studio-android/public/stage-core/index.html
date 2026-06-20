@@ -394,7 +394,7 @@ body.gig-mode #sc-scenes-bar { opacity: 0 !important; pointer-events: none !impo
 ══════════════════════════════════════════ */
 #sc-vtools {
   position: absolute;
-  left: 8px;
+  left: calc(max(8px, env(safe-area-inset-left)));
   top: 50%;
   transform: translateY(-50%);
   z-index: 100;
@@ -404,9 +404,9 @@ body.gig-mode #sc-scenes-bar { opacity: 0 !important; pointer-events: none !impo
   gap: 4px;
 }
 #sc-vtools-toggle {
-  width: 30px;
-  height: 30px;
-  border-radius: 10px;
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
   background: transparent;
   border: none;
   cursor: pointer;
@@ -3113,7 +3113,7 @@ html[data-amoled="1"] #el-properties-panel { background: #000 !important; }
     <div id="sc-vtools">
       <!-- Collapse / expand handle -->
       <button id="sc-vtools-toggle" onclick="toggleSCVTools()" title="Show tools">
-        <span class="material-symbols-outlined" style="font-size:15px;font-family:'Material Symbols Outlined';">more_vert</span>
+        <span class="material-symbols-outlined" style="font-size:18px;font-family:'Material Symbols Outlined';">more_vert</span>
       </button>
       <!-- Tools panel — starts collapsed -->
       <div id="sc-vtools-body" class="vtools-collapsed">

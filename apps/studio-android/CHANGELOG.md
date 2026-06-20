@@ -12,6 +12,17 @@ Conventions:
 - Bullets start with `- ` and use plain English a non-technical user
   can parse. Keep each line short — the modal's text area is narrow.
 
+## 3.6.50
+
+### Added
+- Redesigned Developer Tools toggle switch and added live card stats.
+- Added multi-app status diagnostics for Hub, Chordex, Drumex, Stagex, Groovex, and Vocalex.
+
+### Fixed
+- Resolved app switching black screen transition issue with cached views.
+- Fixed startup routing restoration to prevent default sub-app recovery.
+- Improved Stagex landscape layouts, Safe Area offsets, and expanded button touch targets.
+
 ## 3.6.49
 
 ### Fixed

@@ -1360,6 +1360,7 @@ function openItemSheet(cat, label) {
     chips.forEach(chip => { chip.style.transitionDelay = '0ms'; });
     if (wrap) wrap.classList.remove('sc-dial-open');
   }
+  try { window.parent.postMessage({ type: 'sc-dial-state', open: true }, '*'); } catch(e) {}
 
   const sheet   = document.getElementById('sc-item-sheet');
   const titleEl = document.getElementById('sc-item-sheet-title');
