@@ -1,7 +1,7 @@
 ### Added
-- Added navigation trace and transition diagnostics tab under Developer Tools.
+- Integrated a "Test Stagex Scenes Input" diagnostic action in Developer Tools.
 
 ### Fixed
-- Fixed false hub warnings by reclassifying diagnostics logs inside devTools.
-- Resolved black screen bug when returning from Chordex to Livex Hub.
-- Mapped Warnings Inspector to conform to clean WarningItem data model.
+- Hard-gated Firestore on Android when Supabase is active to prevent runtime connections.
+- Resolved Chordex-to-Hub return black screen with an opacity transition fallback.
+- Fixed Stagex Scenes bar touch hitboxes by adding position: relative and CSS pseudo-element expansions.

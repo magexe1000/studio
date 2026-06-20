@@ -21,7 +21,7 @@ import {
   sanitizeForFirestore
 } from '../syncEngine';
 import { doc, getDoc, collection, onSnapshot, setDoc, deleteDoc, serverTimestamp, Timestamp } from 'firebase/firestore';
-import { getFirebaseDb, getFirebaseAuth, getFirebaseStorage, getFirebaseProjectId, getFirebaseConfigDetails, getFirebaseInitError } from '../firebase';
+import { getFirebaseDb, getFirebaseAuth, getFirebaseStorage, getFirebaseProjectId, getFirebaseConfigDetails, getFirebaseInitError, incrementFirestoreListeners, decrementFirestoreListeners, incrementFirestoreWrites, decrementFirestoreWrites, setFirestoreLastError } from '../firebase';
 import { ref as storageRef, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { useChordStore } from '../../store/useChordStore';
 import { isNative } from '../capgoUpdater';
@@ -461,6 +461,7 @@ function attachRealtimeListeners(uid: string, deviceId: string) {
   if (!db) return;
 
   updateStatus({ devicesListenerStatus: 'attaching' });
+  incrementFirestoreListeners();
   unsubDevices = onSnapshot(collection(db, 'users', uid, 'devices'), (snap) => {
     const devicesList: SyncDevice[] = [];
     snap.forEach((doc) => {
@@ -506,10 +507,12 @@ function attachRealtimeListeners(uid: string, deviceId: string) {
       devices: devicesList,
     });
   }, (err) => {
+    setFirestoreLastError(err.message || String(err));
     updateStatus({ devicesListenerStatus: 'error', devicesListenerError: err.message || String(err) });
   });
 
   updateStatus({ profileListenerStatus: 'attaching' });
+  incrementFirestoreListeners();
   unsubProfile = onSnapshot(doc(db, 'users', uid, 'profile', 'main'), (snap) => {
     if (snap.exists()) {
       const data = snap.data();
@@ -525,10 +528,12 @@ function attachRealtimeListeners(uid: string, deviceId: string) {
       updateStatus({ profileListenerStatus: 'active', cloudDisplayName: 'N/A', cloudPhotoURL: 'N/A' });
     }
   }, (err) => {
+    setFirestoreLastError(err.message || String(err));
     updateStatus({ profileListenerStatus: 'error', profileListenerError: err.message || String(err) });
   });
 
   updateStatus({ appearanceListenerStatus: 'attaching' });
+  incrementFirestoreListeners();
   unsubAppearance = onSnapshot(doc(db, 'users', uid, 'settings', 'appearance'), (snap) => {
     if (snap.exists()) {
       const data = snap.data();
@@ -544,10 +549,12 @@ function attachRealtimeListeners(uid: string, deviceId: string) {
       updateStatus({ appearanceListenerStatus: 'active', cloudTheme: 'N/A', cloudAccentColor: 'N/A' });
     }
   }, (err) => {
+    setFirestoreLastError(err.message || String(err));
     updateStatus({ appearanceListenerStatus: 'error', appearanceListenerError: err.message || String(err) });
   });
 
   updateStatus({ preferencesListenerStatus: 'attaching' });
+  incrementFirestoreListeners();
   unsubPreferences = onSnapshot(doc(db, 'users', uid, 'settings', 'preferences'), (snap) => {
     if (snap.exists()) {
       const data = snap.data();
@@ -562,16 +569,17 @@ function attachRealtimeListeners(uid: string, deviceId: string) {
       updateStatus({ preferencesListenerStatus: 'active', cloudPreferences: null });
     }
   }, (err) => {
+    setFirestoreLastError(err.message || String(err));
     updateStatus({ preferencesListenerStatus: 'error', preferencesListenerError: err.message || String(err) });
   });
 }
 
 function detachRealtimeListeners() {
-  unsubDevices?.(); unsubDevices = null;
-  unsubProfile?.(); unsubProfile = null;
-  unsubAppearance?.(); unsubAppearance = null;
-  unsubPreferences?.(); unsubPreferences = null;
-  unsubProbe?.(); unsubProbe = null;
+  if (unsubDevices) { unsubDevices(); unsubDevices = null; decrementFirestoreListeners(); }
+  if (unsubProfile) { unsubProfile(); unsubProfile = null; decrementFirestoreListeners(); }
+  if (unsubAppearance) { unsubAppearance(); unsubAppearance = null; decrementFirestoreListeners(); }
+  if (unsubPreferences) { unsubPreferences(); unsubPreferences = null; decrementFirestoreListeners(); }
+  if (unsubProbe) { unsubProbe(); unsubProbe = null; decrementFirestoreListeners(); }
 }
 
 // ── Profile and Settings Patch Writes ──

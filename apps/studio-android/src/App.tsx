@@ -561,6 +561,8 @@ export default function App() {
               zIndex: 2,
               background: 'var(--app-bg)',
               pointerEvents: isSubAppActive ? 'auto' : 'none',
+              opacity: isSubAppActive ? 1 : 0,
+              transition: 'opacity 180ms ease-out',
             }}
           >
             <SubAppWrapper

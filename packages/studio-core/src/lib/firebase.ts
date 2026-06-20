@@ -14,6 +14,7 @@ import {
   type Firestore,
 } from 'firebase/firestore';
 import { getStorage, type FirebaseStorage } from 'firebase/storage';
+import { useChordStore } from '../store/useChordStore';
 // Committed public client config — these keys are safe to ship in the
 // JS bundle (Firebase web client keys identify the project, they don't
 // grant access; access control lives in Firestore Security Rules).
@@ -100,6 +101,18 @@ function init() {
     setPersistence(_auth, browserLocalPersistence).catch((err) => {
       console.warn('[firebase] failed to set auth persistence:', err);
     });
+  } catch (err: any) {
+    _initError = err.message || String(err);
+    console.error('[firebase] initialization failed:', err);
+  }
+}
+
+function initFirestoreOnly() {
+  if (_db || !_app) return;
+  const providerKey = useChordStore.getState().settings.syncBackendProvider || 'supabase-realtime';
+  if (providerKey === 'supabase-realtime') {
+    return;
+  }
 
   // Use initializeFirestore (NOT getFirestore) so we can configure two
   // critical things up front:
@@ -145,6 +158,7 @@ function init() {
   //      initial handshake before the SDK gives up and decides it's
   //      "offline". Default is 30s but we set it explicitly so the
   //      change is visible to anyone reading this code.
+  try {
     const firestoreOpts = {
       experimentalAutoDetectLongPolling: true,
       experimentalLongPollingOptions: { timeoutSeconds: 30 },
@@ -170,7 +184,7 @@ function init() {
     }
   } catch (err: any) {
     _initError = err.message || String(err);
-    console.error('[firebase] initialization failed:', err);
+    console.error('[firebase] Firestore initialization failed:', err);
   }
 }
 
@@ -190,7 +204,12 @@ export function getFirebaseAuth(): Auth | null {
 }
 
 export function getFirebaseDb(): Firestore | null {
+  const providerKey = useChordStore.getState().settings.syncBackendProvider || 'supabase-realtime';
+  if (providerKey === 'supabase-realtime') {
+    return null;
+  }
   init();
+  initFirestoreOnly();
   return _db;
 }
 
@@ -206,6 +225,10 @@ export function getFirebaseProjectId(): string {
 
 export function getFirebaseConfigDetails() {
   init();
+  const providerKey = useChordStore.getState().settings.syncBackendProvider || 'supabase-realtime';
+  if (providerKey !== 'supabase-realtime') {
+    initFirestoreOnly();
+  }
   const app = _app;
   return {
     projectId: app?.options.projectId || 'Not Configured',
@@ -222,3 +245,46 @@ export function getFirebaseConfigDetails() {
 }
 
 export const googleProvider = new GoogleAuthProvider();
+
+// ── FIRESTORE DIAGNOSTICS & HARD GATE TRACKING ──
+let activeListenersCount = 0;
+let activeWritesCount = 0;
+let lastFirestoreError = 'none';
+
+export function incrementFirestoreListeners() {
+  const providerKey = useChordStore.getState().settings.syncBackendProvider || 'supabase-realtime';
+  if (providerKey === 'supabase-realtime') return;
+  activeListenersCount++;
+}
+
+export function decrementFirestoreListeners() {
+  activeListenersCount = Math.max(0, activeListenersCount - 1);
+}
+
+export function incrementFirestoreWrites() {
+  const providerKey = useChordStore.getState().settings.syncBackendProvider || 'supabase-realtime';
+  if (providerKey === 'supabase-realtime') return;
+  activeWritesCount++;
+}
+
+export function decrementFirestoreWrites() {
+  activeWritesCount = Math.max(0, activeWritesCount - 1);
+}
+
+export function setFirestoreLastError(err: string) {
+  const providerKey = useChordStore.getState().settings.syncBackendProvider || 'supabase-realtime';
+  if (providerKey === 'supabase-realtime') return;
+  lastFirestoreError = err || 'none';
+}
+
+export function getFirestoreDiagnostics() {
+  const providerKey = useChordStore.getState().settings.syncBackendProvider || 'supabase-realtime';
+  const isActive = providerKey !== 'supabase-realtime' && _db !== null;
+  return {
+    syncProvider: providerKey,
+    firestoreRuntimeActive: isActive,
+    firestoreListenChannels: providerKey === 'supabase-realtime' ? 0 : activeListenersCount,
+    firestoreWriteChannels: providerKey === 'supabase-realtime' ? 0 : activeWritesCount,
+    firestoreLastError: providerKey === 'supabase-realtime' ? 'none' : lastFirestoreError
+  };
+}

@@ -261,14 +261,15 @@ export function addLog(level: 'info' | 'warn' | 'error', module: string, ...args
 
   const id = Math.random().toString(36).substring(2, 9);
   const source = getCallerSource();
+  const isFirestore = msg.includes('@firebase/firestore') || msg.toLowerCase().includes('firestore');
 
   logsBuffer.push({
     id,
     timestamp: Date.now(),
     level: targetLevel,
     message: msg,
-    module,
-    source
+    module: isFirestore ? 'network' : module,
+    source: isFirestore ? 'Firestore' : source
   });
 
   if (logsBuffer.length > MAX_ITEMS) logsBuffer.shift();
@@ -314,8 +315,12 @@ export function addError(err: Omit<ErrorEntry, 'timestamp'>) {
   const isDevMode = useChordStore.getState().settings.developerMode;
   if (!isDevMode) return;
 
+  const isFirestore = err.message.includes('@firebase/firestore') || err.message.toLowerCase().includes('firestore');
+
   errorsBuffer.push({
     ...err,
+    module: isFirestore ? 'network' : err.module,
+    source: isFirestore ? 'Firestore' : err.source,
     timestamp: Date.now()
   });
 

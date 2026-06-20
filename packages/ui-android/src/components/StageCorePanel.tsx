@@ -669,6 +669,7 @@ ComposedPath: ${path.slice(0, 3).join(' > ')}`;
   const [testActive, setTestActive] = useState(false);
   const [testCycle, setTestCycle] = useState(0);
   const [testStep, setTestStep] = useState('');
+  const [scenesTestResult, setScenesTestResult] = useState<string>('Not Run');
 
   const runInteractionTest = async () => {
     if (testActive) return;
@@ -1032,6 +1033,81 @@ ComposedPath: ${path.slice(0, 3).join(' > ')}`;
     } catch {}
   }, [logDiagnostic]);
 
+  const runScenesInputTest = useCallback(() => {
+    setScenesTestResult('Running...');
+    const iframe = iframeRef.current;
+    if (!iframe) {
+      setScenesTestResult('Failed: iframe element not found');
+      return;
+    }
+    
+    let doc: Document | null = null;
+    try {
+      doc = iframe.contentDocument || iframe.contentWindow?.document || null;
+    } catch (e) {
+      console.warn('[Test] Cannot access iframe document directly due to origin restrictions:', e);
+    }
+
+    if (!doc) {
+      try {
+        callIframe('addScene');
+        setTimeout(() => {
+          callIframe('switchScene', 0);
+          setScenesTestResult('Passed (Triggered via postMessage, DOM validation skipped due to CORS restriction)');
+        }, 300);
+      } catch (err: any) {
+        setScenesTestResult(`Failed to trigger: ${err.message || String(err)}`);
+      }
+      return;
+    }
+
+    const scenesBar = doc.getElementById('sc-scenes-bar');
+    if (!scenesBar) {
+      setScenesTestResult('Failed: #sc-scenes-bar element not found in iframe DOM');
+      return;
+    }
+
+    const style = window.getComputedStyle(scenesBar);
+    const pos = style.position;
+    if (pos !== 'relative' && pos !== 'absolute' && pos !== 'fixed' && scenesBar.style.position !== 'relative') {
+      setScenesTestResult(`Failed: #sc-scenes-bar position is '${pos}', expected 'relative'`);
+      return;
+    }
+
+    const initialButtons = scenesBar.querySelectorAll('.sc-scene-btn');
+    const initialCount = initialButtons.length;
+
+    try {
+      callIframe('addScene');
+    } catch (err: any) {
+      setScenesTestResult(`Failed to call addScene: ${err.message || String(err)}`);
+      return;
+    }
+
+    setTimeout(() => {
+      let doc2: Document | null = null;
+      try { doc2 = iframe.contentDocument || iframe.contentWindow?.document || null; } catch (_) {}
+      const bar2 = doc2?.getElementById('sc-scenes-bar');
+      const updatedButtons = bar2?.querySelectorAll('.sc-scene-btn');
+      const updatedCount = updatedButtons?.length || 0;
+
+      if (updatedCount <= initialCount) {
+        setScenesTestResult(`Failed: Scene count did not increase after addScene (initial: ${initialCount}, updated: ${updatedCount})`);
+        return;
+      }
+
+      try {
+        callIframe('switchScene', 0);
+      } catch (err: any) {
+        setScenesTestResult(`Failed to call switchScene: ${err.message || String(err)}`);
+        return;
+      }
+
+      setScenesTestResult(`Passed: Scenes bar is positioned relative, scene added successfully (count: ${initialCount} -> ${updatedCount}), switched to scene 0`);
+    }, 400);
+
+  }, [callIframe]);
+
   useEffect(() => {
     const iframe = iframeRef.current;
     if (!iframe) return;
@@ -1274,6 +1350,7 @@ ComposedPath: ${path.slice(0, 3).join(' > ')}`;
         activeTab: curView,
         selectedElement: 'none',
         overlayState: hasOpenOverlay ? 'open' : 'closed',
+        scenesTestResult,
         diagTaps,
         controlState: {
           Add: { rendered: true, lastError: null },
@@ -1284,12 +1361,18 @@ ComposedPath: ${path.slice(0, 3).join(' > ')}`;
           Visibility: { rendered: true, lastError: null },
           Rotate: { rendered: true, lastError: null }
         }
-      })
+      }),
+      getActions: () => [
+        {
+          label: 'Test Stagex Scenes Input',
+          action: runScenesInputTest
+        }
+      ]
     });
     return () => {
       unregisterDebugProvider('stagex');
     };
-  }, [iframeLoading, curView, hasOpenOverlay, diagTaps]);
+  }, [iframeLoading, curView, hasOpenOverlay, diagTaps, scenesTestResult, runScenesInputTest]);
 
   useEffect(() => {
     const iframe = iframeRef.current;

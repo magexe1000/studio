@@ -26,7 +26,7 @@ import { useMemo } from 'react';
 import { Capacitor } from '@capacitor/core';
 
 /** Canonical semver string used by the OTA comparator. */
-export const NATIVE_VERSION = '3.6.54';
+export const NATIVE_VERSION = '3.6.55';
 export const WEB_VERSION = '4.0.0';
 export const APP_VERSION = Capacitor.isNativePlatform() ? NATIVE_VERSION : WEB_VERSION;
 
@@ -38,7 +38,7 @@ export const APP_VERSION_LABEL = `${APP_VERSION_TAG} ${APP_VERSION}`;
 
 /** Release date for the CURRENT bundle, shown alongside the version pill
  *  in the changelog sheet. ISO-8601 (`YYYY-MM-DD`). */
-export const APP_VERSION_DATE = '2026-06-20'; // 3.6.54
+export const APP_VERSION_DATE = '2026-06-20'; // 3.6.55
 // Note: keep ISO-8601. Bump together with APP_VERSION on each release.
 
 export const APP_COMMIT_SHA = import.meta.env.VITE_GIT_COMMIT_SHA || '78ef3651';
@@ -61,15 +61,15 @@ export const APP_CHANGELOG_SECTIONS: ChangelogSection[] = [
   {
     heading: "Added",
     items: [
-      "Added navigation trace and transition diagnostics tab under Developer Tools.",
+      "Integrated a \"Test Stagex Scenes Input\" diagnostic action in Developer Tools.",
     ],
   },
   {
     heading: "Fixed",
     items: [
-      "Fixed false hub warnings by reclassifying diagnostics logs inside devTools.",
-      "Resolved black screen bug when returning from Chordex to Livex Hub.",
-      "Mapped Warnings Inspector to conform to clean WarningItem data model.",
+      "Hard-gated Firestore on Android when Supabase is active to prevent runtime connections.",
+      "Resolved Chordex-to-Hub return black screen with an opacity transition fallback.",
+      "Fixed Stagex Scenes bar touch hitboxes by adding position: relative and CSS pseudo-element expansions.",
     ],
   },
 ];

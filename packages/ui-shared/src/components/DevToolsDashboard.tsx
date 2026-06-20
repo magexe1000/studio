@@ -66,7 +66,7 @@ const WarningsInspector = ({ logs, showToast, moduleFilter, appKey }: WarningsIn
         if (appKey === 'groovex') return mod === 'groovex';
         if (appKey === 'vocalex') return mod === 'vocalex';
         if (appKey === 'hub') {
-          return !['chordex', 'drumex', 'drums', 'stagex', 'stage', 'groovex', 'vocalex'].includes(mod);
+          return !['chordex', 'drumex', 'drums', 'stagex', 'stage', 'groovex', 'vocalex', 'network', 'firestore', 'sync'].includes(mod);
         }
         return false;
       }

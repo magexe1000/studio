@@ -1,6 +1,7 @@
-import { getFirebaseDb } from './firebase';
+import { getFirebaseDb, getFirebaseAuth, incrementFirestoreListeners, decrementFirestoreListeners, incrementFirestoreWrites, decrementFirestoreWrites, setFirestoreLastError } from './firebase';
 import { doc, onSnapshot, setDoc } from 'firebase/firestore';
 import { adminUIDs } from './adminConfig';
+import { useChordStore } from '../store/useChordStore';
 
 export type UserRole = 'free' | 'core' | 'pro' | 'beta_tester' | 'admin';
 
@@ -80,7 +81,8 @@ export function syncProfileListener(authUser: { uid: string; email: string | nul
   
   const userRef = doc(db, 'users', authUser.uid);
   
-  unsubscribeFirestore = onSnapshot(userRef, async (snap) => {
+  incrementFirestoreListeners();
+  const innerUnsub = onSnapshot(userRef, async (snap) => {
     if (!snap.exists()) {
       // Lazy-initialize a default profile document in Firestore
       const defaultProfile: UserProfile = {
@@ -92,9 +94,13 @@ export function syncProfileListener(authUser: { uid: string; email: string | nul
       };
       
       try {
+        incrementFirestoreWrites();
         await setDoc(userRef, defaultProfile, { merge: true });
-      } catch (err) {
+      } catch (err: any) {
+        setFirestoreLastError(err.message || String(err));
         console.warn('[Profile] Initial write failed:', err);
+      } finally {
+        decrementFirestoreWrites();
       }
       
       notifyProfileChange(defaultProfile);
@@ -115,6 +121,7 @@ export function syncProfileListener(authUser: { uid: string; email: string | nul
       });
     }
   }, (err) => {
+    setFirestoreLastError(err.message || String(err));
     console.warn('[Profile] Firestore listener error (using memory fallback):', err);
     // Fallback on error to ensure operational resilience
     notifyProfileChange({
@@ -125,7 +132,28 @@ export function syncProfileListener(authUser: { uid: string; email: string | nul
       subscriptionStatus: isAdminBypass ? 'active' : 'inactive',
     });
   });
+
+  unsubscribeFirestore = () => {
+    innerUnsub();
+    decrementFirestoreListeners();
+  };
 }
+
+// ── Dynamic Provider Change Subscription ──
+let lastProvider = useChordStore.getState().settings.syncBackendProvider;
+useChordStore.subscribe((state) => {
+  const currentProvider = state.settings.syncBackendProvider;
+  if (currentProvider !== lastProvider) {
+    lastProvider = currentProvider;
+    const auth = getFirebaseAuth();
+    const currentUser = auth?.currentUser;
+    if (currentUser) {
+      syncProfileListener({ uid: currentUser.uid, email: currentUser.email });
+    } else {
+      syncProfileListener(null);
+    }
+  }
+});
 
 /* ─── Permission Helpers ─── */
 
