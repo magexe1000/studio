@@ -26,7 +26,7 @@ import { useMemo } from 'react';
 import { Capacitor } from '@capacitor/core';
 
 /** Canonical semver string used by the OTA comparator. */
-export const NATIVE_VERSION = '3.6.55';
+export const NATIVE_VERSION = '3.6.56';
 export const WEB_VERSION = '4.0.0';
 export const APP_VERSION = Capacitor.isNativePlatform() ? NATIVE_VERSION : WEB_VERSION;
 
@@ -61,15 +61,15 @@ export const APP_CHANGELOG_SECTIONS: ChangelogSection[] = [
   {
     heading: "Added",
     items: [
-      "Integrated a \"Test Stagex Scenes Input\" diagnostic action in Developer Tools.",
+      "Added black screen diagnostic capture action in Developer Tools.",
+      "Added automatic black screen blocker detection and telemetry.",
     ],
   },
   {
     heading: "Fixed",
     items: [
-      "Hard-gated Firestore on Android when Supabase is active to prevent runtime connections.",
-      "Resolved Chordex-to-Hub return black screen with an opacity transition fallback.",
-      "Fixed Stagex Scenes bar touch hitboxes by adding position: relative and CSS pseudo-element expansions.",
+      "Fixed Stagex scene buttons touch hitboxes alignment using concentric transparent layout.",
+      "Enlarged delete scene buttons to 36x36px touch target.",
     ],
   },
 ];

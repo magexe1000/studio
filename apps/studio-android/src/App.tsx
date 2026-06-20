@@ -529,8 +529,227 @@ export default function App() {
   }
   const stableKey = lastActiveAppRef.current;
 
+  const stableKeyRef = useRef(stableKey);
+  stableKeyRef.current = stableKey;
+
+  const prevAppModeRef = useRef(appMode);
+
+  // Track Chordex unmount request
+  useEffect(() => {
+    if (prevAppModeRef.current === 'chords' && appMode === 'hub') {
+      if ((window as any).__chordexDiagnostics) {
+        (window as any).__chordexDiagnostics.unmountRequestedTime = Date.now();
+        (window as any).__chordexDiagnostics.status = 'unmount-requested';
+      }
+    }
+    prevAppModeRef.current = appMode;
+  }, [appMode]);
+
+  // Define window.__captureBlackScreenState
+  useEffect(() => {
+    (window as any).__captureBlackScreenState = () => {
+      const currentAppMode = useChordStore.getState().settings.appMode || 'hub';
+      const prevMode = prevAppModeRef.current;
+      const subActive = currentAppMode !== 'hub';
+      
+      const hubLayout = document.querySelector('.app-main-layout');
+      const hubMounted = !!hubLayout;
+      let hubVisible = false;
+      let hubOpacity = 'unknown';
+      let hubTransform = 'unknown';
+      if (hubLayout) {
+        const style = window.getComputedStyle(hubLayout);
+        hubVisible = style.display !== 'none' && style.visibility !== 'hidden';
+        hubOpacity = style.opacity;
+        hubTransform = style.transform;
+      }
+      
+      const subappWrapper = document.querySelector('.sc-subapp-wrapper');
+      const subappWrapperMounted = !!subappWrapper;
+      let subappWrapperOpacity = 'unknown';
+      let subappWrapperZIndex = 'unknown';
+      let subappWrapperPointerEvents = 'unknown';
+      if (subappWrapper) {
+        const style = window.getComputedStyle(subappWrapper);
+        subappWrapperOpacity = style.opacity;
+        subappWrapperZIndex = style.zIndex;
+        subappWrapperPointerEvents = style.pointerEvents;
+      }
+      
+      const overlays = Array.from(document.querySelectorAll('.modal, .dialog, .sheet, .overlay, .backdrop, [class*="overlay"], [class*="backdrop"], [class*="modal"]'))
+        .map(el => {
+          const style = window.getComputedStyle(el);
+          return {
+            tag: el.tagName.toLowerCase(),
+            id: el.id,
+            className: el.className,
+            opacity: style.opacity,
+            zIndex: style.zIndex,
+            pointerEvents: style.pointerEvents,
+            display: style.display
+          };
+        })
+        .filter(o => o.display !== 'none' && o.opacity !== '0');
+
+      const suspenseFallback = !!document.querySelector('.smart-loading, .fallback-skeleton, [class*="skeleton"]');
+      const motionExitActive = subappWrapper ? subappWrapper.getAttribute('data-projection-id') !== null : false;
+      
+      const w = window.innerWidth;
+      const h = window.innerHeight;
+      const points = {
+        center: [w / 2, h / 2],
+        topCenter: [w / 2, h * 0.1],
+        bottomCenter: [w / 2, h * 0.9],
+        leftCenter: [w * 0.1, h / 2],
+        rightCenter: [w * 0.9, h / 2]
+      };
+      
+      const topmostElements: any = {};
+      for (const [key, coords] of Object.entries(points)) {
+        try {
+          const el = document.elementFromPoint(coords[0], coords[1]);
+          if (el) {
+            topmostElements[key] = {
+              tag: el.tagName.toLowerCase(),
+              id: el.id,
+              className: el.className,
+              pointerEvents: window.getComputedStyle(el).pointerEvents
+            };
+          } else {
+            topmostElements[key] = null;
+          }
+        } catch {
+          topmostElements[key] = 'error';
+        }
+      }
+
+      const chordexDiagnostics = (window as any).__chordexDiagnostics || { status: 'none' };
+      const chordexOverlayPresent = !!document.querySelector('[class*="chordex-overlay"], [class*="ch-overlay"]');
+      const chordexRootPresent = !!document.querySelector('.app-sub-app-container');
+      const activeElement = document.activeElement ? {
+        tag: document.activeElement.tagName.toLowerCase(),
+        id: document.activeElement.id,
+        className: document.activeElement.className
+      } : null;
+
+      return {
+        timestamp: Date.now(),
+        appMode: currentAppMode,
+        prevAppMode: prevMode,
+        stableKey: stableKeyRef.current,
+        isSubAppActive: subActive,
+        transitionActive: (window as any).studioTransitionActive || false,
+        hub: {
+          mounted: hubMounted,
+          visible: hubVisible,
+          opacity: hubOpacity,
+          transform: hubTransform
+        },
+        subappWrapper: {
+          mounted: subappWrapperMounted,
+          opacity: subappWrapperOpacity,
+          zIndex: subappWrapperZIndex,
+          pointerEvents: subappWrapperPointerEvents,
+          motionExitActive
+        },
+        overlays,
+        suspenseFallback,
+        topmostElements,
+        chordex: {
+          diagnostics: chordexDiagnostics,
+          overlayPresent: chordexOverlayPresent,
+          rootPresent: chordexRootPresent,
+          focusElement: activeElement
+        }
+      };
+    };
+
+    return () => {
+      delete (window as any).__captureBlackScreenState;
+    };
+  }, []);
+
+  // 500ms return-to-hub black screen watchdog detector
+  useEffect(() => {
+    if (appMode !== 'hub') {
+      return () => {};
+    }
+
+    (window as any).__navigationDiagnostics = (window as any).__navigationDiagnostics || {
+      returnAttempts: 0,
+      failedReturns: 0,
+      blackScreenDetections: 0,
+      lastBlocker: 'none',
+      history: []
+    };
+    const diag = (window as any).__navigationDiagnostics;
+    diag.returnAttempts++;
+
+    const timer = setTimeout(() => {
+      const statePayload = (window as any).__captureBlackScreenState?.();
+      if (!statePayload) return;
+
+      const hubVisible = statePayload.hub.visible;
+      const hubOpacity = parseFloat(statePayload.hub.opacity);
+      const topmostCenter = statePayload.topmostElements.center;
+
+      let isBlocked = false;
+      let reason = '';
+
+      if (!statePayload.hub.mounted) {
+        isBlocked = true;
+        reason = 'Hub not mounted';
+      } else if (!hubVisible) {
+        isBlocked = true;
+        reason = 'Hub display/visibility hidden';
+      } else if (!isNaN(hubOpacity) && hubOpacity === 0) {
+        isBlocked = true;
+        reason = 'Hub opacity is 0';
+      } else if (topmostCenter) {
+        const tag = topmostCenter.tag;
+        const id = topmostCenter.id;
+        const cls = topmostCenter.className || '';
+        
+        const isHubElement = id === 'hub-root' || cls.includes('hub') || cls.includes('app-main-layout') || 
+                             cls.includes('studio-hub') || tag === 'body' || tag === 'html';
+                             
+        if (!isHubElement && (cls.includes('subapp') || cls.includes('overlay') || cls.includes('backdrop') || cls.includes('modal') || cls.includes('chordex'))) {
+          isBlocked = true;
+          reason = `Topmost blocking element at center: ${tag}${id ? '#' + id : ''}${cls ? '.' + cls.split(' ').join('.') : ''}`;
+        }
+      }
+
+      if (isBlocked) {
+        diag.failedReturns++;
+        diag.blackScreenDetections++;
+        diag.lastBlocker = reason;
+        diag.lastPayload = statePayload;
+        
+        console.error('BLACK_SCREEN_DETECTED', reason, statePayload);
+        
+        diag.history.push({
+          time: Date.now(),
+          reason,
+          payload: statePayload
+        });
+      }
+    }, 500);
+
+    return () => clearTimeout(timer);
+  }, [appMode]);
+
   return (
-    <div style={{ display: 'flex', width: '100vw', height: '100dvh', overflow: 'hidden', background: 'var(--app-bg)' }}>
+    <div
+      className={`app-container app-mode-${appMode}`}
+      style={{ display: 'flex', width: '100vw', height: '100dvh', overflow: 'hidden', background: 'var(--app-bg)' }}
+    >
+      <style>{`
+        .app-mode-hub .sc-subapp-wrapper {
+          pointer-events: none !important;
+          transition: opacity 250ms ease-in-out !important;
+          opacity: 0 !important;
+        }
+      `}</style>
       <div
         className="app-main-layout"
         style={{
@@ -551,9 +770,10 @@ export default function App() {
         {isSubAppActive && (
           <motion.div
             key={stableKey}
+            className="sc-subapp-wrapper"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
+            exit={{ opacity: 0, pointerEvents: 'none' as any }}
             transition={{ duration: 0.18, ease: 'easeOut' }}
             style={{
               position: 'absolute',
@@ -630,6 +850,30 @@ function FallbackTracker({ app, children }: { app: AppKey; children: React.React
 
 function SubAppWrapper({ app, activePanel, settings }: SubAppWrapperProps) {
   const [cachedApp] = useState<AppKey>(app);
+
+  useEffect(() => {
+    if (cachedApp !== 'chords') {
+      return () => {};
+    }
+
+    (window as any).__chordexDiagnostics = (window as any).__chordexDiagnostics || {
+      mountedCount: 0,
+      unmountedCount: 0,
+      lastMountTime: null,
+      lastUnmountTime: null,
+      status: 'none'
+    };
+    const diag = (window as any).__chordexDiagnostics;
+    diag.mountedCount++;
+    diag.lastMountTime = Date.now();
+    diag.status = 'mounted';
+    
+    return () => {
+      diag.unmountedCount++;
+      diag.lastUnmountTime = Date.now();
+      diag.status = 'unmounted';
+    };
+  }, [cachedApp]);
 
   useEffect(() => {
     recordNavigation({

@@ -2208,6 +2208,13 @@ html[data-amoled="1"] #el-properties-panel { background: #000 !important; }
     to   { opacity: 1; transform: scale(1)    translateY(0);    }
   }
 
+  #sc-scenes-bar::-webkit-scrollbar {
+    display: none !important;
+  }
+  #sc-scenes-bar {
+    scrollbar-width: none !important;
+  }
+
   /* Scenes Bar styling overrides */
   .sc-scene-label {
     font-family: 'Manrope', sans-serif;
@@ -2225,9 +2232,9 @@ html[data-amoled="1"] #el-properties-panel { background: #000 !important; }
     display: inline-flex;
     align-items: center;
     gap: 6px;
-    height: 30px;
-    padding: 0 14px;
-    border-radius: 9999px;
+    height: 36px;
+    padding: 0 16px;
+    border-radius: 18px;
     border: 1px solid rgba(255,255,255,0.08);
     background: transparent;
     color: var(--scenes-fg-inactive);
@@ -2236,18 +2243,6 @@ html[data-amoled="1"] #el-properties-panel { background: #000 !important; }
     font-weight: 600;
     cursor: pointer;
     transition: all 150ms ease;
-  }
-
-  .sc-scene-btn::after {
-    content: '';
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    min-width: 44px;
-    min-height: 44px;
-    width: 100%;
-    height: 100%;
   }
 
   html[data-theme="light"] .sc-scene-btn {
@@ -2280,34 +2275,33 @@ html[data-amoled="1"] #el-properties-panel { background: #000 !important; }
 
   .sc-scene-close {
     position: relative;
-    opacity: 0.5;
-    font-size: 12px;
+    opacity: 0.6;
+    font-size: 14px;
     line-height: 1;
     cursor: pointer;
-    margin-left: 4px;
+    margin-left: 6px;
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    width: 12px;
-    height: 12px;
-    transition: color 120ms ease, opacity 120ms ease;
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background: rgba(255,255,255,0.08);
+    border: 12px solid transparent;
+    background-clip: padding-box;
+    box-sizing: content-box;
+    color: var(--scenes-fg-inactive);
+    transition: all 120ms ease;
   }
 
-  .sc-scene-close::after {
-    content: '';
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    min-width: 32px;
-    min-height: 32px;
-    width: 100%;
-    height: 100%;
+  html[data-theme="light"] .sc-scene-close {
+    background: rgba(0,0,0,0.06);
   }
 
   .sc-scene-close:hover {
     opacity: 1;
-    color: var(--hot) !important;
+    background-color: rgba(255,107,107,0.2) !important;
+    color: #ff6b6b !important;
   }
 
   .sc-scene-add-btn {
@@ -2315,37 +2309,47 @@ html[data-amoled="1"] #el-properties-panel { background: #000 !important; }
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    width: 30px;
-    height: 30px;
-    border-radius: 9999px;
-    border: 1px dashed rgba(255,255,255,0.2);
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
     background: transparent;
+    border: 12px solid transparent;
+    background-clip: padding-box;
+    box-sizing: content-box;
+    outline: 1px dashed rgba(255,255,255,0.25);
+    outline-offset: -1px;
     color: var(--scenes-fg-inactive);
     cursor: pointer;
     transition: all 150ms ease;
   }
 
-  .sc-scene-add-btn::after {
-    content: '';
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    min-width: 44px;
-    min-height: 44px;
-    width: 100%;
-    height: 100%;
-  }
-
   html[data-theme="light"] .sc-scene-add-btn {
-    border-color: rgba(0,0,0,0.2);
+    outline-color: rgba(0,0,0,0.25);
   }
 
   .sc-scene-add-btn:hover {
-    border-style: solid;
-    border-color: var(--accent);
+    outline-style: solid;
+    outline-color: var(--accent);
     background: rgba(255,255,255,0.04);
     color: var(--accent);
+  }
+
+  /* ── Hitbox Debug Overlay styles ── */
+  body.sc-show-hitboxes .sc-scene-btn {
+    box-shadow: inset 0 0 0 1.5px #ff4136 !important;
+  }
+  body.sc-show-hitboxes .sc-scene-close {
+    box-shadow: inset 0 0 0 1.5px #ff4136 !important;
+    outline: 1.5px dashed #0074d9 !important;
+    outline-offset: -1.5px;
+  }
+  body.sc-show-hitboxes .sc-scene-add-btn {
+    box-shadow: inset 0 0 0 1.5px #ff4136 !important;
+    outline: 1.5px dashed #0074d9 !important;
+    outline-offset: -1.5px;
+  }
+  body.sc-show-hitboxes .sc-last-tapped {
+    box-shadow: inset 0 0 0 2px #2ecc40 !important;
   }
 
   html[data-theme="light"] .sc-scene-add-btn:hover {
@@ -3217,11 +3221,11 @@ html[data-amoled="1"] #el-properties-panel { background: #000 !important; }
 
       <!-- SCENES BAR — sits naturally above the stage canvas (Editor view only) -->
       <div id="sc-scenes-bar"
-           style="position:relative;display:none;align-items:center;justify-content:center;gap:6px;padding:2px 0;
+           style="position:relative;display:none;align-items:center;justify-content:center;gap:6px;padding:6px 0;
                   background:none;border:none;box-shadow:none;
                   overflow-x:auto;flex-wrap:nowrap;width:100%;
                   max-width:min(1080px,calc(100vw - 32px),calc((100vh - var(--dock-safe-gap, 40px)) * 16 / 9));
-                  margin-bottom:4px;z-index:30;
+                  margin-bottom:0px;z-index:30;
                   transition:opacity 220ms ease;"></div>
       <div id="stage-canvas" class="stage-grid relative" style="width:100%;max-width:min(1080px,calc(100vw - 32px),calc((100vh - var(--dock-safe-gap, 40px)) * 16 / 9));aspect-ratio:16/9;border:1px solid rgba(255,255,255,0.08);border-radius:12px;overflow:visible;">
 

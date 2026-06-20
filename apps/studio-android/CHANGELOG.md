@@ -12,6 +12,16 @@ Conventions:
 - Bullets start with `- ` and use plain English a non-technical user
   can parse. Keep each line short — the modal's text area is narrow.
 
+## 3.6.56
+
+### Added
+- Added black screen diagnostic capture action in Developer Tools.
+- Added automatic black screen blocker detection and telemetry.
+
+### Fixed
+- Fixed Stagex scene buttons touch hitboxes alignment using concentric transparent layout.
+- Enlarged delete scene buttons to 36x36px touch target.
+
 ## 3.6.55
 
 ### Added

@@ -5804,6 +5804,89 @@ function initScenesBarTouchHandler() {
 
   let touchStartData = null;
 
+  const getElementDebugData = (btn, clientX, clientY) => {
+    const rect = btn.getBoundingClientRect();
+    const isCloseOrAdd = btn.classList.contains('sc-scene-close') || btn.classList.contains('sc-scene-add-btn');
+    const borderSize = isCloseOrAdd ? 12 : 0;
+
+    const touchRect = {
+      left: rect.left,
+      top: rect.top,
+      width: rect.width,
+      height: rect.height,
+      right: rect.right,
+      bottom: rect.bottom
+    };
+
+    const visualRect = {
+      left: rect.left + borderSize,
+      top: rect.top + borderSize,
+      width: rect.width - (borderSize * 2),
+      height: rect.height - (borderSize * 2),
+      right: rect.right - borderSize,
+      bottom: rect.bottom - borderSize
+    };
+
+    const visualCenter = {
+      x: visualRect.left + visualRect.width / 2,
+      y: visualRect.top + visualRect.height / 2
+    };
+
+    const tapDeltaX = clientX - visualCenter.x;
+    const tapDeltaY = clientY - visualCenter.y;
+
+    const insideTouch = clientX >= touchRect.left && clientX <= touchRect.right &&
+                         clientY >= touchRect.top && clientY <= touchRect.bottom;
+    const insideVisual = clientX >= visualRect.left && clientX <= visualRect.right &&
+                          clientY >= visualRect.top && clientY <= visualRect.bottom;
+
+    const getPointerPath = (el) => {
+      const path = [];
+      let current = el;
+      while (current && current !== document.body) {
+        let name = current.tagName.toLowerCase();
+        if (current.id) name += '#' + current.id;
+        if (current.className) {
+          const classes = Array.from(current.classList).filter(c => c && c !== 'sc-last-tapped' && !c.startsWith('active'));
+          if (classes.length) name += '.' + classes.join('.');
+        }
+        path.push(name);
+        current = current.parentElement;
+      }
+      return path.reverse().join(' > ');
+    };
+
+    const barRect = bar.getBoundingClientRect();
+    const sceneButtons = Array.from(bar.querySelectorAll('.sc-scene-btn')).map(b => {
+      const r = b.getBoundingClientRect();
+      return { left: r.left, top: r.top, width: r.width, height: r.height };
+    });
+    const addButtonEl = bar.querySelector('.sc-scene-add-btn');
+    const addButtonRect = addButtonEl ? (() => {
+      const r = addButtonEl.getBoundingClientRect();
+      return { left: r.left, top: r.top, width: r.width, height: r.height };
+    })() : null;
+    const deleteButtons = Array.from(bar.querySelectorAll('.sc-scene-close')).map(b => {
+      const r = b.getBoundingClientRect();
+      return { left: r.left, top: r.top, width: r.width, height: r.height };
+    });
+
+    return {
+      touchRect,
+      visualRect,
+      visualCenter,
+      tapDeltaX,
+      tapDeltaY,
+      insideTouch,
+      insideVisual,
+      pointerPath: getPointerPath(btn),
+      barRect: { left: barRect.left, top: barRect.top, width: barRect.width, height: barRect.height },
+      sceneButtons,
+      addButtonRect,
+      deleteButtons
+    };
+  };
+
   bar.addEventListener('touchstart', (e) => {
     const touch = e.touches[0];
     if (!touch) return;
@@ -5811,12 +5894,33 @@ function initScenesBarTouchHandler() {
     const btn = touch.target.closest('.sc-scene-btn, .sc-scene-add-btn, .sc-scene-close');
     if (!btn) return;
 
+    // Highlight last-tapped
+    bar.querySelectorAll('.sc-last-tapped').forEach(el => el.classList.remove('sc-last-tapped'));
+    btn.classList.add('sc-last-tapped');
+
+    const debugData = getElementDebugData(btn, touch.clientX, touch.clientY);
+
     touchStartData = {
       target: btn,
       startX: touch.clientX,
       startY: touch.clientY,
-      startTime: Date.now()
+      startTime: Date.now(),
+      debugData
     };
+
+    // Update floating overlay if active
+    const overlay = document.getElementById('sc-hitbox-debug-overlay');
+    if (overlay && overlay.style.display !== 'none') {
+      overlay.innerHTML = `
+        <strong>Target:</strong> ${btn.className}<br/>
+        <strong>Path:</strong> ${debugData.pointerPath}<br/>
+        <strong>Tap coords:</strong> X: ${touch.clientX.toFixed(1)}, Y: ${touch.clientY.toFixed(1)}<br/>
+        <strong>Visual Rect:</strong> L: ${debugData.visualRect.left.toFixed(1)}, T: ${debugData.visualRect.top.toFixed(1)}, W: ${debugData.visualRect.width}, H: ${debugData.visualRect.height}<br/>
+        <strong>Touch Rect:</strong> L: ${debugData.touchRect.left.toFixed(1)}, T: ${debugData.touchRect.top.toFixed(1)}, W: ${debugData.touchRect.width}, H: ${debugData.touchRect.height}<br/>
+        <strong>Tap Delta:</strong> dX: ${debugData.tapDeltaX.toFixed(1)}, dY: ${debugData.tapDeltaY.toFixed(1)}<br/>
+        <strong>Inside:</strong> Visual: ${debugData.insideVisual ? 'YES' : 'NO'}, Touch: ${debugData.insideTouch ? 'YES' : 'NO'}
+      `;
+    }
 
     try {
       window.parent.postMessage({
@@ -5825,7 +5929,8 @@ function initScenesBarTouchHandler() {
         targetClass: btn.className,
         startX: touch.clientX,
         startY: touch.clientY,
-        timestamp: Date.now()
+        timestamp: Date.now(),
+        debugData
       }, '*');
     } catch (err) {}
   }, { passive: true });
@@ -5852,6 +5957,8 @@ function initScenesBarTouchHandler() {
     
     const isValidTap = duration < 350 && distance < 12;
 
+    const debugData = getElementDebugData(btn, touch.clientX, touch.clientY);
+
     try {
       window.parent.postMessage({
         type: 'sc-scene-touch',
@@ -5862,7 +5969,8 @@ function initScenesBarTouchHandler() {
         isValidTap,
         endX: touch.clientX,
         endY: touch.clientY,
-        timestamp: Date.now()
+        timestamp: Date.now(),
+        debugData
       }, '*');
     } catch (err) {}
 
@@ -5904,6 +6012,26 @@ function initScenesBarTouchHandler() {
     touchStartData = null;
   }, { passive: true });
 }
+
+window.toggleHitboxDebug = function(enabled) {
+  document.body.classList.toggle('sc-show-hitboxes', !!enabled);
+  let overlay = document.getElementById('sc-hitbox-debug-overlay');
+  if (enabled) {
+    if (!overlay) {
+      overlay = document.createElement('div');
+      overlay.id = 'sc-hitbox-debug-overlay';
+      overlay.style.cssText = 'position: fixed; bottom: 44px; left: 10px; right: 10px; background: rgba(0,0,0,0.85); color: #00ff00; font-family: monospace; font-size: 10px; padding: 8px; border-radius: 4px; z-index: 999999; pointer-events: none; max-height: 120px; overflow-y: auto; border: 1px solid #00ff00;';
+      document.body.appendChild(overlay);
+    }
+    overlay.style.display = 'block';
+    overlay.innerHTML = 'Hitbox debugging enabled. Tap any scene control...';
+  } else {
+    if (overlay) {
+      overlay.style.display = 'none';
+      overlay.remove();
+    }
+  }
+};
 
 function positionScenesBar() {}
 

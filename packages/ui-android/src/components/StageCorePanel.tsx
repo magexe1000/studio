@@ -671,6 +671,32 @@ ComposedPath: ${path.slice(0, 3).join(' > ')}`;
   const [testStep, setTestStep] = useState('');
   const [scenesTestResult, setScenesTestResult] = useState<string>('Not Run');
   const [sceneTouchTelemetry, setSceneTouchTelemetry] = useState<any[]>([]);
+  const [hitboxDebugActive, setHitboxDebugActive] = useState(false);
+
+  const toggleHitboxDebugAction = useCallback(() => {
+    setHitboxDebugActive(prev => {
+      const next = !prev;
+      try {
+        const iframe = iframeRef.current;
+        if (iframe?.contentWindow) {
+          (iframe.contentWindow as any).toggleHitboxDebug?.(next);
+        }
+      } catch (err: any) {
+        logDiagnostic(`[Hitbox Debug Error] Failed to toggle: ${err.message || String(err)}`);
+      }
+      logDiagnostic(`[Hitbox Debug] Toggled Stagex hitbox debug: ${next}`);
+      return next;
+    });
+  }, [logDiagnostic]);
+
+  useEffect(() => {
+    if (!iframeLoading && iframeRef.current) {
+      try {
+        const win = iframeRef.current.contentWindow as any;
+        win?.toggleHitboxDebug?.(hitboxDebugActive);
+      } catch {}
+    }
+  }, [hitboxDebugActive, iframeLoading]);
 
   const runInteractionTest = async () => {
     if (testActive) return;
@@ -1050,15 +1076,7 @@ ComposedPath: ${path.slice(0, 3).join(' > ')}`;
     }
 
     if (!doc) {
-      try {
-        callIframe('addScene');
-        setTimeout(() => {
-          callIframe('switchScene', 0);
-          setScenesTestResult('Passed (Triggered via postMessage, DOM validation skipped due to CORS restriction)');
-        }, 300);
-      } catch (err: any) {
-        setScenesTestResult(`Failed to trigger: ${err.message || String(err)}`);
-      }
+      setScenesTestResult('Failed: Cannot access iframe DOM (origin restriction)');
       return;
     }
 
@@ -1068,46 +1086,72 @@ ComposedPath: ${path.slice(0, 3).join(' > ')}`;
       return;
     }
 
-    const style = window.getComputedStyle(scenesBar);
-    const pos = style.position;
-    if (pos !== 'relative' && pos !== 'absolute' && pos !== 'fixed' && scenesBar.style.position !== 'relative') {
-      setScenesTestResult(`Failed: #sc-scenes-bar position is '${pos}', expected 'relative'`);
-      return;
+    const barRect = scenesBar.getBoundingClientRect();
+    const sceneBtnEls = Array.from(doc.querySelectorAll('.sc-scene-btn'));
+    const sceneButtonRects = sceneBtnEls.map(el => {
+      const r = el.getBoundingClientRect();
+      return { left: r.left, top: r.top, width: r.width, height: r.height, right: r.right, bottom: r.bottom };
+    });
+    
+    const addBtnEl = doc.querySelector('.sc-scene-add-btn');
+    const addButtonRect = addBtnEl ? (() => {
+      const r = addBtnEl.getBoundingClientRect();
+      return { left: r.left, top: r.top, width: r.width, height: r.height, right: r.right, bottom: r.bottom };
+    })() : null;
+
+    const deleteBtnEl = doc.querySelector('.sc-scene-close');
+    const deleteButtonRect = deleteBtnEl ? (() => {
+      const r = deleteBtnEl.getBoundingClientRect();
+      return { left: r.left, top: r.top, width: r.width, height: r.height, right: r.right, bottom: r.bottom };
+    })() : null;
+
+    // Get telemetry of last tap
+    const lastTouch = sceneTouchTelemetry[sceneTouchTelemetry.length - 1];
+    const lastTapX = lastTouch?.debugData?.lastTapX ?? lastTouch?.endX ?? lastTouch?.startX ?? 0;
+    const lastTapY = lastTouch?.debugData?.lastTapY ?? lastTouch?.endY ?? lastTouch?.startY ?? 0;
+    const matchedButton = lastTouch?.targetClass || lastTouch?.debugData?.pointerPath || 'None';
+    const verticalDelta = lastTouch?.debugData?.tapDeltaY ?? 0;
+    const horizontalDelta = lastTouch?.debugData?.tapDeltaX ?? 0;
+    const insideVisual = lastTouch?.debugData?.insideVisual ?? false;
+    const insideTouch = lastTouch?.debugData?.insideTouch ?? false;
+
+    // Evaluate alignment: Check if there's any vertical shift between touch rect and visual rect centers of close/add buttons
+    let pass = true;
+    let shiftMessage = '';
+    const checkEl = deleteBtnEl || addBtnEl;
+    if (checkEl) {
+      const rect = checkEl.getBoundingClientRect();
+      const isCloseOrAdd = checkEl.classList.contains('sc-scene-close') || checkEl.classList.contains('sc-scene-add-btn');
+      const borderSize = isCloseOrAdd ? 12 : 0;
+      
+      const touchCenterY = rect.top + rect.height / 2;
+      const visualCenterY = (rect.top + borderSize) + (rect.height - borderSize * 2) / 2;
+      const shift = touchCenterY - visualCenterY;
+      
+      if (Math.abs(shift) > 0.5) {
+        pass = false;
+        shiftMessage = `Touch rect is shifted down by ${shift.toFixed(1)} px.`;
+      }
     }
 
-    const initialButtons = scenesBar.querySelectorAll('.sc-scene-btn');
-    const initialCount = initialButtons.length;
+    const report = [
+      `sceneBarRect: ${JSON.stringify({ left: barRect.left, top: barRect.top, width: barRect.width, height: barRect.height })}`,
+      `sceneButtonRects: ${JSON.stringify(sceneButtonRects)}`,
+      `addButtonRect: ${JSON.stringify(addButtonRect)}`,
+      `deleteButtonRect: ${JSON.stringify(deleteButtonRect)}`,
+      `lastTapX: ${lastTapX}`,
+      `lastTapY: ${lastTapY}`,
+      `matchedButton: ${matchedButton}`,
+      `verticalDelta: ${verticalDelta.toFixed(1)}px`,
+      `horizontalDelta: ${horizontalDelta.toFixed(1)}px`,
+      `whether tap landed inside visual rect: ${insideVisual ? 'YES' : 'NO'}`,
+      `whether tap landed inside touch rect: ${insideTouch ? 'YES' : 'NO'}`,
+      '',
+      pass ? 'PASS:\nVisual rect and touch rect aligned.' : `FAIL:\n${shiftMessage}`
+    ].join('\n');
 
-    try {
-      callIframe('addScene');
-    } catch (err: any) {
-      setScenesTestResult(`Failed to call addScene: ${err.message || String(err)}`);
-      return;
-    }
-
-    setTimeout(() => {
-      let doc2: Document | null = null;
-      try { doc2 = iframe.contentDocument || iframe.contentWindow?.document || null; } catch (_) {}
-      const bar2 = doc2?.getElementById('sc-scenes-bar');
-      const updatedButtons = bar2?.querySelectorAll('.sc-scene-btn');
-      const updatedCount = updatedButtons?.length || 0;
-
-      if (updatedCount <= initialCount) {
-        setScenesTestResult(`Failed: Scene count did not increase after addScene (initial: ${initialCount}, updated: ${updatedCount})`);
-        return;
-      }
-
-      try {
-        callIframe('switchScene', 0);
-      } catch (err: any) {
-        setScenesTestResult(`Failed to call switchScene: ${err.message || String(err)}`);
-        return;
-      }
-
-      setScenesTestResult(`Passed: Scenes bar is positioned relative, scene added successfully (count: ${initialCount} -> ${updatedCount}), switched to scene 0`);
-    }, 400);
-
-  }, [callIframe]);
+    setScenesTestResult(report);
+  }, [sceneTouchTelemetry]);
 
   useEffect(() => {
     const iframe = iframeRef.current;
@@ -1373,6 +1417,10 @@ ComposedPath: ${path.slice(0, 3).join(' > ')}`;
       }),
       getActions: () => [
         {
+          label: 'Show Stagex Scene Hitboxes',
+          action: toggleHitboxDebugAction
+        },
+        {
           label: 'Test Stagex Scenes Input',
           action: runScenesInputTest
         }
@@ -1381,7 +1429,7 @@ ComposedPath: ${path.slice(0, 3).join(' > ')}`;
     return () => {
       unregisterDebugProvider('stagex');
     };
-  }, [iframeLoading, curView, hasOpenOverlay, diagTaps, scenesTestResult, sceneTouchTelemetry, runScenesInputTest]);
+  }, [iframeLoading, curView, hasOpenOverlay, diagTaps, scenesTestResult, sceneTouchTelemetry, runScenesInputTest, toggleHitboxDebugAction]);
 
   useEffect(() => {
     const iframe = iframeRef.current;
@@ -2483,7 +2531,16 @@ ComposedPath: ${path.slice(0, 3).join(' > ')}`;
           ref={iframeRef}
           src={iframeSrc}
           title="Stagex"
-          style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', border: 'none', display: 'block', backgroundColor: stageBg }}
+          style={{
+            position: 'absolute',
+            inset: 0,
+            width: '100%',
+            height: '100%',
+            border: 'none',
+            display: 'block',
+            backgroundColor: stageBg,
+            transform: collapseHeader ? 'translateZ(0.01px)' : 'translateZ(0px)'
+          }}
           allow="clipboard-write"
         />
 

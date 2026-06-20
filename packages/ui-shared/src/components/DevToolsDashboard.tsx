@@ -1380,6 +1380,40 @@ export default function DevToolsDashboard({ accent, onBack }: Props) {
 
   const renderNavTab = () => {
     const navEntries = getNavigationEntries();
+    const diag = (window as any).__navigationDiagnostics || {
+      returnAttempts: 0,
+      failedReturns: 0,
+      blackScreenDetections: 0,
+      lastBlocker: 'none',
+      history: []
+    };
+
+    const handleCapture = () => {
+      const statePayload = (window as any).__captureBlackScreenState?.();
+      if (statePayload) {
+        diag.lastPayload = statePayload;
+        showToast('Black screen state captured!');
+      } else {
+        showToast('Capture failed: capture function not registered.');
+      }
+    };
+
+    const handleCopy = () => {
+      const payload = {
+        navigationDiagnostics: {
+          returnAttempts: diag.returnAttempts,
+          failedReturns: diag.failedReturns,
+          blackScreenDetections: diag.blackScreenDetections,
+          lastBlocker: diag.lastBlocker,
+          chordex: (window as any).__chordexDiagnostics || null
+        },
+        capturedPayload: diag.lastPayload || (window as any).__captureBlackScreenState?.() || null
+      };
+
+      navigator.clipboard.writeText(JSON.stringify(payload, null, 2))
+        .then(() => showToast('Diagnostics copied to clipboard!'))
+        .catch(() => showToast('Copy failed. Please copy manually.'));
+    };
     
     return (
       <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
@@ -1402,6 +1436,52 @@ export default function DevToolsDashboard({ accent, onBack }: Props) {
           >
             Clear logs
           </button>
+        </div>
+
+        <div style={{ background: '#181820', borderRadius: 12, border: '1px solid rgba(255,255,255,0.08)', padding: 12, display: 'flex', flexDirection: 'column', gap: 10 }}>
+          <span style={{ fontSize: 12, fontWeight: 700, color: '#f59e0b' }}>Black Screen Diagnostics</span>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, fontSize: 11 }}>
+            <div>Return Attempts: <strong>{diag.returnAttempts}</strong></div>
+            <div>Failed Returns: <strong>{diag.failedReturns}</strong></div>
+            <div>Detections: <strong>{diag.blackScreenDetections}</strong></div>
+            <div style={{ gridColumn: 'span 2' }}>
+              Topmost Blocker: <span style={{ fontFamily: 'monospace', color: '#f87171' }}>{diag.lastBlocker}</span>
+            </div>
+          </div>
+          <div style={{ display: 'flex', gap: 8, marginTop: 4 }}>
+            <button
+              onClick={handleCapture}
+              style={{
+                flex: 1,
+                background: '#3b82f6',
+                border: 'none',
+                color: '#fff',
+                borderRadius: 6,
+                fontSize: 11,
+                padding: '6px 12px',
+                cursor: 'pointer',
+                fontWeight: 600
+              }}
+            >
+              Capture Black Screen State
+            </button>
+            <button
+              onClick={handleCopy}
+              style={{
+                flex: 1,
+                background: '#10b981',
+                border: 'none',
+                color: '#fff',
+                borderRadius: 6,
+                fontSize: 11,
+                padding: '6px 12px',
+                cursor: 'pointer',
+                fontWeight: 600
+              }}
+            >
+              Copy Black Screen Diagnostics
+            </button>
+          </div>
         </div>
 
         <div style={{ background: '#000000', borderRadius: 12, border: '1px solid rgba(255,255,255,0.06)', padding: 12, fontSize: 12, fontFamily: 'monospace' }}>
