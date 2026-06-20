@@ -13,7 +13,8 @@ import {
   setNavLocked,
   handleGlobalBack,
   useStatusBar,
-  recordNavigation
+  recordNavigation,
+  getNavigationEntries
 } from '@workspace/studio-core';
 
 import {
@@ -575,6 +576,36 @@ export default function App() {
         subappWrapperZIndex = style.zIndex;
         subappWrapperPointerEvents = style.pointerEvents;
       }
+
+      // Capture sub-app container mounted status
+      const subappContainer = document.querySelector('.app-sub-app-container');
+      const subappContainerMounted = !!subappContainer;
+      let subappContainerZIndex = 'unknown';
+      let subappContainerPointerEvents = 'unknown';
+      if (subappContainer) {
+        const style = window.getComputedStyle(subappContainer);
+        subappContainerZIndex = style.zIndex;
+        subappContainerPointerEvents = style.pointerEvents;
+      }
+
+      // Capture Stagex iframe state details
+      const iframeEl = document.querySelector('iframe[title="Stagex Canvas"]');
+      const iframeMounted = !!iframeEl;
+      let iframeVisible = false;
+      let iframeOpacity = 'unknown';
+      let iframeZIndex = 'unknown';
+      let iframePointerEvents = 'unknown';
+      let iframeTransform = 'unknown';
+      let iframeSrc = '';
+      if (iframeEl) {
+        const style = window.getComputedStyle(iframeEl);
+        iframeVisible = style.display !== 'none' && style.visibility !== 'hidden';
+        iframeOpacity = style.opacity;
+        iframeZIndex = style.zIndex;
+        iframePointerEvents = style.pointerEvents;
+        iframeTransform = style.transform;
+        iframeSrc = (iframeEl as HTMLIFrameElement).src || '';
+      }
       
       const overlays = Array.from(document.querySelectorAll('.modal, .dialog, .sheet, .overlay, .backdrop, [class*="overlay"], [class*="backdrop"], [class*="modal"]'))
         .map(el => {
@@ -632,9 +663,28 @@ export default function App() {
         className: document.activeElement.className
       } : null;
 
+      // Extract last navigation entry
+      let lastNavigationAction: any = null;
+      try {
+        const navEntries = getNavigationEntries() || [];
+        if (navEntries.length > 0) {
+          const last = navEntries[navEntries.length - 1];
+          lastNavigationAction = {
+            fromApp: last.fromApp,
+            toApp: last.toApp,
+            timestamp: last.timestamp,
+            transitionStart: last.transitionStart,
+            transitionComplete: last.transitionComplete,
+            transitionLockState: last.transitionLockState,
+            fallbackRendered: last.fallbackRendered
+          };
+        }
+      } catch (_) {}
+
       return {
         timestamp: Date.now(),
         appMode: currentAppMode,
+        activeSubApp: currentAppMode !== 'hub' ? currentAppMode : 'none',
         prevAppMode: prevMode,
         stableKey: stableKeyRef.current,
         isSubAppActive: subActive,
@@ -652,6 +702,23 @@ export default function App() {
           pointerEvents: subappWrapperPointerEvents,
           motionExitActive
         },
+        mountedComponents: {
+          hubRoot: !!document.querySelector('#hub-root'),
+          mainLayout: !!document.querySelector('.app-main-layout'),
+          subappWrapper: subappWrapperMounted,
+          subappContainer: subappContainerMounted,
+          subappContainerZIndex,
+          subappContainerPointerEvents
+        },
+        stagexIframe: {
+          mounted: iframeMounted,
+          visible: iframeVisible,
+          opacity: iframeOpacity,
+          zIndex: iframeZIndex,
+          pointerEvents: iframePointerEvents,
+          transform: iframeTransform,
+          src: iframeSrc
+        },
         overlays,
         suspenseFallback,
         topmostElements,
@@ -660,13 +727,24 @@ export default function App() {
           overlayPresent: chordexOverlayPresent,
           rootPresent: chordexRootPresent,
           focusElement: activeElement
-        }
+        },
+        lastNavigationAction
       };
     };
 
     return () => {
       delete (window as any).__captureBlackScreenState;
     };
+  }, []);
+
+  // Load navigation diagnostics from localStorage on startup
+  useEffect(() => {
+    try {
+      const stored = localStorage.getItem('studio_black_screen_diagnostics');
+      if (stored) {
+        (window as any).__navigationDiagnostics = JSON.parse(stored);
+      }
+    } catch (_) {}
   }, []);
 
   // 500ms return-to-hub black screen watchdog detector
@@ -684,6 +762,9 @@ export default function App() {
     };
     const diag = (window as any).__navigationDiagnostics;
     diag.returnAttempts++;
+    try {
+      localStorage.setItem('studio_black_screen_diagnostics', JSON.stringify(diag));
+    } catch (_) {}
 
     const timer = setTimeout(() => {
       const statePayload = (window as any).__captureBlackScreenState?.();
@@ -732,6 +813,10 @@ export default function App() {
           reason,
           payload: statePayload
         });
+
+        try {
+          localStorage.setItem('studio_black_screen_diagnostics', JSON.stringify(diag));
+        } catch (_) {}
       }
     }, 500);
 

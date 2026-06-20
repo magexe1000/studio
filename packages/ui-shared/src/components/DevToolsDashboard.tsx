@@ -1380,7 +1380,17 @@ export default function DevToolsDashboard({ accent, onBack }: Props) {
 
   const renderNavTab = () => {
     const navEntries = getNavigationEntries();
-    const diag = (window as any).__navigationDiagnostics || {
+    let diag = (window as any).__navigationDiagnostics;
+    if (!diag) {
+      try {
+        const stored = localStorage.getItem('studio_black_screen_diagnostics');
+        if (stored) {
+          diag = JSON.parse(stored);
+          (window as any).__navigationDiagnostics = diag;
+        }
+      } catch (_) {}
+    }
+    diag = diag || {
       returnAttempts: 0,
       failedReturns: 0,
       blackScreenDetections: 0,
@@ -1393,6 +1403,9 @@ export default function DevToolsDashboard({ accent, onBack }: Props) {
       if (statePayload) {
         diag.lastPayload = statePayload;
         showToast('Black screen state captured!');
+        try {
+          localStorage.setItem('studio_black_screen_diagnostics', JSON.stringify(diag));
+        } catch (_) {}
       } else {
         showToast('Capture failed: capture function not registered.');
       }
