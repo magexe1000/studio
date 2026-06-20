@@ -47,6 +47,32 @@ export interface DebugProvider {
   getActions?: () => Array<{ label: string; action: () => void }>;
 }
 
+export interface StagexDiagnosticsState {
+  iframeMounted: boolean;
+  iframeSrc: string;
+  iframeLoadFired: boolean;
+  contentWindowAvailable: boolean;
+  stageCoreReadyReceived: boolean;
+  wrapperListenerRegistered: boolean;
+  iframeListenerInstalled: boolean;
+  messagesSent: number;
+  messagesReceived: number;
+  ackCount: number;
+  timeoutCount: number;
+  lastCommandSent: string;
+  lastMsgId: string;
+  lastAckReceived: string;
+  lastTimeout: string;
+  lastError: string;
+  currentOrigin: string;
+  expectedOrigin: string;
+  actualEventOrigin: string;
+  sentWithTargetOriginWildcard: boolean;
+  originRejected: boolean;
+  handlerMissing: boolean;
+  handlerFailed: boolean;
+}
+
 const MAX_ITEMS = 150;
 const logsBuffer: LogEntry[] = [];
 const errorsBuffer: ErrorEntry[] = [];
@@ -55,6 +81,70 @@ const networkBuffer: NetworkEntry[] = [];
 const perfRegistry = new Map<string, PerfStats>();
 const providers = new Map<string, DebugProvider>();
 const listeners = new Set<() => void>();
+
+const stagexDiagnostics: StagexDiagnosticsState = {
+  iframeMounted: false,
+  iframeSrc: 'N/A',
+  iframeLoadFired: false,
+  contentWindowAvailable: false,
+  stageCoreReadyReceived: false,
+  wrapperListenerRegistered: false,
+  iframeListenerInstalled: false,
+  messagesSent: 0,
+  messagesReceived: 0,
+  ackCount: 0,
+  timeoutCount: 0,
+  lastCommandSent: 'none',
+  lastMsgId: 'none',
+  lastAckReceived: 'none',
+  lastTimeout: 'none',
+  lastError: 'none',
+  currentOrigin: 'N/A',
+  expectedOrigin: 'N/A',
+  actualEventOrigin: 'N/A',
+  sentWithTargetOriginWildcard: false,
+  originRejected: false,
+  handlerMissing: false,
+  handlerFailed: false
+};
+
+export function updateStagexDiagnostics(updates: Partial<StagexDiagnosticsState>) {
+  Object.assign(stagexDiagnostics, updates);
+  notifyListeners();
+}
+
+export function getStagexDiagnostics() {
+  return stagexDiagnostics;
+}
+
+export function resetStagexDiagnostics() {
+  Object.assign(stagexDiagnostics, {
+    iframeMounted: false,
+    iframeSrc: 'N/A',
+    iframeLoadFired: false,
+    contentWindowAvailable: false,
+    stageCoreReadyReceived: false,
+    wrapperListenerRegistered: false,
+    iframeListenerInstalled: false,
+    messagesSent: 0,
+    messagesReceived: 0,
+    ackCount: 0,
+    timeoutCount: 0,
+    lastCommandSent: 'none',
+    lastMsgId: 'none',
+    lastAckReceived: 'none',
+    lastTimeout: 'none',
+    lastError: 'none',
+    currentOrigin: 'N/A',
+    expectedOrigin: 'N/A',
+    actualEventOrigin: 'N/A',
+    sentWithTargetOriginWildcard: false,
+    originRejected: false,
+    handlerMissing: false,
+    handlerFailed: false
+  });
+  notifyListeners();
+}
 
 let initialized = false;
 let originalConsole: typeof console | null = null;

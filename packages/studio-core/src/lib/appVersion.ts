@@ -26,7 +26,7 @@ import { useMemo } from 'react';
 import { Capacitor } from '@capacitor/core';
 
 /** Canonical semver string used by the OTA comparator. */
-export const NATIVE_VERSION = '3.6.46';
+export const NATIVE_VERSION = '3.6.47';
 export const WEB_VERSION = '4.0.0';
 export const APP_VERSION = Capacitor.isNativePlatform() ? NATIVE_VERSION : WEB_VERSION;
 
@@ -38,7 +38,7 @@ export const APP_VERSION_LABEL = `${APP_VERSION_TAG} ${APP_VERSION}`;
 
 /** Release date for the CURRENT bundle, shown alongside the version pill
  *  in the changelog sheet. ISO-8601 (`YYYY-MM-DD`). */
-export const APP_VERSION_DATE = '2026-06-20'; // 3.6.46
+export const APP_VERSION_DATE = '2026-06-20'; // 3.6.47
 // Note: keep ISO-8601. Bump together with APP_VERSION on each release.
 
 export const APP_COMMIT_SHA = import.meta.env.VITE_GIT_COMMIT_SHA || 'c9e77a16';
@@ -61,9 +61,15 @@ export const APP_CHANGELOG_SECTIONS: ChangelogSection[] = [
   {
     heading: "Added",
     items: [
-      "Created a centralized Developer Tools / Debugging Tools system accessible via Settings.",
-      "Support for runtime log, error, event, performance, and network sniffing.",
-      "App-specific diagnostic panels for Chordex, Stagex, Drumex, Groovex, Vocalex, and Hub.",
+      "Upgraded the Developer Tools UI to be fully phone-adapted with collapsible sections and safe area layouts.",
+      "Added a dedicated Stagex diagnostics panel showing detailed postMessage ACK telemetry.",
+      "Preserved the legacy Update Diagnostics page and added sub-navigation.",
+    ],
+  },
+  {
+    heading: "Fixed",
+    items: [
+      "Fixed the Stagex iframe postMessage ACK bridge error by adding robust try-catch wrapping and diagnostics.",
     ],
   },
 ];

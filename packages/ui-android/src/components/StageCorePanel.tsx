@@ -1,4 +1,4 @@
-import { setBackHandler, useBackHandler, useChordStore, ACCENT_COLORS, translations, useT, useLiquidGlassNav, useNavCollapsed, setNavCollapsed, useIsWebDesktop, registerDebugProvider, unregisterDebugProvider } from '@workspace/studio-core';
+import { setBackHandler, useBackHandler, useChordStore, ACCENT_COLORS, translations, useT, useLiquidGlassNav, useNavCollapsed, setNavCollapsed, useIsWebDesktop, registerDebugProvider, unregisterDebugProvider, updateStagexDiagnostics, getStagexDiagnostics } from '@workspace/studio-core';
 import { useRef, useEffect, useCallback, useState, useMemo } from 'react';
 import { motion } from 'motion/react';
 import {
@@ -1001,10 +1001,21 @@ ComposedPath: ${path.slice(0, 3).join(' > ')}`;
 
     const msgId = Date.now() + '_' + Math.random().toString(36).substr(2, 9);
     
+    updateStagexDiagnostics({
+      messagesSent: getStagexDiagnostics().messagesSent + 1,
+      lastCommandSent: fn,
+      lastMsgId: msgId,
+      sentWithTargetOriginWildcard: true
+    });
+
     // Set up ACK timeout
     const timeout = setTimeout(() => {
       console.warn(`[Diagnostics] No ACK received for command: ${fn} (msgId: ${msgId})`);
       logDiagnostic(`[ERROR] No ACK for ${fn}`);
+      updateStagexDiagnostics({
+        timeoutCount: getStagexDiagnostics().timeoutCount + 1,
+        lastTimeout: fn
+      });
     }, 1500);
     pendingAcks.current.set(msgId, { fn, timer: timeout });
 
@@ -1015,6 +1026,10 @@ ComposedPath: ${path.slice(0, 3).join(' > ')}`;
         arg !== undefined ? (f as (a: string | number) => void)(arg) : (f as () => void)();
         clearTimeout(timeout);
         pendingAcks.current.delete(msgId);
+        updateStagexDiagnostics({
+          ackCount: getStagexDiagnostics().ackCount + 1,
+          lastAckReceived: new Date().toLocaleTimeString()
+        });
         return;
       }
     } catch {}
@@ -1029,6 +1044,10 @@ ComposedPath: ${path.slice(0, 3).join(' > ')}`;
     const handleLoad = () => {
       setIframeLoading(false);
       iframeReady.current = true;
+      updateStagexDiagnostics({
+        iframeLoadFired: true,
+        contentWindowAvailable: !!iframe.contentWindow
+      });
       try { iframe.contentWindow?.postMessage('stage-core-ping', '*'); } catch {}
       injectAccentVars(iframe, accent.from, accent.to);
       injectTheme(iframe, stageVis.theme ?? 'dark');
@@ -1109,19 +1128,50 @@ ComposedPath: ${path.slice(0, 3).join(' > ')}`;
   useEffect(() => {
     const onMsg = (e: MessageEvent) => {
       const origin = e.origin || '';
+      updateStagexDiagnostics({
+        actualEventOrigin: origin
+      });
       const isAllowedOrigin = !origin || origin === 'null' ||
         origin === window.location.origin ||
         origin.startsWith('https://localhost') ||
         origin.startsWith('http://localhost') ||
         origin.startsWith('capacitor://localhost');
-      if (!isAllowedOrigin) return;
+      if (!isAllowedOrigin) {
+        updateStagexDiagnostics({ originRejected: true });
+        return;
+      }
       if (e.source !== iframeRef.current?.contentWindow) return;
 
       // Increment received message counter
       setDiagTaps(prev => ({ ...prev, recvMsgs: prev.recvMsgs + 1 }));
+      updateStagexDiagnostics({
+        messagesReceived: getStagexDiagnostics().messagesReceived + 1
+      });
 
       if (showDiagnostics) {
         logDiagnostic(`[MSG RECV] type: ${e.data?.type || 'unknown'} | data: ${JSON.stringify(e.data || {})}`);
+      }
+
+      if (e.data?.type === 'sc-diagnostic') {
+        const detail = e.data.detail;
+        if (detail === 'sc-runtime-ready') {
+          updateStagexDiagnostics({ stageCoreReadyReceived: true });
+        } else if (detail === 'sc-listener-installed') {
+          updateStagexDiagnostics({ iframeListenerInstalled: true });
+        } else if (detail === 'sc-origin-rejected') {
+          updateStagexDiagnostics({ originRejected: true, lastError: `Origin rejected: actual=${e.data.actual} expected=${e.data.expected}` });
+        } else if (detail === 'sc-command-received') {
+          // command received
+        } else if (detail === 'sc-command-dispatched') {
+          // command completed
+        } else if (detail === 'sc-command-handler-missing') {
+          updateStagexDiagnostics({ handlerMissing: true, lastError: `Handler missing for command: ${e.data.fn}` });
+        } else if (detail === 'sc-command-handler-error') {
+          updateStagexDiagnostics({ handlerFailed: true, lastError: `Handler error in command ${e.data.fn}: ${e.data.error}` });
+        } else if (detail === 'sc-runtime-error') {
+          updateStagexDiagnostics({ lastError: `Runtime error: ${e.data.error}` });
+        }
+        return;
       }
 
       if (e.data?.type === 'sc-ack') {
@@ -1131,6 +1181,10 @@ ComposedPath: ${path.slice(0, 3).join(' > ')}`;
           pendingAcks.current.delete(msgId);
           logDiagnostic(`[ACK] Received ACK for command: ${e.data.fn}`);
         }
+        updateStagexDiagnostics({
+          ackCount: getStagexDiagnostics().ackCount + 1,
+          lastAckReceived: new Date().toLocaleTimeString()
+        });
         return;
       }
 
@@ -1159,6 +1213,13 @@ ComposedPath: ${path.slice(0, 3).join(' > ')}`;
   }, [showDiagnostics, logDiagnostic]);
 
   useEffect(() => {
+    updateStagexDiagnostics({
+      iframeMounted: true,
+      iframeSrc: '/stage-core/index.html',
+      wrapperListenerRegistered: true,
+      currentOrigin: window.location.origin,
+      expectedOrigin: window.location.origin
+    });
     let cancelled = false;
     void import('@workspace/studio-core').then(({ registerStageIframe }) => {
       if (cancelled) return;
@@ -1167,6 +1228,10 @@ ComposedPath: ${path.slice(0, 3).join(' > ')}`;
     return () => {
       cancelled = true;
       void import('@workspace/studio-core').then(({ registerStageIframe }) => registerStageIframe(null));
+      updateStagexDiagnostics({
+        iframeMounted: false,
+        wrapperListenerRegistered: false
+      });
     };
   }, []);
 

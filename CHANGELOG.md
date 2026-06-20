@@ -11,6 +11,16 @@ Conventions:
 - One H2 heading per version: `## X.Y.Z` (no leading `v`).
 - Bullets start with `- ` and use plain English a non-technical user
   can parse. Keep each line short — the modal's text area is narrow.
+## 3.6.47
+
+### Added
+- Upgraded the Developer Tools UI to be fully phone-adapted with collapsible sections and safe area layouts.
+- Added a dedicated Stagex diagnostics panel showing detailed postMessage ACK telemetry.
+- Preserved the legacy Update Diagnostics page and added sub-navigation.
+
+### Fixed
+- Fixed the Stagex iframe postMessage ACK bridge error by adding robust try-catch wrapping and diagnostics.
+
 ## 3.6.46
 
 ### Added

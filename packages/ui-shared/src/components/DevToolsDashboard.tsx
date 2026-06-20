@@ -15,7 +15,11 @@ import {
   getDebugProviders,
   maskSensitiveValue,
   APP_VERSION,
-  isNative
+  isNative,
+  getStagexDiagnostics,
+  resetStagexDiagnostics,
+  otaDiagnostics,
+  otaDebugLogs
 } from '@workspace/studio-core';
 
 interface Props {
@@ -27,6 +31,7 @@ type TabId = 'logs' | 'errors' | 'events' | 'perf' | 'state' | 'nav' | 'network'
 
 export default function DevToolsDashboard({ accent, onBack }: Props) {
   const { settings, updateSettings } = useChordStore();
+  const [subView, setSubView] = useState<'dashboard' | 'updater' | 'stagex'>('dashboard');
   const [activeTab, setActiveTab] = useState<TabId>('logs');
   const [versionUpdates, setVersionUpdates] = useState(0);
 
@@ -56,6 +61,7 @@ export default function DevToolsDashboard({ accent, onBack }: Props) {
   const network = useMemo(() => getNetworkRequests(), [versionUpdates]);
   const perf = useMemo(() => getPerfStats(), [versionUpdates]);
   const activeProviders = useMemo(() => getDebugProviders(), [versionUpdates]);
+  const stagex = useMemo(() => getStagexDiagnostics(), [versionUpdates]);
 
   // Extract unique module list from logs
   const logModules = useMemo(() => {
@@ -97,12 +103,268 @@ export default function DevToolsDashboard({ accent, onBack }: Props) {
       },
       errors: errors,
       perfStats: Array.from(perf.entries()).map(([k, v]) => ({ component: k, ...v })),
-      logs: logs.slice(-50)
+      logs: logs.slice(-50),
+      stagexDiagnostics: stagex,
+      otaDiagnostics: otaDiagnostics,
+      otaDebugLogs: otaDebugLogs
     };
 
     navigator.clipboard.writeText(JSON.stringify(dump, null, 2))
       .then(() => showToast('Diagnostics copied to clipboard!'))
       .catch(() => showToast('Copy failed.'));
+  };
+
+  // Collapsible views state
+  const [updaterCollapsed, setUpdaterCollapsed] = useState({
+    device: false,
+    decision: false,
+    ota: false,
+    errors: false
+  });
+
+  const [stagexCollapsed, setStagexCollapsed] = useState({
+    connection: false,
+    counters: false,
+    trace: false,
+    security: false,
+    failures: false
+  });
+
+  // Reusable Phone-Responsive Diagnostics Components
+  const CollapsibleSection = ({ title, collapsed, onToggle, children }: { title: string; collapsed: boolean; onToggle: () => void; children: React.ReactNode }) => (
+    <div style={{
+      background: 'rgba(255,255,255,0.02)',
+      border: '1px solid rgba(255,255,255,0.06)',
+      borderRadius: 14,
+      marginBottom: 12,
+      overflow: 'hidden'
+    }}>
+      <button
+        onClick={onToggle}
+        style={{
+          width: '100%',
+          padding: '12px 16px',
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          background: 'rgba(255,255,255,0.01)',
+          border: 'none',
+          color: '#fff',
+          fontFamily: 'Manrope',
+          fontWeight: 800,
+          fontSize: '13px',
+          cursor: 'pointer',
+          textAlign: 'left'
+        }}
+      >
+        <span>{title}</span>
+        <span className="material-symbols-outlined" style={{ fontSize: 18, transform: collapsed ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.2s ease' }}>
+          expand_more
+        </span>
+      </button>
+      {!collapsed && (
+        <div style={{
+          padding: '14px 16px',
+          borderTop: '1px solid rgba(255,255,255,0.04)',
+          background: 'rgba(0,0,0,0.1)'
+        }}>
+          {children}
+        </div>
+      )}
+    </div>
+  );
+
+  const DiagnosticField = ({ label, value, isCode }: { label: string; value: string | null; isCode?: boolean }) => (
+    <div style={{ marginBottom: 12 }}>
+      <label style={{
+        display: 'block',
+        fontFamily: 'Manrope',
+        fontWeight: 700,
+        fontSize: 10,
+        color: 'rgba(255,255,255,0.4)',
+        letterSpacing: '0.08em',
+        textTransform: 'uppercase',
+        marginBottom: 4
+      }}>{label}</label>
+      <div style={{
+        fontFamily: isCode ? 'monospace' : 'Inter',
+        fontSize: isCode ? 11 : 13,
+        lineHeight: 1.4,
+        color: '#fff',
+        wordBreak: 'break-word',
+        whiteSpace: 'pre-wrap',
+        background: isCode ? 'rgba(0,0,0,0.3)' : 'transparent',
+        padding: isCode ? '6px 10px' : 0,
+        borderRadius: isCode ? 6 : 0,
+        maxHeight: isCode ? 120 : 'none',
+        overflowY: isCode ? 'auto' : 'visible'
+      }}>
+        {value || 'N/A'}
+      </div>
+    </div>
+  );
+
+  // Render Inline Updater Diagnostics View
+  const renderUpdaterView = () => {
+    return (
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 4, paddingBottom: 'max(20px, env(safe-area-inset-bottom))' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+          <span style={{ fontSize: 13, fontWeight: 700, color: 'rgba(255,255,255,0.4)' }}>Updater Diagnostics</span>
+          <button
+            onClick={() => {
+              window.dispatchEvent(new CustomEvent('studio:ota-check-manual'));
+              showToast('Manual update check triggered.');
+            }}
+            style={{
+              padding: '6px 12px',
+              borderRadius: 8,
+              background: accent.from,
+              color: '#fff',
+              border: 'none',
+              fontFamily: 'Manrope',
+              fontWeight: 700,
+              fontSize: '11px',
+              cursor: 'pointer'
+            }}
+          >
+            Check Update
+          </button>
+        </div>
+
+        <CollapsibleSection
+          title="Device Info"
+          collapsed={updaterCollapsed.device}
+          onToggle={() => setUpdaterCollapsed(prev => ({ ...prev, device: !prev.device }))}
+        >
+          <DiagnosticField label="Device Model" value={otaDiagnostics.deviceModel} />
+          <DiagnosticField label="Android Version" value={otaDiagnostics.androidVersion} />
+          <DiagnosticField label="Permission State" value={otaDiagnostics.permissionState} />
+          <DiagnosticField label="Timestamp" value={otaDiagnostics.timestamp} />
+        </CollapsibleSection>
+
+        <CollapsibleSection
+          title="Update Decision"
+          collapsed={updaterCollapsed.decision}
+          onToggle={() => setUpdaterCollapsed(prev => ({ ...prev, decision: !prev.decision }))}
+        >
+          <DiagnosticField label="Update Decision" value={otaDebugLogs.updateDecision || 'N/A'} />
+          <DiagnosticField label="Update Decision Reason" value={otaDebugLogs.updateDecisionReason || 'N/A'} />
+          <DiagnosticField label="Installed versionCode" value={otaDebugLogs.installedVersionCode !== null ? String(otaDebugLogs.installedVersionCode) : 'N/A'} />
+          <DiagnosticField label="Remote versionCode" value={otaDebugLogs.remoteVersionCode !== null ? String(otaDebugLogs.remoteVersionCode) : 'N/A'} />
+          <DiagnosticField label="Version Comparison" value={otaDebugLogs.versionComparisonResult || 'N/A'} />
+        </CollapsibleSection>
+
+        <CollapsibleSection
+          title="OTA Verification"
+          collapsed={updaterCollapsed.ota}
+          onToggle={() => setUpdaterCollapsed(prev => ({ ...prev, ota: !prev.ota }))}
+        >
+          <DiagnosticField label="Installer App Available" value={String(otaDebugLogs.appInstallerAvailable)} />
+          <DiagnosticField label="Vite App Version" value={otaDebugLogs.appVersion} />
+          <DiagnosticField label="Native Wrapper Version" value={otaDebugLogs.nativeApkVersion || 'N/A'} />
+          <DiagnosticField label="Expected SHA-256" value={otaDiagnostics.shaExpected} />
+          <DiagnosticField label="Calculated SHA-256" value={otaDiagnostics.shaCalculated} />
+        </CollapsibleSection>
+
+        <CollapsibleSection
+          title="Errors & Stack Trace"
+          collapsed={updaterCollapsed.errors}
+          onToggle={() => setUpdaterCollapsed(prev => ({ ...prev, errors: !prev.errors }))}
+        >
+          <DiagnosticField label="Exception Message" value={otaDiagnostics.exceptionMessage} />
+          <DiagnosticField label="Failure Stack Trace" value={otaDiagnostics.failureReason} isCode />
+          <DiagnosticField label="Installer Result" value={otaDiagnostics.installerResult} isCode />
+        </CollapsibleSection>
+      </div>
+    );
+  };
+
+  // Render Stagex Diagnostics View
+  const renderStagexView = () => {
+    return (
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 4, paddingBottom: 'max(20px, env(safe-area-inset-bottom))' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+          <span style={{ fontSize: 13, fontWeight: 700, color: 'rgba(255,255,255,0.4)' }}>Stagex ACK Telemetry</span>
+          <button
+            onClick={() => {
+              resetStagexDiagnostics();
+              showToast('Stagex diagnostics reset.');
+            }}
+            style={{
+              padding: '6px 12px',
+              borderRadius: 8,
+              background: 'rgba(239, 68, 68, 0.1)',
+              border: '1px solid rgba(239, 68, 68, 0.2)',
+              color: '#ef4444',
+              fontFamily: 'Manrope',
+              fontWeight: 700,
+              fontSize: '11px',
+              cursor: 'pointer'
+            }}
+          >
+            Reset Stats
+          </button>
+        </div>
+
+        <CollapsibleSection
+          title="IFrame Connection Status"
+          collapsed={stagexCollapsed.connection}
+          onToggle={() => setStagexCollapsed(prev => ({ ...prev, connection: !prev.connection }))}
+        >
+          <DiagnosticField label="IFrame Mounted" value={stagex.iframeMounted ? 'YES' : 'NO'} />
+          <DiagnosticField label="IFrame URL / Src" value={stagex.iframeSrc} />
+          <DiagnosticField label="Load Event Fired" value={stagex.iframeLoadFired ? 'YES' : 'NO'} />
+          <DiagnosticField label="contentWindow Available" value={stagex.contentWindowAvailable ? 'YES' : 'NO'} />
+          <DiagnosticField label="stage-core Ready Event Received" value={stagex.stageCoreReadyReceived ? 'YES' : 'NO'} />
+          <DiagnosticField label="Wrapper Listener Bound" value={stagex.wrapperListenerRegistered ? 'YES' : 'NO'} />
+          <DiagnosticField label="IFrame Listener Installed" value={stagex.iframeListenerInstalled ? 'YES' : 'NO'} />
+        </CollapsibleSection>
+
+        <CollapsibleSection
+          title="Bridge Telemetry Counters"
+          collapsed={stagexCollapsed.counters}
+          onToggle={() => setStagexCollapsed(prev => ({ ...prev, counters: !prev.counters }))}
+        >
+          <DiagnosticField label="Messages Sent Count" value={String(stagex.messagesSent)} />
+          <DiagnosticField label="Messages Received Count" value={String(stagex.messagesReceived)} />
+          <DiagnosticField label="ACK Received Count" value={String(stagex.ackCount)} />
+          <DiagnosticField label="Timeout Count" value={String(stagex.timeoutCount)} />
+        </CollapsibleSection>
+
+        <CollapsibleSection
+          title="Trace History & Last Message"
+          collapsed={stagexCollapsed.trace}
+          onToggle={() => setStagexCollapsed(prev => ({ ...prev, trace: !prev.trace }))}
+        >
+          <DiagnosticField label="Last Command Sent" value={stagex.lastCommandSent} />
+          <DiagnosticField label="Last Message ID" value={stagex.lastMsgId} />
+          <DiagnosticField label="Last ACK Received Timestamp" value={stagex.lastAckReceived} />
+          <DiagnosticField label="Last Timeout Command" value={stagex.lastTimeout} />
+        </CollapsibleSection>
+
+        <CollapsibleSection
+          title="Security & Origin Check"
+          collapsed={stagexCollapsed.security}
+          onToggle={() => setStagexCollapsed(prev => ({ ...prev, security: !prev.security }))}
+        >
+          <DiagnosticField label="Current Origin" value={stagex.currentOrigin} />
+          <DiagnosticField label="Expected Origin" value={stagex.expectedOrigin} />
+          <DiagnosticField label="Actual Event Origin" value={stagex.actualEventOrigin} />
+          <DiagnosticField label="Command Sent with Wildcard targetOrigin" value={stagex.sentWithTargetOriginWildcard ? 'YES' : 'NO'} />
+        </CollapsibleSection>
+
+        <CollapsibleSection
+          title="Execution Failures & Errors"
+          collapsed={stagexCollapsed.failures}
+          onToggle={() => setStagexCollapsed(prev => ({ ...prev, failures: !prev.failures }))}
+        >
+          <DiagnosticField label="Origin Rejected" value={stagex.originRejected ? 'YES (Origins mismatched!)' : 'NO'} />
+          <DiagnosticField label="Handler Missing (IFrame)" value={stagex.handlerMissing ? 'YES (Target function not exported on window)' : 'NO'} />
+          <DiagnosticField label="Handler Execution Failed" value={stagex.handlerFailed ? 'YES (Exceptions raised during run)' : 'NO'} />
+          <DiagnosticField label="Last Exception Trace" value={stagex.lastError} />
+        </CollapsibleSection>
+      </div>
+    );
   };
 
   // UI styles
@@ -183,54 +445,141 @@ export default function DevToolsDashboard({ accent, onBack }: Props) {
         </button>
       </div>
 
-      {/* DEV MODE ENABLE SECTION */}
+      {/* SUB-VIEW HEADER NAVIGATION */}
       <div style={{
-        padding: '14px 20px',
-        background: 'rgba(255,255,255,0.02)',
-        borderBottom: '1px solid rgba(255,255,255,0.06)',
         display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'space-between'
+        background: '#121214',
+        borderBottom: '1px solid rgba(255,255,255,0.06)',
+        padding: '10px 20px',
+        gap: 8,
+        position: 'sticky',
+        top: 0,
+        zIndex: 100
       }}>
-        <div>
-          <span style={{ fontSize: '14px', fontWeight: 700 }}>Enable Developer Mode</span>
-          <p style={{ fontSize: '11px', color: 'rgba(255,255,255,0.4)', margin: '2px 0 0' }}>
-            Allows real-time logging, network sniffing, and inspector tabs.
-          </p>
-        </div>
         <button
-          onClick={() => {
-            const next = !settings.developerMode;
-            updateSettings({ developerMode: next });
-            showToast(`Developer Mode: ${next ? 'ON' : 'OFF'}`);
-          }}
+          onClick={() => setSubView('dashboard')}
           style={{
-            padding: '6px 16px',
-            borderRadius: '999px',
-            background: settings.developerMode ? '#10b981' : '#ef4444',
+            flex: 1,
+            padding: '10px',
+            borderRadius: '12px',
             border: 'none',
-            color: '#fff',
+            fontFamily: 'Manrope',
             fontWeight: 800,
-            fontSize: '11px',
-            cursor: 'pointer'
+            fontSize: '12px',
+            cursor: 'pointer',
+            backgroundColor: subView === 'dashboard' ? 'rgba(255,255,255,0.08)' : 'transparent',
+            color: subView === 'dashboard' ? '#fff' : 'rgba(255,255,255,0.5)',
+            transition: 'all 0.2s ease',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: 6
           }}
         >
-          {settings.developerMode ? 'MODE: ON' : 'MODE: OFF'}
+          <span className="material-symbols-outlined" style={{ fontSize: 16 }}>terminal</span>
+          Dev Tools
+        </button>
+        <button
+          onClick={() => setSubView('updater')}
+          style={{
+            flex: 1,
+            padding: '10px',
+            borderRadius: '12px',
+            border: 'none',
+            fontFamily: 'Manrope',
+            fontWeight: 800,
+            fontSize: '12px',
+            cursor: 'pointer',
+            backgroundColor: subView === 'updater' ? 'rgba(255,255,255,0.08)' : 'transparent',
+            color: subView === 'updater' ? '#fff' : 'rgba(255,255,255,0.5)',
+            transition: 'all 0.2s ease',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: 6
+          }}
+        >
+          <span className="material-symbols-outlined" style={{ fontSize: 16 }}>system_update_alt</span>
+          Updater
+        </button>
+        <button
+          onClick={() => setSubView('stagex')}
+          style={{
+            flex: 1,
+            padding: '10px',
+            borderRadius: '12px',
+            border: 'none',
+            fontFamily: 'Manrope',
+            fontWeight: 800,
+            fontSize: '12px',
+            cursor: 'pointer',
+            backgroundColor: subView === 'stagex' ? 'rgba(255,255,255,0.08)' : 'transparent',
+            color: subView === 'stagex' ? '#fff' : 'rgba(255,255,255,0.5)',
+            transition: 'all 0.2s ease',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: 6
+          }}
+        >
+          <span className="material-symbols-outlined" style={{ fontSize: 16 }}>layers</span>
+          Stagex
         </button>
       </div>
 
-      {!settings.developerMode ? (
-        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: 40, textAlign: 'center' }}>
-          <span className="material-symbols-outlined" style={{ fontSize: 48, color: '#ef4444', marginBottom: 16 }}>terminal</span>
-          <h3 style={{ fontSize: 16, fontWeight: 700, margin: '0 0 8px' }}>Developer Mode is Disabled</h3>
-          <p style={{ fontSize: 12, color: 'rgba(255,255,255,0.5)', maxWidth: 280, lineHeight: 1.4, margin: 0 }}>
-            Toggle the status above to activate diagnostics tracking, capture logs, and view app-specific states.
-          </p>
+      {/* DEV MODE ENABLE SECTION */}
+      {subView === 'dashboard' && (
+        <div style={{
+          padding: '14px 20px',
+          background: 'rgba(255,255,255,0.02)',
+          borderBottom: '1px solid rgba(255,255,255,0.06)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between'
+        }}>
+          <div>
+            <span style={{ fontSize: '14px', fontWeight: 700 }}>Enable Developer Mode</span>
+            <p style={{ fontSize: '11px', color: 'rgba(255,255,255,0.4)', margin: '2px 0 0' }}>
+              Allows real-time logging, network sniffing, and inspector tabs.
+            </p>
+          </div>
+          <button
+            onClick={() => {
+              const next = !settings.developerMode;
+              updateSettings({ developerMode: next });
+              showToast(`Developer Mode: ${next ? 'ON' : 'OFF'}`);
+            }}
+            style={{
+              padding: '6px 16px',
+              borderRadius: '999px',
+              background: settings.developerMode ? '#10b981' : '#ef4444',
+              border: 'none',
+              color: '#fff',
+              fontWeight: 800,
+              fontSize: '11px',
+              cursor: 'pointer'
+            }}
+          >
+            {settings.developerMode ? 'MODE: ON' : 'MODE: OFF'}
+          </button>
         </div>
-      ) : (
-        <>
-          {/* TABS CONTAINER */}
-          <div style={{
+      )}
+
+      <div style={{ flex: 1, overflowY: 'auto', padding: '16px 20px' }}>
+        {subView === 'dashboard' && (
+          <>
+            {!settings.developerMode ? (
+              <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: 40, textAlign: 'center' }}>
+                <span className="material-symbols-outlined" style={{ fontSize: 48, color: '#ef4444', marginBottom: 16 }}>terminal</span>
+                <h3 style={{ fontSize: 16, fontWeight: 700, margin: '0 0 8px' }}>Developer Mode is Disabled</h3>
+                <p style={{ fontSize: 12, color: 'rgba(255,255,255,0.5)', maxWidth: 280, lineHeight: 1.4, margin: 0 }}>
+                  Toggle the status above to activate diagnostics tracking, capture logs, and view app-specific states.
+                </p>
+              </div>
+            ) : (
+              <>
+                {/* TABS CONTAINER */}
+                <div style={{
             display: 'flex',
             gap: 8,
             overflowX: 'auto',
@@ -611,6 +960,12 @@ export default function DevToolsDashboard({ accent, onBack }: Props) {
           </div>
         </>
       )}
+      </>
+    )}
+
+    {subView === 'updater' && renderUpdaterView()}
+    {subView === 'stagex' && renderStagexView()}
+    </div>
 
       {/* TOAST NOTIFICATION */}
       {toastMsg && (

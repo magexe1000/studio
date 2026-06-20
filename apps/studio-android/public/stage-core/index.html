@@ -5031,6 +5031,40 @@ window.addEventListener('message', function(e) {
    * React parent posts { type:'sc-call', fn:'functionName', arg?:'...' }  *
    * We look up the function in window and call it.  This works even when   *
    * contentWindow direct access is restricted by the Android WebView.      */
+  function logIframeDiagnostic(detail, extra) {
+    try {
+      var payload = { type: 'sc-diagnostic', detail: detail };
+      if (extra) {
+        for (var key in extra) {
+          if (extra.hasOwnProperty(key)) {
+            payload[key] = extra[key];
+          }
+        }
+      }
+      window.parent.postMessage(payload, '*');
+    } catch (e) {}
+  }
+
+  window.addEventListener('error', function (e) {
+    logIframeDiagnostic('sc-runtime-error', {
+      error: e.message || String(e.error),
+      stack: e.error && e.error.stack ? e.error.stack : '',
+      source: e.filename ? e.filename + ':' + e.lineno + ':' + e.colno : 'window.onerror'
+    });
+  });
+
+  window.addEventListener('unhandledrejection', function (e) {
+    var reason = e.reason || '';
+    logIframeDiagnostic('sc-runtime-error', {
+      error: reason.message || String(reason),
+      stack: reason.stack || '',
+      source: 'unhandledrejection'
+    });
+  });
+
+  logIframeDiagnostic('sc-runtime-ready');
+  logIframeDiagnostic('sc-listener-installed');
+
   window.addEventListener('message', function (e) {
     var origin = e.origin || '';
     var isAllowedOrigin = !origin || origin === 'null' || origin === 'about:blank' ||
@@ -5038,7 +5072,14 @@ window.addEventListener('message', function(e) {
       origin.indexOf('https://localhost') === 0 ||
       origin.indexOf('http://localhost') === 0 ||
       origin.indexOf('capacitor://localhost') === 0;
-    if (!isAllowedOrigin) return;
+    
+    if (!isAllowedOrigin) {
+      logIframeDiagnostic('sc-origin-rejected', {
+        actual: origin,
+        expected: window.location.origin
+      });
+      return;
+    }
 
     if (e.data && e.data.type === 'sc-back-request') {
       if (typeof window.stageHasOpenOverlay === 'function' && window.stageHasOpenOverlay()) {
@@ -5066,14 +5107,26 @@ window.addEventListener('message', function(e) {
     var arg = e.data.arg;
     var msgId = e.data.msgId;
     if (typeof fn !== 'string') return;
+
+    logIframeDiagnostic('sc-command-received', { fn: fn });
+
     var target = window[fn];
     if (typeof target === 'function') {
       try {
         arg !== undefined ? target(arg) : target();
+        logIframeDiagnostic('sc-command-dispatched', { fn: fn });
         if (msgId) {
           window.parent.postMessage({ type: 'sc-ack', msgId: msgId, fn: fn }, '*');
+          logIframeDiagnostic('sc-ack-sent', { fn: fn, msgId: msgId });
         }
-      } catch (err) { /* ignore */ }
+      } catch (err) {
+        logIframeDiagnostic('sc-command-handler-error', {
+          fn: fn,
+          error: err.message || String(err)
+        });
+      }
+    } else {
+      logIframeDiagnostic('sc-command-handler-missing', { fn: fn });
     }
   }, false);
 
