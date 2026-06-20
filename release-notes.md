@@ -1,8 +1,7 @@
 ### Added
-- Rebranded user-facing elements and text from "Studio" to "Livex" (Livex Hub).
-- Enhanced Developer Tools Warnings view with warning copy and unified diagnostics layout.
+- Added navigation trace and transition diagnostics tab under Developer Tools.
 
 ### Fixed
-- Fixed the "View Warnings" button click responsiveness and event lifecycle on Android.
-- Resolved "Black Screen Return Bug" by properly clearing sub-app launch timers on Hub return.
-- Polished Stagex landscape mode: zoomed out stage plot and adjusted left toolbar placement.
+- Fixed false hub warnings by reclassifying diagnostics logs inside devTools.
+- Resolved black screen bug when returning from Chordex to Livex Hub.
+- Mapped Warnings Inspector to conform to clean WarningItem data model.

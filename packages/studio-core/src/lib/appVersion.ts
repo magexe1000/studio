@@ -26,7 +26,7 @@ import { useMemo } from 'react';
 import { Capacitor } from '@capacitor/core';
 
 /** Canonical semver string used by the OTA comparator. */
-export const NATIVE_VERSION = '3.6.53';
+export const NATIVE_VERSION = '3.6.54';
 export const WEB_VERSION = '4.0.0';
 export const APP_VERSION = Capacitor.isNativePlatform() ? NATIVE_VERSION : WEB_VERSION;
 
@@ -38,7 +38,7 @@ export const APP_VERSION_LABEL = `${APP_VERSION_TAG} ${APP_VERSION}`;
 
 /** Release date for the CURRENT bundle, shown alongside the version pill
  *  in the changelog sheet. ISO-8601 (`YYYY-MM-DD`). */
-export const APP_VERSION_DATE = '2026-06-20'; // 3.6.52
+export const APP_VERSION_DATE = '2026-06-20'; // 3.6.54
 // Note: keep ISO-8601. Bump together with APP_VERSION on each release.
 
 export const APP_COMMIT_SHA = import.meta.env.VITE_GIT_COMMIT_SHA || '78ef3651';
@@ -61,16 +61,15 @@ export const APP_CHANGELOG_SECTIONS: ChangelogSection[] = [
   {
     heading: "Added",
     items: [
-      "Rebranded user-facing elements and text from \"Studio\" to \"Livex\" (Livex Hub).",
-      "Enhanced Developer Tools Warnings view with warning copy and unified diagnostics layout.",
+      "Added navigation trace and transition diagnostics tab under Developer Tools.",
     ],
   },
   {
     heading: "Fixed",
     items: [
-      "Fixed the \"View Warnings\" button click responsiveness and event lifecycle on Android.",
-      "Resolved \"Black Screen Return Bug\" by properly clearing sub-app launch timers on Hub return.",
-      "Polished Stagex landscape mode: zoomed out stage plot and adjusted left toolbar placement.",
+      "Fixed false hub warnings by reclassifying diagnostics logs inside devTools.",
+      "Resolved black screen bug when returning from Chordex to Livex Hub.",
+      "Mapped Warnings Inspector to conform to clean WarningItem data model.",
     ],
   },
 ];
@@ -80,16 +79,15 @@ export const APP_CHANGELOG_SECTIONS_NATIVE: ChangelogSection[] = [
   {
     heading: "Added",
     items: [
-      "Rebranded user-facing elements and text from 'Studio' to 'Livex'.",
-      "Added warning copy capabilities inside Developer Tools Warnings view.",
+      "Added navigation transition trace diagnostics tab in Developer Tools.",
     ],
   },
   {
     heading: "Fixed",
     items: [
-      "Fixed 'View Warnings' touch responsiveness on Android WebView.",
-      "Resolved 'Black Screen Return' bug by properly clearing launch timers.",
-      "Polished Stagex landscape mode zoom and left toolbar positioning.",
+      "Fixed false hub warnings from being classified as warn logs.",
+      "Resolved Chordex-to-Hub return black screen lifecycle bug.",
+      "Refactored warnings view to show caller file, source locations, and titles.",
     ],
   },
 ];
@@ -100,16 +98,15 @@ export const APP_CHANGELOG_SECTIONS_ES: ChangelogSection[] = [
   {
     heading: "Añadido",
     items: [
-      "Renombrados los elementos orientados al usuario de 'Studio' a 'Livex'.",
-      "Añadida función para copiar advertencias en las herramientas de desarrollo.",
+      "Añadido panel de diagnóstico de transiciones de navegación en herramientas de desarrollo.",
     ],
   },
   {
     heading: "Corregido",
     items: [
-      "Corregido el botón de ver advertencias en el WebView de Android.",
-      "Resuelto el error de pantalla negra al regresar a Livex Hub.",
-      "Ajustes de zoom y toolbar lateral en Stagex horizontal.",
+      "Corregido el problema de advertencias falsas de diagnóstico de Livex Hub.",
+      "Resuelto el error de pantalla negra al regresar de Chordex a Livex Hub.",
+      "Refactorizado el inspector de advertencias para mostrar ubicación de origen y títulos.",
     ],
   },
 ];

@@ -12,6 +12,16 @@ Conventions:
 - Bullets start with `- ` and use plain English a non-technical user
   can parse. Keep each line short — the modal's text area is narrow.
 
+## 3.6.54
+
+### Added
+- Added navigation trace and transition diagnostics tab under Developer Tools.
+
+### Fixed
+- Fixed false hub warnings by reclassifying diagnostics logs inside devTools.
+- Resolved black screen bug when returning from Chordex to Livex Hub.
+- Mapped Warnings Inspector to conform to clean WarningItem data model.
+
 ## 3.6.53
 
 ### Added

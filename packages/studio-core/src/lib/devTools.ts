@@ -1,10 +1,26 @@
 import { useChordStore } from '../store/useChordStore';
 
 export interface LogEntry {
+  id: string;
   timestamp: number;
   level: 'info' | 'warn' | 'error';
   message: string;
   module: string;
+  source: string;
+}
+
+export interface NavigationEntry {
+  id: string;
+  timestamp: number;
+  fromApp: string;
+  toApp: string;
+  transitionStart?: number;
+  transitionComplete?: number;
+  hubMounted?: boolean;
+  subappUnmounted?: boolean;
+  activeAppAfterTransition: string;
+  transitionLockState: boolean;
+  fallbackRendered: boolean;
 }
 
 export interface ErrorEntry {
@@ -84,6 +100,7 @@ const logsBuffer: LogEntry[] = [];
 const errorsBuffer: ErrorEntry[] = [];
 const eventsBuffer: EventEntry[] = [];
 const networkBuffer: NetworkEntry[] = [];
+const navBuffer: NavigationEntry[] = [];
 const perfRegistry = new Map<string, PerfStats>();
 const providers = new Map<string, DebugProvider>();
 const listeners = new Set<() => void>();
@@ -181,6 +198,35 @@ export function subscribeToDevTools(listener: () => void) {
   };
 }
 
+function getCallerSource(): string {
+  const stack = new Error().stack;
+  if (!stack) return 'unknown';
+  const lines = stack.split('\n');
+  for (let i = 1; i < lines.length; i++) {
+    const line = lines[i];
+    if (
+      line.includes('devTools.ts') ||
+      line.includes('devTools.js') ||
+      line.includes('getCallerSource') ||
+      line.includes('addLog') ||
+      line.includes('console.warn') ||
+      line.includes('console.error') ||
+      line.includes('console.log')
+    ) {
+      continue;
+    }
+    const match = line.match(/at\s+(.*?)\s+\((.*?)\)/) || line.match(/at\s+(.*)/);
+    if (match) {
+      const fullPath = match[2] || match[1];
+      const parts = fullPath.split('/');
+      const lastPart = parts[parts.length - 1];
+      const winParts = lastPart.split('\\');
+      return winParts[winParts.length - 1];
+    }
+  }
+  return 'unknown';
+}
+
 // ── 1. LOG VIEWER ──
 export function addLog(level: 'info' | 'warn' | 'error', module: string, ...args: any[]) {
   const isDevMode = useChordStore.getState().settings.developerMode;
@@ -194,11 +240,35 @@ export function addLog(level: 'info' | 'warn' | 'error', module: string, ...args
     return String(arg);
   }).join(' ');
 
+  let targetLevel = level;
+  if (level === 'warn') {
+    const isDiagnostics = args.some(arg => {
+      if (arg && typeof arg === 'object') {
+        return 'appVersion' in arg && 'appName' in arg && 'memory' in arg;
+      }
+      return false;
+    }) || (
+      msg.includes('"appVersion"') &&
+      msg.includes('"appName"') &&
+      msg.includes('"memory"') &&
+      msg.includes('"status"')
+    );
+
+    if (isDiagnostics) {
+      targetLevel = 'info';
+    }
+  }
+
+  const id = Math.random().toString(36).substring(2, 9);
+  const source = getCallerSource();
+
   logsBuffer.push({
+    id,
     timestamp: Date.now(),
-    level,
+    level: targetLevel,
     message: msg,
-    module
+    module,
+    source
   });
 
   if (logsBuffer.length > MAX_ITEMS) logsBuffer.shift();
@@ -211,6 +281,31 @@ export function getLogs() {
 
 export function clearLogs() {
   logsBuffer.length = 0;
+  notifyListeners();
+}
+
+// ── 1B. NAVIGATION TRACE LOGS ──
+export function recordNavigation(entry: Omit<NavigationEntry, 'id' | 'timestamp'>) {
+  const isDevMode = useChordStore.getState().settings.developerMode;
+  if (!isDevMode && !initialized) return;
+
+  const id = Math.random().toString(36).substring(2, 9);
+  navBuffer.push({
+    id,
+    timestamp: Date.now(),
+    ...entry
+  });
+
+  if (navBuffer.length > 50) navBuffer.shift();
+  notifyListeners();
+}
+
+export function getNavigationEntries(): NavigationEntry[] {
+  return navBuffer;
+}
+
+export function clearNavigationEntries() {
+  navBuffer.length = 0;
   notifyListeners();
 }
 

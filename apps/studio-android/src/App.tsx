@@ -12,7 +12,8 @@ import {
   setNavHidden,
   setNavLocked,
   handleGlobalBack,
-  useStatusBar
+  useStatusBar,
+  recordNavigation
 } from '@workspace/studio-core';
 
 import {
@@ -67,6 +68,19 @@ export default function App() {
       console.log(`[Startup] restoreLastSession is false. Resetting appMode to ${defaultApp}.`);
       useChordStore.getState().updateSettings({ appMode: defaultApp });
     }
+  }, []);
+
+  // Record initial app launch diagnostic event
+  useEffect(() => {
+    const active = useChordStore.getState().settings.appMode || 'hub';
+    recordNavigation({
+      fromApp: 'none',
+      toApp: active,
+      hubMounted: true,
+      activeAppAfterTransition: active,
+      transitionLockState: false,
+      fallbackRendered: false
+    });
   }, []);
 
   const [exitToast, setExitToast] = useState(false);
@@ -289,10 +303,19 @@ export default function App() {
   }, [settings.displayDensity]);
 
   const returnToStudioHub = useCallback((isSwipeSuccess = false) => {
-    if (transitionActive) {
-      console.warn('[Navigation] Return to hub request ignored: transition in progress.');
-      return;
+    const fromApp = useChordStore.getState().settings.appMode || 'hub';
+    if (fromApp === 'hub') {
+      return; // Already in hub, no need to navigate
     }
+
+    recordNavigation({
+      fromApp,
+      toApp: 'hub',
+      transitionStart: Date.now(),
+      transitionLockState: true,
+      activeAppAfterTransition: 'hub',
+      fallbackRendered: false
+    });
 
     // 1. Close active modals/sheets/overlays
     window.dispatchEvent(new CustomEvent('studio:close-all-sheets'));
@@ -332,8 +355,16 @@ export default function App() {
 
     setTimeout(() => {
       setTransitionActive(false);
+      recordNavigation({
+        fromApp,
+        toApp: 'hub',
+        transitionComplete: Date.now(),
+        transitionLockState: false,
+        activeAppAfterTransition: 'hub',
+        fallbackRendered: false
+      });
     }, 370);
-  }, [updateSettings, preferences.rememberLastAppSection, transitionActive]);
+  }, [updateSettings, preferences.rememberLastAppSection]);
 
   const returnToStudioHubRef = useRef(returnToStudioHub);
   useEffect(() => {
@@ -492,7 +523,11 @@ export default function App() {
   const appMode = settings.appMode || 'hub';
   const isSubAppActive = appMode !== 'hub';
 
-  const activeAppToRender = isSubAppActive ? appMode : null;
+  const lastActiveAppRef = useRef<AppKey>('chords');
+  if (isSubAppActive) {
+    lastActiveAppRef.current = appMode as AppKey;
+  }
+  const stableKey = lastActiveAppRef.current;
 
   return (
     <div style={{ display: 'flex', width: '100vw', height: '100dvh', overflow: 'hidden', background: 'var(--app-bg)' }}>
@@ -515,7 +550,7 @@ export default function App() {
       <AnimatePresence>
         {isSubAppActive && (
           <motion.div
-            key={activeAppToRender || 'none'}
+            key={stableKey}
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
@@ -525,11 +560,11 @@ export default function App() {
               inset: 0,
               zIndex: 2,
               background: 'var(--app-bg)',
-              pointerEvents: activeAppToRender === null ? 'none' : 'auto',
+              pointerEvents: isSubAppActive ? 'auto' : 'none',
             }}
           >
             <SubAppWrapper
-              app={activeAppToRender as AppKey}
+              app={stableKey}
               activePanel={activePanel}
               settings={settings}
             />
@@ -580,15 +615,49 @@ interface SubAppWrapperProps {
   settings: any;
 }
 
+function FallbackTracker({ app, children }: { app: AppKey; children: React.ReactNode }) {
+  useEffect(() => {
+    recordNavigation({
+      fromApp: 'hub',
+      toApp: app,
+      activeAppAfterTransition: app,
+      transitionLockState: (window as any).studioTransitionActive || false,
+      fallbackRendered: true
+    });
+  }, [app]);
+  return <>{children}</>;
+}
+
 function SubAppWrapper({ app, activePanel, settings }: SubAppWrapperProps) {
   const [cachedApp] = useState<AppKey>(app);
+
+  useEffect(() => {
+    recordNavigation({
+      fromApp: 'hub',
+      toApp: app,
+      hubMounted: true,
+      activeAppAfterTransition: app,
+      transitionLockState: (window as any).studioTransitionActive || false,
+      fallbackRendered: false
+    });
+    return () => {
+      recordNavigation({
+        fromApp: app,
+        toApp: 'hub',
+        subappUnmounted: true,
+        activeAppAfterTransition: 'hub',
+        transitionLockState: (window as any).studioTransitionActive || false,
+        fallbackRendered: false
+      });
+    };
+  }, [app]);
 
   return (
     <>
       {cachedApp === 'groovex' && (
         <div className="app-sub-app-container" style={{ position: 'relative', width: '100%', height: '100%', overflow: 'hidden' }}>
           <ErrorBoundary moduleName="Groovex">
-            <Suspense fallback={<SmartLoading fallbackSkeleton={<GroovexAppSkeleton />} />}><AppEntryTransition><GroovexApp /></AppEntryTransition></Suspense>
+            <Suspense fallback={<FallbackTracker app="groovex"><SmartLoading fallbackSkeleton={<GroovexAppSkeleton />} /></FallbackTracker>}><AppEntryTransition><GroovexApp /></AppEntryTransition></Suspense>
           </ErrorBoundary>
         </div>
       )}
@@ -596,7 +665,7 @@ function SubAppWrapper({ app, activePanel, settings }: SubAppWrapperProps) {
       {cachedApp === 'vocalex' && (
         <div className="app-sub-app-container" style={{ position: 'relative', width: '100%', height: '100%', overflow: 'hidden' }}>
           <ErrorBoundary moduleName="Vocalex">
-            <Suspense fallback={<SmartLoading fallbackSkeleton={<VocalexTakesSkeleton />} />}><AppEntryTransition><VocalexApp /></AppEntryTransition></Suspense>
+            <Suspense fallback={<FallbackTracker app="vocalex"><SmartLoading fallbackSkeleton={<VocalexTakesSkeleton />} /></FallbackTracker>}><AppEntryTransition><VocalexApp /></AppEntryTransition></Suspense>
           </ErrorBoundary>
         </div>
       )}
@@ -604,14 +673,14 @@ function SubAppWrapper({ app, activePanel, settings }: SubAppWrapperProps) {
       {cachedApp === 'stage' && (
         <div className="app-sub-app-container" style={{ position: 'relative', width: '100%', height: '100%', overflow: 'hidden' }}>
           <ErrorBoundary moduleName="Stagex">
-            <Suspense fallback={<SmartLoading fallbackSkeleton={<StagexPanelSkeleton />} />}><AppEntryTransition><StageCorePanel /></AppEntryTransition></Suspense>
+            <Suspense fallback={<FallbackTracker app="stage"><SmartLoading fallbackSkeleton={<StagexPanelSkeleton />} /></FallbackTracker>}><AppEntryTransition><StageCorePanel /></AppEntryTransition></Suspense>
           </ErrorBoundary>
         </div>
       )}
 
       {cachedApp === 'drums' && (
         <div className="app-sub-app-container" style={{ position: 'relative', width: '100%', height: '100%', overflow: 'hidden' }}>
-          <ErrorBoundary moduleName="Drumex"><Suspense fallback={<SmartLoading fallbackSkeleton={<DrumEditorSkeleton />} />}><AppEntryTransition><DrumEditor /></AppEntryTransition></Suspense></ErrorBoundary>
+          <ErrorBoundary moduleName="Drumex"><Suspense fallback={<FallbackTracker app="drums"><SmartLoading fallbackSkeleton={<DrumEditorSkeleton />} /></FallbackTracker>}><AppEntryTransition><DrumEditor /></AppEntryTransition></Suspense></ErrorBoundary>
         </div>
       )}
 
@@ -650,7 +719,7 @@ function SubAppWrapper({ app, activePanel, settings }: SubAppWrapperProps) {
                       }}
                     >
                       <ErrorBoundary moduleName="Chordex">
-                        <Suspense fallback={<SmartLoading fallbackSkeleton={<ChordexPanelSkeleton />} />}>
+                        <Suspense fallback={<FallbackTracker app="chords"><SmartLoading fallbackSkeleton={<ChordexPanelSkeleton />} /></FallbackTracker>}>
                           {panel === 'library'  && <LibraryPanel />}
                           {panel === 'chord'    && <ChordPanel />}
                           {panel === 'songs'    && <SongsPanel />}

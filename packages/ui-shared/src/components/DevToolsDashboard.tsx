@@ -20,7 +20,10 @@ import {
   resetStagexDiagnostics,
   otaDiagnostics,
   otaDebugLogs,
-  getStageIframe
+  getStageIframe,
+  getNavigationEntries,
+  clearNavigationEntries,
+  NavigationEntry
 } from '@workspace/studio-core';
 
 interface Props {
@@ -29,6 +32,17 @@ interface Props {
 }
 
 type TabId = 'logs' | 'errors' | 'events' | 'perf' | 'state' | 'nav' | 'network' | 'storage' | 'providers';
+
+interface WarningItem {
+  id: string;
+  timestamp: number;
+  module: string;
+  severity: string;
+  title: string;
+  message: string;
+  source: string;
+  duplicateCount: number;
+}
 
 interface WarningsInspectorProps {
   logs: any[];
@@ -65,29 +79,27 @@ const WarningsInspector = ({ logs, showToast, moduleFilter, appKey }: WarningsIn
     });
   }, [logs, moduleFilter, appKey]);
 
-  const groupedWarnings = useMemo(() => {
-    const groups: Array<{
-      message: string;
-      level: string;
-      module: string;
-      timestamp: number;
-      count: number;
-    }> = [];
+  const groupedWarnings = useMemo<WarningItem[]>(() => {
+    const groups: WarningItem[] = [];
 
     appWarnings.forEach(w => {
       const existing = groups.find(g => g.message === w.message && g.module === w.module);
       if (existing) {
-        existing.count += 1;
+        existing.duplicateCount += 1;
         if (w.timestamp > existing.timestamp) {
           existing.timestamp = w.timestamp;
         }
       } else {
+        const title = w.message.split('\n')[0].substring(0, 80);
         groups.push({
-          message: w.message,
-          level: w.level,
-          module: w.module,
+          id: w.id || Math.random().toString(36).substring(2, 9),
           timestamp: w.timestamp,
-          count: 1
+          module: w.module,
+          severity: w.level || 'warn',
+          title,
+          message: w.message,
+          source: w.source || 'unknown',
+          duplicateCount: 1
         });
       }
     });
@@ -95,16 +107,37 @@ const WarningsInspector = ({ logs, showToast, moduleFilter, appKey }: WarningsIn
     return groups;
   }, [appWarnings]);
 
-  if (appWarnings.length === 0) return null;
+  if (appWarnings.length === 0) {
+    if (appKey === 'hub') {
+      return (
+        <div style={{
+          marginTop: 12,
+          background: 'rgba(16, 185, 129, 0.03)',
+          border: '1px solid rgba(16, 185, 129, 0.15)',
+          borderRadius: '12px',
+          padding: '12px 14px',
+          display: 'flex',
+          alignItems: 'center',
+          gap: 6
+        }}>
+          <span className="material-symbols-outlined" style={{ color: '#10b981', fontSize: 18 }}>check_circle</span>
+          <span style={{ fontSize: '13px', fontWeight: 800, color: '#10b981' }}>
+            No warnings
+          </span>
+        </div>
+      );
+    }
+    return null;
+  }
 
-  const handleCopyWarning = (msg: string, mod: string) => {
-    navigator.clipboard.writeText(`[${mod}] ${msg}`)
+  const handleCopyWarning = (w: WarningItem) => {
+    navigator.clipboard.writeText(`[${w.module}] [${w.source}] ${w.message}`)
       .then(() => showToast('Warning copied!'))
       .catch(() => showToast('Copy failed.'));
   };
 
   const handleCopyAll = () => {
-    const text = appWarnings.map(w => `[${new Date(w.timestamp).toISOString()}] [${w.module}] [${w.level.toUpperCase()}] ${w.message}`).join('\n');
+    const text = appWarnings.map(w => `[${new Date(w.timestamp).toISOString()}] [${w.module}] [${w.level.toUpperCase()}] [${w.source || 'unknown'}] ${w.message}`).join('\n');
     navigator.clipboard.writeText(text)
       .then(() => showToast('All warnings copied!'))
       .catch(() => showToast('Copy failed.'));
@@ -190,7 +223,7 @@ const WarningsInspector = ({ logs, showToast, moduleFilter, appKey }: WarningsIn
             paddingRight: 4
           }}>
             {groupedWarnings.map((w, idx) => (
-              <div key={idx} style={{
+              <div key={w.id || idx} style={{
                 padding: '8px 10px',
                 background: 'rgba(0,0,0,0.2)',
                 borderRadius: '8px',
@@ -201,7 +234,7 @@ const WarningsInspector = ({ logs, showToast, moduleFilter, appKey }: WarningsIn
                 gap: 4
               }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                  <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', alignItems: 'center' }}>
                     <span style={{
                       background: 'rgba(245, 158, 11, 0.1)',
                       color: '#f59e0b',
@@ -209,11 +242,14 @@ const WarningsInspector = ({ logs, showToast, moduleFilter, appKey }: WarningsIn
                       borderRadius: '4px',
                       fontWeight: 700,
                       fontSize: '9px'
-                    }}>WARN</span>
+                    }}>{w.severity.toUpperCase()}</span>
                     <span style={{ color: 'rgba(255,255,255,0.4)', fontWeight: 600 }}>
                       Module: {w.module}
                     </span>
-                    {w.count > 1 && (
+                    <span style={{ color: 'rgba(255,255,255,0.25)', fontWeight: 500 }}>
+                      Source: {w.source}
+                    </span>
+                    {w.duplicateCount > 1 && (
                       <span style={{
                         background: 'rgba(255,255,255,0.1)',
                         color: '#fff',
@@ -222,7 +258,7 @@ const WarningsInspector = ({ logs, showToast, moduleFilter, appKey }: WarningsIn
                         fontWeight: 700,
                         fontSize: '9px'
                       }}>
-                        ×{w.count}
+                        ×{w.duplicateCount}
                       </span>
                     )}
                   </div>
@@ -232,25 +268,35 @@ const WarningsInspector = ({ logs, showToast, moduleFilter, appKey }: WarningsIn
                 </div>
                 
                 <div style={{
+                  color: '#f59e0b',
+                  fontWeight: 700,
+                  fontSize: '11.5px',
+                  marginTop: 2
+                }}>
+                  {w.title}
+                </div>
+
+                <div style={{
                   color: '#fff',
                   wordBreak: 'break-word',
                   whiteSpace: 'pre-wrap',
                   lineHeight: 1.3,
-                  fontFamily: 'monospace'
+                  fontFamily: 'monospace',
+                  marginTop: 2
                 }}>
                   {w.message}
                 </div>
 
-                <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 2 }}>
+                <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 4 }}>
                   <button
                     onClick={(e) => {
                       e.stopPropagation();
-                      handleCopyWarning(w.message, w.module);
+                      handleCopyWarning(w);
                     }}
                     onTouchEnd={(e) => {
                       e.preventDefault();
                       e.stopPropagation();
-                      handleCopyWarning(w.message, w.module);
+                      handleCopyWarning(w);
                     }}
                     style={{
                       padding: '2px 6px',
@@ -1332,24 +1378,113 @@ export default function DevToolsDashboard({ accent, onBack }: Props) {
     </div>
   );
 
-  const renderNavTab = () => (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-      <span style={{ fontSize: 13, fontWeight: 700 }}>Navigation Trace & History</span>
-      <div style={{ background: '#000000', borderRadius: 12, border: '1px solid rgba(255,255,255,0.06)', padding: 12, fontSize: 12, fontFamily: 'monospace' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8, color: '#10b981', marginBottom: 12 }}>
-          <span className="material-symbols-outlined" style={{ fontSize: 16 }}>play_arrow</span>
-          Current Route Mode: <strong style={{ color: '#fff' }}>{settings.appMode}</strong>
+  const renderNavTab = () => {
+    const navEntries = getNavigationEntries();
+    
+    return (
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <span style={{ fontSize: 13, fontWeight: 700 }}>Navigation Trace & Lifecycle Diagnostics</span>
+          <button 
+            onClick={() => {
+              clearNavigationEntries();
+              showToast('Navigation logs cleared!');
+            }}
+            style={{
+              background: 'rgba(255,255,255,0.06)',
+              border: '1px solid rgba(255,255,255,0.1)',
+              color: '#fff',
+              borderRadius: 6,
+              fontSize: 10,
+              padding: '4px 10px',
+              cursor: 'pointer'
+            }}
+          >
+            Clear logs
+          </button>
         </div>
-        <div style={{ color: 'rgba(255,255,255,0.5)', fontSize: 11 }}>
-          Previous view cache triggers:
-          <ul style={{ margin: '4px 0 0', paddingLeft: 16 }}>
-            <li>Last Active Session Panel: {useChordStore.getState().lastSession?.stagexView || 'N/A'}</li>
-            <li>LiquidGlassNav collapsed state: {String(useChordStore.getState().favorites?.length > 0)}</li>
-          </ul>
+
+        <div style={{ background: '#000000', borderRadius: 12, border: '1px solid rgba(255,255,255,0.06)', padding: 12, fontSize: 12, fontFamily: 'monospace' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, color: '#10b981', marginBottom: 12 }}>
+            <span className="material-symbols-outlined" style={{ fontSize: 16 }}>play_arrow</span>
+            Current Route Mode: <strong style={{ color: '#fff' }}>{settings.appMode}</strong>
+          </div>
+          <div style={{ color: 'rgba(255,255,255,0.5)', fontSize: 11, marginBottom: 8 }}>
+            Previous view cache triggers:
+            <ul style={{ margin: '4px 0 0', paddingLeft: 16 }}>
+              <li>Last Active Session Panel: {useChordStore.getState().lastSession?.stagexView || 'N/A'}</li>
+              <li>LiquidGlassNav collapsed state: {String(useChordStore.getState().favorites?.length > 0)}</li>
+            </ul>
+          </div>
+        </div>
+
+        <div style={{
+          display: 'flex',
+          flexDirection: 'column',
+          gap: 8,
+          maxHeight: '400px',
+          overflowY: 'auto',
+          paddingRight: 4
+        }}>
+          {navEntries.length === 0 ? (
+            <div style={{ color: 'rgba(255,255,255,0.3)', fontSize: 11, textAlign: 'center', padding: '20px 0' }}>
+              No navigation events logged yet.
+            </div>
+          ) : (
+            navEntries.slice().reverse().map(entry => {
+              const timeStr = new Date(entry.timestamp).toLocaleTimeString() + '.' + String(entry.timestamp % 1000).padStart(3, '0');
+              
+              const tags: React.ReactNode[] = [];
+              if (entry.transitionStart) tags.push(<span key="start" style={{ background: 'rgba(59, 130, 246, 0.1)', color: '#3b82f6', padding: '1px 5px', borderRadius: 4, fontSize: 9, fontWeight: 700 }}>START</span>);
+              if (entry.transitionComplete) tags.push(<span key="complete" style={{ background: 'rgba(16, 185, 129, 0.1)', color: '#10b981', padding: '1px 5px', borderRadius: 4, fontSize: 9, fontWeight: 700 }}>COMPLETE</span>);
+              if (entry.hubMounted) tags.push(<span key="hub" style={{ background: 'rgba(245, 158, 11, 0.1)', color: '#f59e0b', padding: '1px 5px', borderRadius: 4, fontSize: 9, fontWeight: 700 }}>HUB MOUNTED</span>);
+              if (entry.subappUnmounted) tags.push(<span key="unmount" style={{ background: 'rgba(239, 68, 68, 0.1)', color: '#ef4444', padding: '1px 5px', borderRadius: 4, fontSize: 9, fontWeight: 700 }}>SUBAPP UNMOUNTED</span>);
+              if (entry.fallbackRendered) tags.push(<span key="fallback" style={{ background: 'rgba(168, 85, 247, 0.1)', color: '#a855f7', padding: '1px 5px', borderRadius: 4, fontSize: 9, fontWeight: 700 }}>FALLBACK SHOWN</span>);
+
+              return (
+                <div key={entry.id} style={{
+                  padding: '10px 12px',
+                  background: 'rgba(255,255,255,0.02)',
+                  border: '1px solid rgba(255,255,255,0.05)',
+                  borderRadius: 10,
+                  fontSize: 11,
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: 6
+                }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <span style={{ color: 'rgba(255,255,255,0.3)', fontFamily: 'monospace' }}>{timeStr}</span>
+                    <div style={{ display: 'flex', gap: 4 }}>
+                      {tags}
+                      <span style={{
+                        background: entry.transitionLockState ? 'rgba(239, 68, 68, 0.1)' : 'rgba(16, 185, 129, 0.1)',
+                        color: entry.transitionLockState ? '#ef4444' : '#10b981',
+                        padding: '1px 5px',
+                        borderRadius: 4,
+                        fontSize: 9,
+                        fontWeight: 700
+                      }}>
+                        {entry.transitionLockState ? 'LOCKED' : 'UNLOCKED'}
+                      </span>
+                    </div>
+                  </div>
+
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <span style={{ color: '#fff' }}>
+                      Flow: <strong style={{ color: '#3b82f6' }}>{entry.fromApp || 'none'}</strong> &rarr; <strong style={{ color: '#10b981' }}>{entry.toApp || 'none'}</strong>
+                    </span>
+                    <span style={{ color: 'rgba(255,255,255,0.4)' }}>
+                      Active: <strong style={{ color: '#fff' }}>{entry.activeAppAfterTransition}</strong>
+                    </span>
+                  </div>
+                </div>
+              );
+            })
+          )}
         </div>
       </div>
-    </div>
-  );
+    );
+  };
 
   const renderNetworkTab = () => {
     const missingAssets = network.reduce((acc, req) => {
@@ -1765,7 +1900,11 @@ export default function DevToolsDashboard({ accent, onBack }: Props) {
         appVersion: APP_VERSION,
         timestamp: new Date().toISOString(),
         appName,
-        ...appData
+        key: appData.key,
+        status: appData.status,
+        view: appData.view,
+        memory: appData.memory,
+        warnings: appData.warnings
       };
       navigator.clipboard.writeText(JSON.stringify(dump, null, 2))
         .then(() => showToast(`${appName} diagnostics copied!`))

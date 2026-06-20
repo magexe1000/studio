@@ -1,4 +1,4 @@
-import { useBackHandler, subscribeAuth, signOut, type AuthUser, subscribeSyncStatus, syncNow, type SyncStatus, deviceId, getConflictLogs, clearConflictLogs, createCloudBackup, getSyncDiagnostics, pushLocalSettingsToCloud, pullCloudSettingsFromCloud, registerDevice, registerCurrentDevice, reconnectDevices, useChordStore, ACCENT_COLORS, type Theme, type AnimationSpeed, type DisplayDensity, type AppKey, type PerAppVisuals, useNavHidden, useNavCollapsed, useScrollHide, useT, APP_VERSION_LABEL, APP_VERSION_TAG, APP_VERSION_DATE, compareSemver, APP_VERSION, getChangelogSections, useOtaUpdate, otaDebugLogs, otaDiagnostics, checkForUpdate, resetOtaUpdateState, isAppInstallerAvailable, applyUpdate, isNative, fadeToBlackAndReload, notifyOtaAvailable, resolveApkUrl, downloadAndInstallApk, resolveReleasePageUrl, useLiquidGlassNav, useIsWebDesktop, useStudioPreferences, registerDebugProvider, unregisterDebugProvider } from '@workspace/studio-core';
+import { useBackHandler, subscribeAuth, signOut, type AuthUser, subscribeSyncStatus, syncNow, type SyncStatus, deviceId, getConflictLogs, clearConflictLogs, createCloudBackup, getSyncDiagnostics, pushLocalSettingsToCloud, pullCloudSettingsFromCloud, registerDevice, registerCurrentDevice, reconnectDevices, useChordStore, ACCENT_COLORS, type Theme, type AnimationSpeed, type DisplayDensity, type AppKey, type PerAppVisuals, useNavHidden, useNavCollapsed, useScrollHide, useT, APP_VERSION_LABEL, APP_VERSION_TAG, APP_VERSION_DATE, compareSemver, APP_VERSION, getChangelogSections, useOtaUpdate, otaDebugLogs, otaDiagnostics, checkForUpdate, resetOtaUpdateState, isAppInstallerAvailable, applyUpdate, isNative, fadeToBlackAndReload, notifyOtaAvailable, resolveApkUrl, downloadAndInstallApk, resolveReleasePageUrl, useLiquidGlassNav, useIsWebDesktop, useStudioPreferences, registerDebugProvider, unregisterDebugProvider, recordNavigation } from '@workspace/studio-core';
 import React, { useState, useRef, useEffect, useLayoutEffect, lazy, Suspense, useMemo, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import { motion } from 'motion/react';
@@ -393,6 +393,16 @@ export default function StudioHub() {
       console.warn('[Navigation] App switch request ignored: transition in progress.');
       return;
     }
+    const currentApp = useChordStore.getState().settings.appMode || 'hub';
+    recordNavigation({
+      fromApp: currentApp,
+      toApp: appMode,
+      transitionStart: Date.now(),
+      transitionLockState: true,
+      activeAppAfterTransition: appMode,
+      fallbackRendered: false
+    });
+
     (window as any).studioTransitionActive = true;
     updateSettings({ appMode });
 
@@ -405,6 +415,14 @@ export default function StudioHub() {
     }, 100);
     const t2 = setTimeout(() => {
       (window as any).studioTransitionActive = false;
+      recordNavigation({
+        fromApp: currentApp,
+        toApp: appMode,
+        transitionComplete: Date.now(),
+        transitionLockState: false,
+        activeAppAfterTransition: appMode,
+        fallbackRendered: false
+      });
     }, 450);
     launchTimers.current.push(t1, t2);
   // updateSettings is stable (Zustand action), setZooming is React setState
