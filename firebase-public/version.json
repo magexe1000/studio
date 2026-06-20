@@ -1,24 +1,23 @@
 {
   "platform": "android",
-  "version": "3.6.55",
-  "versionName": "3.6.55",
-  "versionCode": 82,
-  "version_code": 82,
-  "commit": "9331f149",
-  "releasedAt": "6/20/2026, 11:00:00 AM CST",
-  "buildTimestamp": "6/20/2026, 11:00:00 AM CST",
+  "version": "3.6.56",
+  "versionName": "3.6.56",
+  "versionCode": 83,
+  "version_code": 83,
+  "commit": "7955cea3",
+  "releasedAt": "6/20/2026, 3:04:00 PM CST",
+  "buildTimestamp": "6/20/2026, 3:04:00 PM CST",
   "updateMode": "refresh",
-  "changelog": "• Hard-gated Firestore when Supabase is active to prevent runtime connections.\n• Excluded network, firestore, and sync warnings from main Hub warning view.\n• Added failsafe opacity transition backup on sub-app container to fix Chordex-to-Hub return black screens.\n• Expanded touch targets on Stagex Scenes bar buttons using CSS pseudo-elements.\n• Added Test Stagex Scenes Input action in Developer Tools.",
-  "whatsNew": "• Hard-gated Firestore when Supabase is active to prevent runtime connections.\n• Excluded network, firestore, and sync warnings from main Hub warning view.\n• Added failsafe opacity transition backup on sub-app container to fix Chordex-to-Hub return black screens.\n• Expanded touch targets on Stagex Scenes bar buttons using CSS pseudo-elements.\n• Added Test Stagex Scenes Input action in Developer Tools.",
+  "changelog": "• Implemented CSS exit fail-safe class and pointer-events none target rule to fix Chordex-to-Hub returning black screens.\n• Added 3D GPU layer promotion to invalidate WebView compositor hit-testing and align landscape scene touches instantly.\n• Enlarged concentric touch targets for add/close buttons to 44x44px and optimized scenes bar CSS.\n• Exposed hit-testing debug outlines and enhanced Developer Tools diagnostic reports.",
+  "whatsNew": "• Implemented CSS exit fail-safe class and pointer-events none target rule to fix Chordex-to-Hub returning black screens.\n• Added 3D GPU layer promotion to invalidate WebView compositor hit-testing and align landscape scene touches instantly.\n• Enlarged concentric touch targets for add/close buttons to 44x44px and optimized scenes bar CSS.\n• Exposed hit-testing debug outlines and enhanced Developer Tools diagnostic reports.",
   "releaseNotes": {
     "added": [
-      "Added Test Stagex Scenes Input diagnostic action in Developer Tools."
+      "Exposed Stagex scene hit-testing debug outline mode under Developer Tools."
     ],
     "fixed": [
-      "Hard-gated Firestore on Android when Supabase is active to prevent runtime connections.",
-      "Excluded network, firestore, and sync warnings from main Hub warning view.",
-      "Added failsafe opacity transition backup to fix Chordex-to-Hub return black screens.",
-      "Expanded touch targets on Stagex Scenes bar buttons using CSS pseudo-elements."
+      "Implemented CSS exit fail-safe and pointer-events rule to resolve Hub return black screen.",
+      "Promoted Stagex iframe to 3D GPU layer in landscape mode to synchronize WebView hit-testing boundaries instantly.",
+      "Enlarged transparent concentric border hitboxes of close and add buttons to a full 44x44px standard target."
     ]
   },
   "mandatory": false
