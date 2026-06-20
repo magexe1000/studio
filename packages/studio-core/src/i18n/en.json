@@ -363,7 +363,7 @@
     "visual": "Visual"
   },
   "hub": {
-    "studio": "Studio",
+    "studio": "Livex",
     "byChordex": "by Mag",
     "changelogTitle": "Changelog",
     "justUpdatedTitle": "Updated",
@@ -758,7 +758,7 @@
     "library": "Library",
     "preferences": "Preferences",
     "switchApp": "Switch App",
-    "studioHub": "Studio Hub",
+    "studioHub": "Livex Hub",
     "homeScreen": "Home screen",
     "chordsAndSongs": "Chords & songs",
     "drumSheets": "Drum sheets",
@@ -815,7 +815,7 @@
     "aboutGroovex": "About Groovex",
     "aboutDesc1": "Groovex is a multitrack music practice tool. Load audio stems for any song and control each track independently — adjust volumes, mute, or solo individual instruments to practice at your own pace.",
     "aboutDesc2": "All audio processing happens locally using the Web Audio API for zero-latency, perfectly synchronized playback.",
-    "aboutVersion": "Part of Studio by Mag",
+    "aboutVersion": "Part of Livex by Mag",
     "resetAllPreferences": "Reset All Preferences",
     "resetDesc": "Resetting preferences will revert all volume levels and playback behaviors to defaults. This cannot be undone.",
     "resetToDefaults": "Reset to Defaults"

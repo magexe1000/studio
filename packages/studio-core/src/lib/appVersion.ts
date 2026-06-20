@@ -26,7 +26,7 @@ import { useMemo } from 'react';
 import { Capacitor } from '@capacitor/core';
 
 /** Canonical semver string used by the OTA comparator. */
-export const NATIVE_VERSION = '3.6.52';
+export const NATIVE_VERSION = '3.6.53';
 export const WEB_VERSION = '4.0.0';
 export const APP_VERSION = Capacitor.isNativePlatform() ? NATIVE_VERSION : WEB_VERSION;
 
@@ -61,16 +61,16 @@ export const APP_CHANGELOG_SECTIONS: ChangelogSection[] = [
   {
     heading: "Added",
     items: [
-      "Integrated Warnings Inspector inside the Logs view in Developer Tools.",
-      "Added Missing Assets sniffer to Network Request tab to group and diagnose 404 errors.",
+      "Rebranded user-facing elements and text from \"Studio\" to \"Livex\" (Livex Hub).",
+      "Enhanced Developer Tools Warnings view with warning copy and unified diagnostics layout.",
     ],
   },
   {
     heading: "Fixed",
     items: [
-      "Packaged complete Drumex audio assets inside the APK, preventing 404 remote preloading issues.",
-      "Fixed 'View Warnings' WebView touch propagation and overlay response delays on Android.",
-      "Polished Stagex landscape mode: adjusted canvas zoom, decreased toolbar toggle size, increased scenes tab touch targets with ontouchend fast-tap, and positioned element drawer above Add button.",
+      "Fixed the \"View Warnings\" button click responsiveness and event lifecycle on Android.",
+      "Resolved \"Black Screen Return Bug\" by properly clearing sub-app launch timers on Hub return.",
+      "Polished Stagex landscape mode: zoomed out stage plot and adjusted left toolbar placement.",
     ],
   },
 ];
@@ -80,14 +80,16 @@ export const APP_CHANGELOG_SECTIONS_NATIVE: ChangelogSection[] = [
   {
     heading: "Added",
     items: [
-      "Added a dedicated Warnings Inspector to Developer Tools with duplicate grouping.",
+      "Rebranded user-facing elements and text from 'Studio' to 'Livex'.",
+      "Added warning copy capabilities inside Developer Tools Warnings view.",
     ],
   },
   {
     heading: "Fixed",
     items: [
-      "Resolved console module parsing bug that caused all infra warnings to list under Studio Hub.",
-      "Refined Stagex landscape layout to center left toolbar and prevent drawer overlap.",
+      "Fixed 'View Warnings' touch responsiveness on Android WebView.",
+      "Resolved 'Black Screen Return' bug by properly clearing launch timers.",
+      "Polished Stagex landscape mode zoom and left toolbar positioning.",
     ],
   },
 ];
@@ -98,14 +100,16 @@ export const APP_CHANGELOG_SECTIONS_ES: ChangelogSection[] = [
   {
     heading: "Añadido",
     items: [
-      "Añadido un inspector de advertencias dedicado con agrupación de duplicados.",
+      "Renombrados los elementos orientados al usuario de 'Studio' a 'Livex'.",
+      "Añadida función para copiar advertencias en las herramientas de desarrollo.",
     ],
   },
   {
     heading: "Corregido",
     items: [
-      "Corregido error de análisis de consola que acumulaba advertencias bajo Studio Hub.",
-      "Perfeccionado el diseño horizontal de Stagex con panel elevado y menú centrado.",
+      "Corregido el botón de ver advertencias en el WebView de Android.",
+      "Resuelto el error de pantalla negra al regresar a Livex Hub.",
+      "Ajustes de zoom y toolbar lateral en Stagex horizontal.",
     ],
   },
 ];

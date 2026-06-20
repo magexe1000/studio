@@ -30,11 +30,256 @@ interface Props {
 
 type TabId = 'logs' | 'errors' | 'events' | 'perf' | 'state' | 'nav' | 'network' | 'storage' | 'providers';
 
+interface WarningsInspectorProps {
+  logs: any[];
+  showToast: (msg: string) => void;
+  moduleFilter?: string[];
+  appKey?: string;
+}
+
+const WarningsInspector = ({ logs, showToast, moduleFilter, appKey }: WarningsInspectorProps) => {
+  const [showWarnings, setShowWarnings] = useState(false);
+
+  const appWarnings = useMemo(() => {
+    return logs.filter(l => {
+      if (l.level !== 'warn') return false;
+      const mod = l.module.toLowerCase();
+      
+      if (appKey) {
+        if (appKey === 'chords') return mod === 'chordex';
+        if (appKey === 'drums') return mod === 'drumex' || mod === 'drums';
+        if (appKey === 'stage') return mod === 'stagex' || mod === 'stage';
+        if (appKey === 'groovex') return mod === 'groovex';
+        if (appKey === 'vocalex') return mod === 'vocalex';
+        if (appKey === 'hub') {
+          return !['chordex', 'drumex', 'drums', 'stagex', 'stage', 'groovex', 'vocalex'].includes(mod);
+        }
+        return false;
+      }
+
+      if (moduleFilter) {
+        return moduleFilter.some(m => m.toLowerCase() === mod);
+      }
+
+      return true;
+    });
+  }, [logs, moduleFilter, appKey]);
+
+  const groupedWarnings = useMemo(() => {
+    const groups: Array<{
+      message: string;
+      level: string;
+      module: string;
+      timestamp: number;
+      count: number;
+    }> = [];
+
+    appWarnings.forEach(w => {
+      const existing = groups.find(g => g.message === w.message && g.module === w.module);
+      if (existing) {
+        existing.count += 1;
+        if (w.timestamp > existing.timestamp) {
+          existing.timestamp = w.timestamp;
+        }
+      } else {
+        groups.push({
+          message: w.message,
+          level: w.level,
+          module: w.module,
+          timestamp: w.timestamp,
+          count: 1
+        });
+      }
+    });
+
+    return groups;
+  }, [appWarnings]);
+
+  if (appWarnings.length === 0) return null;
+
+  const handleCopyWarning = (msg: string, mod: string) => {
+    navigator.clipboard.writeText(`[${mod}] ${msg}`)
+      .then(() => showToast('Warning copied!'))
+      .catch(() => showToast('Copy failed.'));
+  };
+
+  const handleCopyAll = () => {
+    const text = appWarnings.map(w => `[${new Date(w.timestamp).toISOString()}] [${w.module}] [${w.level.toUpperCase()}] ${w.message}`).join('\n');
+    navigator.clipboard.writeText(text)
+      .then(() => showToast('All warnings copied!'))
+      .catch(() => showToast('Copy failed.'));
+  };
+
+  return (
+    <div style={{
+      marginTop: 12,
+      background: 'rgba(245, 158, 11, 0.03)',
+      border: '1px solid rgba(245, 158, 11, 0.15)',
+      borderRadius: '12px',
+      padding: '12px 14px',
+      display: 'flex',
+      flexDirection: 'column',
+      gap: 10
+    }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+          <span className="material-symbols-outlined" style={{ color: '#f59e0b', fontSize: 18 }}>warning</span>
+          <span style={{ fontSize: '13px', fontWeight: 800, color: '#f59e0b' }}>
+            {appWarnings.length} Warnings Detected
+          </span>
+        </div>
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            setShowWarnings(!showWarnings);
+          }}
+          onTouchEnd={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            setShowWarnings(!showWarnings);
+          }}
+          style={{
+            padding: '4px 10px',
+            borderRadius: '6px',
+            background: 'rgba(245, 158, 11, 0.1)',
+            border: '1px solid rgba(245, 158, 11, 0.2)',
+            color: '#f59e0b',
+            fontWeight: 700,
+            fontSize: '11px',
+            cursor: 'pointer'
+          }}
+        >
+          {showWarnings ? 'Hide Warnings' : 'View Warnings'}
+        </button>
+      </div>
+
+      {showWarnings && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginTop: 4 }}>
+          <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                handleCopyAll();
+              }}
+              onTouchEnd={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                handleCopyAll();
+              }}
+              style={{
+                padding: '4px 8px',
+                borderRadius: '6px',
+                background: 'rgba(255,255,255,0.06)',
+                border: '1px solid rgba(255,255,255,0.08)',
+                color: '#fff',
+                fontSize: '10px',
+                fontWeight: 700,
+                cursor: 'pointer'
+              }}
+            >
+              Copy All Warnings
+            </button>
+          </div>
+          
+          <div style={{
+            maxHeight: 200,
+            overflowY: 'auto',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: 8,
+            paddingRight: 4
+          }}>
+            {groupedWarnings.map((w, idx) => (
+              <div key={idx} style={{
+                padding: '8px 10px',
+                background: 'rgba(0,0,0,0.2)',
+                borderRadius: '8px',
+                border: '1px solid rgba(255,255,255,0.04)',
+                fontSize: '11px',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: 4
+              }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                    <span style={{
+                      background: 'rgba(245, 158, 11, 0.1)',
+                      color: '#f59e0b',
+                      padding: '1px 5px',
+                      borderRadius: '4px',
+                      fontWeight: 700,
+                      fontSize: '9px'
+                    }}>WARN</span>
+                    <span style={{ color: 'rgba(255,255,255,0.4)', fontWeight: 600 }}>
+                      Module: {w.module}
+                    </span>
+                    {w.count > 1 && (
+                      <span style={{
+                        background: 'rgba(255,255,255,0.1)',
+                        color: '#fff',
+                        padding: '1px 5px',
+                        borderRadius: '4px',
+                        fontWeight: 700,
+                        fontSize: '9px'
+                      }}>
+                        ×{w.count}
+                      </span>
+                    )}
+                  </div>
+                  <span style={{ color: 'rgba(255,255,255,0.25)', fontSize: '9px' }}>
+                    {new Date(w.timestamp).toLocaleTimeString()}
+                  </span>
+                </div>
+                
+                <div style={{
+                  color: '#fff',
+                  wordBreak: 'break-word',
+                  whiteSpace: 'pre-wrap',
+                  lineHeight: 1.3,
+                  fontFamily: 'monospace'
+                }}>
+                  {w.message}
+                </div>
+
+                <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 2 }}>
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleCopyWarning(w.message, w.module);
+                    }}
+                    onTouchEnd={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      handleCopyWarning(w.message, w.module);
+                    }}
+                    style={{
+                      padding: '2px 6px',
+                      borderRadius: '4px',
+                      background: 'rgba(255,255,255,0.04)',
+                      border: '1px solid rgba(255,255,255,0.06)',
+                      color: 'rgba(255,255,255,0.6)',
+                      fontSize: '9px',
+                      fontWeight: 600,
+                      cursor: 'pointer'
+                    }}
+                  >
+                    Copy Warning
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
 export default function DevToolsDashboard({ accent, onBack }: Props) {
   const { settings, updateSettings, activePanel } = useChordStore();
   const [subView, setSubView] = useState<'dashboard' | 'stagex' | 'updater' | 'system' | 'logs' | 'performance' | 'network' | 'apps'>('dashboard');
   const [activeTab, setActiveTab] = useState<TabId>('logs');
-  const lastAppRef = useRef<string>('Studio Hub');
+  const lastAppRef = useRef<string>('Livex Hub');
   const [versionUpdates, setVersionUpdates] = useState(0);
 
   const [expandedLogIndices, setExpandedLogIndices] = useState<Record<number, boolean>>({});
@@ -459,7 +704,7 @@ export default function DevToolsDashboard({ accent, onBack }: Props) {
             </CollapsibleSection>
           </div>
         )}
-        <WarningsInspector moduleFilter={['updater', 'apkdownloader']} />
+        <WarningsInspector logs={logs} showToast={showToast} moduleFilter={['updater', 'apkdownloader']} />
       </div>
     );
   };
@@ -775,243 +1020,7 @@ export default function DevToolsDashboard({ accent, onBack }: Props) {
       .catch(() => showToast('Copy failed.'));
   };
 
-  const WarningsInspector = ({ moduleFilter, appKey }: { moduleFilter?: string[]; appKey?: string }) => {
-    const [showWarnings, setShowWarnings] = useState(false);
-
-    const appWarnings = useMemo(() => {
-      return logs.filter(l => {
-        if (l.level !== 'warn') return false;
-        const mod = l.module.toLowerCase();
-        
-        if (appKey) {
-          if (appKey === 'chords') return mod === 'chordex';
-          if (appKey === 'drums') return mod === 'drumex' || mod === 'drums';
-          if (appKey === 'stage') return mod === 'stagex' || mod === 'stage';
-          if (appKey === 'groovex') return mod === 'groovex';
-          if (appKey === 'vocalex') return mod === 'vocalex';
-          if (appKey === 'hub') {
-            return !['chordex', 'drumex', 'drums', 'stagex', 'stage', 'groovex', 'vocalex'].includes(mod);
-          }
-          return false;
-        }
-
-        if (moduleFilter) {
-          return moduleFilter.some(m => m.toLowerCase() === mod);
-        }
-
-        return true;
-      });
-    }, [logs, moduleFilter, appKey]);
-
-    const groupedWarnings = useMemo(() => {
-      const groups: Array<{
-        message: string;
-        level: string;
-        module: string;
-        timestamp: number;
-        count: number;
-      }> = [];
-
-      appWarnings.forEach(w => {
-        const existing = groups.find(g => g.message === w.message && g.module === w.module);
-        if (existing) {
-          existing.count += 1;
-          if (w.timestamp > existing.timestamp) {
-            existing.timestamp = w.timestamp;
-          }
-        } else {
-          groups.push({
-            message: w.message,
-            level: w.level,
-            module: w.module,
-            timestamp: w.timestamp,
-            count: 1
-          });
-        }
-      });
-
-      return groups;
-    }, [appWarnings]);
-
-    if (appWarnings.length === 0) return null;
-
-    const handleCopyWarning = (msg: string, mod: string) => {
-      navigator.clipboard.writeText(`[${mod}] ${msg}`)
-        .then(() => showToast('Warning copied!'))
-        .catch(() => showToast('Copy failed.'));
-    };
-
-    const handleCopyAll = () => {
-      const text = appWarnings.map(w => `[${new Date(w.timestamp).toISOString()}] [${w.module}] [${w.level.toUpperCase()}] ${w.message}`).join('\n');
-      navigator.clipboard.writeText(text)
-        .then(() => showToast('All warnings copied!'))
-        .catch(() => showToast('Copy failed.'));
-    };
-
-    return (
-      <div style={{
-        marginTop: 12,
-        background: 'rgba(245, 158, 11, 0.03)',
-        border: '1px solid rgba(245, 158, 11, 0.15)',
-        borderRadius: '12px',
-        padding: '12px 14px',
-        display: 'flex',
-        flexDirection: 'column',
-        gap: 10
-      }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-            <span className="material-symbols-outlined" style={{ color: '#f59e0b', fontSize: 18 }}>warning</span>
-            <span style={{ fontSize: '13px', fontWeight: 800, color: '#f59e0b' }}>
-              {appWarnings.length} Warnings Detected
-            </span>
-          </div>
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
-              setShowWarnings(!showWarnings);
-            }}
-            onTouchEnd={(e) => {
-              e.preventDefault();
-              e.stopPropagation();
-              setShowWarnings(!showWarnings);
-            }}
-            style={{
-              padding: '4px 10px',
-              borderRadius: '6px',
-              background: 'rgba(245, 158, 11, 0.1)',
-              border: '1px solid rgba(245, 158, 11, 0.2)',
-              color: '#f59e0b',
-              fontWeight: 700,
-              fontSize: '11px',
-              cursor: 'pointer'
-            }}
-          >
-            {showWarnings ? 'Hide Warnings' : 'View Warnings'}
-          </button>
-        </div>
-
-        {showWarnings && (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginTop: 4 }}>
-            <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  handleCopyAll();
-                }}
-                onTouchEnd={(e) => {
-                  e.preventDefault();
-                  e.stopPropagation();
-                  handleCopyAll();
-                }}
-                style={{
-                  padding: '4px 8px',
-                  borderRadius: '6px',
-                  background: 'rgba(255,255,255,0.06)',
-                  border: '1px solid rgba(255,255,255,0.08)',
-                  color: '#fff',
-                  fontSize: '10px',
-                  fontWeight: 700,
-                  cursor: 'pointer'
-                }}
-              >
-                Copy All Warnings
-              </button>
-            </div>
-            
-            <div style={{
-              maxHeight: 200,
-              overflowY: 'auto',
-              display: 'flex',
-              flexDirection: 'column',
-              gap: 8,
-              paddingRight: 4
-            }}>
-              {groupedWarnings.map((w, idx) => (
-                <div key={idx} style={{
-                  padding: '8px 10px',
-                  background: 'rgba(0,0,0,0.2)',
-                  borderRadius: '8px',
-                  border: '1px solid rgba(255,255,255,0.04)',
-                  fontSize: '11px',
-                  display: 'flex',
-                  flexDirection: 'column',
-                  gap: 4
-                }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-                      <span style={{
-                        background: 'rgba(245, 158, 11, 0.1)',
-                        color: '#f59e0b',
-                        padding: '1px 5px',
-                        borderRadius: '4px',
-                        fontWeight: 700,
-                        fontSize: '9px'
-                      }}>WARN</span>
-                      <span style={{ color: 'rgba(255,255,255,0.4)', fontWeight: 600 }}>
-                        Module: {w.module}
-                      </span>
-                      {w.count > 1 && (
-                        <span style={{
-                          background: 'rgba(255,255,255,0.1)',
-                          color: '#fff',
-                          padding: '1px 5px',
-                          borderRadius: '4px',
-                          fontWeight: 700,
-                          fontSize: '9px'
-                        }}>
-                          ×{w.count}
-                        </span>
-                      )}
-                    </div>
-                    <span style={{ color: 'rgba(255,255,255,0.25)', fontSize: '9px' }}>
-                      {new Date(w.timestamp).toLocaleTimeString()}
-                    </span>
-                  </div>
-                  
-                  <div style={{
-                    color: '#fff',
-                    wordBreak: 'break-word',
-                    whiteSpace: 'pre-wrap',
-                    lineHeight: 1.3,
-                    fontFamily: 'monospace'
-                  }}>
-                    {w.message}
-                  </div>
-
-                  <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 2 }}>
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleCopyWarning(w.message, w.module);
-                      }}
-                      onTouchEnd={(e) => {
-                        e.preventDefault();
-                        e.stopPropagation();
-                        handleCopyWarning(w.message, w.module);
-                      }}
-                      style={{
-                        padding: '2px 6px',
-                        borderRadius: '4px',
-                        background: 'rgba(255,255,255,0.04)',
-                        border: '1px solid rgba(255,255,255,0.06)',
-                        color: 'rgba(255,255,255,0.6)',
-                        fontSize: '9px',
-                        fontWeight: 600,
-                        cursor: 'pointer'
-                      }}
-                    >
-                      Copy Warning
-                    </button>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-      </div>
-    );
-  };
+  // WarningsInspector moved to file-level
 
   const renderSubViewHeader = (title: string) => {
     const handleGoBack = () => {
@@ -1611,7 +1620,7 @@ export default function DevToolsDashboard({ accent, onBack }: Props) {
       {
         id: 'apps',
         title: 'Apps',
-        description: 'View diagnostics and runtime status for Studio applications.',
+        description: 'View diagnostics and runtime status for Livex applications.',
         action: () => setSubView('apps')
       },
       {
@@ -1702,7 +1711,7 @@ export default function DevToolsDashboard({ accent, onBack }: Props) {
     const appsList = [
       {
         key: 'hub',
-        name: 'Studio Hub',
+        name: 'Livex Hub',
         status: settings.appMode === 'hub' ? 'Active' : 'Suspended',
         view: activePanel,
         memory: '24.5 MB',
@@ -1844,7 +1853,7 @@ export default function DevToolsDashboard({ accent, onBack }: Props) {
               )}
             </div>
 
-            <WarningsInspector appKey={app.key} />
+            <WarningsInspector logs={logs} showToast={showToast} appKey={app.key} />
           </div>
         ))}
       </div>
@@ -2080,7 +2089,7 @@ export default function DevToolsDashboard({ accent, onBack }: Props) {
             {activeTab === 'state' && renderStateTab()}
             {activeTab === 'storage' && renderStorageTab()}
             {activeTab === 'providers' && renderProvidersTab()}
-            <WarningsInspector moduleFilter={['system', 'general']} />
+            <WarningsInspector logs={logs} showToast={showToast} moduleFilter={['system', 'general']} />
           </div>
         </div>
       )}
@@ -2107,7 +2116,7 @@ export default function DevToolsDashboard({ accent, onBack }: Props) {
             {activeTab === 'errors' && renderErrorsTab()}
             {activeTab === 'events' && renderEventsTab()}
             {activeTab === 'nav' && renderNavTab()}
-            <WarningsInspector />
+            <WarningsInspector logs={logs} showToast={showToast} />
           </div>
         </div>
       )}
@@ -2117,7 +2126,7 @@ export default function DevToolsDashboard({ accent, onBack }: Props) {
           {renderSubViewHeader('Performance Diagnostics')}
           <div style={{ flex: 1, overflowY: 'auto', padding: '16px 20px' }}>
             {renderPerfTab()}
-            <WarningsInspector moduleFilter={['performance', 'perf']} />
+            <WarningsInspector logs={logs} showToast={showToast} moduleFilter={['performance', 'perf']} />
           </div>
         </div>
       )}
@@ -2127,7 +2136,7 @@ export default function DevToolsDashboard({ accent, onBack }: Props) {
           {renderSubViewHeader('Network Sniffer')}
           <div style={{ flex: 1, overflowY: 'auto', padding: '16px 20px' }}>
             {renderNetworkTab()}
-            <WarningsInspector moduleFilter={['network', 'sync']} />
+            <WarningsInspector logs={logs} showToast={showToast} moduleFilter={['network', 'sync']} />
           </div>
         </div>
       )}

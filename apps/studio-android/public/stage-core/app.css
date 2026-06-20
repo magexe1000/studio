@@ -2663,16 +2663,16 @@ html[data-theme="light"] .presets-empty { color: rgba(40,40,50,0.55); }
      Portrait formula is (100vh - 40px); landscape viewports are short so we
      drop the subtracted margin to 16px, giving a much larger 16:9 canvas. */
   #stage-canvas {
-    max-width: min(1080px, calc(100vw - 12px - env(safe-area-inset-left) - env(safe-area-inset-right)), calc((100vh - 84px - env(safe-area-inset-top) - env(safe-area-inset-bottom)) * 16 / 9)) !important;
+    max-width: min(1080px, calc(100vw - 12px - env(safe-area-inset-left) - env(safe-area-inset-right)), calc((100vh - 96px - env(safe-area-inset-top) - env(safe-area-inset-bottom)) * 16 / 9)) !important;
   }
 
   #sc-scenes-bar {
-    max-width: min(1080px, calc(100vw - 32px - env(safe-area-inset-left) - env(safe-area-inset-right)), calc((100vh - 84px - env(safe-area-inset-top) - env(safe-area-inset-bottom)) * 16 / 9)) !important;
+    max-width: min(1080px, calc(100vw - 32px - env(safe-area-inset-left) - env(safe-area-inset-right)), calc((100vh - 96px - env(safe-area-inset-top) - env(safe-area-inset-bottom)) * 16 / 9)) !important;
   }
 
   /* ── Left toolbar: centered vertically and respecting safe-area-inset-left ── */
   #sc-vtools {
-    left: calc(max(14px, env(safe-area-inset-left))) !important;
+    left: calc(max(10px, env(safe-area-inset-left))) !important;
     top: 50% !important;
     transform: translateY(-50%) !important;
   }

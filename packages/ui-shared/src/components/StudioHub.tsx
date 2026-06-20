@@ -235,6 +235,7 @@ export default function StudioHub() {
   const [successAnimationState, setSuccessAnimationState] = useState<'entering' | 'exiting' | 'hidden'>('hidden');
   const [successName, setSuccessName] = useState('');
   const scrollRef = useRef<HTMLDivElement>(null);
+  const launchTimers = useRef<ReturnType<typeof setTimeout>[]>([]);
 
   const lastUserRef = useRef<AuthUser | null>(null);
 
@@ -394,14 +395,27 @@ export default function StudioHub() {
     }
     (window as any).studioTransitionActive = true;
     updateSettings({ appMode });
-    setTimeout(() => {
+
+    // Clear any pending launch timers
+    launchTimers.current.forEach(clearTimeout);
+    launchTimers.current = [];
+
+    const t1 = setTimeout(() => {
       setZooming(true);
     }, 100);
-    setTimeout(() => {
+    const t2 = setTimeout(() => {
       (window as any).studioTransitionActive = false;
     }, 450);
+    launchTimers.current.push(t1, t2);
   // updateSettings is stable (Zustand action), setZooming is React setState
   // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  useEffect(() => {
+    return () => {
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+      launchTimers.current.forEach(clearTimeout);
+    };
   }, []);
 
   const [introFinished, setIntroFinished] = useState(() => {
@@ -430,6 +444,10 @@ export default function StudioHub() {
   useEffect(() => {
     if (settings.appMode === 'hub') {
       setZooming(false);
+      // Clear launch timers to prevent race conditions (black screen return bug)
+      launchTimers.current.forEach(clearTimeout);
+      launchTimers.current = [];
+      (window as any).studioTransitionActive = false;
     }
   }, [settings.appMode]);
 

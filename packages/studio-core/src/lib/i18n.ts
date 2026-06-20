@@ -424,7 +424,7 @@ const translations = {
 
     /* ── Studio Hub ── */
     hub: {
-      studio: 'Studio',
+      studio: 'Livex',
       byChordex: 'by Mag',
       changelogTitle: 'Changelog',
       justUpdatedTitle: 'Updated',
@@ -828,7 +828,7 @@ const translations = {
       library: 'Library',
       preferences: 'Preferences',
       switchApp: 'Switch App',
-      studioHub: 'Studio Hub',
+      studioHub: 'Livex Hub',
       homeScreen: 'Home screen',
       chordsAndSongs: 'Chords & songs',
       drumSheets: 'Drum sheets',
@@ -881,7 +881,7 @@ const translations = {
       aboutGroovex: 'About Groovex',
       aboutDesc1: 'Groovex is a multitrack music practice tool. Load audio stems for any song and control each track independently — adjust volumes, mute, or solo individual instruments to practice at your own pace.',
       aboutDesc2: 'All audio processing happens locally using the Web Audio API for zero-latency, perfectly synchronized playback.',
-      aboutVersion: 'Part of Studio by Mag',
+      aboutVersion: 'Part of Livex by Mag',
       resetAllPreferences: 'Reset All Preferences',
       resetDesc: 'Resetting preferences will revert all volume levels and playback behaviors to defaults. This cannot be undone.',
       resetToDefaults: 'Reset to Defaults',
@@ -1300,7 +1300,7 @@ const translations = {
 
     /* ── Studio Hub ── */
     hub: {
-      studio: 'Studio',
+      studio: 'Livex',
       byChordex: 'by Mag',
       changelogTitle: 'Novedades',
       justUpdatedTitle: 'Actualizado',
@@ -1704,7 +1704,7 @@ const translations = {
       library: 'Biblioteca',
       preferences: 'Ajustes',
       switchApp: 'Cambiar app',
-      studioHub: 'Studio Hub',
+      studioHub: 'Livex Hub',
       homeScreen: 'Pantalla de inicio',
       chordsAndSongs: 'Acordes y canciones',
       drumSheets: 'Partituras de batería',
@@ -1757,7 +1757,7 @@ const translations = {
       aboutGroovex: 'Acerca de Groovex',
       aboutDesc1: 'Groovex es una herramienta de práctica musical multipista. Carga stems de audio de cualquier canción y controla cada pista de forma independiente — ajusta volúmenes, silencia o solo instrumentos individuales para practicar a tu ritmo.',
       aboutDesc2: 'Todo el procesamiento de audio ocurre localmente usando la Web Audio API para una reproducción sincronizada y sin latencia.',
-      aboutVersion: 'Parte de Studio by Mag',
+      aboutVersion: 'Parte de Livex by Mag',
       resetAllPreferences: 'Restablecer ajustes',
       resetDesc: 'Restablecer los ajustes revertirá todos los niveles de volumen y comportamientos de reproducción a sus valores originales. No se puede deshacer.',
       resetToDefaults: 'Restablecer valores',
