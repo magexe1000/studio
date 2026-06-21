@@ -563,6 +563,7 @@ export default function StudioHub() {
 
             {/* Combined welcome + apps card */}
             <GradientBorderCard
+              data-livex-hub-content="true"
               borderRadius={24}
               wrapStyle={{
                 width: '100%', maxWidth: 380,

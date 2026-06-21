@@ -5807,15 +5807,16 @@ function initScenesBarTouchHandler() {
   const getElementDebugData = (btn, clientX, clientY) => {
     const rect = btn.getBoundingClientRect();
     const isCloseOrAdd = btn.classList.contains('sc-scene-close') || btn.classList.contains('sc-scene-add-btn');
-    const borderSize = isCloseOrAdd ? 12 : 0;
+    const isSceneBtn = btn.classList.contains('sc-scene-btn');
+    const borderSize = isCloseOrAdd ? 14 : 0;
 
     const touchRect = {
       left: rect.left,
-      top: rect.top,
+      top: isSceneBtn ? rect.top - 6 : rect.top,
       width: rect.width,
-      height: rect.height,
+      height: isSceneBtn ? rect.height + 12 : rect.height,
       right: rect.right,
-      bottom: rect.bottom
+      bottom: isSceneBtn ? rect.bottom + 6 : rect.bottom
     };
 
     const visualRect = {

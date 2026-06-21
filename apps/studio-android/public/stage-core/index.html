@@ -2245,6 +2245,21 @@ html[data-amoled="1"] #el-properties-panel { background: #000 !important; }
     transition: all 150ms ease;
   }
 
+  .sc-scene-btn::before {
+    content: '';
+    position: absolute;
+    top: -6px;
+    bottom: -6px;
+    left: 0;
+    right: 0;
+    z-index: 1;
+  }
+
+  .sc-scene-btn * {
+    position: relative;
+    z-index: 2;
+  }
+
   html[data-theme="light"] .sc-scene-btn {
     border-color: rgba(0,0,0,0.08);
   }
@@ -2287,7 +2302,7 @@ html[data-amoled="1"] #el-properties-panel { background: #000 !important; }
     height: 20px;
     border-radius: 50%;
     background: rgba(255,255,255,0.08);
-    border: 12px solid transparent;
+    border: 14px solid transparent;
     background-clip: padding-box;
     box-sizing: content-box;
     color: var(--scenes-fg-inactive);
@@ -2313,7 +2328,7 @@ html[data-amoled="1"] #el-properties-panel { background: #000 !important; }
     height: 20px;
     border-radius: 50%;
     background: transparent;
-    border: 12px solid transparent;
+    border: 14px solid transparent;
     background-clip: padding-box;
     box-sizing: content-box;
     outline: 1px dashed rgba(255,255,255,0.25);
@@ -2337,6 +2352,10 @@ html[data-amoled="1"] #el-properties-panel { background: #000 !important; }
   /* ── Hitbox Debug Overlay styles ── */
   body.sc-show-hitboxes .sc-scene-btn {
     box-shadow: inset 0 0 0 1.5px #ff4136 !important;
+  }
+  body.sc-show-hitboxes .sc-scene-btn::before {
+    outline: 1.5px dashed #0074d9 !important;
+    outline-offset: -1.5px;
   }
   body.sc-show-hitboxes .sc-scene-close {
     box-shadow: inset 0 0 0 1.5px #ff4136 !important;
@@ -2824,10 +2843,12 @@ html[data-amoled="1"] #el-properties-panel { background: #000 !important; }
 
   /* ── Android/Mobile Layout Regression Fixes ── */
   @media (max-width: 767px) {
-    /* Center stage viewport vertically and adjust padding to fit bottom nav safely */
-    #stage-viewport {
-      justify-content: center !important;
-      padding-bottom: calc(env(safe-area-inset-bottom) + 76px) !important;
+    /* Center stage viewport vertically and adjust padding to fit bottom nav safely (portrait only) */
+    @media (orientation: portrait) {
+      #stage-viewport {
+        justify-content: center !important;
+        padding-bottom: calc(env(safe-area-inset-bottom) + 76px) !important;
+      }
     }
 
     /* Force scrolling bottom padding on setup views to prevent overlap with bottom navigation */

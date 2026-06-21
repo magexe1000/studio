@@ -26,7 +26,7 @@ import { useMemo } from 'react';
 import { Capacitor } from '@capacitor/core';
 
 /** Canonical semver string used by the OTA comparator. */
-export const NATIVE_VERSION = '3.6.60';
+export const NATIVE_VERSION = '3.6.62';
 export const WEB_VERSION = '4.0.0';
 export const APP_VERSION = Capacitor.isNativePlatform() ? NATIVE_VERSION : WEB_VERSION;
 
@@ -38,7 +38,7 @@ export const APP_VERSION_LABEL = `${APP_VERSION_TAG} ${APP_VERSION}`;
 
 /** Release date for the CURRENT bundle, shown alongside the version pill
  *  in the changelog sheet. ISO-8601 (`YYYY-MM-DD`). */
-export const APP_VERSION_DATE = '2026-06-21'; // 3.6.60
+export const APP_VERSION_DATE = '2026-06-21'; // 3.6.62
 // Note: keep ISO-8601. Bump together with APP_VERSION on each release.
 
 export const APP_COMMIT_SHA = import.meta.env.VITE_GIT_COMMIT_SHA || '78ef3651';
@@ -61,10 +61,11 @@ export const APP_CHANGELOG_SECTIONS: ChangelogSection[] = [
   {
     heading: "Fixed",
     items: [
-      "Mounted emergency debug overlay outside the main React root via React Portal.",
-      "Added always-visible DBG button and failsafe quick recovery panel.",
-      "Implemented window.__emergencyOverlayHealthCheck() layout stacking audits.",
-      "Added simulated black screen layer tool to verify diagnostic recovery.",
+      "Upgraded Black Screen Forensics telemetry with elementsFromPoint stacks, fullscreen overlay scanning, and React component fiber audits.",
+      "Added one-click copy forensics report and filtered DOM snapshot buttons to the debug overlay.",
+      "Added force fullscreen overlay removal and force hub visibility recovery controls.",
+      "Fixed Stagex landscape viewport squashing layout mapping offsets.",
+      "Expanded Stagex scene selection, add, and delete touch targets to a minimum of 48dp x 48dp.",
     ],
   },
 ];
@@ -74,10 +75,11 @@ export const APP_CHANGELOG_SECTIONS_NATIVE: ChangelogSection[] = [
   {
     heading: "Fixed",
     items: [
-      "Mounted emergency debug overlay outside the main React root via React Portal.",
-      "Added always-visible DBG button and failsafe quick recovery panel at bottom-right.",
-      "Implemented window.__emergencyOverlayHealthCheck() layout stacking audits.",
-      "Added simulated black screen layer action to verify diagnostics and copy operations.",
+      "Upgraded Black Screen Forensics telemetry with elementsFromPoint stacks, fullscreen overlay scanning, and React component fiber audits.",
+      "Added one-click copy forensics report and filtered DOM snapshot buttons to the debug overlay.",
+      "Added force fullscreen overlay removal and force hub visibility recovery controls.",
+      "Fixed Stagex landscape viewport squashing layout mapping offsets.",
+      "Expanded Stagex scene selection, add, and delete touch targets to a minimum of 48dp x 48dp.",
     ],
   },
 ];
@@ -88,10 +90,11 @@ export const APP_CHANGELOG_SECTIONS_ES: ChangelogSection[] = [
   {
     heading: "Corregido",
     items: [
-      "Montado el panel de depuración de emergencia mediante React Portal fuera del árbol de renderizado de la app.",
-      "Añadido botón de pánico DBG siempre visible y menú de recuperación de emergencia.",
-      "Implementado window.__emergencyOverlayHealthCheck() para auditar capas y z-index.",
-      "Añadido simulador de capa de pantalla negra para validar la recuperación de diagnósticos.",
+      "Telemetría de pantalla negra mejorada con pilas elementsFromPoint, escaneo de superposiciones y auditorías de React.",
+      "Añadidos botones para copiar reporte de forensia y instantánea de DOM filtrado al menú de depuración.",
+      "Añadidos controles para remover superposiciones a pantalla completa y forzar visibilidad de Hub.",
+      "Corregido desfase de diseño del viewport en modo horizontal dentro de Stagex.",
+      "Expandido el tamaño de los objetivos táctiles en Stagex (escenas, añadir y eliminar) a un mínimo de 48dp x 48dp.",
     ],
   },
 ];

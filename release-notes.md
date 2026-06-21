@@ -1,5 +1,6 @@
 ### Fixed
-- Resolved Chordex -> Hub return black screen by keeping StudioHub permanently mounted.
-- Eliminated watchdog false-positives via an optimized 1.2s verification delay.
-- Added separate HUB_ROOT_MISSING_CAPTURE diagnostic snapshot inside local storage.
-- Preserved accurate previous mode history in failsafe recovery logs.
+- Upgraded Black Screen Forensics telemetry with elementsFromPoint stacks, fullscreen overlay scanning, and React component fiber audits.
+- Added one-click copy forensics report and filtered DOM snapshot buttons to the debug overlay.
+- Added force fullscreen overlay removal and force hub visibility recovery controls.
+- Fixed Stagex landscape viewport squashing layout mapping offsets.
+- Expanded Stagex scene selection, add, and delete touch targets to a minimum of 48dp x 48dp.

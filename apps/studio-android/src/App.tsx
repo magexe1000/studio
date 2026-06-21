@@ -720,6 +720,57 @@ export default function App() {
         }
       } catch (_) {}
 
+      const hubShellFound = !!document.querySelector('.app-container.app-mode-hub .app-main-layout');
+      const hubRootFound = !!document.querySelector('[data-livex-hub-root="true"]');
+      const hubContentFound = !!document.querySelector('[data-livex-hub-content="true"]') || !!document.querySelector('.gb-wrap');
+      const hubNavFound = !!document.querySelector('nav.glass-nav');
+      const hubActuallyPainted = hubRootFound || hubContentFound || hubNavFound;
+
+      const classifyBlackScreenLocal = () => {
+        if (document.getElementById('fake-black-screen-layer')) {
+          return 'SIMULATED_BLACK_LAYER_ACTIVE';
+        }
+        if (currentAppMode !== 'hub') {
+          return 'UNKNOWN_BLACK_SCREEN';
+        }
+        if (!hubActuallyPainted && !hubShellFound) {
+          return 'HUB_ROOT_MISSING';
+        }
+        if (hubActuallyPainted && !hubRootFound) {
+          return 'DIAGNOSTIC_SELECTOR_FALSE_POSITIVE';
+        }
+        
+        const hubLayout = document.querySelector('.app-main-layout');
+        if (hubLayout) {
+          const style = window.getComputedStyle(hubLayout);
+          const isHidden = style.display === 'none' || style.visibility === 'hidden' || parseFloat(style.opacity || '1') === 0;
+          if (isHidden) {
+            return 'HUB_CONTENT_PRESENT_BUT_NOT_VISIBLE';
+          }
+        }
+
+        const centerEl = topmostElements.center;
+        if (centerEl) {
+          const tag = centerEl.tag;
+          const id = centerEl.id;
+          const cls = centerEl.className || '';
+          const isHubElement = centerEl.isHub || id === 'hub-root' || cls.includes('hub') || cls.includes('app-main-layout') || tag === 'body' || tag === 'html';
+          if (isHubElement) {
+            return 'HUB_VISIBLE_BUT_BLACK_PAINT';
+          } else if (cls.includes('subapp') || cls.includes('overlay') || cls.includes('backdrop') || cls.includes('modal') || cls.includes('chordex')) {
+            return 'HUB_CONTENT_PRESENT_BUT_NOT_VISIBLE';
+          }
+        }
+
+        if (hubActuallyPainted && hubRootFound && centerEl && (centerEl.tag === 'body' || centerEl.tag === 'html')) {
+          return 'NATIVE_WEBVIEW_BLACK_LAYER';
+        }
+
+        return 'UNKNOWN_BLACK_SCREEN';
+      };
+
+      const blackScreenClassification = classifyBlackScreenLocal();
+
       return {
         timestamp: Date.now(),
         appMode: currentAppMode,
@@ -729,6 +780,12 @@ export default function App() {
         stableKeyExplanation: "stableKey preserves the last active sub-app key so that AnimatePresence can render the exit transition correctly",
         isSubAppActive: subActive,
         transitionActive: (window as any).studioTransitionActive || false,
+        hubShellFound,
+        hubRootFound,
+        hubContentFound,
+        hubNavFound,
+        hubActuallyPainted,
+        blackScreenClassification,
         hub: {
           mounted: hubMounted,
           visible: hubVisible,
@@ -743,7 +800,7 @@ export default function App() {
           motionExitActive
         },
         mountedComponents: {
-          hubRoot: !!document.querySelector('[data-livex-hub-root="true"]'),
+          hubRoot: hubRootFound,
           mainLayout: !!document.querySelector('.app-main-layout'),
           subappWrapper: subappWrapperMounted,
           subappContainer: subappContainerMounted,
@@ -817,7 +874,7 @@ export default function App() {
       let isBlocked = false;
       let reason = '';
 
-      if (!statePayload.mountedComponents.hubRoot) {
+      if (!statePayload.hubActuallyPainted) {
         isBlocked = true;
         reason = 'HUB_ROOT_MISSING';
         console.error('HUB_ROOT_MISSING', statePayload);

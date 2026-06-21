@@ -12,6 +12,24 @@ Conventions:
 - Bullets start with `- ` and use plain English a non-technical user
   can parse. Keep each line short — the modal's text area is narrow.
 
+## 3.6.62
+
+### Fixed
+- Upgraded Black Screen Forensics telemetry with elementsFromPoint stacks, fullscreen overlay scanning, and React component fiber audits.
+- Added one-click copy forensics report and filtered DOM snapshot buttons to the debug overlay.
+- Added force fullscreen overlay removal and force hub visibility recovery controls.
+- Fixed Stagex landscape viewport squashing layout mapping offsets.
+- Expanded Stagex scene selection, add, and delete touch targets to a minimum of 48dp x 48dp.
+
+## 3.6.61
+
+### Fixed
+- Hardened Hub root diagnostics using multi-fallback element selectors.
+- Resolved false-positive watchdog failsafes during slow Suspense paints.
+- Ensured emergency DBG button is always mounted and auto-recreated if removed.
+- Expanded panic context menu with 8 one-click debug data copy actions.
+- Added computed style detail printouts in DOM tree snapshots.
+
 ## 3.6.60
 
 ### Fixed
