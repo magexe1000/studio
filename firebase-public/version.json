@@ -1,20 +1,19 @@
 {
   "platform": "web",
   "version": "4.0.0",
-  "commit": "c67140cf",
+  "commit": "00055e92",
   "releasedAt": "6/21/2026, 12:00:00 AM CST",
   "buildTimestamp": "6/21/2026, 12:00:00 AM CST",
   "updateMode": "refresh",
-  "description": "• Upgraded Black Screen Forensics telemetry with elementsFromPoint stacks, fullscreen overlay scanning, and React component fiber audits.\n• Added one-click copy forensics report and filtered DOM snapshot buttons to the debug overlay.\n• Added force fullscreen overlay removal and force hub visibility recovery controls.\n• Fixed Stagex landscape viewport squashing layout mapping offsets.\n• Expanded Stagex scene selection, add, and delete touch targets to a minimum of 48dp x 48dp.",
-  "whatsNew": "• Upgraded Black Screen Forensics telemetry with elementsFromPoint stacks, fullscreen overlay scanning, and React component fiber audits.\n• Added one-click copy forensics report and filtered DOM snapshot buttons to the debug overlay.\n• Added force fullscreen overlay removal and force hub visibility recovery controls.\n• Fixed Stagex landscape viewport squashing layout mapping offsets.\n• Expanded Stagex scene selection, add, and delete touch targets to a minimum of 48dp x 48dp.",
-  "changelog": "• Upgraded Black Screen Forensics telemetry with elementsFromPoint stacks, fullscreen overlay scanning, and React component fiber audits.\n• Added one-click copy forensics report and filtered DOM snapshot buttons to the debug overlay.\n• Added force fullscreen overlay removal and force hub visibility recovery controls.\n• Fixed Stagex landscape viewport squashing layout mapping offsets.\n• Expanded Stagex scene selection, add, and delete touch targets to a minimum of 48dp x 48dp.",
+  "description": "• Added pixel-level visibility probes to detect screen rendering freezes.\n• Added WebView computed layout, compositing, and layer count diagnostics.\n• Added Visual Repaint Recovery and React Nuclear Remount actions.\n• Upgraded Navigation Forensics with timing snapshot comparison dropdowns.",
+  "whatsNew": "• Added pixel-level visibility probes to detect screen rendering freezes.\n• Added WebView computed layout, compositing, and layer count diagnostics.\n• Added Visual Repaint Recovery and React Nuclear Remount actions.\n• Upgraded Navigation Forensics with timing snapshot comparison dropdowns.",
+  "changelog": "• Added pixel-level visibility probes to detect screen rendering freezes.\n• Added WebView computed layout, compositing, and layer count diagnostics.\n• Added Visual Repaint Recovery and React Nuclear Remount actions.\n• Upgraded Navigation Forensics with timing snapshot comparison dropdowns.",
   "releaseNotes": {
-    "fixed": [
-      "Upgraded Black Screen Forensics telemetry with elementsFromPoint stacks, fullscreen overlay scanning, and React component fiber audits.",
-      "Added one-click copy forensics report and filtered DOM snapshot buttons to the debug overlay.",
-      "Added force fullscreen overlay removal and force hub visibility recovery controls.",
-      "Fixed Stagex landscape viewport squashing layout mapping offsets.",
-      "Expanded Stagex scene selection, add, and delete touch targets to a minimum of 48dp x 48dp."
+    "added": [
+      "Added pixel-level visibility probes to detect screen rendering freezes.",
+      "Added WebView computed layout, compositing, and layer count diagnostics.",
+      "Added Visual Repaint Recovery and React Nuclear Remount actions.",
+      "Upgraded Navigation Forensics with timing snapshot comparison dropdowns."
     ]
   },
   "mandatory": false
