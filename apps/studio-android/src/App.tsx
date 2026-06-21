@@ -62,6 +62,15 @@ export default function App() {
   const { preferences } = useStudioPreferences();
   const [hubRenderKey, setHubRenderKey] = useState(0);
 
+  useEffect(() => {
+    (window as any).__forceRemountHub = () => {
+      setHubRenderKey(k => k + 1);
+    };
+    return () => {
+      delete (window as any).__forceRemountHub;
+    };
+  }, []);
+
   // Cold Start App Restore Bug: Reset appMode to settings.startupApp || 'hub' if restoreLastSession is false
   useEffect(() => {
     const s = useChordStore.getState().settings;
@@ -75,6 +84,15 @@ export default function App() {
   // Record initial app launch diagnostic event
   useEffect(() => {
     const active = useChordStore.getState().settings.appMode || 'hub';
+    (window as any).__navigationTraceHistory = (window as any).__navigationTraceHistory || [];
+    (window as any).__navigationTraceHistory.push({
+      fromApp: 'none',
+      toApp: active,
+      timestamp: Date.now(),
+      transitionDuration: 0,
+      lockState: false,
+      recoveredViaFailsafe: false
+    });
     recordNavigation({
       fromApp: 'none',
       toApp: active,
@@ -546,8 +564,23 @@ export default function App() {
       }
     }
     if (appMode !== prevAppModeRef.current) {
-      previousAppModeRef.current = prevAppModeRef.current;
-      prevAppModeRef.current = appMode;
+      const from = prevAppModeRef.current;
+      const to = appMode;
+      previousAppModeRef.current = from;
+      prevAppModeRef.current = to;
+
+      (window as any).__navigationTraceHistory = (window as any).__navigationTraceHistory || [];
+      (window as any).__navigationTraceHistory.push({
+        fromApp: from,
+        toApp: to,
+        timestamp: Date.now(),
+        transitionDuration: (window as any).studioTransitionActive ? 450 : 0,
+        lockState: (window as any).studioTransitionActive || false,
+        recoveredViaFailsafe: false
+      });
+      if ((window as any).__navigationTraceHistory.length > 50) {
+        (window as any).__navigationTraceHistory.shift();
+      }
     }
   }, [appMode]);
 
@@ -835,7 +868,16 @@ export default function App() {
             setHubRenderKey(k => k + 1);
             setTransitionActive(false);
             lastActiveAppRef.current = 'chords';
-            useChordStore.getState().updateSettings({ appMode: 'hub' });
+          useChordStore.getState().updateSettings({ appMode: 'hub' });
+          });
+          (window as any).__navigationTraceHistory = (window as any).__navigationTraceHistory || [];
+          (window as any).__navigationTraceHistory.push({
+            fromApp: 'none',
+            toApp: 'hub',
+            timestamp: Date.now(),
+            transitionDuration: 0,
+            lockState: false,
+            recoveredViaFailsafe: true
           });
           recordNavigation({
             fromApp: 'none',

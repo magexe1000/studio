@@ -11,6 +11,7 @@ import {
 } from "@workspace/studio-core";
 import { Capacitor } from "@capacitor/core";
 import "./index.css";
+import EmergencyDebugOverlay from "./EmergencyDebugOverlay";
 
 // Initialize DevTools
 initDevToolsFramework();
@@ -38,10 +39,26 @@ function GlobalOverlays() {
   );
 }
 
+function RootAppContainer() {
+  const [appKey, setAppKey] = useState(0);
+
+  useEffect(() => {
+    (window as any).__forceRerenderApp = () => {
+      setAppKey(prev => prev + 1);
+    };
+    return () => {
+      delete (window as any).__forceRerenderApp;
+    };
+  }, []);
+
+  return <App key={appKey} />;
+}
+
 createRoot(document.getElementById("root")!).render(
   <TolgeeProvider tolgee={tolgee} fallback={null}>
-    <App />
+    <RootAppContainer />
     <GlobalOverlays />
+    <EmergencyDebugOverlay />
   </TolgeeProvider>,
 );
 
