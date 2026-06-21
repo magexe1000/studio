@@ -12,6 +12,14 @@ Conventions:
 - Bullets start with `- ` and use plain English a non-technical user
   can parse. Keep each line short — the modal's text area is narrow.
 
+## 3.6.64
+
+### Added
+- Added pixel-level visibility probes to detect screen rendering freezes.
+- Added WebView computed layout, compositing, and layer count diagnostics.
+- Added Visual Repaint Recovery and React Nuclear Remount actions.
+- Upgraded Navigation Forensics with timing snapshot comparison dropdowns.
+
 ## 3.6.63
 
 ### Added

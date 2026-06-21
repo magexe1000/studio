@@ -126,10 +126,174 @@ function getViewportAudit() {
   };
 }
 
-function takeForensicSnapshot(stage: 'BEFORE_CLEANUP' | 'AFTER_CLEANUP') {
+function estimateCompositedLayers(): number {
+  try {
+    const all = document.querySelectorAll('*');
+    let layers = 0;
+    all.forEach(el => {
+      const style = window.getComputedStyle(el);
+      const hasTransform = style.transform && style.transform !== 'none';
+      const hasWillChange = style.willChange && style.willChange !== 'auto' && style.willChange !== 'none';
+      const hasFilter = style.filter && style.filter !== 'none';
+      const hasBackdrop = ((style as any).backdropFilter && (style as any).backdropFilter !== 'none') ||
+                          ((style as any).webkitBackdropFilter && (style as any).webkitBackdropFilter !== 'none');
+      const hasFixed = style.position === 'fixed';
+      const isComposited = hasTransform || hasWillChange || hasFilter || hasBackdrop || hasFixed;
+      if (isComposited) {
+        layers++;
+      }
+    });
+    return layers;
+  } catch (_) {
+    return 0;
+  }
+}
+
+function isElementVisuallyEmpty(el: Element): boolean {
+  if (el.textContent && el.textContent.trim().length > 0) {
+    const style = window.getComputedStyle(el);
+    if (style.visibility !== 'hidden' && style.display !== 'none' && parseFloat(style.opacity || '1') > 0.01) {
+      return false; // Has visible text content!
+    }
+  }
+  if (el.querySelector('img, svg, canvas, video')) {
+    return false; // Has visible media components!
+  }
+  return true;
+}
+
+function getComputedAccumulatedColor(el: Element): { isBlackOrTransparent: boolean; color: string } {
+  let current: Element | null = el;
+  while (current) {
+    const style = window.getComputedStyle(current);
+    const bg = style.backgroundColor;
+    const bgImg = style.backgroundImage;
+    const opacity = parseFloat(style.opacity || '1');
+    
+    if (bgImg && bgImg !== 'none') {
+      return { isBlackOrTransparent: false, color: `image: ${bgImg}` };
+    }
+    
+    if (bg && bg !== 'rgba(0, 0, 0, 0)' && bg !== 'transparent') {
+      const match = bg.match(/rgba?\((\d+),\s*(\d+),\s*(\d+)(?:,\s*(\d+(?:\.\d+)?))?\)/);
+      if (match) {
+        const r = parseInt(match[1]);
+        const g = parseInt(match[2]);
+        const b = parseInt(match[3]);
+        const a = match[4] !== undefined ? parseFloat(match[4]) : 1;
+        
+        if (a > 0.05 && opacity > 0.05) {
+          // Check if color is black or very dark
+          const isBlack = r < 15 && g < 15 && b < 15;
+          if (!isBlack) {
+            return { isBlackOrTransparent: false, color: bg };
+          }
+        }
+      }
+    }
+    
+    current = current.parentElement;
+  }
+  return { isBlackOrTransparent: true, color: 'transparent_or_black' };
+}
+
+function getVisuallyEmptyProbe() {
+  const w = window.innerWidth;
+  const h = window.innerHeight;
+  const points = [
+    { label: 'center', x: Math.round(w / 2), y: Math.round(h / 2) },
+    { label: 'topLeft', x: Math.round(w * 0.1), y: Math.round(h * 0.1) },
+    { label: 'topRight', x: Math.round(w * 0.9), y: Math.round(h * 0.1) },
+    { label: 'bottomLeft', x: Math.round(w * 0.1), y: Math.round(h * 0.9) },
+    { label: 'bottomRight', x: Math.round(w * 0.9), y: Math.round(h * 0.9) }
+  ];
+  
+  const results: Record<string, { point: string; element: string; status: 'empty' | 'painted'; color: string; hasContent: boolean }> = {};
+  
+  points.forEach(pt => {
+    try {
+      const el = document.elementFromPoint(pt.x, pt.y);
+      if (!el) {
+        results[pt.label] = {
+          point: `${pt.x},${pt.y}`,
+          element: 'none',
+          status: 'empty',
+          color: 'transparent',
+          hasContent: false
+        };
+        return;
+      }
+      const hasContent = !isElementVisuallyEmpty(el);
+      const colorAudit = getComputedAccumulatedColor(el);
+      const empty = !hasContent && colorAudit.isBlackOrTransparent;
+      
+      results[pt.label] = {
+        point: `${pt.x},${pt.y}`,
+        element: `${el.tagName.toLowerCase()}${el.id ? '#' + el.id : ''}${el.className ? '.' + el.className.split(' ').join('.') : ''}`,
+        status: empty ? 'empty' : 'painted',
+        color: colorAudit.color,
+        hasContent
+      };
+    } catch (_) {
+      results[pt.label] = {
+        point: `${pt.x},${pt.y}`,
+        element: 'error',
+        status: 'empty',
+        color: 'error',
+        hasContent: false
+      };
+    }
+  });
+  
+  const allEmpty = Object.values(results).every(res => res.status === 'empty');
+  
+  return {
+    results,
+    allEmpty
+  };
+}
+
+function getWebViewRenderAudit() {
+  const rootSelector = '#root';
+  const hubSelector = '[data-livex-hub-root="true"], #hub-root';
+  
+  const getAuditForEl = (sel: string) => {
+    const el = document.querySelector(sel);
+    if (!el) return { exists: false };
+    const rect = el.getBoundingClientRect();
+    const style = window.getComputedStyle(el);
+    return {
+      exists: true,
+      rect: {
+        left: Math.round(rect.left),
+        top: Math.round(rect.top),
+        width: Math.round(rect.width),
+        height: Math.round(rect.height)
+      },
+      display: style.display || 'none',
+      visibility: style.visibility || 'none',
+      opacity: style.opacity || '1',
+      transform: style.transform || 'none',
+      filter: style.filter || 'none',
+      contain: style.contain || 'none',
+      isolation: style.isolation || 'none',
+      overflow: style.overflow || 'visible'
+    };
+  };
+  
+  return {
+    root: getAuditForEl(rootSelector),
+    hub: getAuditForEl(hubSelector),
+    layerCount: estimateCompositedLayers()
+  };
+}
+
+function takeForensicSnapshot(stage: string) {
   const currentAppMode = useChordStore.getState().settings.appMode || 'hub';
   const stableKey = (window as any).__studioStableKey || "none";
   const transitionActive = (window as any).studioTransitionActive || false;
+  const visualProbe = getVisuallyEmptyProbe();
+  const renderAudit = getWebViewRenderAudit();
 
   return {
     timestamp: Date.now(),
@@ -154,21 +318,25 @@ function takeForensicSnapshot(stage: 'BEFORE_CLEANUP' | 'AFTER_CLEANUP') {
       'app-container': getBoundingClientRectForElement('.app-container'),
       'app-main-layout': getBoundingClientRectForElement('.app-main-layout')
     },
-    viewport: getViewportAudit()
+    viewport: getViewportAudit(),
+    visualProbe,
+    renderAudit
   };
 }
 
-function saveForensicCapture(before: any, after: any) {
+function saveForensicCaptureStructure(id: number, t0Snapshot: any) {
   try {
     const listStr = localStorage.getItem('studio_forensic_captures') || '[]';
     const list = JSON.parse(listStr);
     
     const newEntry = {
-      id: (window as any).__lastForensicCaptureId || Date.now(),
+      id,
       timestamp: Date.now(),
-      before,
-      after,
-      result: 'pending'
+      snapshots: {
+        'T+0ms': t0Snapshot
+      },
+      result: 'pending',
+      reason: ''
     };
     
     list.push(newEntry);
@@ -178,7 +346,22 @@ function saveForensicCapture(before: any, after: any) {
     
     localStorage.setItem('studio_forensic_captures', JSON.stringify(list));
   } catch (e) {
-    console.error('Failed to save forensic capture', e);
+    console.error('Failed to save initial forensic capture structure', e);
+  }
+}
+
+function appendForensicSnapshot(captureId: number, key: string, snapshot: any) {
+  try {
+    const listStr = localStorage.getItem('studio_forensic_captures') || '[]';
+    const list = JSON.parse(listStr);
+    const index = list.findIndex((c: any) => c.id === captureId);
+    if (index !== -1) {
+      list[index].snapshots = list[index].snapshots || {};
+      list[index].snapshots[key] = snapshot;
+      localStorage.setItem('studio_forensic_captures', JSON.stringify(list));
+    }
+  } catch (e) {
+    console.error('Failed to append forensic snapshot', e);
   }
 }
 
@@ -186,77 +369,146 @@ export default function App() {
   const { activePanel, settings, setActivePanel, activePresetId, updateSettings } = useChordStore();
   const { preferences } = useStudioPreferences();
   const [hubRenderKey, setHubRenderKey] = useState(0);
+  const [showHub, setShowHub] = useState(true);
 
-  const forceHubRepaint = useCallback(() => {
-    console.warn('[Failsafe] Force Hub Repaint triggered manually.');
-    
-    // 1. Force layout reflow & display/compositing invalidation
+  const runVisualRepaintRecovery = useCallback(() => {
+    console.warn('[Diagnostics] Visual Repaint Recovery triggered.');
     try {
-      const htmlStyle = document.documentElement.style;
-      const originalDisplay = htmlStyle.display;
-      htmlStyle.display = 'none';
-      document.documentElement.offsetHeight; // Reflow
-      htmlStyle.display = originalDisplay || '';
+      // 1. Force layout getBoundingClientRect on root containers
+      const root = document.getElementById('root');
+      const appContainer = document.querySelector('.app-container');
+      const mainLayout = document.querySelector('.app-main-layout');
+      const hubRoot = document.querySelector('[data-livex-hub-root="true"], #hub-root');
       
-      const bodyStyle = document.body.style;
-      const originalTransform = bodyStyle.transform;
-      bodyStyle.transform = 'translateZ(0)';
-      document.body.offsetHeight; // Reflow
+      if (root) root.getBoundingClientRect();
+      if (appContainer) appContainer.getBoundingClientRect();
+      if (mainLayout) mainLayout.getBoundingClientRect();
+      if (hubRoot) hubRoot.getBoundingClientRect();
+      
+      // 2. Force reflow
+      const bodyReflow = document.body.offsetHeight;
+      
+      // 3. Force repaint: toggle display, visibility, opacity, and transform
+      const elsToToggle = [document.documentElement, document.body, root, appContainer, mainLayout, hubRoot].filter(Boolean) as HTMLElement[];
+      
+      // Save original values
+      const originals = elsToToggle.map(el => ({
+        el,
+        display: el.style.display,
+        visibility: el.style.visibility,
+        opacity: el.style.opacity,
+        transform: el.style.transform
+      }));
+      
+      // Toggle to trigger repaint invalidation
+      originals.forEach(({ el }) => {
+        el.style.display = 'none';
+        el.style.visibility = 'hidden';
+        el.style.opacity = '0.99';
+        el.style.transform = 'translateZ(0)';
+      });
+      
+      // Force reflow while in toggled state
+      document.body.offsetHeight;
+      
+      // Restore original values
+      originals.forEach(({ el, display, visibility, opacity, transform }) => {
+        el.style.display = display;
+        el.style.visibility = visibility;
+        el.style.opacity = opacity || '1';
+        el.style.transform = transform;
+      });
+      
+      // Force final reflow
+      document.body.offsetHeight;
+      
+      // Log whether Hub becomes visible afterward
       setTimeout(() => {
-        bodyStyle.transform = originalTransform;
-      }, 50);
+        try {
+          const statePayload = (window as any).__captureBlackScreenState?.();
+          const success = !!(statePayload?.hubActuallyPainted && statePayload?.hub?.visible && statePayload?.hub?.mounted);
+          
+          const logStr = localStorage.getItem('studio_visual_repaints_log') || '[]';
+          const log = JSON.parse(logStr);
+          log.push({
+            timestamp: Date.now(),
+            success,
+            reason: success ? 'recovered' : 'still_blocked',
+            payload: statePayload
+          });
+          if (log.length > 20) log.shift();
+          localStorage.setItem('studio_visual_repaints_log', JSON.stringify(log));
+        } catch (err) {
+          console.error('Failed to log visual repaint status', err);
+        }
+      }, 150);
+      
     } catch (e) {
-      console.error('Failed forcing CSS reflow/invalidation', e);
+      console.error('Visual Repaint Recovery failed', e);
     }
+  }, []);
 
-    // 2. Remove lingering subapp DOM elements
+  const runNuclearRecovery = useCallback(() => {
+    console.warn('[Diagnostics] Nuclear Recovery triggered.');
+    
+    // 1. Reset transition locks and subapp wrapper lingering elements
     try {
       document.querySelectorAll('.sc-subapp-wrapper').forEach(el => {
         el.remove();
       });
-    } catch (e) {
-      console.error('Failed cleaning up subapp wrappers', e);
-    }
+    } catch (_) {}
 
-    // 3. Reset transition locks and force React remount
+    // 2. Briefly unmount the hub shell
     flushSync(() => {
       setTransitionActive(false);
-      setHubRenderKey(k => k + 1);
+      setShowHub(false);
     });
 
-    // 4. Log recovery status after a brief delay to let layout repaint
+    // 3. Remount the hub shell shortly after
     setTimeout(() => {
-      try {
-        const statePayload = (window as any).__captureBlackScreenState?.();
-        const success = !!(statePayload?.hubActuallyPainted && statePayload?.hub?.visible && statePayload?.hub?.mounted);
-        
-        const logStr = localStorage.getItem('studio_repaints_log') || '[]';
-        const log = JSON.parse(logStr);
-        log.push({
-          timestamp: Date.now(),
-          success,
-          reason: success ? 'recovered' : 'still_blocked',
-          payload: statePayload
-        });
-        if (log.length > 20) log.shift();
-        localStorage.setItem('studio_repaints_log', JSON.stringify(log));
-      } catch (err) {
-        console.error('Failed to log repaint status', err);
-      }
-    }, 150);
+      flushSync(() => {
+        setHubRenderKey(k => k + 1);
+        setShowHub(true);
+      });
+
+      // 4. Log nuclear recovery status
+      setTimeout(() => {
+        try {
+          const statePayload = (window as any).__captureBlackScreenState?.();
+          const success = !!(statePayload?.hubActuallyPainted && statePayload?.hub?.visible && statePayload?.hub?.mounted);
+          
+          const logStr = localStorage.getItem('studio_nuclear_recoveries_log') || '[]';
+          const log = JSON.parse(logStr);
+          log.push({
+            timestamp: Date.now(),
+            success,
+            reason: success ? 'recovered' : 'still_blocked',
+            payload: statePayload
+          });
+          if (log.length > 20) log.shift();
+          localStorage.setItem('studio_nuclear_recoveries_log', JSON.stringify(log));
+        } catch (err) {
+          console.error('Failed to log nuclear recovery status', err);
+        }
+      }, 150);
+    }, 20);
 
   }, []);
 
   useEffect(() => {
-    (window as any).forceHubRepaint = forceHubRepaint;
+    (window as any).runVisualRepaintRecovery = runVisualRepaintRecovery;
+    (window as any).runNuclearRecovery = runNuclearRecovery;
+    (window as any).forceHubRepaint = runVisualRepaintRecovery; // backwards compatibility
     (window as any).__forceRemountHub = () => {
       setHubRenderKey(k => k + 1);
     };
     return () => {
+      delete (window as any).runVisualRepaintRecovery;
+      delete (window as any).runNuclearRecovery;
       delete (window as any).forceHubRepaint;
       delete (window as any).__forceRemountHub;
     };
-  }, [forceHubRepaint]);
+  }, [runVisualRepaintRecovery, runNuclearRecovery]);
 
   // Cold Start App Restore Bug: Reset appMode to settings.startupApp || 'hub' if restoreLastSession is false
   useEffect(() => {
@@ -516,15 +768,38 @@ export default function App() {
     }
 
     // FORENSIC AUTO-CAPTURE FOR CHORDEX -> HUB
-    let beforeSnapshot: any = null;
     const isFromChords = fromApp === 'chords';
     if (isFromChords) {
       try {
         const lastCaptureId = Date.now();
         (window as any).__lastForensicCaptureId = lastCaptureId;
-        beforeSnapshot = takeForensicSnapshot('BEFORE_CLEANUP');
+        
+        // Take T+0ms snapshot immediately
+        const t0Snapshot = takeForensicSnapshot('T+0ms');
+        saveForensicCaptureStructure(lastCaptureId, t0Snapshot);
+        
+        // Schedule subsequent timeline snapshots
+        const offsets = [
+          { label: 'T+100ms', ms: 100 },
+          { label: 'T+250ms', ms: 250 },
+          { label: 'T+500ms', ms: 500 },
+          { label: 'T+1000ms', ms: 1000 },
+          { label: 'T+2000ms', ms: 2000 }
+        ];
+        
+        offsets.forEach(offset => {
+          setTimeout(() => {
+            try {
+              const snap = takeForensicSnapshot(offset.label);
+              appendForensicSnapshot(lastCaptureId, offset.label, snap);
+            } catch (err) {
+              console.error(`Failed to take snapshot at ${offset.label}`, err);
+            }
+          }, offset.ms);
+        });
+        
       } catch (err) {
-        console.error('Forensics: Failed to take BEFORE snapshot', err);
+        console.error('Forensics: Failed to start multi-snapshot captures', err);
       }
     }
 
@@ -583,16 +858,6 @@ export default function App() {
         activeAppAfterTransition: 'hub',
         fallbackRendered: false
       });
-
-      // AFTER CLEANUP snapshot
-      if (isFromChords) {
-        try {
-          const afterSnapshot = takeForensicSnapshot('AFTER_CLEANUP');
-          saveForensicCapture(beforeSnapshot, afterSnapshot);
-        } catch (err) {
-          console.error('Forensics: Failed to take AFTER snapshot', err);
-        }
-      }
     }, 370);
   }, [updateSettings, preferences.rememberLastAppSection]);
 
@@ -1234,9 +1499,11 @@ export default function App() {
           visibility: isSubAppActive && !transitionActive ? 'hidden' : 'visible',
         }}
       >
-        <Suspense fallback={<SmartLoading fallbackSkeleton={<StudioHubSkeleton />} />}>
-          <StudioHub key={hubRenderKey} />
-        </Suspense>
+        {showHub && (
+          <Suspense fallback={<SmartLoading fallbackSkeleton={<StudioHubSkeleton />} />}>
+            <StudioHub key={hubRenderKey} />
+          </Suspense>
+        )}
       </div>
 
       <AnimatePresence>

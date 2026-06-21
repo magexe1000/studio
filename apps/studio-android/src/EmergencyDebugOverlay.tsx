@@ -148,6 +148,10 @@ export default function EmergencyDebugOverlay() {
   const [lastSuccessfulForensic, setLastSuccessfulForensic] = useState<any>(null);
   const [lastFailedForensic, setLastFailedForensic] = useState<any>(null);
   const [repaintsLog, setRepaintsLog] = useState<any[]>([]);
+  const [visualRepaintsLog, setVisualRepaintsLog] = useState<any[]>([]);
+  const [nuclearRecoveriesLog, setNuclearRecoveriesLog] = useState<any[]>([]);
+  const [leftSnapKey, setLeftSnapKey] = useState<string>('T+0ms');
+  const [rightSnapKey, setRightSnapKey] = useState<string>('T+2000ms');
   
   // Local state for live state updates
   const [tick, setTick] = useState(0);
@@ -392,6 +396,20 @@ export default function EmergencyDebugOverlay() {
         setRepaintsLog(JSON.parse(repaints));
       } else {
         setRepaintsLog([]);
+      }
+
+      const visRepaints = localStorage.getItem('studio_visual_repaints_log');
+      if (visRepaints) {
+        setVisualRepaintsLog(JSON.parse(visRepaints));
+      } else {
+        setVisualRepaintsLog([]);
+      }
+
+      const nucRecoveries = localStorage.getItem('studio_nuclear_recoveries_log');
+      if (nucRecoveries) {
+        setNuclearRecoveriesLog(JSON.parse(nucRecoveries));
+      } else {
+        setNuclearRecoveriesLog([]);
       }
     } catch (_) {}
   }, [isOpen, tick]);
@@ -2028,17 +2046,127 @@ page:  (${webViewDiag.visualViewport.pageLeft}, ${webViewDiag.visualViewport.pag
       return new Date(ts).toLocaleTimeString() + ' (' + new Date(ts).toLocaleDateString() + ')';
     };
 
+    const getBeforeSnap = (cap: any) => {
+      if (!cap) return null;
+      return cap.before || cap.snapshots?.['T+0ms'] || null;
+    };
+
+    const getAfterSnap = (cap: any) => {
+      if (!cap) return null;
+      if (cap.after) return cap.after;
+      if (cap.snapshots) {
+        const keys = Object.keys(cap.snapshots);
+        const sorted = keys.sort((a, b) => {
+          const getMs = (k: string) => parseInt(k.replace('T+', '').replace('ms', '')) || 0;
+          return getMs(b) - getMs(a);
+        });
+        return cap.snapshots[sorted[0]] || null;
+      }
+      return null;
+    };
+
+    const getWebViewPipelineStatus = (snap: any) => {
+      if (!snap) return { status: 'UNKNOWN', color: 'rgba(255,255,255,0.4)', desc: 'No snapshot selected' };
+      
+      const hub = snap.elements?.['hub-root'] || snap.bounds?.['hub-root'] || null;
+      const hubMounted = !!hub?.exists;
+      
+      const renderAudit = snap.renderAudit || null;
+      const hubAudit = renderAudit?.hub || null;
+      
+      const display = hubAudit?.display || snap.elements?.['hub-root']?.display || 'none';
+      const visibility = hubAudit?.visibility || snap.elements?.['hub-root']?.visibility || 'hidden';
+      const opacityVal = hubAudit?.opacity !== undefined ? hubAudit.opacity : snap.elements?.['hub-root']?.opacity;
+      const opacity = parseFloat(opacityVal || '0');
+      
+      const domSaysVisible = hubMounted && display !== 'none' && visibility !== 'hidden' && opacity > 0.05;
+      
+      const probe = snap.visualProbe || null;
+      const visuallyEmpty = !!probe?.allEmpty;
+      
+      if (!hubMounted) {
+        return {
+          status: 'DOM_EMPTY',
+          color: '#ef4444',
+          desc: 'DOM Empty: Hub root element is not mounted in React.'
+        };
+      }
+      
+      if (!domSaysVisible) {
+        return {
+          status: 'DOM_UNPAINTED',
+          color: '#f59e0b',
+          desc: `DOM Unpainted: Hub mounted but hidden via CSS (display: ${display}, visibility: ${visibility}, opacity: ${opacityVal}).`
+        };
+      }
+      
+      if (visuallyEmpty) {
+        return {
+          status: 'COMPOSITOR_FREEZE',
+          color: '#ef4444',
+          desc: 'WebView Compositor Freeze: Hub is fully mounted and visible in DOM/CSS, but pixel probes detect a black/empty screen. WebView is failing to repaint!'
+        };
+      }
+      
+      return {
+        status: 'PIPELINE_OK',
+        color: '#10b981',
+        desc: 'Pipeline OK: Hub is visible in DOM and pixel probe detects active rendering.'
+      };
+    };
+
     // Trigger force hub repaint recovery tool
-    const handleForceRepaintClick = () => {
-      if (typeof (window as any).forceHubRepaint === 'function') {
-        (window as any).forceHubRepaint();
-        setToastMsg('Forcing repaint and reflow...');
+    const handleVisualRepaintClick = () => {
+      if (typeof (window as any).runVisualRepaintRecovery === 'function') {
+        (window as any).runVisualRepaintRecovery();
+        setToastMsg('Triggering Visual Repaint Recovery...');
         setTimeout(() => setToastMsg(null), 2500);
       } else {
-        setToastMsg('Error: forceHubRepaint is not registered on window.');
+        setToastMsg('Error: runVisualRepaintRecovery is not registered.');
         setTimeout(() => setToastMsg(null), 2500);
       }
     };
+
+    // Trigger nuclear recovery
+    const handleNuclearRecoveryClick = () => {
+      if (typeof (window as any).runNuclearRecovery === 'function') {
+        (window as any).runNuclearRecovery();
+        setToastMsg('Triggering Nuclear Recovery...');
+        setTimeout(() => setToastMsg(null), 2500);
+      } else {
+        setToastMsg('Error: runNuclearRecovery is not registered.');
+        setTimeout(() => setToastMsg(null), 2500);
+      }
+    };
+
+    const beforeSnapSuccess = getBeforeSnap(lastSuccessfulForensic);
+    const afterSnapSuccess = getAfterSnap(lastSuccessfulForensic);
+    const beforeSnapFailed = getBeforeSnap(lastFailedForensic);
+    const afterSnapFailed = getAfterSnap(lastFailedForensic);
+
+    // Timeline snap setup
+    const availableSnaps = activeCapture && activeCapture.snapshots ? Object.keys(activeCapture.snapshots).sort((a, b) => {
+      const getMs = (k: string) => parseInt(k.replace('T+', '').replace('ms', '')) || 0;
+      return getMs(a) - getMs(b);
+    }) : [];
+
+    const currentLeftKey = availableSnaps.includes(leftSnapKey) ? leftSnapKey : (availableSnaps[0] || 'T+0ms');
+    const currentRightKey = availableSnaps.includes(rightSnapKey) ? rightSnapKey : (availableSnaps[availableSnaps.length - 1] || 'T+2000ms');
+
+    let leftSnapshot: any = null;
+    let rightSnapshot: any = null;
+
+    if (activeCapture) {
+      if (activeCapture.snapshots) {
+        leftSnapshot = activeCapture.snapshots[currentLeftKey] || null;
+        rightSnapshot = activeCapture.snapshots[currentRightKey] || null;
+      } else {
+        leftSnapshot = activeCapture.before || null;
+        rightSnapshot = activeCapture.after || null;
+      }
+    }
+
+    const pipelineStatus = getWebViewPipelineStatus(rightSnapshot);
 
     return (
       <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
@@ -2050,7 +2178,9 @@ page:  (${webViewDiag.visualViewport.pageLeft}, ${webViewDiag.visualViewport.pag
             {lastSuccessfulForensic ? (
               <div>
                 <div style={{ fontWeight: 'bold' }}>{formatTime(lastSuccessfulForensic.timestamp)}</div>
-                <div style={{ color: 'rgba(255,255,255,0.5)', fontSize: '9px', marginTop: '2px' }}>App Mode: {lastSuccessfulForensic.before?.appMode || 'chords'} → {lastSuccessfulForensic.after?.appMode || 'hub'}</div>
+                <div style={{ color: 'rgba(255,255,255,0.5)', fontSize: '9px', marginTop: '2px' }}>
+                  App Mode: {beforeSnapSuccess?.appMode || 'chords'} → {afterSnapSuccess?.appMode || 'hub'}
+                </div>
               </div>
             ) : (
               <div style={{ color: 'rgba(255,255,255,0.4)', fontSize: '10px' }}>No successful return captured yet</div>
@@ -2072,36 +2202,66 @@ page:  (${webViewDiag.visualViewport.pageLeft}, ${webViewDiag.visualViewport.pag
 
         {/* RECOVERY SECTION */}
         <div style={actionCardStyle}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <div>
-              <strong style={{ color: 'rgb(216, 180, 254)', fontSize: '11px' }}>HUB BLACK SCREEN RECOVERY</strong>
-              <div style={{ fontSize: '9.5px', color: 'rgba(255,255,255,0.6)', marginTop: '2px' }}>Force layout reflow, invalidation, and remount the Hub tree.</div>
-            </div>
+          <strong style={{ color: 'rgb(216, 180, 254)', fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+            Hub Recovery Controls
+          </strong>
+          <div style={{ display: 'flex', gap: '8px', marginTop: '4px' }}>
             <button
-              onClick={handleForceRepaintClick}
+              onClick={handleVisualRepaintClick}
               style={{
-                background: 'rgb(168, 85, 247)',
-                border: 'none',
+                flex: 1,
+                background: 'rgba(168, 85, 247, 0.25)',
+                border: '1px solid rgb(168, 85, 247)',
                 color: '#fff',
-                padding: '8px 12px',
+                padding: '8px 10px',
                 borderRadius: '6px',
                 fontSize: '10px',
                 fontWeight: 'bold',
                 cursor: 'pointer',
-                boxShadow: '0 2px 8px rgba(168, 85, 247, 0.4)'
               }}
             >
-              Force Hub Repaint
+              Visual Repaint Recovery
+            </button>
+            <button
+              onClick={handleNuclearRecoveryClick}
+              style={{
+                flex: 1,
+                background: 'rgba(239, 68, 68, 0.25)',
+                border: '1px solid rgb(239, 68, 68)',
+                color: '#fff',
+                padding: '8px 10px',
+                borderRadius: '6px',
+                fontSize: '10px',
+                fontWeight: 'bold',
+                cursor: 'pointer',
+              }}
+            >
+              Nuclear Recovery
             </button>
           </div>
-          {repaintsLog.length > 0 && (
-            <div style={{ borderTop: '1px solid rgba(168, 85, 247, 0.15)', paddingTop: '6px', fontSize: '9px', color: 'rgba(255,255,255,0.5)' }}>
-              Last Repaint: {formatTime(repaintsLog[repaintsLog.length - 1].timestamp)} | Result:{' '}
-              <span style={{ color: repaintsLog[repaintsLog.length - 1].success ? '#10b981' : '#ef4444', fontWeight: 'bold' }}>
-                {repaintsLog[repaintsLog.length - 1].success ? 'SUCCESS (Painted)' : 'FAILED (' + (repaintsLog[repaintsLog.length - 1].reason || 'Unknown') + ')'}
-              </span>
+          
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', borderTop: '1px solid rgba(255, 255, 255, 0.06)', paddingTop: '6px', marginTop: '4px', fontSize: '9px', color: 'rgba(255,255,255,0.5)' }}>
+            <div>
+              Repaint Log: {visualRepaintsLog.length > 0 ? (
+                <>
+                  {formatTime(visualRepaintsLog[visualRepaintsLog.length - 1].timestamp)} |{' '}
+                  <span style={{ color: visualRepaintsLog[visualRepaintsLog.length - 1].success ? '#10b981' : '#ef4444', fontWeight: 'bold' }}>
+                    {visualRepaintsLog[visualRepaintsLog.length - 1].success ? 'SUCCESS (Visible)' : 'FAILED (' + (visualRepaintsLog[visualRepaintsLog.length - 1].reason || 'Still Blocked') + ')'}
+                  </span>
+                </>
+              ) : 'No repaint run logged'}
             </div>
-          )}
+            <div>
+              Nuclear Log: {nuclearRecoveriesLog.length > 0 ? (
+                <>
+                  {formatTime(nuclearRecoveriesLog[nuclearRecoveriesLog.length - 1].timestamp)} |{' '}
+                  <span style={{ color: nuclearRecoveriesLog[nuclearRecoveriesLog.length - 1].success ? '#10b981' : '#ef4444', fontWeight: 'bold' }}>
+                    {nuclearRecoveriesLog[nuclearRecoveriesLog.length - 1].success ? 'SUCCESS (Visible)' : 'FAILED (' + (nuclearRecoveriesLog[nuclearRecoveriesLog.length - 1].reason || 'Still Blocked') + ')'}
+                  </span>
+                </>
+              ) : 'No nuclear recovery run logged'}
+            </div>
+          </div>
         </div>
 
         {/* COMPARISON/DIFF SECTION */}
@@ -2163,7 +2323,17 @@ page:  (${webViewDiag.visualViewport.pageLeft}, ${webViewDiag.visualViewport.pag
             </div>
           ) : (
             <div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px', fontSize: '10px', background: 'rgba(0,0,0,0.15)', padding: '6px 8px', borderRadius: '4px' }}>
+              {/* WebView Pipeline Status Label */}
+              <div style={{ marginBottom: '10px', padding: '10px', borderRadius: '8px', border: `1px solid ${pipelineStatus.color}`, background: `${pipelineStatus.color}15` }}>
+                <div style={{ fontWeight: 'bold', color: pipelineStatus.color, fontSize: '11px', textTransform: 'uppercase' }}>
+                  Compositor Status: {pipelineStatus.status}
+                </div>
+                <div style={{ fontSize: '9.5px', color: 'rgba(255,255,255,0.85)', marginTop: '4px', lineHeight: '1.4' }}>
+                  {pipelineStatus.desc}
+                </div>
+              </div>
+
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px', fontSize: '10px', background: 'rgba(0,0,0,0.15)', padding: '6px 8px', borderRadius: '4px', alignItems: 'center' }}>
                 <div>
                   Result:{' '}
                   <span style={{ color: activeCapture.result === 'success' ? '#10b981' : '#ef4444', fontWeight: 'bold' }}>
@@ -2176,39 +2346,135 @@ page:  (${webViewDiag.visualViewport.pageLeft}, ${webViewDiag.visualViewport.pag
                 </div>
               </div>
 
+              {/* TIMELINE COMPARISON SELECTORS */}
+              {activeCapture.snapshots && availableSnaps.length > 0 && (
+                <div style={{ display: 'flex', gap: '8px', marginBottom: '10px', alignItems: 'center', background: 'rgba(255,255,255,0.02)', padding: '6px 8px', borderRadius: '4px' }}>
+                  <span style={{ fontSize: '9.5px', color: 'rgba(255,255,255,0.6)' }}>Compare snapshots:</span>
+                  <select
+                    value={currentLeftKey}
+                    onChange={(e) => setLeftSnapKey(e.target.value)}
+                    style={{
+                      background: 'rgba(0,0,0,0.4)',
+                      color: '#fff',
+                      border: '1px solid rgba(255,255,255,0.15)',
+                      borderRadius: '4px',
+                      padding: '2px 4px',
+                      fontSize: '9.5px',
+                      outline: 'none'
+                    }}
+                  >
+                    {availableSnaps.map(key => (
+                      <option key={`left-${key}`} value={key}>{key}</option>
+                    ))}
+                  </select>
+                  <span style={{ fontSize: '9.5px', color: 'rgba(255,255,255,0.4)' }}>vs</span>
+                  <select
+                    value={currentRightKey}
+                    onChange={(e) => setRightSnapKey(e.target.value)}
+                    style={{
+                      background: 'rgba(0,0,0,0.4)',
+                      color: '#fff',
+                      border: '1px solid rgba(255,255,255,0.15)',
+                      borderRadius: '4px',
+                      padding: '2px 4px',
+                      fontSize: '9.5px',
+                      outline: 'none'
+                    }}
+                  >
+                    {availableSnaps.map(key => (
+                      <option key={`right-${key}`} value={key}>{key}</option>
+                    ))}
+                  </select>
+                </div>
+              )}
+
               {/* Side-by-side diff table */}
               <div style={{ overflowX: 'auto', border: '1px solid rgba(255,255,255,0.06)', borderRadius: '6px' }}>
                 <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '9.5px', textAlign: 'left', minWidth: '450px' }}>
                   <thead>
                     <tr style={{ background: 'rgba(255,255,255,0.04)', borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
                       <th style={{ padding: '6px 8px', color: 'rgba(255,255,255,0.6)' }}>Selector / Property</th>
-                      <th style={{ padding: '6px 8px', color: 'rgba(255,255,255,0.6)' }}>BEFORE (Previous)</th>
-                      <th style={{ padding: '6px 8px', color: 'rgba(255,255,255,0.6)' }}>AFTER (Current)</th>
+                      <th style={{ padding: '6px 8px', color: 'rgba(255,255,255,0.6)' }}>LEFT ({activeCapture.snapshots ? currentLeftKey : 'BEFORE'})</th>
+                      <th style={{ padding: '6px 8px', color: 'rgba(255,255,255,0.6)' }}>RIGHT ({activeCapture.snapshots ? currentRightKey : 'AFTER'})</th>
                     </tr>
                   </thead>
                   <tbody>
                     {/* App state variables */}
-                    {renderDiffRow('App Mode', activeCapture.before?.appMode, activeCapture.after?.appMode)}
-                    {renderDiffRow('Active SubApp', activeCapture.before?.activeSubApp, activeCapture.after?.activeSubApp)}
-                    {renderDiffRow('Stable Key', activeCapture.before?.stableKey, activeCapture.after?.stableKey)}
-                    {renderDiffRow('Transition Active', activeCapture.before?.transitionActive, activeCapture.after?.transitionActive)}
+                    {renderDiffRow('App Mode', leftSnapshot?.appMode, rightSnapshot?.appMode)}
+                    {renderDiffRow('Active SubApp', leftSnapshot?.activeSubApp, rightSnapshot?.activeSubApp)}
+                    {renderDiffRow('Stable Key', leftSnapshot?.stableKey, rightSnapshot?.stableKey)}
+                    {renderDiffRow('Transition Active', leftSnapshot?.transitionActive, rightSnapshot?.transitionActive)}
 
                     {/* Viewport audit variables */}
                     <tr style={{ background: 'rgba(168, 85, 247, 0.04)', borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
                       <td colSpan={3} style={{ padding: '6px 8px', fontWeight: 'bold', color: 'rgb(216, 180, 254)' }}>VIEWPORT AUDIT</td>
                     </tr>
-                    {renderDiffRow('Viewport Size', `${activeCapture.before?.viewport?.innerWidth}x${activeCapture.before?.viewport?.innerHeight}`, `${activeCapture.after?.viewport?.innerWidth}x${activeCapture.after?.viewport?.innerHeight}`)}
-                    {renderDiffRow('Visual Viewport', activeCapture.before?.viewport?.visualViewport ? `${activeCapture.before.viewport.visualViewport.width}x${activeCapture.before.viewport.visualViewport.height} (scale: ${activeCapture.before.viewport.visualViewport.scale})` : 'N/A', activeCapture.after?.viewport?.visualViewport ? `${activeCapture.after.viewport.visualViewport.width}x${activeCapture.after.viewport.visualViewport.height} (scale: ${activeCapture.after.viewport.visualViewport.scale})` : 'N/A')}
-                    {renderDiffRow('Device Pixel Ratio', activeCapture.before?.viewport?.dpr, activeCapture.after?.viewport?.dpr)}
-                    {renderDiffRow('Orientation', activeCapture.before?.viewport?.orientation?.type, activeCapture.after?.viewport?.orientation?.type)}
+                    {renderDiffRow('Viewport Size', `${leftSnapshot?.viewport?.innerWidth}x${leftSnapshot?.viewport?.innerHeight}`, `${rightSnapshot?.viewport?.innerWidth}x${rightSnapshot?.viewport?.innerHeight}`)}
+                    {renderDiffRow('Visual Viewport', leftSnapshot?.viewport?.visualViewport ? `${leftSnapshot.viewport.visualViewport.width}x${leftSnapshot.viewport.visualViewport.height} (scale: ${leftSnapshot.viewport.visualViewport.scale})` : 'N/A', rightSnapshot?.viewport?.visualViewport ? `${rightSnapshot.viewport.visualViewport.width}x${rightSnapshot.viewport.visualViewport.height} (scale: ${rightSnapshot.viewport.visualViewport.scale})` : 'N/A')}
+                    {renderDiffRow('Device Pixel Ratio', leftSnapshot?.viewport?.dpr, rightSnapshot?.viewport?.dpr)}
+                    {renderDiffRow('Orientation', leftSnapshot?.viewport?.orientation?.type, rightSnapshot?.viewport?.orientation?.type)}
+
+                    {/* Render Audit */}
+                    <tr style={{ background: 'rgba(168, 85, 247, 0.04)', borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
+                      <td colSpan={3} style={{ padding: '6px 8px', fontWeight: 'bold', color: 'rgb(216, 180, 254)' }}>WEBVIEW RENDER AUDIT</td>
+                    </tr>
+                    {renderDiffRow('GPU Compositor Layer Count', leftSnapshot?.renderAudit?.layerCount, rightSnapshot?.renderAudit?.layerCount)}
+                    
+                    <tr style={{ background: 'rgba(255,255,255,0.01)', borderBottom: '1px solid rgba(255,255,255,0.02)' }}>
+                      <td colSpan={3} style={{ padding: '4px 8px', fontWeight: 'bold', color: '#38bdf8' }}>Root Container (#root)</td>
+                    </tr>
+                    {renderDiffRow('  ↳ Rect Bounds', 
+                      leftSnapshot?.renderAudit?.root?.rect ? `l:${leftSnapshot.renderAudit.root.rect.left} t:${leftSnapshot.renderAudit.root.rect.top} w:${leftSnapshot.renderAudit.root.rect.width} h:${leftSnapshot.renderAudit.root.rect.height}` : 'N/A', 
+                      rightSnapshot?.renderAudit?.root?.rect ? `l:${rightSnapshot.renderAudit.root.rect.left} t:${rightSnapshot.renderAudit.root.rect.top} w:${rightSnapshot.renderAudit.root.rect.width} h:${rightSnapshot.renderAudit.root.rect.height}` : 'N/A'
+                    )}
+                    {renderDiffRow('  ↳ display', leftSnapshot?.renderAudit?.root?.display, rightSnapshot?.renderAudit?.root?.display)}
+                    {renderDiffRow('  ↳ visibility', leftSnapshot?.renderAudit?.root?.visibility, rightSnapshot?.renderAudit?.root?.visibility)}
+                    {renderDiffRow('  ↳ opacity', leftSnapshot?.renderAudit?.root?.opacity, rightSnapshot?.renderAudit?.root?.opacity)}
+                    {renderDiffRow('  ↳ transform', leftSnapshot?.renderAudit?.root?.transform, rightSnapshot?.renderAudit?.root?.transform)}
+                    {renderDiffRow('  ↳ filter', leftSnapshot?.renderAudit?.root?.filter, rightSnapshot?.renderAudit?.root?.filter)}
+                    {renderDiffRow('  ↳ contain', leftSnapshot?.renderAudit?.root?.contain, rightSnapshot?.renderAudit?.root?.contain)}
+                    {renderDiffRow('  ↳ isolation', leftSnapshot?.renderAudit?.root?.isolation, rightSnapshot?.renderAudit?.root?.isolation)}
+                    {renderDiffRow('  ↳ overflow', leftSnapshot?.renderAudit?.root?.overflow, rightSnapshot?.renderAudit?.root?.overflow)}
+
+                    <tr style={{ background: 'rgba(255,255,255,0.01)', borderBottom: '1px solid rgba(255,255,255,0.02)' }}>
+                      <td colSpan={3} style={{ padding: '4px 8px', fontWeight: 'bold', color: '#38bdf8' }}>Hub Container ([data-livex-hub-root])</td>
+                    </tr>
+                    {renderDiffRow('  ↳ Rect Bounds', 
+                      leftSnapshot?.renderAudit?.hub?.rect ? `l:${leftSnapshot.renderAudit.hub.rect.left} t:${leftSnapshot.renderAudit.hub.rect.top} w:${leftSnapshot.renderAudit.hub.rect.width} h:${leftSnapshot.renderAudit.hub.rect.height}` : 'N/A', 
+                      rightSnapshot?.renderAudit?.hub?.rect ? `l:${rightSnapshot.renderAudit.hub.rect.left} t:${rightSnapshot.renderAudit.hub.rect.top} w:${rightSnapshot.renderAudit.hub.rect.width} h:${rightSnapshot.renderAudit.hub.rect.height}` : 'N/A'
+                    )}
+                    {renderDiffRow('  ↳ display', leftSnapshot?.renderAudit?.hub?.display, rightSnapshot?.renderAudit?.hub?.display)}
+                    {renderDiffRow('  ↳ visibility', leftSnapshot?.renderAudit?.hub?.visibility, rightSnapshot?.renderAudit?.hub?.visibility)}
+                    {renderDiffRow('  ↳ opacity', leftSnapshot?.renderAudit?.hub?.opacity, rightSnapshot?.renderAudit?.hub?.opacity)}
+                    {renderDiffRow('  ↳ transform', leftSnapshot?.renderAudit?.hub?.transform, rightSnapshot?.renderAudit?.hub?.transform)}
+                    {renderDiffRow('  ↳ filter', leftSnapshot?.renderAudit?.hub?.filter, rightSnapshot?.renderAudit?.hub?.filter)}
+                    {renderDiffRow('  ↳ contain', leftSnapshot?.renderAudit?.hub?.contain, rightSnapshot?.renderAudit?.hub?.contain)}
+                    {renderDiffRow('  ↳ isolation', leftSnapshot?.renderAudit?.hub?.isolation, rightSnapshot?.renderAudit?.hub?.isolation)}
+                    {renderDiffRow('  ↳ overflow', leftSnapshot?.renderAudit?.hub?.overflow, rightSnapshot?.renderAudit?.hub?.overflow)}
+
+                    {/* Pixel Probe */}
+                    <tr style={{ background: 'rgba(168, 85, 247, 0.04)', borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
+                      <td colSpan={3} style={{ padding: '6px 8px', fontWeight: 'bold', color: 'rgb(216, 180, 254)' }}>PIXEL VISIBILITY PROBES</td>
+                    </tr>
+                    {renderDiffRow('Screen Visually Empty (All Points)', String(!!leftSnapshot?.visualProbe?.allEmpty), String(!!rightSnapshot?.visualProbe?.allEmpty))}
+                    
+                    {['center', 'topLeft', 'topRight', 'bottomLeft', 'bottomRight'].map(pt => {
+                      const leftPt = leftSnapshot?.visualProbe?.results?.[pt];
+                      const rightPt = rightSnapshot?.visualProbe?.results?.[pt];
+                      
+                      const leftVal = leftPt ? `status:${leftPt.status} color:${leftPt.color} el:${leftPt.element} hasTxt:${leftPt.hasContent}` : 'N/A';
+                      const rightVal = rightPt ? `status:${rightPt.status} color:${rightPt.color} el:${rightPt.element} hasTxt:${rightPt.hasContent}` : 'N/A';
+                      
+                      return renderDiffRow(`Point: ${pt} (${leftPt?.point || '?'})`, leftVal, rightVal, `probe-${pt}`);
+                    })}
 
                     {/* DOM Bounds audit */}
                     <tr style={{ background: 'rgba(168, 85, 247, 0.04)', borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
                       <td colSpan={3} style={{ padding: '6px 8px', fontWeight: 'bold', color: 'rgb(216, 180, 254)' }}>DOM BOUNDS AUDIT (getBoundingClientRect)</td>
                     </tr>
-                    {Object.keys(activeCapture.before?.bounds || {}).map(selector => {
-                      const beforeBounds = activeCapture.before?.bounds?.[selector];
-                      const afterBounds = activeCapture.after?.bounds?.[selector];
+                    {Object.keys(leftSnapshot?.bounds || rightSnapshot?.bounds || {}).map(selector => {
+                      const beforeBounds = leftSnapshot?.bounds?.[selector];
+                      const afterBounds = rightSnapshot?.bounds?.[selector];
                       const beforeVal = beforeBounds?.exists ? `l:${beforeBounds.left} t:${beforeBounds.top} w:${beforeBounds.width} h:${beforeBounds.height}` : 'Not Found';
                       const afterVal = afterBounds?.exists ? `l:${afterBounds.left} t:${afterBounds.top} w:${afterBounds.width} h:${afterBounds.height}` : 'Not Found';
                       return renderDiffRow(selector, beforeVal, afterVal);
@@ -2218,14 +2484,13 @@ page:  (${webViewDiag.visualViewport.pageLeft}, ${webViewDiag.visualViewport.pag
                     <tr style={{ background: 'rgba(168, 85, 247, 0.04)', borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
                       <td colSpan={3} style={{ padding: '6px 8px', fontWeight: 'bold', color: 'rgb(216, 180, 254)' }}>ELEMENT VISUAL STATES</td>
                     </tr>
-                    {Object.keys(activeCapture.before?.elements || {}).map(elKey => {
-                      const beforeEl = activeCapture.before?.elements?.[elKey];
-                      const afterEl = activeCapture.after?.elements?.[elKey];
+                    {Object.keys(leftSnapshot?.elements || rightSnapshot?.elements || {}).map(elKey => {
+                      const beforeEl = leftSnapshot?.elements?.[elKey];
+                      const afterEl = rightSnapshot?.elements?.[elKey];
                       
                       if (!beforeEl && !afterEl) return null;
                       
                       const rows: React.ReactNode[] = [];
-                      // Add parent category element row
                       rows.push(
                         <tr key={`${elKey}-header`} style={{ background: 'rgba(255,255,255,0.01)', borderBottom: '1px solid rgba(255,255,255,0.02)' }}>
                           <td colSpan={3} style={{ padding: '4px 8px', fontWeight: 'bold', color: '#38bdf8' }}>Element: {elKey}</td>

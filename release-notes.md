@@ -1,4 +1,5 @@
 ### Added
-- Added auto-capture forensic telemetry for returns from Chordex to Hub.
-- Added side-by-side transition state comparison audits (Previous vs Current snapshot).
-- Added Force Hub Repaint recovery failsafe tool to clear black screen states.
+- Added pixel-level visibility probes to detect screen rendering freezes.
+- Added WebView computed layout, compositing, and layer count diagnostics.
+- Added Visual Repaint Recovery and React Nuclear Remount actions.
+- Upgraded Navigation Forensics with timing snapshot comparison dropdowns.
