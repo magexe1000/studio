@@ -150,8 +150,10 @@ export default function EmergencyDebugOverlay() {
   const [repaintsLog, setRepaintsLog] = useState<any[]>([]);
   const [visualRepaintsLog, setVisualRepaintsLog] = useState<any[]>([]);
   const [nuclearRecoveriesLog, setNuclearRecoveriesLog] = useState<any[]>([]);
-  const [leftSnapKey, setLeftSnapKey] = useState<string>('T+0ms');
+  const [leftSnapKey, setLeftSnapKey] = useState<string>('LEAVING_CHORDEX');
   const [rightSnapKey, setRightSnapKey] = useState<string>('T+2000ms');
+  const [livePaintVerify, setLivePaintVerify] = useState<any>(null);
+  const [verifyingPaint, setVerifyingPaint] = useState<boolean>(false);
   
   // Local state for live state updates
   const [tick, setTick] = useState(0);
@@ -2048,13 +2050,16 @@ page:  (${webViewDiag.visualViewport.pageLeft}, ${webViewDiag.visualViewport.pag
 
     const getBeforeSnap = (cap: any) => {
       if (!cap) return null;
-      return cap.before || cap.snapshots?.['T+0ms'] || null;
+      return cap.snapshots?.['LEAVING_CHORDEX'] || cap.snapshots?.['T+0ms'] || cap.before || null;
     };
 
     const getAfterSnap = (cap: any) => {
       if (!cap) return null;
       if (cap.after) return cap.after;
       if (cap.snapshots) {
+        if (cap.snapshots['T+2000ms']) return cap.snapshots['T+2000ms'];
+        if (cap.snapshots['T+500ms']) return cap.snapshots['T+500ms'];
+        if (cap.snapshots['ENTERING_HUB']) return cap.snapshots['ENTERING_HUB'];
         const keys = Object.keys(cap.snapshots);
         const sorted = keys.sort((a, b) => {
           const getMs = (k: string) => parseInt(k.replace('T+', '').replace('ms', '')) || 0;
@@ -2084,6 +2089,9 @@ page:  (${webViewDiag.visualViewport.pageLeft}, ${webViewDiag.visualViewport.pag
       const probe = snap.visualProbe || null;
       const visuallyEmpty = !!probe?.allEmpty;
       
+      const paintVerification = snap.paintVerification || snap.watchdogPaintVerification || null;
+      const paintSaysBlack = paintVerification?.paintState === 'visually_black';
+      
       if (!hubMounted) {
         return {
           status: 'DOM_EMPTY',
@@ -2100,11 +2108,11 @@ page:  (${webViewDiag.visualViewport.pageLeft}, ${webViewDiag.visualViewport.pag
         };
       }
       
-      if (visuallyEmpty) {
+      if (paintSaysBlack || (visuallyEmpty && !paintVerification)) {
         return {
           status: 'COMPOSITOR_FREEZE',
           color: '#ef4444',
-          desc: 'WebView Compositor Freeze: Hub is fully mounted and visible in DOM/CSS, but pixel probes detect a black/empty screen. WebView is failing to repaint!'
+          desc: 'WebView Compositor Freeze: Hub is fully mounted and visible in DOM/CSS, but pixel/canvas paint verification detects a black/empty screen. WebView is failing to repaint!'
         };
       }
       
@@ -2115,26 +2123,59 @@ page:  (${webViewDiag.visualViewport.pageLeft}, ${webViewDiag.visualViewport.pag
       };
     };
 
-    // Trigger force hub repaint recovery tool
-    const handleVisualRepaintClick = () => {
-      if (typeof (window as any).runVisualRepaintRecovery === 'function') {
-        (window as any).runVisualRepaintRecovery();
-        setToastMsg('Triggering Visual Repaint Recovery...');
-        setTimeout(() => setToastMsg(null), 2500);
+    // Live paint verification handler
+    const handleVerifyPaintLive = async () => {
+      if (typeof (window as any).runPaintVerification === 'function') {
+        setVerifyingPaint(true);
+        try {
+          const result = await (window as any).runPaintVerification();
+          setLivePaintVerify(result);
+          setToastMsg('Paint verification complete.');
+          setTimeout(() => setToastMsg(null), 2500);
+        } catch (err) {
+          setToastMsg(`Paint verification failed: ${err}`);
+          setTimeout(() => setToastMsg(null), 2500);
+        } finally {
+          setVerifyingPaint(false);
+        }
       } else {
-        setToastMsg('Error: runVisualRepaintRecovery is not registered.');
+        setToastMsg('runPaintVerification is not registered.');
         setTimeout(() => setToastMsg(null), 2500);
       }
     };
 
-    // Trigger nuclear recovery
-    const handleNuclearRecoveryClick = () => {
-      if (typeof (window as any).runNuclearRecovery === 'function') {
-        (window as any).runNuclearRecovery();
-        setToastMsg('Triggering Nuclear Recovery...');
+    // Trigger force webview repaint
+    const handleForceWebViewRepaint = () => {
+      if (typeof (window as any).runForceWebViewRepaint === 'function') {
+        (window as any).runForceWebViewRepaint();
+        setToastMsg('Triggered Force WebView Repaint...');
         setTimeout(() => setToastMsg(null), 2500);
       } else {
-        setToastMsg('Error: runNuclearRecovery is not registered.');
+        setToastMsg('Error: runForceWebViewRepaint is not registered.');
+        setTimeout(() => setToastMsg(null), 2500);
+      }
+    };
+
+    // Trigger force full hub rebuild
+    const handleForceFullHubRebuild = () => {
+      if (typeof (window as any).runForceFullHubRebuild === 'function') {
+        (window as any).runForceFullHubRebuild();
+        setToastMsg('Triggered Force Full Hub Rebuild...');
+        setTimeout(() => setToastMsg(null), 2500);
+      } else {
+        setToastMsg('Error: runForceFullHubRebuild is not registered.');
+        setTimeout(() => setToastMsg(null), 2500);
+      }
+    };
+
+    // Trigger force webview refresh layer
+    const handleForceWebViewRefreshLayer = () => {
+      if (typeof (window as any).runForceWebViewRefreshLayer === 'function') {
+        (window as any).runForceWebViewRefreshLayer();
+        setToastMsg('Triggered Force WebView Refresh Layer...');
+        setTimeout(() => setToastMsg(null), 2500);
+      } else {
+        setToastMsg('Error: runForceWebViewRefreshLayer is not registered.');
         setTimeout(() => setToastMsg(null), 2500);
       }
     };
@@ -2146,11 +2187,15 @@ page:  (${webViewDiag.visualViewport.pageLeft}, ${webViewDiag.visualViewport.pag
 
     // Timeline snap setup
     const availableSnaps = activeCapture && activeCapture.snapshots ? Object.keys(activeCapture.snapshots).sort((a, b) => {
-      const getMs = (k: string) => parseInt(k.replace('T+', '').replace('ms', '')) || 0;
+      const getMs = (k: string) => {
+        if (k === 'LEAVING_CHORDEX') return 0;
+        if (k === 'ENTERING_HUB') return 100;
+        return parseInt(k.replace('T+', '').replace('ms', '')) || 0;
+      };
       return getMs(a) - getMs(b);
     }) : [];
 
-    const currentLeftKey = availableSnaps.includes(leftSnapKey) ? leftSnapKey : (availableSnaps[0] || 'T+0ms');
+    const currentLeftKey = availableSnaps.includes(leftSnapKey) ? leftSnapKey : (availableSnaps[0] || 'LEAVING_CHORDEX');
     const currentRightKey = availableSnaps.includes(rightSnapKey) ? rightSnapKey : (availableSnaps[availableSnaps.length - 1] || 'T+2000ms');
 
     let leftSnapshot: any = null;
@@ -2200,65 +2245,160 @@ page:  (${webViewDiag.visualViewport.pageLeft}, ${webViewDiag.visualViewport.pag
           </div>
         </div>
 
+        {/* PAINT VERIFICATION SECTION */}
+        <div style={{ ...actionCardStyle, background: 'rgba(56, 189, 248, 0.05)', borderColor: 'rgba(56, 189, 248, 0.25)' }}>
+          <strong style={{ color: '#38bdf8', fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+            Paint Verification (html2canvas)
+          </strong>
+          
+          <div style={{ display: 'flex', gap: '8px', marginTop: '4px' }}>
+            <button
+              onClick={handleVerifyPaintLive}
+              disabled={verifyingPaint}
+              style={{
+                flex: 1,
+                background: 'rgba(56, 189, 248, 0.2)',
+                border: '1px solid rgb(56, 189, 248)',
+                color: '#fff',
+                padding: '8px 10px',
+                borderRadius: '6px',
+                fontSize: '10px',
+                fontWeight: 'bold',
+                cursor: 'pointer',
+                opacity: verifyingPaint ? 0.6 : 1
+              }}
+            >
+              {verifyingPaint ? 'Capturing & Verifying Paint...' : '🔎 Run Paint Verification'}
+            </button>
+          </div>
+
+          {livePaintVerify ? (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', borderTop: '1px solid rgba(255, 255, 255, 0.06)', paddingTop: '6px', marginTop: '4px', fontSize: '10px' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                <span style={{ color: 'rgba(255, 255, 255, 0.5)' }}>DOM State:</span>
+                <span style={{ fontWeight: 'bold', color: livePaintVerify.domExists ? '#10b981' : '#f43f5e' }}>
+                  {livePaintVerify.domExists ? 'Exists' : 'Missing'}
+                </span>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                <span style={{ color: 'rgba(255, 255, 255, 0.5)' }}>Paint State:</span>
+                <span style={{ fontWeight: 'bold', color: livePaintVerify.paintState === 'painted' ? '#10b981' : '#f43f5e' }}>
+                  {String(livePaintVerify.paintState).toUpperCase()}
+                </span>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                <span style={{ color: 'rgba(255, 255, 255, 0.5)' }}>Black Pixels:</span>
+                <span style={{ fontWeight: 'bold', color: livePaintVerify.blackPercent > 98 ? '#f43f5e' : '#10b981' }}>
+                  {livePaintVerify.blackPercent}%
+                </span>
+              </div>
+              {livePaintVerify.histogram && (
+                <div style={{ marginTop: '2px', fontSize: '9px', background: 'rgba(0,0,0,0.2)', padding: '6px', borderRadius: '4px' }}>
+                  <div style={{ color: 'rgba(255,255,255,0.6)', fontWeight: 'bold', marginBottom: '2px' }}>Pixel Histogram:</div>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '2px 8px' }}>
+                    <div>Black (RGB&lt;15): {livePaintVerify.histogram.black}</div>
+                    <div>Dark (gray&lt;=64): {livePaintVerify.histogram.dark}</div>
+                    <div>Mid (gray&lt;=180): {livePaintVerify.histogram.mid}</div>
+                    <div>Bright (gray&gt;180): {livePaintVerify.histogram.bright}</div>
+                  </div>
+                </div>
+              )}
+            </div>
+          ) : (
+            <div style={{ fontSize: '9px', color: 'rgba(255,255,255,0.4)', marginTop: '4px', textAlign: 'center' }}>
+              No paint verification run yet. Click above to analyze offscreen canvas.
+            </div>
+          )}
+        </div>
+
         {/* RECOVERY SECTION */}
         <div style={actionCardStyle}>
           <strong style={{ color: 'rgb(216, 180, 254)', fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
             Hub Recovery Controls
           </strong>
-          <div style={{ display: 'flex', gap: '8px', marginTop: '4px' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', marginTop: '4px' }}>
+            <div style={{ display: 'flex', gap: '6px' }}>
+              <button
+                onClick={handleForceWebViewRepaint}
+                style={{
+                  flex: 1,
+                  background: 'rgba(168, 85, 247, 0.25)',
+                  border: '1px solid rgb(168, 85, 247)',
+                  color: '#fff',
+                  padding: '8px 10px',
+                  borderRadius: '6px',
+                  fontSize: '9.5px',
+                  fontWeight: 'bold',
+                  cursor: 'pointer',
+                }}
+              >
+                Force WebView Repaint
+              </button>
+              <button
+                onClick={handleForceFullHubRebuild}
+                style={{
+                  flex: 1,
+                  background: 'rgba(239, 68, 68, 0.25)',
+                  border: '1px solid rgb(239, 68, 68)',
+                  color: '#fff',
+                  padding: '8px 10px',
+                  borderRadius: '6px',
+                  fontSize: '9.5px',
+                  fontWeight: 'bold',
+                  cursor: 'pointer',
+                }}
+              >
+                Force Full Hub Rebuild
+              </button>
+            </div>
+            
             <button
-              onClick={handleVisualRepaintClick}
+              onClick={handleForceWebViewRefreshLayer}
               style={{
-                flex: 1,
-                background: 'rgba(168, 85, 247, 0.25)',
-                border: '1px solid rgb(168, 85, 247)',
+                width: '100%',
+                background: 'rgba(56, 189, 248, 0.25)',
+                border: '1px solid rgb(56, 189, 248)',
                 color: '#fff',
                 padding: '8px 10px',
                 borderRadius: '6px',
-                fontSize: '10px',
+                fontSize: '9.5px',
                 fontWeight: 'bold',
                 cursor: 'pointer',
               }}
             >
-              Visual Repaint Recovery
-            </button>
-            <button
-              onClick={handleNuclearRecoveryClick}
-              style={{
-                flex: 1,
-                background: 'rgba(239, 68, 68, 0.25)',
-                border: '1px solid rgb(239, 68, 68)',
-                color: '#fff',
-                padding: '8px 10px',
-                borderRadius: '6px',
-                fontSize: '10px',
-                fontWeight: 'bold',
-                cursor: 'pointer',
-              }}
-            >
-              Nuclear Recovery
+              Force WebView Refresh Layer
             </button>
           </div>
           
           <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', borderTop: '1px solid rgba(255, 255, 255, 0.06)', paddingTop: '6px', marginTop: '4px', fontSize: '9px', color: 'rgba(255,255,255,0.5)' }}>
             <div>
               Repaint Log: {visualRepaintsLog.length > 0 ? (
-                <>
-                  {formatTime(visualRepaintsLog[visualRepaintsLog.length - 1].timestamp)} |{' '}
-                  <span style={{ color: visualRepaintsLog[visualRepaintsLog.length - 1].success ? '#10b981' : '#ef4444', fontWeight: 'bold' }}>
-                    {visualRepaintsLog[visualRepaintsLog.length - 1].success ? 'SUCCESS (Visible)' : 'FAILED (' + (visualRepaintsLog[visualRepaintsLog.length - 1].reason || 'Still Blocked') + ')'}
-                  </span>
-                </>
+                (() => {
+                  const entry = visualRepaintsLog[visualRepaintsLog.length - 1];
+                  return (
+                    <>
+                      {formatTime(entry.timestamp)} [{entry.action}] |{' '}
+                      <span style={{ color: entry.success ? '#10b981' : '#ef4444', fontWeight: 'bold' }}>
+                        {entry.success ? 'SUCCESS' : 'FAILED'} ({entry.paintData?.paintState || 'Unknown'}, {entry.paintData?.blackPercent !== undefined ? `${entry.paintData.blackPercent}% black` : ''})
+                      </span>
+                    </>
+                  );
+                })()
               ) : 'No repaint run logged'}
             </div>
             <div>
               Nuclear Log: {nuclearRecoveriesLog.length > 0 ? (
-                <>
-                  {formatTime(nuclearRecoveriesLog[nuclearRecoveriesLog.length - 1].timestamp)} |{' '}
-                  <span style={{ color: nuclearRecoveriesLog[nuclearRecoveriesLog.length - 1].success ? '#10b981' : '#ef4444', fontWeight: 'bold' }}>
-                    {nuclearRecoveriesLog[nuclearRecoveriesLog.length - 1].success ? 'SUCCESS (Visible)' : 'FAILED (' + (nuclearRecoveriesLog[nuclearRecoveriesLog.length - 1].reason || 'Still Blocked') + ')'}
-                  </span>
-                </>
+                (() => {
+                  const entry = nuclearRecoveriesLog[nuclearRecoveriesLog.length - 1];
+                  return (
+                    <>
+                      {formatTime(entry.timestamp)} |{' '}
+                      <span style={{ color: entry.success ? '#10b981' : '#ef4444', fontWeight: 'bold' }}>
+                        {entry.success ? 'SUCCESS' : 'FAILED'} ({entry.paintData?.paintState || 'Unknown'}, {entry.paintData?.blackPercent !== undefined ? `${entry.paintData.blackPercent}% black` : ''})
+                      </span>
+                    </>
+                  );
+                })()
               ) : 'No nuclear recovery run logged'}
             </div>
           </div>
@@ -2467,6 +2607,22 @@ page:  (${webViewDiag.visualViewport.pageLeft}, ${webViewDiag.visualViewport.pag
                       
                       return renderDiffRow(`Point: ${pt} (${leftPt?.point || '?'})`, leftVal, rightVal, `probe-${pt}`);
                     })}
+
+                    {/* Paint Verification */}
+                    <tr style={{ background: 'rgba(168, 85, 247, 0.04)', borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
+                      <td colSpan={3} style={{ padding: '6px 8px', fontWeight: 'bold', color: 'rgb(216, 180, 254)' }}>PAINT VERIFICATION (html2canvas)</td>
+                    </tr>
+                    {renderDiffRow('DOM State', leftSnapshot?.paintVerification?.domExists !== undefined ? (leftSnapshot.paintVerification.domExists ? 'Exists' : 'Missing') : 'N/A', rightSnapshot?.paintVerification?.domExists !== undefined ? (rightSnapshot.paintVerification.domExists ? 'Exists' : 'Missing') : 'N/A')}
+                    {renderDiffRow('Paint State', leftSnapshot?.paintVerification?.paintState || 'N/A', rightSnapshot?.paintVerification?.paintState || 'N/A')}
+                    {renderDiffRow('Black Pixels %', leftSnapshot?.paintVerification?.blackPercent !== undefined ? `${leftSnapshot.paintVerification.blackPercent}%` : 'N/A', rightSnapshot?.paintVerification?.blackPercent !== undefined ? `${rightSnapshot.paintVerification.blackPercent}%` : 'N/A')}
+                    {renderDiffRow('Pixel Histogram', 
+                      leftSnapshot?.paintVerification?.histogram ? `B:${leftSnapshot.paintVerification.histogram.black} D:${leftSnapshot.paintVerification.histogram.dark} M:${leftSnapshot.paintVerification.histogram.mid} Br:${leftSnapshot.paintVerification.histogram.bright}` : 'N/A', 
+                      rightSnapshot?.paintVerification?.histogram ? `B:${rightSnapshot.paintVerification.histogram.black} D:${rightSnapshot.paintVerification.histogram.dark} M:${rightSnapshot.paintVerification.histogram.mid} Br:${rightSnapshot.paintVerification.histogram.bright}` : 'N/A'
+                    )}
+                    {renderDiffRow('Visually Black & DOM Exists', 
+                      leftSnapshot?.paintVerification ? String(leftSnapshot.paintVerification.paintState === 'visually_black' && leftSnapshot.paintVerification.domExists) : 'N/A',
+                      rightSnapshot?.paintVerification ? String(rightSnapshot.paintVerification.paintState === 'visually_black' && rightSnapshot.paintVerification.domExists) : 'N/A'
+                    )}
 
                     {/* DOM Bounds audit */}
                     <tr style={{ background: 'rgba(168, 85, 247, 0.04)', borderBottom: '1px solid rgba(255,255,255,0.04)' }}>

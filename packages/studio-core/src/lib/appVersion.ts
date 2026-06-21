@@ -26,7 +26,7 @@ import { useMemo } from 'react';
 import { Capacitor } from '@capacitor/core';
 
 /** Canonical semver string used by the OTA comparator. */
-export const NATIVE_VERSION = '3.6.64';
+export const NATIVE_VERSION = '3.6.65';
 export const WEB_VERSION = '4.0.0';
 export const APP_VERSION = Capacitor.isNativePlatform() ? NATIVE_VERSION : WEB_VERSION;
 
@@ -61,10 +61,12 @@ export const APP_CHANGELOG_SECTIONS: ChangelogSection[] = [
   {
     heading: "Added",
     items: [
-      "Added pixel-level visibility probes to detect screen rendering freezes.",
-      "Added WebView computed layout, compositing, and layer count diagnostics.",
-      "Added Visual Repaint Recovery and React Nuclear Remount actions.",
-      "Upgraded Navigation Forensics with timing snapshot comparison dropdowns.",
+      "Added Paint Verification using html2canvas to Navigation Forensics.",
+      "Added Force WebView Repaint recovery action with multiple visual repaint cycles.",
+      "Added Force Full Hub Rebuild recovery action to remount the Hub subtree with a new React key.",
+      "Added Force WebView Refresh Layer compositor invalidation recovery action.",
+      "Added automated timing forensic snapshots at LEAVING_CHORDEX, ENTERING_HUB, T+500ms, and T+2000ms.",
+      "Integrated paint validation into the 1200ms return watchdog to detect and record compositor freeze errors automatically.",
     ],
   },
 ];

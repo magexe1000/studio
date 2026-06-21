@@ -43,6 +43,7 @@ import {
 
 import { BottomNav, StageCorePanel } from '@workspace/ui-android';
 import { Capacitor } from '@capacitor/core';
+import html2canvas from 'html2canvas';
 
 import "./index.css";
 
@@ -324,6 +325,100 @@ function takeForensicSnapshot(stage: string) {
   };
 }
 
+async function runPaintVerification() {
+  const el = document.querySelector('[data-livex-hub-root="true"]') || document.getElementById('root');
+  if (!el) {
+    return {
+      domExists: false,
+      paintState: 'error',
+      blackPercent: 0,
+      histogram: { black: 0, dark: 0, mid: 0, bright: 0 },
+      totalPixels: 0
+    };
+  }
+
+  try {
+    const canvas = await html2canvas(el as HTMLElement, {
+      logging: false,
+      useCORS: true,
+      scale: 0.5
+    });
+    const ctx = canvas.getContext('2d');
+    if (!ctx) {
+      throw new Error('Could not get canvas context');
+    }
+    const imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+    const data = imgData.data;
+    
+    let blackCount = 0;
+    let darkCount = 0;
+    let midCount = 0;
+    let brightCount = 0;
+    const total = canvas.width * canvas.height;
+    
+    for (let i = 0; i < data.length; i += 4) {
+      const r = data[i];
+      const g = data[i+1];
+      const b = data[i+2];
+      
+      const gray = Math.round(0.299 * r + 0.587 * g + 0.114 * b);
+      
+      if (r < 15 && g < 15 && b < 15) {
+        blackCount++;
+      }
+      
+      if (gray <= 15) {
+        // already counted in black
+      } else if (gray <= 64) {
+        darkCount++;
+      } else if (gray <= 180) {
+        midCount++;
+      } else {
+        brightCount++;
+      }
+    }
+    
+    const blackPercent = total > 0 ? Math.round((blackCount / total) * 100) : 0;
+    const isVisuallyBlack = blackPercent > 98;
+    
+    return {
+      domExists: true,
+      paintState: isVisuallyBlack ? 'visually_black' : 'painted',
+      blackPercent,
+      histogram: {
+        black: blackCount,
+        dark: darkCount,
+        mid: midCount,
+        bright: brightCount
+      },
+      totalPixels: total
+    };
+  } catch (err) {
+    console.error('Paint verification failed:', err);
+    return {
+      domExists: true,
+      paintState: 'error',
+      blackPercent: 0,
+      histogram: { black: 0, dark: 0, mid: 0, bright: 0 },
+      totalPixels: 0
+    };
+  }
+}
+
+function updateForensicSnapshotPaint(captureId: number, key: string, paintData: any) {
+  try {
+    const listStr = localStorage.getItem('studio_forensic_captures') || '[]';
+    const list = JSON.parse(listStr);
+    const index = list.findIndex((c: any) => c.id === captureId);
+    if (index !== -1 && list[index].snapshots && list[index].snapshots[key]) {
+      list[index].snapshots[key].paintVerification = paintData;
+      localStorage.setItem('studio_forensic_captures', JSON.stringify(list));
+    }
+  } catch (e) {
+    console.error('Failed to update forensic snapshot paint data', e);
+  }
+}
+
 function saveForensicCaptureStructure(id: number, t0Snapshot: any) {
   try {
     const listStr = localStorage.getItem('studio_forensic_captures') || '[]';
@@ -333,7 +428,7 @@ function saveForensicCaptureStructure(id: number, t0Snapshot: any) {
       id,
       timestamp: Date.now(),
       snapshots: {
-        'T+0ms': t0Snapshot
+        'LEAVING_CHORDEX': t0Snapshot
       },
       result: 'pending',
       reason: ''
@@ -371,144 +466,175 @@ export default function App() {
   const [hubRenderKey, setHubRenderKey] = useState(0);
   const [showHub, setShowHub] = useState(true);
 
-  const runVisualRepaintRecovery = useCallback(() => {
-    console.warn('[Diagnostics] Visual Repaint Recovery triggered.');
+  const runForceWebViewRepaint = useCallback(() => {
+    console.warn('[Diagnostics] Force WebView Repaint triggered.');
     try {
-      // 1. Force layout getBoundingClientRect on root containers
-      const root = document.getElementById('root');
-      const appContainer = document.querySelector('.app-container');
-      const mainLayout = document.querySelector('.app-main-layout');
-      const hubRoot = document.querySelector('[data-livex-hub-root="true"], #hub-root');
+      const el = document.getElementById('root') || document.body;
+      const originalDisplay = el.style.display;
+      const originalTransform = el.style.transform;
+      const originalOpacity = el.style.opacity;
       
-      if (root) root.getBoundingClientRect();
-      if (appContainer) appContainer.getBoundingClientRect();
-      if (mainLayout) mainLayout.getBoundingClientRect();
-      if (hubRoot) hubRoot.getBoundingClientRect();
+      // A. Opacity toggle
+      el.style.opacity = '0.99';
+      // B. Display toggle
+      el.style.display = 'none';
+      document.body.offsetHeight; // force reflow
       
-      // 2. Force reflow
-      const bodyReflow = document.body.offsetHeight;
-      
-      // 3. Force repaint: toggle display, visibility, opacity, and transform
-      const elsToToggle = [document.documentElement, document.body, root, appContainer, mainLayout, hubRoot].filter(Boolean) as HTMLElement[];
-      
-      // Save original values
-      const originals = elsToToggle.map(el => ({
-        el,
-        display: el.style.display,
-        visibility: el.style.visibility,
-        opacity: el.style.opacity,
-        transform: el.style.transform
-      }));
-      
-      // Toggle to trigger repaint invalidation
-      originals.forEach(({ el }) => {
-        el.style.display = 'none';
-        el.style.visibility = 'hidden';
-        el.style.opacity = '0.99';
+      // C. requestAnimationFrame repaint sequence
+      requestAnimationFrame(() => {
+        el.style.display = originalDisplay || 'block';
+        el.style.opacity = '0.999';
         el.style.transform = 'translateZ(0)';
+        document.body.offsetHeight;
+        
+        requestAnimationFrame(() => {
+          el.style.opacity = originalOpacity || '1';
+          el.style.transform = originalTransform || 'none';
+          document.body.offsetHeight;
+          
+          // D. Dispatch events
+          window.dispatchEvent(new Event('resize'));
+          window.dispatchEvent(new Event('orientationchange'));
+        });
       });
       
-      // Force reflow while in toggled state
-      document.body.offsetHeight;
-      
-      // Restore original values
-      originals.forEach(({ el, display, visibility, opacity, transform }) => {
-        el.style.display = display;
-        el.style.visibility = visibility;
-        el.style.opacity = opacity || '1';
-        el.style.transform = transform;
-      });
-      
-      // Force final reflow
-      document.body.offsetHeight;
-      
-      // Log whether Hub becomes visible afterward
+      // Log status
       setTimeout(() => {
         try {
-          const statePayload = (window as any).__captureBlackScreenState?.();
-          const success = !!(statePayload?.hubActuallyPainted && statePayload?.hub?.visible && statePayload?.hub?.mounted);
-          
-          const logStr = localStorage.getItem('studio_visual_repaints_log') || '[]';
-          const log = JSON.parse(logStr);
-          log.push({
-            timestamp: Date.now(),
-            success,
-            reason: success ? 'recovered' : 'still_blocked',
-            payload: statePayload
+          runPaintVerification().then(paintData => {
+            const success = paintData.paintState === 'painted';
+            const logStr = localStorage.getItem('studio_visual_repaints_log') || '[]';
+            const log = JSON.parse(logStr);
+            log.push({
+              timestamp: Date.now(),
+              action: 'force_repaint',
+              success,
+              paintData
+            });
+            if (log.length > 20) log.shift();
+            localStorage.setItem('studio_visual_repaints_log', JSON.stringify(log));
           });
-          if (log.length > 20) log.shift();
-          localStorage.setItem('studio_visual_repaints_log', JSON.stringify(log));
-        } catch (err) {
-          console.error('Failed to log visual repaint status', err);
-        }
+        } catch (_) {}
       }, 150);
-      
     } catch (e) {
-      console.error('Visual Repaint Recovery failed', e);
+      console.error('Force WebView Repaint failed:', e);
     }
   }, []);
 
-  const runNuclearRecovery = useCallback(() => {
-    console.warn('[Diagnostics] Nuclear Recovery triggered.');
+  const runForceFullHubRebuild = useCallback(() => {
+    console.warn('[Diagnostics] Force Full Hub Rebuild triggered.');
     
-    // 1. Reset transition locks and subapp wrapper lingering elements
+    // Reset transition locks and subapp wrappers
     try {
       document.querySelectorAll('.sc-subapp-wrapper').forEach(el => {
         el.remove();
       });
     } catch (_) {}
 
-    // 2. Briefly unmount the hub shell
     flushSync(() => {
       setTransitionActive(false);
       setShowHub(false);
     });
 
-    // 3. Remount the hub shell shortly after
     setTimeout(() => {
       flushSync(() => {
         setHubRenderKey(k => k + 1);
         setShowHub(true);
       });
 
-      // 4. Log nuclear recovery status
+      // Log full rebuild status
       setTimeout(() => {
         try {
-          const statePayload = (window as any).__captureBlackScreenState?.();
-          const success = !!(statePayload?.hubActuallyPainted && statePayload?.hub?.visible && statePayload?.hub?.mounted);
-          
-          const logStr = localStorage.getItem('studio_nuclear_recoveries_log') || '[]';
-          const log = JSON.parse(logStr);
-          log.push({
-            timestamp: Date.now(),
-            success,
-            reason: success ? 'recovered' : 'still_blocked',
-            payload: statePayload
+          runPaintVerification().then(paintData => {
+            const success = paintData.paintState === 'painted';
+            const logStr = localStorage.getItem('studio_nuclear_recoveries_log') || '[]';
+            const log = JSON.parse(logStr);
+            log.push({
+              timestamp: Date.now(),
+              action: 'full_rebuild',
+              success,
+              paintData
+            });
+            if (log.length > 20) log.shift();
+            localStorage.setItem('studio_nuclear_recoveries_log', JSON.stringify(log));
           });
-          if (log.length > 20) log.shift();
-          localStorage.setItem('studio_nuclear_recoveries_log', JSON.stringify(log));
-        } catch (err) {
-          console.error('Failed to log nuclear recovery status', err);
-        }
+        } catch (_) {}
       }, 150);
-    }, 20);
+    }, 50);
 
   }, []);
 
+  const runForceWebViewRefreshLayer = useCallback(() => {
+    console.warn('[Diagnostics] Force WebView Refresh Compositor Layer triggered.');
+    try {
+      const el = document.documentElement;
+      
+      // Toggle compositing triggers on HTML element
+      const originalWillChange = el.style.willChange;
+      const originalFilter = el.style.filter;
+      const originalTransform = el.style.transform;
+      
+      el.style.willChange = 'transform, opacity';
+      el.style.filter = 'blur(0.01px)';
+      el.style.transform = 'translate3d(0, 0, 0)';
+      
+      document.body.offsetHeight; // force reflow
+      
+      requestAnimationFrame(() => {
+        el.style.willChange = originalWillChange;
+        el.style.filter = originalFilter;
+        el.style.transform = originalTransform;
+        document.body.offsetHeight;
+      });
+      
+      // Log status
+      setTimeout(() => {
+        try {
+          runPaintVerification().then(paintData => {
+            const success = paintData.paintState === 'painted';
+            const logStr = localStorage.getItem('studio_visual_repaints_log') || '[]';
+            const log = JSON.parse(logStr);
+            log.push({
+              timestamp: Date.now(),
+              action: 'refresh_layer',
+              success,
+              paintData
+            });
+            if (log.length > 20) log.shift();
+            localStorage.setItem('studio_visual_repaints_log', JSON.stringify(log));
+          });
+        } catch (_) {}
+      }, 150);
+    } catch (e) {
+      console.error('Force WebView Refresh Layer failed:', e);
+    }
+  }, []);
+
   useEffect(() => {
-    (window as any).runVisualRepaintRecovery = runVisualRepaintRecovery;
-    (window as any).runNuclearRecovery = runNuclearRecovery;
-    (window as any).forceHubRepaint = runVisualRepaintRecovery; // backwards compatibility
+    (window as any).runPaintVerification = runPaintVerification;
+    (window as any).runForceWebViewRepaint = runForceWebViewRepaint;
+    (window as any).runForceFullHubRebuild = runForceFullHubRebuild;
+    (window as any).runForceWebViewRefreshLayer = runForceWebViewRefreshLayer;
+    
+    // Backwards compatibility mappings
+    (window as any).runVisualRepaintRecovery = runForceWebViewRepaint;
+    (window as any).runNuclearRecovery = runForceFullHubRebuild;
+    (window as any).forceHubRepaint = runForceWebViewRepaint;
     (window as any).__forceRemountHub = () => {
       setHubRenderKey(k => k + 1);
     };
+
     return () => {
+      delete (window as any).runPaintVerification;
+      delete (window as any).runForceWebViewRepaint;
+      delete (window as any).runForceFullHubRebuild;
+      delete (window as any).runForceWebViewRefreshLayer;
       delete (window as any).runVisualRepaintRecovery;
       delete (window as any).runNuclearRecovery;
       delete (window as any).forceHubRepaint;
       delete (window as any).__forceRemountHub;
     };
-  }, [runVisualRepaintRecovery, runNuclearRecovery]);
+  }, [runForceWebViewRepaint, runForceFullHubRebuild, runForceWebViewRefreshLayer]);
 
   // Cold Start App Restore Bug: Reset appMode to settings.startupApp || 'hub' if restoreLastSession is false
   useEffect(() => {
@@ -774,29 +900,51 @@ export default function App() {
         const lastCaptureId = Date.now();
         (window as any).__lastForensicCaptureId = lastCaptureId;
         
-        // Take T+0ms snapshot immediately
-        const t0Snapshot = takeForensicSnapshot('T+0ms');
+        // 1. Capture LEAVING_CHORDEX immediately (T+0ms)
+        const t0Snapshot = takeForensicSnapshot('LEAVING_CHORDEX');
         saveForensicCaptureStructure(lastCaptureId, t0Snapshot);
+        runPaintVerification().then(paintData => {
+          updateForensicSnapshotPaint(lastCaptureId, 'LEAVING_CHORDEX', paintData);
+        }).catch(() => {});
         
-        // Schedule subsequent timeline snapshots
-        const offsets = [
-          { label: 'T+100ms', ms: 100 },
-          { label: 'T+250ms', ms: 250 },
-          { label: 'T+500ms', ms: 500 },
-          { label: 'T+1000ms', ms: 1000 },
-          { label: 'T+2000ms', ms: 2000 }
-        ];
-        
-        offsets.forEach(offset => {
-          setTimeout(() => {
-            try {
-              const snap = takeForensicSnapshot(offset.label);
-              appendForensicSnapshot(lastCaptureId, offset.label, snap);
-            } catch (err) {
-              console.error(`Failed to take snapshot at ${offset.label}`, err);
-            }
-          }, offset.ms);
-        });
+        // 2. Capture ENTERING_HUB immediately after entering (T+100ms)
+        setTimeout(() => {
+          try {
+            const snap = takeForensicSnapshot('ENTERING_HUB');
+            appendForensicSnapshot(lastCaptureId, 'ENTERING_HUB', snap);
+            runPaintVerification().then(paintData => {
+              updateForensicSnapshotPaint(lastCaptureId, 'ENTERING_HUB', paintData);
+            }).catch(() => {});
+          } catch (err) {
+            console.error('Failed taking ENTERING_HUB snapshot', err);
+          }
+        }, 100);
+
+        // 3. Capture T+500ms (500ms later)
+        setTimeout(() => {
+          try {
+            const snap = takeForensicSnapshot('T+500ms');
+            appendForensicSnapshot(lastCaptureId, 'T+500ms', snap);
+            runPaintVerification().then(paintData => {
+              updateForensicSnapshotPaint(lastCaptureId, 'T+500ms', paintData);
+            }).catch(() => {});
+          } catch (err) {
+            console.error('Failed taking T+500ms snapshot', err);
+          }
+        }, 500);
+
+        // 4. Capture T+2000ms (2000ms later)
+        setTimeout(() => {
+          try {
+            const snap = takeForensicSnapshot('T+2000ms');
+            appendForensicSnapshot(lastCaptureId, 'T+2000ms', snap);
+            runPaintVerification().then(paintData => {
+              updateForensicSnapshotPaint(lastCaptureId, 'T+2000ms', paintData);
+            }).catch(() => {});
+          } catch (err) {
+            console.error('Failed taking T+2000ms snapshot', err);
+          }
+        }, 2000);
         
       } catch (err) {
         console.error('Forensics: Failed to start multi-snapshot captures', err);
@@ -1393,81 +1541,106 @@ export default function App() {
         }
       }
 
-      if (isBlocked) {
-        diag.failedReturns++;
-        diag.blackScreenDetections++;
-        diag.lastBlocker = reason;
-        diag.lastPayload = statePayload;
-        
-        console.error('BLACK_SCREEN_DETECTED', reason, statePayload);
-        
-        diag.history.push({
-          time: Date.now(),
-          reason,
-          payload: statePayload
-        });
-
-        try {
-          localStorage.setItem('studio_black_screen_diagnostics', JSON.stringify(diag));
-        } catch (_) {}
-
-        // Failsafe: auto open the emergency debug overlay
-        if (typeof (window as any).__openEmergencyOverlay === 'function') {
-          (window as any).__openEmergencyOverlay();
-        }
-
-        if (reason === 'HUB_ROOT_MISSING') {
-          console.warn('[Failsafe] HUB_ROOT_MISSING detected! Running deterministic Hub remount.');
-          const actualFrom = previousAppModeRef.current || 'none';
-          flushSync(() => {
-            setHubRenderKey(k => k + 1);
-            setTransitionActive(false);
-            lastActiveAppRef.current = 'chords';
-            useChordStore.getState().updateSettings({ appMode: 'hub' });
+      const runWatchdogVerdict = (finalBlocked: boolean, finalReason: string, paintData?: any) => {
+        if (finalBlocked) {
+          diag.failedReturns++;
+          diag.blackScreenDetections++;
+          diag.lastBlocker = finalReason;
+          diag.lastPayload = paintData ? { ...statePayload, paintVerification: paintData } : statePayload;
+          
+          console.error('BLACK_SCREEN_DETECTED', finalReason, statePayload);
+          
+          diag.history.push({
+            time: Date.now(),
+            reason: finalReason,
+            payload: paintData ? { ...statePayload, paintVerification: paintData } : statePayload
           });
-          (window as any).__navigationTraceHistory = (window as any).__navigationTraceHistory || [];
-          (window as any).__navigationTraceHistory.push({
-            fromApp: actualFrom,
-            toApp: 'hub',
-            timestamp: Date.now(),
-            transitionDuration: 0,
-            lockState: false,
-            recoveredViaFailsafe: true
-          });
-          recordNavigation({
-            fromApp: actualFrom,
-            toApp: 'hub',
-            hubMounted: true,
-            activeAppAfterTransition: 'hub',
-            transitionLockState: false,
-            fallbackRendered: false,
-            recoveredViaFailsafe: true
-          } as any);
-        }
-      }
 
-      // Resolve the forensic capture matching the current return attempt
-      const lastCapId = (window as any).__lastForensicCaptureId;
-      if (lastCapId) {
-        try {
-          const listStr = localStorage.getItem('studio_forensic_captures') || '[]';
-          const list = JSON.parse(listStr);
-          const index = list.findIndex((c: any) => c.id === lastCapId);
-          if (index !== -1) {
-            list[index].result = isBlocked ? 'failed' : 'success';
-            list[index].reason = isBlocked ? reason : '';
-            localStorage.setItem('studio_forensic_captures', JSON.stringify(list));
-            
-            // Also store individual last successful or failed capture
-            if (isBlocked) {
-              localStorage.setItem('studio_forensic_last_failed', JSON.stringify(list[index]));
-            } else {
-              localStorage.setItem('studio_forensic_last_successful', JSON.stringify(list[index]));
-            }
+          try {
+            localStorage.setItem('studio_black_screen_diagnostics', JSON.stringify(diag));
+          } catch (_) {}
+
+          // Failsafe: auto open the emergency debug overlay
+          if (typeof (window as any).__openEmergencyOverlay === 'function') {
+            (window as any).__openEmergencyOverlay();
           }
-        } catch (e) {
-          console.error('Forensics: Error updating capture result', e);
+
+          if (finalReason === 'HUB_ROOT_MISSING') {
+            console.warn('[Failsafe] HUB_ROOT_MISSING detected! Running deterministic Hub remount.');
+            const actualFrom = previousAppModeRef.current || 'none';
+            flushSync(() => {
+              setHubRenderKey(k => k + 1);
+              setTransitionActive(false);
+              lastActiveAppRef.current = 'chords';
+              useChordStore.getState().updateSettings({ appMode: 'hub' });
+            });
+            (window as any).__navigationTraceHistory = (window as any).__navigationTraceHistory || [];
+            (window as any).__navigationTraceHistory.push({
+              fromApp: actualFrom,
+              toApp: 'hub',
+              timestamp: Date.now(),
+              transitionDuration: 0,
+              lockState: false,
+              recoveredViaFailsafe: true
+            });
+            recordNavigation({
+              fromApp: actualFrom,
+              toApp: 'hub',
+              hubMounted: true,
+              activeAppAfterTransition: 'hub',
+              transitionLockState: false,
+              fallbackRendered: false,
+              recoveredViaFailsafe: true
+            } as any);
+          }
         }
+
+        // Resolve the forensic capture matching the current return attempt
+        const lastCapId = (window as any).__lastForensicCaptureId;
+        if (lastCapId) {
+          try {
+            const listStr = localStorage.getItem('studio_forensic_captures') || '[]';
+            const list = JSON.parse(listStr);
+            const index = list.findIndex((c: any) => c.id === lastCapId);
+            if (index !== -1) {
+              list[index].result = finalBlocked ? 'failed' : 'success';
+              list[index].reason = finalBlocked ? finalReason : '';
+              if (paintData) {
+                list[index].watchdogPaintVerification = paintData;
+              }
+              localStorage.setItem('studio_forensic_captures', JSON.stringify(list));
+              
+              // Also store individual last successful or failed capture
+              if (finalBlocked) {
+                localStorage.setItem('studio_forensic_last_failed', JSON.stringify(list[index]));
+              } else {
+                localStorage.setItem('studio_forensic_last_successful', JSON.stringify(list[index]));
+              }
+            }
+          } catch (e) {
+            console.error('Forensics: Error updating capture result', e);
+          }
+        }
+      };
+
+      // Perform paint verification to check if the screen is visually black even though DOM says it's visible
+      if (!isBlocked) {
+        runPaintVerification().then(paintData => {
+          const isVisuallyBlack = paintData.paintState === 'visually_black';
+          const domExists = paintData.domExists;
+          const visuallyBlackAndDomExists = isVisuallyBlack && domExists;
+          
+          if (visuallyBlackAndDomExists) {
+            runWatchdogVerdict(true, 'COMPOSITOR_FREEZE', paintData);
+          } else {
+            runWatchdogVerdict(false, '', paintData);
+          }
+        }).catch(err => {
+          console.error('Watchdog paint verification failed:', err);
+          runWatchdogVerdict(false, '');
+        });
+      } else {
+        runWatchdogVerdict(true, reason);
       }
     }, 1200);
 
