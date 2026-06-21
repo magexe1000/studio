@@ -12,6 +12,12 @@ Conventions:
 - Bullets start with `- ` and use plain English a non-technical user
   can parse. Keep each line short — the modal's text area is narrow.
 
+## 3.6.57
+
+### Added
+- Added advanced WebView diagnostics for black screen analysis.
+- Added automatic localStorage persistence for watchdog trace reports.
+
 ## 3.6.56
 
 ### Added
