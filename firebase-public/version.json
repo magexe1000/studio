@@ -1,23 +1,20 @@
 {
-  "platform": "android",
-  "version": "3.6.60",
-  "versionName": "3.6.60",
-  "versionCode": 87,
-  "version_code": 87,
-  "commit": "50605034",
-  "releasedAt": "6/21/2026, 1:46:00 PM CST",
-  "buildTimestamp": "6/21/2026, 1:46:00 PM CST",
+  "platform": "web",
+  "version": "4.0.0",
+  "commit": "c67140cf",
+  "releasedAt": "6/21/2026, 12:00:00 AM CST",
+  "buildTimestamp": "6/21/2026, 12:00:00 AM CST",
   "updateMode": "refresh",
-  "changelog": "• Mounted emergency debug overlay outside the main React root via React Portal.\n• Added always-visible DBG button and failsafe quick recovery panel.\n• Implemented window.__emergencyOverlayHealthCheck() layout stacking audits.\n• Added simulated black screen layer tool to verify diagnostic recovery.",
-  "whatsNew": "• Mounted emergency debug overlay outside the main React root via React Portal.\n• Added always-visible DBG button and failsafe quick recovery panel.\n• Implemented window.__emergencyOverlayHealthCheck() layout stacking audits.\n• Added simulated black screen layer tool to verify diagnostic recovery.",
+  "description": "• Upgraded Black Screen Forensics telemetry with elementsFromPoint stacks, fullscreen overlay scanning, and React component fiber audits.\n• Added one-click copy forensics report and filtered DOM snapshot buttons to the debug overlay.\n• Added force fullscreen overlay removal and force hub visibility recovery controls.\n• Fixed Stagex landscape viewport squashing layout mapping offsets.\n• Expanded Stagex scene selection, add, and delete touch targets to a minimum of 48dp x 48dp.",
+  "whatsNew": "• Upgraded Black Screen Forensics telemetry with elementsFromPoint stacks, fullscreen overlay scanning, and React component fiber audits.\n• Added one-click copy forensics report and filtered DOM snapshot buttons to the debug overlay.\n• Added force fullscreen overlay removal and force hub visibility recovery controls.\n• Fixed Stagex landscape viewport squashing layout mapping offsets.\n• Expanded Stagex scene selection, add, and delete touch targets to a minimum of 48dp x 48dp.",
+  "changelog": "• Upgraded Black Screen Forensics telemetry with elementsFromPoint stacks, fullscreen overlay scanning, and React component fiber audits.\n• Added one-click copy forensics report and filtered DOM snapshot buttons to the debug overlay.\n• Added force fullscreen overlay removal and force hub visibility recovery controls.\n• Fixed Stagex landscape viewport squashing layout mapping offsets.\n• Expanded Stagex scene selection, add, and delete touch targets to a minimum of 48dp x 48dp.",
   "releaseNotes": {
-    "added": [
-      "Added always-visible DBG button and failsafe quick recovery panel.",
-      "Implemented window.__emergencyOverlayHealthCheck() layout stacking audits.",
-      "Added simulated black screen layer tool to verify diagnostic recovery."
-    ],
     "fixed": [
-      "Mounted emergency debug overlay outside the main React root via React Portal."
+      "Upgraded Black Screen Forensics telemetry with elementsFromPoint stacks, fullscreen overlay scanning, and React component fiber audits.",
+      "Added one-click copy forensics report and filtered DOM snapshot buttons to the debug overlay.",
+      "Added force fullscreen overlay removal and force hub visibility recovery controls.",
+      "Fixed Stagex landscape viewport squashing layout mapping offsets.",
+      "Expanded Stagex scene selection, add, and delete touch targets to a minimum of 48dp x 48dp."
     ]
   },
   "mandatory": false
