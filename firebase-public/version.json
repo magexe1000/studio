@@ -1,24 +1,21 @@
 {
   "platform": "android",
-  "version": "3.6.56",
-  "versionName": "3.6.56",
-  "versionCode": 83,
-  "version_code": 83,
-  "commit": "7955cea3",
-  "releasedAt": "6/20/2026, 3:04:00 PM CST",
-  "buildTimestamp": "6/20/2026, 3:04:00 PM CST",
+  "version": "3.6.57",
+  "versionName": "3.6.57",
+  "versionCode": 84,
+  "version_code": 84,
+  "commit": "7fe6d692",
+  "releasedAt": "6/20/2026, 6:39:00 PM CST",
+  "buildTimestamp": "6/20/2026, 6:39:00 PM CST",
   "updateMode": "refresh",
-  "changelog": "• Implemented CSS exit fail-safe class and pointer-events none target rule to fix Chordex-to-Hub returning black screens.\n• Added 3D GPU layer promotion to invalidate WebView compositor hit-testing and align landscape scene touches instantly.\n• Enlarged concentric touch targets for add/close buttons to 44x44px and optimized scenes bar CSS.\n• Exposed hit-testing debug outlines and enhanced Developer Tools diagnostic reports.",
-  "whatsNew": "• Implemented CSS exit fail-safe class and pointer-events none target rule to fix Chordex-to-Hub returning black screens.\n• Added 3D GPU layer promotion to invalidate WebView compositor hit-testing and align landscape scene touches instantly.\n• Enlarged concentric touch targets for add/close buttons to 44x44px and optimized scenes bar CSS.\n• Exposed hit-testing debug outlines and enhanced Developer Tools diagnostic reports.",
+  "changelog": "• Added advanced WebView diagnostics for black screen analysis.\n• Added automatic localStorage persistence for watchdog trace reports.",
+  "whatsNew": "• Added advanced WebView diagnostics for black screen analysis.\n• Added automatic localStorage persistence for watchdog trace reports.",
   "releaseNotes": {
     "added": [
-      "Exposed Stagex scene hit-testing debug outline mode under Developer Tools."
+      "Added advanced WebView diagnostics for black screen analysis.",
+      "Added automatic localStorage persistence for watchdog trace reports."
     ],
-    "fixed": [
-      "Implemented CSS exit fail-safe and pointer-events rule to resolve Hub return black screen.",
-      "Promoted Stagex iframe to 3D GPU layer in landscape mode to synchronize WebView hit-testing boundaries instantly.",
-      "Enlarged transparent concentric border hitboxes of close and add buttons to a full 44x44px standard target."
-    ]
+    "fixed": []
   },
   "mandatory": false
 }
