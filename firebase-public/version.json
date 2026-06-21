@@ -4,18 +4,20 @@
   "versionName": "3.6.57",
   "versionCode": 84,
   "version_code": 84,
-  "commit": "7fe6d692",
-  "releasedAt": "6/20/2026, 6:39:00 PM CST",
-  "buildTimestamp": "6/20/2026, 6:39:00 PM CST",
+  "commit": "5b918a87",
+  "releasedAt": "6/20/2026, 7:14:00 PM CST",
+  "buildTimestamp": "6/20/2026, 7:14:00 PM CST",
   "updateMode": "refresh",
-  "changelog": "• Added advanced WebView diagnostics for black screen analysis.\n• Added automatic localStorage persistence for watchdog trace reports.",
-  "whatsNew": "• Added advanced WebView diagnostics for black screen analysis.\n• Added automatic localStorage persistence for watchdog trace reports.",
+  "changelog": "• Fixed Chordex -> Hub return black screen transition lock.\n• Updated watchdog diagnostics to query stable data-livex-hub-root selector.\n• Added advanced WebView diagnostics and localStorage persistence.",
+  "whatsNew": "• Fixed Chordex -> Hub return black screen transition lock.\n• Updated watchdog diagnostics to query stable data-livex-hub-root selector.\n• Added advanced WebView diagnostics and localStorage persistence.",
   "releaseNotes": {
     "added": [
       "Added advanced WebView diagnostics for black screen analysis.",
       "Added automatic localStorage persistence for watchdog trace reports."
     ],
-    "fixed": []
+    "fixed": [
+      "Fixed Chordex -> Hub return black screen transition lock by conditionally remounting Hub component."
+    ]
   },
   "mandatory": false
 }
