@@ -142,7 +142,12 @@ export default function EmergencyDebugOverlay() {
   const [isOpen, setIsOpen] = useState(false);
   const [isPanicMenuOpen, setIsPanicMenuOpen] = useState(false);
   const [isBlackScreenSimulated, setIsBlackScreenSimulated] = useState(false);
-  const [activeTab, setActiveTab] = useState<'status' | 'forensics' | 'blockers' | 'recovery' | 'captures' | 'dom'>('status');
+  const [activeTab, setActiveTab] = useState<'status' | 'forensics' | 'nav_forensics' | 'blockers' | 'recovery' | 'captures' | 'dom'>('status');
+  const [forensicCaptures, setForensicCaptures] = useState<any[]>([]);
+  const [selectedForensicIdx, setSelectedForensicIdx] = useState<number>(0);
+  const [lastSuccessfulForensic, setLastSuccessfulForensic] = useState<any>(null);
+  const [lastFailedForensic, setLastFailedForensic] = useState<any>(null);
+  const [repaintsLog, setRepaintsLog] = useState<any[]>([]);
   
   // Local state for live state updates
   const [tick, setTick] = useState(0);
@@ -358,6 +363,35 @@ export default function EmergencyDebugOverlay() {
         setHubRootMissingCapture(JSON.parse(missing));
       } else {
         setHubRootMissingCapture(null);
+      }
+
+      // Load Navigation Forensics telemetry
+      const forensicsStored = localStorage.getItem('studio_forensic_captures');
+      if (forensicsStored) {
+        setForensicCaptures(JSON.parse(forensicsStored));
+      } else {
+        setForensicCaptures([]);
+      }
+      
+      const lastSuccess = localStorage.getItem('studio_forensic_last_successful');
+      if (lastSuccess) {
+        setLastSuccessfulForensic(JSON.parse(lastSuccess));
+      } else {
+        setLastSuccessfulForensic(null);
+      }
+
+      const lastFailed = localStorage.getItem('studio_forensic_last_failed');
+      if (lastFailed) {
+        setLastFailedForensic(JSON.parse(lastFailed));
+      } else {
+        setLastFailedForensic(null);
+      }
+
+      const repaints = localStorage.getItem('studio_repaints_log');
+      if (repaints) {
+        setRepaintsLog(JSON.parse(repaints));
+      } else {
+        setRepaintsLog([]);
       }
     } catch (_) {}
   }, [isOpen, tick]);
@@ -1941,6 +1975,282 @@ page:  (${webViewDiag.visualViewport.pageLeft}, ${webViewDiag.visualViewport.pag
     );
   };
 
+  const renderDiffRow = (label: string, beforeVal: any, afterVal: any, keyVal?: string) => {
+    const isDiff = String(beforeVal) !== String(afterVal);
+    const rowBg = isDiff ? 'rgba(245, 158, 11, 0.06)' : 'transparent';
+    return (
+      <tr key={keyVal || label} style={{ borderBottom: '1px solid rgba(255,255,255,0.02)', background: rowBg }}>
+        <td style={{ padding: '4px 8px', color: isDiff ? '#f59e0b' : 'rgba(255,255,255,0.7)', fontWeight: isDiff ? 'bold' : 'normal' }}>{label}</td>
+        <td style={{ padding: '4px 8px', color: '#fff', wordBreak: 'break-all' }}>{String(beforeVal)}</td>
+        <td style={{ padding: '4px 8px', color: isDiff ? '#34d399' : '#fff', fontWeight: isDiff ? 'bold' : 'normal', wordBreak: 'break-all' }}>
+          {String(afterVal)}
+          {isDiff && (
+            <span style={{ marginLeft: '4px', fontSize: '7px', background: '#34d399', color: '#000', padding: '1px 3px', borderRadius: '3px', fontWeight: 'bold' }}>
+              DIFF
+            </span>
+          )}
+        </td>
+      </tr>
+    );
+  };
+
+  const renderNavForensicsTab = () => {
+    const activeCapture = forensicCaptures[selectedForensicIdx] || null;
+
+    const statsCardStyle: React.CSSProperties = {
+      display: 'flex',
+      gap: '10px',
+      marginBottom: '14px',
+    };
+
+    const halfCardStyle: React.CSSProperties = {
+      flex: 1,
+      background: 'rgba(255, 255, 255, 0.03)',
+      border: '1px solid rgba(255, 255, 255, 0.08)',
+      borderRadius: '8px',
+      padding: '10px 12px',
+    };
+
+    const actionCardStyle: React.CSSProperties = {
+      background: 'rgba(168, 85, 247, 0.05)',
+      border: '1px solid rgba(168, 85, 247, 0.25)',
+      borderRadius: '8px',
+      padding: '12px',
+      marginBottom: '14px',
+      display: 'flex',
+      flexDirection: 'column',
+      gap: '8px'
+    };
+
+    // Helper to format timestamps nicely
+    const formatTime = (ts?: number) => {
+      if (!ts) return 'N/A';
+      return new Date(ts).toLocaleTimeString() + ' (' + new Date(ts).toLocaleDateString() + ')';
+    };
+
+    // Trigger force hub repaint recovery tool
+    const handleForceRepaintClick = () => {
+      if (typeof (window as any).forceHubRepaint === 'function') {
+        (window as any).forceHubRepaint();
+        setToastMsg('Forcing repaint and reflow...');
+        setTimeout(() => setToastMsg(null), 2500);
+      } else {
+        setToastMsg('Error: forceHubRepaint is not registered on window.');
+        setTimeout(() => setToastMsg(null), 2500);
+      }
+    };
+
+    return (
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+        
+        {/* STATS SECTION */}
+        <div style={statsCardStyle}>
+          <div style={{ ...halfCardStyle, borderLeft: '3px solid #10b981' }}>
+            <div style={{ color: '#10b981', fontWeight: 'bold', fontSize: '10px', textTransform: 'uppercase', marginBottom: '4px' }}>Last Successful Return</div>
+            {lastSuccessfulForensic ? (
+              <div>
+                <div style={{ fontWeight: 'bold' }}>{formatTime(lastSuccessfulForensic.timestamp)}</div>
+                <div style={{ color: 'rgba(255,255,255,0.5)', fontSize: '9px', marginTop: '2px' }}>App Mode: {lastSuccessfulForensic.before?.appMode || 'chords'} → {lastSuccessfulForensic.after?.appMode || 'hub'}</div>
+              </div>
+            ) : (
+              <div style={{ color: 'rgba(255,255,255,0.4)', fontSize: '10px' }}>No successful return captured yet</div>
+            )}
+          </div>
+          
+          <div style={{ ...halfCardStyle, borderLeft: '3px solid #ef4444' }}>
+            <div style={{ color: '#ef4444', fontWeight: 'bold', fontSize: '10px', textTransform: 'uppercase', marginBottom: '4px' }}>Last Failed Return</div>
+            {lastFailedForensic ? (
+              <div>
+                <div style={{ fontWeight: 'bold', color: '#ff8a8a' }}>{formatTime(lastFailedForensic.timestamp)}</div>
+                <div style={{ color: '#f43f5e', fontSize: '9px', fontWeight: 'bold', marginTop: '2px' }}>Reason: {lastFailedForensic.reason || 'Blocked'}</div>
+              </div>
+            ) : (
+              <div style={{ color: 'rgba(255,255,255,0.4)', fontSize: '10px' }}>No failed return captured yet</div>
+            )}
+          </div>
+        </div>
+
+        {/* RECOVERY SECTION */}
+        <div style={actionCardStyle}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <div>
+              <strong style={{ color: 'rgb(216, 180, 254)', fontSize: '11px' }}>HUB BLACK SCREEN RECOVERY</strong>
+              <div style={{ fontSize: '9.5px', color: 'rgba(255,255,255,0.6)', marginTop: '2px' }}>Force layout reflow, invalidation, and remount the Hub tree.</div>
+            </div>
+            <button
+              onClick={handleForceRepaintClick}
+              style={{
+                background: 'rgb(168, 85, 247)',
+                border: 'none',
+                color: '#fff',
+                padding: '8px 12px',
+                borderRadius: '6px',
+                fontSize: '10px',
+                fontWeight: 'bold',
+                cursor: 'pointer',
+                boxShadow: '0 2px 8px rgba(168, 85, 247, 0.4)'
+              }}
+            >
+              Force Hub Repaint
+            </button>
+          </div>
+          {repaintsLog.length > 0 && (
+            <div style={{ borderTop: '1px solid rgba(168, 85, 247, 0.15)', paddingTop: '6px', fontSize: '9px', color: 'rgba(255,255,255,0.5)' }}>
+              Last Repaint: {formatTime(repaintsLog[repaintsLog.length - 1].timestamp)} | Result:{' '}
+              <span style={{ color: repaintsLog[repaintsLog.length - 1].success ? '#10b981' : '#ef4444', fontWeight: 'bold' }}>
+                {repaintsLog[repaintsLog.length - 1].success ? 'SUCCESS (Painted)' : 'FAILED (' + (repaintsLog[repaintsLog.length - 1].reason || 'Unknown') + ')'}
+              </span>
+            </div>
+          )}
+        </div>
+
+        {/* COMPARISON/DIFF SECTION */}
+        <div style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.06)', borderRadius: '8px', padding: '12px' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
+            <h3 style={{ margin: 0, color: 'rgb(168, 85, 247)', fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+              Forensic Snapshots ({forensicCaptures.length}/20)
+            </h3>
+            {forensicCaptures.length > 0 && (
+              <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
+                <select
+                  value={selectedForensicIdx}
+                  onChange={(e) => setSelectedForensicIdx(parseInt(e.target.value))}
+                  style={{
+                    background: 'rgba(0,0,0,0.4)',
+                    color: '#fff',
+                    border: '1px solid rgba(255,255,255,0.15)',
+                    borderRadius: '4px',
+                    padding: '3px 6px',
+                    fontSize: '10px',
+                    outline: 'none'
+                  }}
+                >
+                  {forensicCaptures.map((cap, idx) => (
+                    <option key={cap.id} value={idx}>
+                      [{cap.result?.toUpperCase()}] {new Date(cap.timestamp).toLocaleTimeString()}
+                    </option>
+                  ))}
+                </select>
+                <button
+                  onClick={() => {
+                    try {
+                      localStorage.removeItem('studio_forensic_captures');
+                      setForensicCaptures([]);
+                      setSelectedForensicIdx(0);
+                      setToastMsg('Forensic captures cleared.');
+                      setTimeout(() => setToastMsg(null), 2000);
+                    } catch (_) {}
+                  }}
+                  style={{
+                    background: 'rgba(239, 68, 68, 0.15)',
+                    border: '1px solid rgba(239, 68, 68, 0.3)',
+                    color: '#ff8a8a',
+                    padding: '3px 6px',
+                    borderRadius: '4px',
+                    fontSize: '9px',
+                    cursor: 'pointer'
+                  }}
+                >
+                  Clear
+                </button>
+              </div>
+            )}
+          </div>
+
+          {!activeCapture ? (
+            <div style={{ textAlign: 'center', padding: '24px 0', color: 'rgba(255,255,255,0.3)' }}>
+              No returns from Chordex to Hub have been captured yet.
+            </div>
+          ) : (
+            <div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px', fontSize: '10px', background: 'rgba(0,0,0,0.15)', padding: '6px 8px', borderRadius: '4px' }}>
+                <div>
+                  Result:{' '}
+                  <span style={{ color: activeCapture.result === 'success' ? '#10b981' : '#ef4444', fontWeight: 'bold' }}>
+                    {activeCapture.result?.toUpperCase()}
+                  </span>
+                  {activeCapture.reason && <span style={{ color: 'rgba(255,255,255,0.5)', marginLeft: '6px' }}>({activeCapture.reason})</span>}
+                </div>
+                <div style={{ color: 'rgba(255,255,255,0.4)' }}>
+                  ID: {activeCapture.id}
+                </div>
+              </div>
+
+              {/* Side-by-side diff table */}
+              <div style={{ overflowX: 'auto', border: '1px solid rgba(255,255,255,0.06)', borderRadius: '6px' }}>
+                <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '9.5px', textAlign: 'left', minWidth: '450px' }}>
+                  <thead>
+                    <tr style={{ background: 'rgba(255,255,255,0.04)', borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
+                      <th style={{ padding: '6px 8px', color: 'rgba(255,255,255,0.6)' }}>Selector / Property</th>
+                      <th style={{ padding: '6px 8px', color: 'rgba(255,255,255,0.6)' }}>BEFORE (Previous)</th>
+                      <th style={{ padding: '6px 8px', color: 'rgba(255,255,255,0.6)' }}>AFTER (Current)</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {/* App state variables */}
+                    {renderDiffRow('App Mode', activeCapture.before?.appMode, activeCapture.after?.appMode)}
+                    {renderDiffRow('Active SubApp', activeCapture.before?.activeSubApp, activeCapture.after?.activeSubApp)}
+                    {renderDiffRow('Stable Key', activeCapture.before?.stableKey, activeCapture.after?.stableKey)}
+                    {renderDiffRow('Transition Active', activeCapture.before?.transitionActive, activeCapture.after?.transitionActive)}
+
+                    {/* Viewport audit variables */}
+                    <tr style={{ background: 'rgba(168, 85, 247, 0.04)', borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
+                      <td colSpan={3} style={{ padding: '6px 8px', fontWeight: 'bold', color: 'rgb(216, 180, 254)' }}>VIEWPORT AUDIT</td>
+                    </tr>
+                    {renderDiffRow('Viewport Size', `${activeCapture.before?.viewport?.innerWidth}x${activeCapture.before?.viewport?.innerHeight}`, `${activeCapture.after?.viewport?.innerWidth}x${activeCapture.after?.viewport?.innerHeight}`)}
+                    {renderDiffRow('Visual Viewport', activeCapture.before?.viewport?.visualViewport ? `${activeCapture.before.viewport.visualViewport.width}x${activeCapture.before.viewport.visualViewport.height} (scale: ${activeCapture.before.viewport.visualViewport.scale})` : 'N/A', activeCapture.after?.viewport?.visualViewport ? `${activeCapture.after.viewport.visualViewport.width}x${activeCapture.after.viewport.visualViewport.height} (scale: ${activeCapture.after.viewport.visualViewport.scale})` : 'N/A')}
+                    {renderDiffRow('Device Pixel Ratio', activeCapture.before?.viewport?.dpr, activeCapture.after?.viewport?.dpr)}
+                    {renderDiffRow('Orientation', activeCapture.before?.viewport?.orientation?.type, activeCapture.after?.viewport?.orientation?.type)}
+
+                    {/* DOM Bounds audit */}
+                    <tr style={{ background: 'rgba(168, 85, 247, 0.04)', borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
+                      <td colSpan={3} style={{ padding: '6px 8px', fontWeight: 'bold', color: 'rgb(216, 180, 254)' }}>DOM BOUNDS AUDIT (getBoundingClientRect)</td>
+                    </tr>
+                    {Object.keys(activeCapture.before?.bounds || {}).map(selector => {
+                      const beforeBounds = activeCapture.before?.bounds?.[selector];
+                      const afterBounds = activeCapture.after?.bounds?.[selector];
+                      const beforeVal = beforeBounds?.exists ? `l:${beforeBounds.left} t:${beforeBounds.top} w:${beforeBounds.width} h:${beforeBounds.height}` : 'Not Found';
+                      const afterVal = afterBounds?.exists ? `l:${afterBounds.left} t:${afterBounds.top} w:${afterBounds.width} h:${afterBounds.height}` : 'Not Found';
+                      return renderDiffRow(selector, beforeVal, afterVal);
+                    })}
+
+                    {/* Element visual state audit */}
+                    <tr style={{ background: 'rgba(168, 85, 247, 0.04)', borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
+                      <td colSpan={3} style={{ padding: '6px 8px', fontWeight: 'bold', color: 'rgb(216, 180, 254)' }}>ELEMENT VISUAL STATES</td>
+                    </tr>
+                    {Object.keys(activeCapture.before?.elements || {}).map(elKey => {
+                      const beforeEl = activeCapture.before?.elements?.[elKey];
+                      const afterEl = activeCapture.after?.elements?.[elKey];
+                      
+                      if (!beforeEl && !afterEl) return null;
+                      
+                      const rows: React.ReactNode[] = [];
+                      // Add parent category element row
+                      rows.push(
+                        <tr key={`${elKey}-header`} style={{ background: 'rgba(255,255,255,0.01)', borderBottom: '1px solid rgba(255,255,255,0.02)' }}>
+                          <td colSpan={3} style={{ padding: '4px 8px', fontWeight: 'bold', color: '#38bdf8' }}>Element: {elKey}</td>
+                        </tr>
+                      );
+
+                      const keysToCompare = ['exists', 'visibility', 'opacity', 'display', 'pointerEvents', 'transform', 'filter', 'backdropFilter', 'zIndex'];
+                      keysToCompare.forEach(prop => {
+                        const beforeVal = beforeEl ? beforeEl[prop] : undefined;
+                        const afterVal = afterEl ? afterEl[prop] : undefined;
+                        rows.push(renderDiffRow(`  ↳ ${prop}`, beforeVal, afterVal, `${elKey}-${prop}`));
+                      });
+                      
+                      return rows;
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  };
+
   if (!overlayRoot) return null;
 
   const panicMenuItemStyle: React.CSSProperties = {
@@ -2158,7 +2468,7 @@ page:  (${webViewDiag.visualViewport.pageLeft}, ${webViewDiag.visualViewport.pag
                 EMERGENCY BLACK SCREEN TELEMETRY
               </h2>
               <span style={{ fontSize: '10px', color: 'rgba(255,255,255,0.45)' }}>
-                Livex Android v3.6.62 (Code 89)
+                Livex Android v3.6.63 (Code 90)
               </span>
             </div>
             <button
@@ -2186,7 +2496,7 @@ page:  (${webViewDiag.visualViewport.pageLeft}, ${webViewDiag.visualViewport.pag
               overflowX: 'auto'
             }}
           >
-            {(['status', 'forensics', 'blockers', 'recovery', 'captures', 'dom'] as const).map(tab => (
+            {(['status', 'forensics', 'nav_forensics', 'blockers', 'recovery', 'captures', 'dom'] as const).map(tab => (
               <button
                 key={tab}
                 onClick={() => {
@@ -2207,7 +2517,7 @@ page:  (${webViewDiag.visualViewport.pageLeft}, ${webViewDiag.visualViewport.pag
                   minWidth: '80px'
                 }}
               >
-                {tab}
+                {tab === 'nav_forensics' ? 'nav forensics' : tab}
               </button>
             ))}
           </div>
@@ -2220,6 +2530,9 @@ page:  (${webViewDiag.visualViewport.pageLeft}, ${webViewDiag.visualViewport.pag
 
             {/* TAB: FORENSICS */}
             {activeTab === 'forensics' && renderForensicsTab()}
+
+            {/* TAB: NAVIGATION FORENSICS */}
+            {activeTab === 'nav_forensics' && renderNavForensicsTab()}
 
             {/* TAB: BLOCKERS */}
             {activeTab === 'blockers' && (

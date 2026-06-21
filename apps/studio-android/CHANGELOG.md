@@ -12,6 +12,13 @@ Conventions:
 - Bullets start with `- ` and use plain English a non-technical user
   can parse. Keep each line short — the modal's text area is narrow.
 
+## 3.6.63
+
+### Added
+- Added auto-capture forensic telemetry for returns from Chordex to Hub.
+- Added side-by-side transition state comparison audits (Previous vs Current snapshot).
+- Added Force Hub Repaint recovery failsafe tool to clear black screen states.
+
 ## 3.6.62
 
 ### Fixed

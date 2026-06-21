@@ -57,19 +57,206 @@ type AccountState =
 
 const ALL_PANELS = ['library', 'chord', 'songs', 'settings'] as const;
 
+function getVisualStateForElement(selector: string) {
+  const el = document.querySelector(selector);
+  if (!el) {
+    return {
+      exists: false,
+      visibility: 'none',
+      opacity: 'none',
+      display: 'none',
+      pointerEvents: 'none',
+      transform: 'none',
+      filter: 'none',
+      backdropFilter: 'none',
+      zIndex: 'none'
+    };
+  }
+  const style = window.getComputedStyle(el);
+  return {
+    exists: true,
+    visibility: style.visibility || 'none',
+    opacity: style.opacity || 'none',
+    display: style.display || 'none',
+    pointerEvents: style.pointerEvents || 'none',
+    transform: style.transform || 'none',
+    filter: style.filter || 'none',
+    backdropFilter: style.backdropFilter || (style as any).webkitBackdropFilter || 'none',
+    zIndex: style.zIndex || 'none'
+  };
+}
+
+function getBoundingClientRectForElement(selector: string) {
+  const el = document.querySelector(selector);
+  if (!el) {
+    return { exists: false, left: 0, top: 0, right: 0, bottom: 0, width: 0, height: 0 };
+  }
+  const rect = el.getBoundingClientRect();
+  return {
+    exists: true,
+    left: Math.round(rect.left),
+    top: Math.round(rect.top),
+    right: Math.round(rect.right),
+    bottom: Math.round(rect.bottom),
+    width: Math.round(rect.width),
+    height: Math.round(rect.height)
+  };
+}
+
+function getViewportAudit() {
+  const vv = window.visualViewport;
+  return {
+    innerWidth: window.innerWidth,
+    innerHeight: window.innerHeight,
+    visualViewport: vv ? {
+      width: Math.round(vv.width),
+      height: Math.round(vv.height),
+      scale: vv.scale,
+      offsetLeft: Math.round(vv.offsetLeft),
+      offsetTop: Math.round(vv.offsetTop)
+    } : null,
+    dpr: window.devicePixelRatio || 1,
+    orientation: screen.orientation ? {
+      type: screen.orientation.type,
+      angle: screen.orientation.angle
+    } : {
+      type: window.innerHeight > window.innerWidth ? 'portrait-primary' : 'landscape-primary',
+      angle: 0
+    }
+  };
+}
+
+function takeForensicSnapshot(stage: 'BEFORE_CLEANUP' | 'AFTER_CLEANUP') {
+  const currentAppMode = useChordStore.getState().settings.appMode || 'hub';
+  const stableKey = (window as any).__studioStableKey || "none";
+  const transitionActive = (window as any).studioTransitionActive || false;
+
+  return {
+    timestamp: Date.now(),
+    stage,
+    appMode: currentAppMode,
+    activeSubApp: currentAppMode !== 'hub' ? currentAppMode : 'none',
+    stableKey,
+    transitionActive,
+    elements: {
+      'root': getVisualStateForElement('#root'),
+      'app-container': getVisualStateForElement('.app-container'),
+      'app-main-layout': getVisualStateForElement('.app-main-layout'),
+      'hub-root': getVisualStateForElement('[data-livex-hub-root="true"], #hub-root'),
+      'hub-shell': getVisualStateForElement('.hub-shell'),
+      'hub-content': getVisualStateForElement('[data-livex-hub-content="true"], .gb-wrap'),
+      'subapp-wrapper': getVisualStateForElement('.sc-subapp-wrapper'),
+      'subapp-container': getVisualStateForElement('.app-sub-app-container')
+    },
+    bounds: {
+      'hub-root': getBoundingClientRectForElement('[data-livex-hub-root="true"], #hub-root'),
+      'hub-content': getBoundingClientRectForElement('[data-livex-hub-content="true"], .gb-wrap'),
+      'app-container': getBoundingClientRectForElement('.app-container'),
+      'app-main-layout': getBoundingClientRectForElement('.app-main-layout')
+    },
+    viewport: getViewportAudit()
+  };
+}
+
+function saveForensicCapture(before: any, after: any) {
+  try {
+    const listStr = localStorage.getItem('studio_forensic_captures') || '[]';
+    const list = JSON.parse(listStr);
+    
+    const newEntry = {
+      id: (window as any).__lastForensicCaptureId || Date.now(),
+      timestamp: Date.now(),
+      before,
+      after,
+      result: 'pending'
+    };
+    
+    list.push(newEntry);
+    while (list.length > 20) {
+      list.shift();
+    }
+    
+    localStorage.setItem('studio_forensic_captures', JSON.stringify(list));
+  } catch (e) {
+    console.error('Failed to save forensic capture', e);
+  }
+}
+
 export default function App() {
   const { activePanel, settings, setActivePanel, activePresetId, updateSettings } = useChordStore();
   const { preferences } = useStudioPreferences();
   const [hubRenderKey, setHubRenderKey] = useState(0);
 
+  const forceHubRepaint = useCallback(() => {
+    console.warn('[Failsafe] Force Hub Repaint triggered manually.');
+    
+    // 1. Force layout reflow & display/compositing invalidation
+    try {
+      const htmlStyle = document.documentElement.style;
+      const originalDisplay = htmlStyle.display;
+      htmlStyle.display = 'none';
+      document.documentElement.offsetHeight; // Reflow
+      htmlStyle.display = originalDisplay || '';
+      
+      const bodyStyle = document.body.style;
+      const originalTransform = bodyStyle.transform;
+      bodyStyle.transform = 'translateZ(0)';
+      document.body.offsetHeight; // Reflow
+      setTimeout(() => {
+        bodyStyle.transform = originalTransform;
+      }, 50);
+    } catch (e) {
+      console.error('Failed forcing CSS reflow/invalidation', e);
+    }
+
+    // 2. Remove lingering subapp DOM elements
+    try {
+      document.querySelectorAll('.sc-subapp-wrapper').forEach(el => {
+        el.remove();
+      });
+    } catch (e) {
+      console.error('Failed cleaning up subapp wrappers', e);
+    }
+
+    // 3. Reset transition locks and force React remount
+    flushSync(() => {
+      setTransitionActive(false);
+      setHubRenderKey(k => k + 1);
+    });
+
+    // 4. Log recovery status after a brief delay to let layout repaint
+    setTimeout(() => {
+      try {
+        const statePayload = (window as any).__captureBlackScreenState?.();
+        const success = !!(statePayload?.hubActuallyPainted && statePayload?.hub?.visible && statePayload?.hub?.mounted);
+        
+        const logStr = localStorage.getItem('studio_repaints_log') || '[]';
+        const log = JSON.parse(logStr);
+        log.push({
+          timestamp: Date.now(),
+          success,
+          reason: success ? 'recovered' : 'still_blocked',
+          payload: statePayload
+        });
+        if (log.length > 20) log.shift();
+        localStorage.setItem('studio_repaints_log', JSON.stringify(log));
+      } catch (err) {
+        console.error('Failed to log repaint status', err);
+      }
+    }, 150);
+
+  }, []);
+
   useEffect(() => {
+    (window as any).forceHubRepaint = forceHubRepaint;
     (window as any).__forceRemountHub = () => {
       setHubRenderKey(k => k + 1);
     };
     return () => {
+      delete (window as any).forceHubRepaint;
       delete (window as any).__forceRemountHub;
     };
-  }, []);
+  }, [forceHubRepaint]);
 
   // Cold Start App Restore Bug: Reset appMode to settings.startupApp || 'hub' if restoreLastSession is false
   useEffect(() => {
@@ -328,6 +515,19 @@ export default function App() {
       return; // Already in hub, no need to navigate
     }
 
+    // FORENSIC AUTO-CAPTURE FOR CHORDEX -> HUB
+    let beforeSnapshot: any = null;
+    const isFromChords = fromApp === 'chords';
+    if (isFromChords) {
+      try {
+        const lastCaptureId = Date.now();
+        (window as any).__lastForensicCaptureId = lastCaptureId;
+        beforeSnapshot = takeForensicSnapshot('BEFORE_CLEANUP');
+      } catch (err) {
+        console.error('Forensics: Failed to take BEFORE snapshot', err);
+      }
+    }
+
     recordNavigation({
       fromApp,
       toApp: 'hub',
@@ -383,6 +583,16 @@ export default function App() {
         activeAppAfterTransition: 'hub',
         fallbackRendered: false
       });
+
+      // AFTER CLEANUP snapshot
+      if (isFromChords) {
+        try {
+          const afterSnapshot = takeForensicSnapshot('AFTER_CLEANUP');
+          saveForensicCapture(beforeSnapshot, afterSnapshot);
+        } catch (err) {
+          console.error('Forensics: Failed to take AFTER snapshot', err);
+        }
+      }
     }, 370);
   }, [updateSettings, preferences.rememberLastAppSection]);
 
@@ -968,6 +1178,30 @@ export default function App() {
             fallbackRendered: false,
             recoveredViaFailsafe: true
           } as any);
+        }
+      }
+
+      // Resolve the forensic capture matching the current return attempt
+      const lastCapId = (window as any).__lastForensicCaptureId;
+      if (lastCapId) {
+        try {
+          const listStr = localStorage.getItem('studio_forensic_captures') || '[]';
+          const list = JSON.parse(listStr);
+          const index = list.findIndex((c: any) => c.id === lastCapId);
+          if (index !== -1) {
+            list[index].result = isBlocked ? 'failed' : 'success';
+            list[index].reason = isBlocked ? reason : '';
+            localStorage.setItem('studio_forensic_captures', JSON.stringify(list));
+            
+            // Also store individual last successful or failed capture
+            if (isBlocked) {
+              localStorage.setItem('studio_forensic_last_failed', JSON.stringify(list[index]));
+            } else {
+              localStorage.setItem('studio_forensic_last_successful', JSON.stringify(list[index]));
+            }
+          }
+        } catch (e) {
+          console.error('Forensics: Error updating capture result', e);
         }
       }
     }, 1200);

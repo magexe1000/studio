@@ -26,7 +26,7 @@ import { useMemo } from 'react';
 import { Capacitor } from '@capacitor/core';
 
 /** Canonical semver string used by the OTA comparator. */
-export const NATIVE_VERSION = '3.6.62';
+export const NATIVE_VERSION = '3.6.63';
 export const WEB_VERSION = '4.0.0';
 export const APP_VERSION = Capacitor.isNativePlatform() ? NATIVE_VERSION : WEB_VERSION;
 
@@ -38,7 +38,7 @@ export const APP_VERSION_LABEL = `${APP_VERSION_TAG} ${APP_VERSION}`;
 
 /** Release date for the CURRENT bundle, shown alongside the version pill
  *  in the changelog sheet. ISO-8601 (`YYYY-MM-DD`). */
-export const APP_VERSION_DATE = '2026-06-21'; // 3.6.62
+export const APP_VERSION_DATE = '2026-06-21'; // 3.6.63
 // Note: keep ISO-8601. Bump together with APP_VERSION on each release.
 
 export const APP_COMMIT_SHA = import.meta.env.VITE_GIT_COMMIT_SHA || '78ef3651';
@@ -59,13 +59,11 @@ export interface ChangelogSection {
 
 export const APP_CHANGELOG_SECTIONS: ChangelogSection[] = [
   {
-    heading: "Fixed",
+    heading: "Added",
     items: [
-      "Upgraded Black Screen Forensics telemetry with elementsFromPoint stacks, fullscreen overlay scanning, and React component fiber audits.",
-      "Added one-click copy forensics report and filtered DOM snapshot buttons to the debug overlay.",
-      "Added force fullscreen overlay removal and force hub visibility recovery controls.",
-      "Fixed Stagex landscape viewport squashing layout mapping offsets.",
-      "Expanded Stagex scene selection, add, and delete touch targets to a minimum of 48dp x 48dp.",
+      "Added auto-capture forensic telemetry for returns from Chordex to Hub.",
+      "Added side-by-side transition state comparison audits (Previous vs Current snapshot).",
+      "Added Force Hub Repaint recovery failsafe tool to clear black screen states.",
     ],
   },
 ];
@@ -73,13 +71,11 @@ export const APP_CHANGELOG_SECTIONS: ChangelogSection[] = [
 /** Native English version of the current changelog for Android. */
 export const APP_CHANGELOG_SECTIONS_NATIVE: ChangelogSection[] = [
   {
-    heading: "Fixed",
+    heading: "Added",
     items: [
-      "Upgraded Black Screen Forensics telemetry with elementsFromPoint stacks, fullscreen overlay scanning, and React component fiber audits.",
-      "Added one-click copy forensics report and filtered DOM snapshot buttons to the debug overlay.",
-      "Added force fullscreen overlay removal and force hub visibility recovery controls.",
-      "Fixed Stagex landscape viewport squashing layout mapping offsets.",
-      "Expanded Stagex scene selection, add, and delete touch targets to a minimum of 48dp x 48dp.",
+      "Added auto-capture forensic telemetry for returns from Chordex to Hub.",
+      "Added side-by-side transition state comparison audits (Previous vs Current snapshot).",
+      "Added Force Hub Repaint recovery failsafe tool to clear black screen states.",
     ],
   },
 ];
@@ -88,13 +84,11 @@ export const APP_CHANGELOG_SECTIONS_NATIVE: ChangelogSection[] = [
  *  by `ChangelogSheet` based on `settings.language`. */
 export const APP_CHANGELOG_SECTIONS_ES: ChangelogSection[] = [
   {
-    heading: "Corregido",
+    heading: "Añadido",
     items: [
-      "Telemetría de pantalla negra mejorada con pilas elementsFromPoint, escaneo de superposiciones y auditorías de React.",
-      "Añadidos botones para copiar reporte de forensia y instantánea de DOM filtrado al menú de depuración.",
-      "Añadidos controles para remover superposiciones a pantalla completa y forzar visibilidad de Hub.",
-      "Corregido desfase de diseño del viewport en modo horizontal dentro de Stagex.",
-      "Expandido el tamaño de los objetivos táctiles en Stagex (escenas, añadir y eliminar) a un mínimo de 48dp x 48dp.",
+      "Añadida telemetría forense de auto-captura para retornos de Chordex a Hub.",
+      "Añadidas auditorías de comparación de estados de transición lado a lado (antes vs después).",
+      "Añadida herramienta de recuperación Force Hub Repaint para limpiar pantallas negras.",
     ],
   },
 ];
