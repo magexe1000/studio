@@ -12,6 +12,13 @@ Conventions:
 - Bullets start with `- ` and use plain English a non-technical user
   can parse. Keep each line short — the modal's text area is narrow.
 
+## 3.6.58
+
+### Fixed
+- Fixed persistent Chordex-to-Hub return black screen issue via a deterministic failsafe.
+- Resolved GSAP target missing console warning.
+- Improved diagnostics and trace logging.
+
 ## 3.6.57
 
 ### Added

@@ -26,7 +26,7 @@ import { useMemo } from 'react';
 import { Capacitor } from '@capacitor/core';
 
 /** Canonical semver string used by the OTA comparator. */
-export const NATIVE_VERSION = '3.6.57';
+export const NATIVE_VERSION = '3.6.58';
 export const WEB_VERSION = '4.0.0';
 export const APP_VERSION = Capacitor.isNativePlatform() ? NATIVE_VERSION : WEB_VERSION;
 
@@ -38,7 +38,7 @@ export const APP_VERSION_LABEL = `${APP_VERSION_TAG} ${APP_VERSION}`;
 
 /** Release date for the CURRENT bundle, shown alongside the version pill
  *  in the changelog sheet. ISO-8601 (`YYYY-MM-DD`). */
-export const APP_VERSION_DATE = '2026-06-20'; // 3.6.55
+export const APP_VERSION_DATE = '2026-06-21'; // 3.6.55
 // Note: keep ISO-8601. Bump together with APP_VERSION on each release.
 
 export const APP_COMMIT_SHA = import.meta.env.VITE_GIT_COMMIT_SHA || '78ef3651';
@@ -59,10 +59,11 @@ export interface ChangelogSection {
 
 export const APP_CHANGELOG_SECTIONS: ChangelogSection[] = [
   {
-    heading: "Added",
+    heading: "Fixed",
     items: [
-      "Added advanced WebView diagnostics for black screen analysis.",
-      "Added automatic localStorage persistence for watchdog trace reports.",
+      "Fixed persistent Chordex-to-Hub return black screen issue via a deterministic failsafe.",
+      "Resolved GSAP target missing console warning.",
+      "Improved diagnostics and trace logging.",
     ],
   },
 ];
@@ -70,17 +71,11 @@ export const APP_CHANGELOG_SECTIONS: ChangelogSection[] = [
 /** Native English version of the current changelog for Android. */
 export const APP_CHANGELOG_SECTIONS_NATIVE: ChangelogSection[] = [
   {
-    heading: "Added",
-    items: [
-      "Added navigation transition trace diagnostics tab in Developer Tools.",
-    ],
-  },
-  {
     heading: "Fixed",
     items: [
-      "Fixed false hub warnings from being classified as warn logs.",
-      "Resolved Chordex-to-Hub return black screen lifecycle bug.",
-      "Refactored warnings view to show caller file, source locations, and titles.",
+      "Fixed persistent Chordex-to-Hub return black screen issue via a deterministic failsafe.",
+      "Resolved GSAP target missing console warning.",
+      "Improved navigation and status diagnostics reporting in Developer Tools.",
     ],
   },
 ];
@@ -89,17 +84,11 @@ export const APP_CHANGELOG_SECTIONS_NATIVE: ChangelogSection[] = [
  *  by `ChangelogSheet` based on `settings.language`. */
 export const APP_CHANGELOG_SECTIONS_ES: ChangelogSection[] = [
   {
-    heading: "Añadido",
-    items: [
-      "Añadido panel de diagnóstico de transiciones de navegación en herramientas de desarrollo.",
-    ],
-  },
-  {
     heading: "Corregido",
     items: [
-      "Corregido el problema de advertencias falsas de diagnóstico de Livex Hub.",
-      "Resuelto el error de pantalla negra al regresar de Chordex a Livex Hub.",
-      "Refactorizado el inspector de advertencias para mostrar ubicación de origen y títulos.",
+      "Corregido el problema persistente de pantalla negra al regresar de Chordex a Livex Hub mediante un mecanismo de recuperación determinista.",
+      "Resuelta la advertencia de consola por falta de objetivo en GSAP.",
+      "Mejorado el informe de diagnósticos de navegación y estado en herramientas de desarrollo.",
     ],
   },
 ];

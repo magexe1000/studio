@@ -1,22 +1,22 @@
 {
   "platform": "android",
-  "version": "3.6.57",
-  "versionName": "3.6.57",
-  "versionCode": 84,
-  "version_code": 84,
-  "commit": "5b918a87",
-  "releasedAt": "6/20/2026, 7:14:00 PM CST",
-  "buildTimestamp": "6/20/2026, 7:14:00 PM CST",
+  "version": "3.6.58",
+  "versionName": "3.6.58",
+  "versionCode": 85,
+  "version_code": 85,
+  "commit": "73943d47",
+  "releasedAt": "6/21/2026, 11:10:00 AM CST",
+  "buildTimestamp": "6/21/2026, 11:10:00 AM CST",
   "updateMode": "refresh",
-  "changelog": "• Fixed Chordex -> Hub return black screen transition lock.\n• Updated watchdog diagnostics to query stable data-livex-hub-root selector.\n• Added advanced WebView diagnostics and localStorage persistence.",
-  "whatsNew": "• Fixed Chordex -> Hub return black screen transition lock.\n• Updated watchdog diagnostics to query stable data-livex-hub-root selector.\n• Added advanced WebView diagnostics and localStorage persistence.",
+  "changelog": "• Fixed persistent Chordex -> Hub return black screen issue via deterministic failsafe.\n• Resolved GSAP target missing console warning.\n• Improved diagnostics and trace logging.",
+  "whatsNew": "• Fixed persistent Chordex -> Hub return black screen issue via deterministic failsafe.\n• Resolved GSAP target missing console warning.\n• Improved diagnostics and trace logging.",
   "releaseNotes": {
     "added": [
-      "Added advanced WebView diagnostics for black screen analysis.",
-      "Added automatic localStorage persistence for watchdog trace reports."
+      "Added deterministic key-based Hub remount recovery failsafe when Hub root is missing."
     ],
     "fixed": [
-      "Fixed Chordex -> Hub return black screen transition lock by conditionally remounting Hub component."
+      "Fixed Chordex -> Hub return black screen by resolving false-positive and actual transition blocks.",
+      "Resolved GSAP target not found warning in StudioTitleReveal component."
     ]
   },
   "mandatory": false

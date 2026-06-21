@@ -79,6 +79,12 @@ export default function StudioTitleReveal({
     const split = new SplitText(el, { type: 'chars' });
     const targets = split.chars;
 
+    if (!targets || targets.length === 0) {
+      gsap.set(el, { opacity: 1 });
+      onComplete?.();
+      return () => { split.revert(); };
+    }
+
     // GPU acceleration + initial hidden state
     gsap.set(targets, { willChange: 'transform, opacity', opacity: 0, y: 20 });
 

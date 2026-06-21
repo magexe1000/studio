@@ -287,8 +287,7 @@ export function clearLogs() {
 
 // ── 1B. NAVIGATION TRACE LOGS ──
 export function recordNavigation(entry: Omit<NavigationEntry, 'id' | 'timestamp'>) {
-  const isDevMode = useChordStore.getState().settings.developerMode;
-  if (!isDevMode && !initialized) return;
+  // Always record navigation events for watchdog/diagnostic tracing, regardless of devMode
 
   const id = Math.random().toString(36).substring(2, 9);
   navBuffer.push({

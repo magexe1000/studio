@@ -60,6 +60,7 @@ const ALL_PANELS = ['library', 'chord', 'songs', 'settings'] as const;
 export default function App() {
   const { activePanel, settings, setActivePanel, activePresetId, updateSettings } = useChordStore();
   const { preferences } = useStudioPreferences();
+  const [hubRenderKey, setHubRenderKey] = useState(0);
 
   // Cold Start App Restore Bug: Reset appMode to settings.startupApp || 'hub' if restoreLastSession is false
   useEffect(() => {
@@ -534,8 +535,9 @@ export default function App() {
   stableKeyRef.current = stableKey;
 
   const prevAppModeRef = useRef(appMode);
+  const previousAppModeRef = useRef<string>('none');
 
-  // Track Chordex unmount request
+  // Track Chordex unmount request & previous app mode changes
   useEffect(() => {
     if (prevAppModeRef.current === 'chords' && appMode === 'hub') {
       if ((window as any).__chordexDiagnostics) {
@@ -543,14 +545,17 @@ export default function App() {
         (window as any).__chordexDiagnostics.status = 'unmount-requested';
       }
     }
-    prevAppModeRef.current = appMode;
+    if (appMode !== prevAppModeRef.current) {
+      previousAppModeRef.current = prevAppModeRef.current;
+      prevAppModeRef.current = appMode;
+    }
   }, [appMode]);
 
   // Define window.__captureBlackScreenState
   useEffect(() => {
     (window as any).__captureBlackScreenState = () => {
       const currentAppMode = useChordStore.getState().settings.appMode || 'hub';
-      const prevMode = prevAppModeRef.current;
+      const prevMode = previousAppModeRef.current;
       const subActive = currentAppMode !== 'hub';
       
       const hubLayout = document.querySelector('.app-main-layout');
@@ -622,7 +627,7 @@ export default function App() {
         })
         .filter(o => o.display !== 'none' && o.opacity !== '0');
 
-      const suspenseFallback = !!document.querySelector('.smart-loading, .fallback-skeleton, [class*="skeleton"]');
+      const suspenseFallback = !!document.querySelector('.smart-loading, .fallback-skeleton, .studio-accent-loader, .studio-shimmer, [class*="skeleton"]');
       const motionExitActive = subappWrapper ? subappWrapper.getAttribute('data-projection-id') !== null : false;
       
       const w = window.innerWidth;
@@ -688,6 +693,7 @@ export default function App() {
         activeSubApp: currentAppMode !== 'hub' ? currentAppMode : 'none',
         prevAppMode: prevMode,
         stableKey: stableKeyRef.current,
+        stableKeyExplanation: "stableKey preserves the last active sub-app key so that AnimatePresence can render the exit transition correctly",
         isSubAppActive: subActive,
         transitionActive: (window as any).studioTransitionActive || false,
         hub: {
@@ -822,6 +828,25 @@ export default function App() {
         try {
           localStorage.setItem('studio_black_screen_diagnostics', JSON.stringify(diag));
         } catch (_) {}
+
+        if (reason === 'HUB_ROOT_MISSING') {
+          console.warn('[Failsafe] HUB_ROOT_MISSING detected! Running deterministic Hub remount.');
+          flushSync(() => {
+            setHubRenderKey(k => k + 1);
+            setTransitionActive(false);
+            lastActiveAppRef.current = 'chords';
+            useChordStore.getState().updateSettings({ appMode: 'hub' });
+          });
+          recordNavigation({
+            fromApp: 'none',
+            toApp: 'hub',
+            hubMounted: true,
+            activeAppAfterTransition: 'hub',
+            transitionLockState: false,
+            fallbackRendered: false,
+            recoveredViaFailsafe: true
+          } as any);
+        }
       }
     }, 500);
 
@@ -853,7 +878,7 @@ export default function App() {
       >
         <Suspense fallback={<SmartLoading fallbackSkeleton={<StudioHubSkeleton />} />}>
           {(!isSubAppActive || transitionActive) && (
-            <StudioHub />
+            <StudioHub key={hubRenderKey} />
           )}
         </Suspense>
       </div>
