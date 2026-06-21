@@ -1,23 +1,23 @@
 {
   "platform": "android",
-  "version": "3.6.59",
-  "versionName": "3.6.59",
-  "versionCode": 86,
-  "version_code": 86,
-  "commit": "67c4953c",
-  "releasedAt": "6/21/2026, 12:54:00 PM CST",
-  "buildTimestamp": "6/21/2026, 12:54:00 PM CST",
+  "version": "3.6.60",
+  "versionName": "3.6.60",
+  "versionCode": 87,
+  "version_code": 87,
+  "commit": "50605034",
+  "releasedAt": "6/21/2026, 1:46:00 PM CST",
+  "buildTimestamp": "6/21/2026, 1:46:00 PM CST",
   "updateMode": "refresh",
-  "changelog": "• Resolved Chordex -> Hub return black screen by keeping StudioHub permanently mounted.\n• Eliminated watchdog false-positives via an optimized 1.2s verification delay.\n• Added separate HUB_ROOT_MISSING_CAPTURE diagnostic snapshot inside local storage.\n• Preserved accurate previous mode history in failsafe recovery logs.",
-  "whatsNew": "• Resolved Chordex -> Hub return black screen by keeping StudioHub permanently mounted.\n• Eliminated watchdog false-positives via an optimized 1.2s verification delay.\n• Added separate HUB_ROOT_MISSING_CAPTURE diagnostic snapshot inside local storage.\n• Preserved accurate previous mode history in failsafe recovery logs.",
+  "changelog": "• Mounted emergency debug overlay outside the main React root via React Portal.\n• Added always-visible DBG button and failsafe quick recovery panel.\n• Implemented window.__emergencyOverlayHealthCheck() layout stacking audits.\n• Added simulated black screen layer tool to verify diagnostic recovery.",
+  "whatsNew": "• Mounted emergency debug overlay outside the main React root via React Portal.\n• Added always-visible DBG button and failsafe quick recovery panel.\n• Implemented window.__emergencyOverlayHealthCheck() layout stacking audits.\n• Added simulated black screen layer tool to verify diagnostic recovery.",
   "releaseNotes": {
     "added": [
-      "Added separate HUB_ROOT_MISSING_CAPTURE diagnostic snapshot inside local storage."
+      "Added always-visible DBG button and failsafe quick recovery panel.",
+      "Implemented window.__emergencyOverlayHealthCheck() layout stacking audits.",
+      "Added simulated black screen layer tool to verify diagnostic recovery."
     ],
     "fixed": [
-      "Resolved Chordex -> Hub return black screen by keeping StudioHub permanently mounted.",
-      "Eliminated watchdog false-positives via an optimized 1.2s verification delay.",
-      "Preserved accurate previous mode history in failsafe recovery logs."
+      "Mounted emergency debug overlay outside the main React root via React Portal."
     ]
   },
   "mandatory": false

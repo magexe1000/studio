@@ -12,6 +12,14 @@ Conventions:
 - Bullets start with `- ` and use plain English a non-technical user
   can parse. Keep each line short — the modal's text area is narrow.
 
+## 3.6.60
+
+### Fixed
+- Mounted emergency debug overlay outside the main React root via React Portal.
+- Added always-visible DBG button and failsafe quick recovery panel.
+- Implemented window.__emergencyOverlayHealthCheck() layout stacking audits.
+- Added simulated black screen layer tool to verify diagnostic recovery.
+
 ## 3.6.59
 
 ### Fixed

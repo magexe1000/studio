@@ -26,7 +26,7 @@ import { useMemo } from 'react';
 import { Capacitor } from '@capacitor/core';
 
 /** Canonical semver string used by the OTA comparator. */
-export const NATIVE_VERSION = '3.6.59';
+export const NATIVE_VERSION = '3.6.60';
 export const WEB_VERSION = '4.0.0';
 export const APP_VERSION = Capacitor.isNativePlatform() ? NATIVE_VERSION : WEB_VERSION;
 
@@ -38,11 +38,11 @@ export const APP_VERSION_LABEL = `${APP_VERSION_TAG} ${APP_VERSION}`;
 
 /** Release date for the CURRENT bundle, shown alongside the version pill
  *  in the changelog sheet. ISO-8601 (`YYYY-MM-DD`). */
-export const APP_VERSION_DATE = '2026-06-21'; // 3.6.55
+export const APP_VERSION_DATE = '2026-06-21'; // 3.6.60
 // Note: keep ISO-8601. Bump together with APP_VERSION on each release.
 
 export const APP_COMMIT_SHA = import.meta.env.VITE_GIT_COMMIT_SHA || '78ef3651';
-export const APP_BUILD_TIMESTAMP = import.meta.env.VITE_BUILD_TIMESTAMP || '6/20/2026, 12:00:00 AM CST';
+export const APP_BUILD_TIMESTAMP = import.meta.env.VITE_BUILD_TIMESTAMP || '6/21/2026, 12:00:00 AM CST';
 
 /**
  * Changelog for the CURRENT release — shown to the user the first
@@ -61,10 +61,10 @@ export const APP_CHANGELOG_SECTIONS: ChangelogSection[] = [
   {
     heading: "Fixed",
     items: [
-      "Resolved Chordex -> Hub return black screen by keeping StudioHub permanently mounted.",
-      "Eliminated watchdog false-positives via an optimized 1.2s verification delay.",
-      "Added separate HUB_ROOT_MISSING_CAPTURE diagnostic snapshot inside local storage.",
-      "Preserved accurate previous mode history in failsafe recovery logs.",
+      "Mounted emergency debug overlay outside the main React root via React Portal.",
+      "Added always-visible DBG button and failsafe quick recovery panel.",
+      "Implemented window.__emergencyOverlayHealthCheck() layout stacking audits.",
+      "Added simulated black screen layer tool to verify diagnostic recovery.",
     ],
   },
 ];
@@ -74,10 +74,10 @@ export const APP_CHANGELOG_SECTIONS_NATIVE: ChangelogSection[] = [
   {
     heading: "Fixed",
     items: [
-      "Resolved Chordex -> Hub return black screen by keeping StudioHub permanently mounted.",
-      "Eliminated watchdog false-positives via an optimized 1.2s verification delay.",
-      "Added separate HUB_ROOT_MISSING_CAPTURE diagnostic snapshot inside local storage.",
-      "Preserved accurate previous mode history in failsafe recovery logs.",
+      "Mounted emergency debug overlay outside the main React root via React Portal.",
+      "Added always-visible DBG button and failsafe quick recovery panel at bottom-right.",
+      "Implemented window.__emergencyOverlayHealthCheck() layout stacking audits.",
+      "Added simulated black screen layer action to verify diagnostics and copy operations.",
     ],
   },
 ];
@@ -88,10 +88,10 @@ export const APP_CHANGELOG_SECTIONS_ES: ChangelogSection[] = [
   {
     heading: "Corregido",
     items: [
-      "Resuelto el problema de pantalla negra al regresar de Chordex manteniendo StudioHub montado permanentemente.",
-      "Eliminados los falsos positivos del perro guardián mediante un retraso optimizado de 1.2s.",
-      "Añadido captura de diagnóstico HUB_ROOT_MISSING_CAPTURE en el almacenamiento local.",
-      "Preservado el historial preciso del modo anterior en los registros de recuperación.",
+      "Montado el panel de depuración de emergencia mediante React Portal fuera del árbol de renderizado de la app.",
+      "Añadido botón de pánico DBG siempre visible y menú de recuperación de emergencia.",
+      "Implementado window.__emergencyOverlayHealthCheck() para auditar capas y z-index.",
+      "Añadido simulador de capa de pantalla negra para validar la recuperación de diagnósticos.",
     ],
   },
 ];

@@ -54,6 +54,24 @@ function RootAppContainer() {
   return <App key={appKey} />;
 }
 
+// Create the emergency overlay root synchronously directly under document.body before mount
+if (typeof document !== 'undefined') {
+  let overlayRoot = document.getElementById("livex-emergency-overlay-root");
+  if (!overlayRoot) {
+    overlayRoot = document.createElement("div");
+    overlayRoot.id = "livex-emergency-overlay-root";
+    overlayRoot.style.position = "fixed";
+    overlayRoot.style.inset = "0";
+    overlayRoot.style.zIndex = "2147483647";
+    overlayRoot.style.isolation = "isolate";
+    overlayRoot.style.pointerEvents = "none";
+    overlayRoot.style.transform = "translateZ(0)";
+    overlayRoot.style.contain = "none";
+    overlayRoot.style.background = "transparent";
+    document.body.appendChild(overlayRoot);
+  }
+}
+
 createRoot(document.getElementById("root")!).render(
   <TolgeeProvider tolgee={tolgee} fallback={null}>
     <RootAppContainer />

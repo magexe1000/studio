@@ -879,6 +879,11 @@ export default function App() {
           localStorage.setItem('studio_black_screen_diagnostics', JSON.stringify(diag));
         } catch (_) {}
 
+        // Failsafe: auto open the emergency debug overlay
+        if (typeof (window as any).__openEmergencyOverlay === 'function') {
+          (window as any).__openEmergencyOverlay();
+        }
+
         if (reason === 'HUB_ROOT_MISSING') {
           console.warn('[Failsafe] HUB_ROOT_MISSING detected! Running deterministic Hub remount.');
           const actualFrom = previousAppModeRef.current || 'none';

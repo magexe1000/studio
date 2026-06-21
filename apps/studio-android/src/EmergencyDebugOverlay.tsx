@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import { useChordStore } from '@workspace/studio-core';
 
 interface BlockerInfo {
@@ -25,6 +26,8 @@ interface AutoCaptureEntry {
 export default function EmergencyDebugOverlay() {
   const { settings, updateSettings } = useChordStore();
   const [isOpen, setIsOpen] = useState(false);
+  const [isPanicMenuOpen, setIsPanicMenuOpen] = useState(false);
+  const [isBlackScreenSimulated, setIsBlackScreenSimulated] = useState(false);
   const [activeTab, setActiveTab] = useState<'status' | 'blockers' | 'recovery' | 'captures' | 'dom'>('status');
   
   // Local state for live state updates
@@ -32,6 +35,92 @@ export default function EmergencyDebugOverlay() {
   const [autoCaptures, setAutoCaptures] = useState<AutoCaptureEntry[]>([]);
   const [activeCaptureIdx, setActiveCaptureIdx] = useState<number | null>(null);
   const [hubRootMissingCapture, setHubRootMissingCapture] = useState<any>(null);
+  const [overlayRoot, setOverlayRoot] = useState<HTMLElement | null>(null);
+
+  useEffect(() => {
+    setOverlayRoot(document.getElementById('livex-emergency-overlay-root'));
+  }, []);
+
+  // Health check registry
+  useEffect(() => {
+    (window as any).__emergencyOverlayHealthCheck = () => {
+      const root = document.getElementById("livex-emergency-overlay-root");
+      const panel = document.getElementById("livex-emergency-panel") || document.getElementById("emergency-debug-overlay-container");
+      
+      const rootExists = !!root;
+      const rootParent = root ? (root.parentElement ? root.parentElement.tagName.toLowerCase() + (root.parentElement.id ? '#' + root.parentElement.id : '') : 'none') : 'none';
+      const rootZIndex = root ? window.getComputedStyle(root).zIndex : 'none';
+      const rootRect = root ? root.getBoundingClientRect() : null;
+      
+      const panelExists = !!panel;
+      const panelZIndex = panel ? window.getComputedStyle(panel).zIndex : 'none';
+      
+      const w = window.innerWidth;
+      const h = window.innerHeight;
+      const cx = w / 2;
+      const cy = h / 2;
+      
+      let elementAtCenter: Element | null = null;
+      try {
+        elementAtCenter = document.elementFromPoint(cx, cy);
+      } catch (_) {}
+      
+      const isTopmost = !!(elementAtCenter && (elementAtCenter === panel || panel?.contains(elementAtCenter)));
+      
+      const elementsAbove: string[] = [];
+      if (panel && !isTopmost && elementAtCenter) {
+        let curr: Element | null = elementAtCenter;
+        while (curr && curr !== document.body && curr !== document.documentElement) {
+          const style = window.getComputedStyle(curr);
+          elementsAbove.push(`${curr.tagName.toLowerCase()}${curr.id ? '#' + curr.id : ''}${curr.className ? '.' + Array.from(curr.classList).join('.') : ''} (z-index: ${style.zIndex}, pointer-events: ${style.pointerEvents}, opacity: ${style.opacity})`);
+          curr = curr.parentElement;
+        }
+      }
+      
+      return {
+        overlayRootExists: rootExists,
+        overlayRootParent: rootParent,
+        overlayRootZIndex: rootZIndex,
+        overlayRootBoundingRect: rootRect ? {
+          left: rootRect.left,
+          top: rootRect.top,
+          right: rootRect.right,
+          bottom: rootRect.bottom,
+          width: rootRect.width,
+          height: rootRect.height
+        } : null,
+        panelExists,
+        panelZIndex,
+        elementFromPointAtCenter: elementAtCenter ? `${elementAtCenter.tagName.toLowerCase()}${elementAtCenter.id ? '#' + elementAtCenter.id : ''}` : null,
+        isTopmost,
+        elementsAbove
+      };
+    };
+    
+    return () => {
+      delete (window as any).__emergencyOverlayHealthCheck;
+    };
+  }, []);
+
+  const toggleSimulateBlackScreen = () => {
+    const existing = document.getElementById("fake-black-screen-layer");
+    if (existing) {
+      existing.remove();
+      setIsBlackScreenSimulated(false);
+      alert("Simulated black screen layer removed.");
+    } else {
+      const div = document.createElement("div");
+      div.id = "fake-black-screen-layer";
+      div.style.position = "fixed";
+      div.style.inset = "0";
+      div.style.background = "#000000";
+      div.style.zIndex = "999999";
+      div.style.pointerEvents = "all";
+      document.body.appendChild(div);
+      setIsBlackScreenSimulated(true);
+      alert("Simulated black screen layer added. Tap DBG button to open console!");
+    }
+  };
 
   // ── GESTURE AND TRIGGER LOGIC ──────────────────────────────────────────
   useEffect(() => {
@@ -297,15 +386,12 @@ export default function EmergencyDebugOverlay() {
   };
 
   // ── AUTO CAPTURE WATCHDOG ───────────────────────────────────────────────
+  const hasAutoOpenedRef = useRef(false);
   const lastCaptureTimeRef = useRef(0);
   useEffect(() => {
     const checkAndAutoCapture = () => {
       const currentAppMode = settings.appMode || 'hub';
       if (currentAppMode !== 'hub') return;
-
-      // Throttle captures to once every 5 seconds
-      const now = Date.now();
-      if (now - lastCaptureTimeRef.current < 5000) return;
 
       const diagnostics = getDiagnosticsPayload();
       
@@ -316,7 +402,17 @@ export default function EmergencyDebugOverlay() {
                            parseFloat(diagnostics.hub.opacity) === 0;
 
       if (hubRootMissing || isScreenBlank) {
+        // Auto-open overlay failsafe
+        if (!hasAutoOpenedRef.current) {
+          setIsOpen(true);
+          hasAutoOpenedRef.current = true;
+        }
+
+        // Throttle captures to once every 5 seconds
+        const now = Date.now();
+        if (now - lastCaptureTimeRef.current < 5000) return;
         lastCaptureTimeRef.current = now;
+
         const domTree = generateSimplifiedDOMTree();
         
         const path = diagnostics.navigationTrace.map((t: any) => `${t.fromApp}->${t.toApp}`).join(' | ');
@@ -341,6 +437,9 @@ export default function EmergencyDebugOverlay() {
         });
 
         console.warn('[Watchdog] Black screen auto-captured!', newEntry);
+      } else {
+        // App is healthy, reset auto opened ref
+        hasAutoOpenedRef.current = false;
       }
     };
 
@@ -405,51 +504,185 @@ export default function EmergencyDebugOverlay() {
   // Gather live diagnostics
   const data = getDiagnosticsPayload();
 
-  return (
-    <div id="emergency-debug-overlay-container">
-      {/* Draggable Pinned Floating Pill Trigger */}
+  if (!overlayRoot) return null;
+
+  const panicMenuItemStyle: React.CSSProperties = {
+    background: '#1f2937',
+    color: '#ffffff',
+    border: '1px solid #374151',
+    borderRadius: '6px',
+    padding: '8px 10px',
+    fontSize: '11px',
+    textAlign: 'left',
+    cursor: 'pointer',
+    fontWeight: 'bold',
+    width: '100%',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: '4px'
+  };
+
+  return createPortal(
+    <div
+      id="emergency-debug-overlay-container"
+      style={{
+        position: 'fixed',
+        inset: '0',
+        zIndex: 2147483647,
+        isolation: 'isolate',
+        pointerEvents: 'none',
+        transform: 'translateZ(0)',
+        contain: 'none',
+        background: 'transparent',
+      }}
+    >
+      {/* Always-visible Panic Button */}
       <button
-        onClick={() => setIsOpen(prev => !prev)}
+        id="livex-panic-dbg-button"
+        onClick={() => setIsPanicMenuOpen(prev => !prev)}
         style={{
           position: 'fixed',
-          top: '12px',
+          bottom: '12px',
           right: '12px',
-          padding: '6px 12px',
-          background: isOpen ? 'rgba(239, 68, 68, 0.85)' : 'rgba(147, 51, 234, 0.45)',
-          backdropFilter: 'blur(8px)',
-          WebkitBackdropFilter: 'blur(8px)',
-          border: '1px solid rgba(255,255,255,0.18)',
-          borderRadius: '12px',
-          fontSize: '11px',
+          width: '48px',
+          height: '48px',
+          borderRadius: '50%',
+          background: '#ef4444',
+          color: '#ffffff',
+          border: '3px solid #ffffff',
+          boxShadow: '0 0 10px rgba(0,0,0,0.8), 0 0 20px #ef4444',
+          fontSize: '14px',
+          fontWeight: '900',
           fontFamily: 'monospace',
-          fontWeight: 'bold',
-          color: '#fff',
-          zIndex: 999999,
-          boxShadow: '0 4px 12px rgba(0,0,0,0.25)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 2147483647,
+          pointerEvents: 'auto',
           cursor: 'pointer'
         }}
       >
-        {isOpen ? '[CLOSE DEBUG]' : '⚡ LIVE DIAGNOSTICS'}
+        DBG
       </button>
+
+      {/* Panic Context Menu */}
+      {isPanicMenuOpen && (
+        <div
+          id="livex-panic-menu"
+          style={{
+            position: 'fixed',
+            bottom: '68px',
+            right: '12px',
+            width: '240px',
+            background: '#111827',
+            border: '2px solid #ef4444',
+            borderRadius: '12px',
+            padding: '12px',
+            boxShadow: '0 10px 25px rgba(0,0,0,0.8)',
+            zIndex: 2147483647,
+            pointerEvents: 'auto',
+            display: 'flex',
+            flexDirection: 'column',
+            color: '#ffffff',
+            fontFamily: 'monospace'
+          }}
+        >
+          <div style={{ fontSize: '12px', fontWeight: 'bold', color: '#ef4444', borderBottom: '1px solid #374151', paddingBottom: '6px', textAlign: 'center', marginBottom: '8px' }}>
+            DBG EMERGENCY MENU
+          </div>
+          <button
+            onClick={() => {
+              const stored = localStorage.getItem('studio_auto_captures');
+              if (stored) {
+                const parsed = JSON.parse(stored);
+                if (parsed.length > 0) {
+                  copyToClipboard(JSON.stringify(parsed[0].fullPayload || parsed[0], null, 2), "Last Capture");
+                } else {
+                  alert("No captures found in history.");
+                }
+              } else {
+                alert("No captures stored in localStorage.");
+              }
+            }}
+            style={panicMenuItemStyle}
+          >
+            📋 Copy Last Capture
+          </button>
+          <button
+            onClick={() => {
+              const tree = generateSimplifiedDOMTree();
+              copyToClipboard(tree, "DOM Snapshot");
+            }}
+            style={panicMenuItemStyle}
+          >
+            🌳 Copy DOM Snapshot
+          </button>
+          <button
+            onClick={() => {
+              runRecoveryAction('Force Hub Remount', forceHubRemount);
+              setIsPanicMenuOpen(false);
+            }}
+            style={panicMenuItemStyle}
+          >
+            🔄 Force Hub Remount
+          </button>
+          <button
+            onClick={() => {
+              runRecoveryAction('Force App Re-render', forceRerenderEntireApp);
+              setIsPanicMenuOpen(false);
+            }}
+            style={panicMenuItemStyle}
+          >
+            ⚡ Force App Re-render
+          </button>
+          <button
+            onClick={() => {
+              setIsOpen(prev => !prev);
+              setIsPanicMenuOpen(false);
+            }}
+            style={{
+              ...panicMenuItemStyle,
+              background: '#374151',
+              border: '1px solid #4b5563'
+            }}
+          >
+            {isOpen ? '❌ Hide Full Console' : '📺 Show Full Console'}
+          </button>
+          <button
+            onClick={toggleSimulateBlackScreen}
+            style={{
+              ...panicMenuItemStyle,
+              background: isBlackScreenSimulated ? '#9d174d' : '#831843',
+              border: isBlackScreenSimulated ? '1px solid #db2777' : '1px solid #9d174d'
+            }}
+          >
+            {isBlackScreenSimulated ? '🔴 Remove Black Screen' : '🖤 Sim. Black Screen'}
+          </button>
+        </div>
+      )}
 
       {/* Main Debug Panel Modal */}
       {isOpen && (
         <div
+          id="livex-emergency-panel"
           style={{
             position: 'fixed',
             inset: '16px',
-            background: 'rgba(10, 10, 14, 0.95)',
+            bottom: '80px',
+            background: 'rgba(10, 10, 14, 0.98)',
             backdropFilter: 'blur(20px)',
             WebkitBackdropFilter: 'blur(20px)',
-            border: '1px solid rgba(255,255,255,0.08)',
+            border: '2px solid rgba(168, 85, 247, 0.4)',
             borderRadius: '16px',
-            zIndex: 999998,
-            boxShadow: '0 24px 64px rgba(0,0,0,0.65)',
+            zIndex: 2147483647,
+            boxShadow: '0 24px 64px rgba(0,0,0,0.85)',
             display: 'flex',
             flexDirection: 'column',
             color: '#fff',
             fontFamily: 'monospace',
-            overflow: 'hidden'
+            overflow: 'hidden',
+            pointerEvents: 'auto'
           }}
         >
           {/* Header */}
@@ -468,7 +701,7 @@ export default function EmergencyDebugOverlay() {
                 EMERGENCY BLACK SCREEN TELEMETRY
               </h2>
               <span style={{ fontSize: '10px', color: 'rgba(255,255,255,0.45)' }}>
-                Livex Android v3.6.58 (Code 85)
+                Livex Android v3.6.60 (Code 87)
               </span>
             </div>
             <button
@@ -529,7 +762,7 @@ export default function EmergencyDebugOverlay() {
             {activeTab === 'status' && (
               <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
                 <div>
-                  <h3 style={{ margin: '0 0 6px 0', color: 'rgb(168, 85, 247)', fontSize: '12px' }}>NAVIGATION STATE</h3>
+                  <h3 style={{ margin: '0 0 6px 0', color: 'rgb(168, 85, 247)', fontSize: '12px' }}>%LANGUAGE_SELECT_PLACEHOLDER%NAVIGATION STATE</h3>
                   <pre style={{ margin: 0, background: 'rgba(255,255,255,0.02)', padding: '10px', borderRadius: '8px' }}>
 {`appMode:           ${data.appMode}
 activeSubApp:      ${data.activeSubApp}
@@ -658,6 +891,27 @@ display:        ${info.display}
                   >
                     <strong>Force Re-render Entire App</strong>
                     <div style={{ fontSize: '9px', opacity: 0.7, marginTop: '2px' }}>Remounts root App layout (simulates fresh restart without page reload)</div>
+                  </button>
+
+                  <button
+                    onClick={() => {
+                      toggleSimulateBlackScreen();
+                      setTick(t => t + 1);
+                    }}
+                    style={{
+                      padding: '12px',
+                      background: isBlackScreenSimulated ? 'rgba(239, 68, 68, 0.4)' : 'rgba(255, 255, 255, 0.04)',
+                      border: isBlackScreenSimulated ? '1px solid rgb(239, 68, 68)' : '1px solid rgba(255,255,255,0.1)',
+                      borderRadius: '8px',
+                      color: '#fff',
+                      textAlign: 'left',
+                      cursor: 'pointer'
+                    }}
+                  >
+                    <strong>Simulate Black Screen Layer</strong>
+                    <div style={{ fontSize: '9px', opacity: 0.7, marginTop: '2px' }}>
+                      {isBlackScreenSimulated ? '🔴 Active (Tap to remove)' : '⚪ Inactive (Tap to simulate)'}
+                    </div>
                   </button>
                 </div>
               </div>
@@ -804,6 +1058,7 @@ activeSubApp:    ${hubRootMissingCapture.activeSubApp}`}
           </div>
         </div>
       )}
-    </div>
+    </div>,
+    overlayRoot
   );
 }
