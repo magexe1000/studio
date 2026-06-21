@@ -1,19 +1,21 @@
 {
   "platform": "web",
   "version": "4.0.0",
-  "commit": "00055e92",
+  "commit": "e71126bd",
   "releasedAt": "6/21/2026, 12:00:00 AM CST",
   "buildTimestamp": "6/21/2026, 12:00:00 AM CST",
   "updateMode": "refresh",
-  "description": "• Added pixel-level visibility probes to detect screen rendering freezes.\n• Added WebView computed layout, compositing, and layer count diagnostics.\n• Added Visual Repaint Recovery and React Nuclear Remount actions.\n• Upgraded Navigation Forensics with timing snapshot comparison dropdowns.",
-  "whatsNew": "• Added pixel-level visibility probes to detect screen rendering freezes.\n• Added WebView computed layout, compositing, and layer count diagnostics.\n• Added Visual Repaint Recovery and React Nuclear Remount actions.\n• Upgraded Navigation Forensics with timing snapshot comparison dropdowns.",
-  "changelog": "• Added pixel-level visibility probes to detect screen rendering freezes.\n• Added WebView computed layout, compositing, and layer count diagnostics.\n• Added Visual Repaint Recovery and React Nuclear Remount actions.\n• Upgraded Navigation Forensics with timing snapshot comparison dropdowns.",
+  "description": "• Added Paint Verification using html2canvas to Navigation Forensics.\n• Added Force WebView Repaint recovery action with multiple visual repaint cycles.\n• Added Force Full Hub Rebuild recovery action to remount the Hub subtree with a new React key.\n• Added Force WebView Refresh Layer compositor invalidation recovery action.\n• Added automated timing forensic snapshots at LEAVING_CHORDEX, ENTERING_HUB, T+500ms, and T+2000ms.\n• Integrated paint validation into the 1200ms return watchdog to detect and record compositor freeze errors automatically.",
+  "whatsNew": "• Added Paint Verification using html2canvas to Navigation Forensics.\n• Added Force WebView Repaint recovery action with multiple visual repaint cycles.\n• Added Force Full Hub Rebuild recovery action to remount the Hub subtree with a new React key.\n• Added Force WebView Refresh Layer compositor invalidation recovery action.\n• Added automated timing forensic snapshots at LEAVING_CHORDEX, ENTERING_HUB, T+500ms, and T+2000ms.\n• Integrated paint validation into the 1200ms return watchdog to detect and record compositor freeze errors automatically.",
+  "changelog": "• Added Paint Verification using html2canvas to Navigation Forensics.\n• Added Force WebView Repaint recovery action with multiple visual repaint cycles.\n• Added Force Full Hub Rebuild recovery action to remount the Hub subtree with a new React key.\n• Added Force WebView Refresh Layer compositor invalidation recovery action.\n• Added automated timing forensic snapshots at LEAVING_CHORDEX, ENTERING_HUB, T+500ms, and T+2000ms.\n• Integrated paint validation into the 1200ms return watchdog to detect and record compositor freeze errors automatically.",
   "releaseNotes": {
     "added": [
-      "Added pixel-level visibility probes to detect screen rendering freezes.",
-      "Added WebView computed layout, compositing, and layer count diagnostics.",
-      "Added Visual Repaint Recovery and React Nuclear Remount actions.",
-      "Upgraded Navigation Forensics with timing snapshot comparison dropdowns."
+      "Added Paint Verification using html2canvas to Navigation Forensics.",
+      "Added Force WebView Repaint recovery action with multiple visual repaint cycles.",
+      "Added Force Full Hub Rebuild recovery action to remount the Hub subtree with a new React key.",
+      "Added Force WebView Refresh Layer compositor invalidation recovery action.",
+      "Added automated timing forensic snapshots at LEAVING_CHORDEX, ENTERING_HUB, T+500ms, and T+2000ms.",
+      "Integrated paint validation into the 1200ms return watchdog to detect and record compositor freeze errors automatically."
     ]
   },
   "mandatory": false

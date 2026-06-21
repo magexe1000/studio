@@ -596,6 +596,9 @@ const releaseNotesFile = path.join(repoRoot, 'release-notes.md');
 
 const runGh = (args) => {
   const env = { ...process.env };
+  if (env.GITHUB_TOKEN && !env.GITHUB_TOKEN.startsWith('ghp_') && !env.GITHUB_TOKEN.startsWith('github_pat_')) {
+    delete env.GITHUB_TOKEN;
+  }
   if (env.GITHUB_TOKEN === 'github_pat_antigravitydummytoken') {
     delete env.GITHUB_TOKEN;
   }
@@ -603,7 +606,7 @@ const runGh = (args) => {
   return spawnSync('gh', normalizedArgs, {
     cwd: repoRoot,
     stdio: 'pipe',
-    shell: process.platform === 'win32',
+    shell: false,
     env
   });
 };
