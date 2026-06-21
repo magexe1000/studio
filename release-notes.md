@@ -1,7 +1,3 @@
 ### Added
-- Added black screen diagnostic capture action in Developer Tools.
-- Added automatic black screen blocker detection and telemetry.
-
-### Fixed
-- Fixed Stagex scene buttons touch hitboxes alignment using concentric transparent layout.
-- Enlarged delete scene buttons to 36x36px touch target.
+- Added advanced WebView diagnostics for black screen analysis.
+- Added automatic localStorage persistence for watchdog trace reports.
