@@ -520,21 +520,24 @@ export default function StudioHub() {
   );
 
   return (
-    <div style={{
-      position: 'relative',
-      height: '100dvh',
-      overflow: 'hidden',
-      background: 'var(--app-bg)',
-      display: 'flex',
-      flexDirection: 'column',
-      paddingTop: 'env(safe-area-inset-top)',
-      fontFamily: 'Manrope, sans-serif',
-      transform: zooming ? 'scale(1.10)' : 'scale(1)',
-      opacity: zooming ? 0 : 1,
-      transition: zooming
-        ? 'transform 380ms cubic-bezier(0.4,0,1,1), opacity 280ms ease-in, background-color 700ms cubic-bezier(0.4,0,0.2,1)'
-        : 'transform 380ms cubic-bezier(0.16, 1, 0.3, 1), opacity 380ms ease-out, background-color 700ms cubic-bezier(0.4,0,0.2,1)',
-    }}>
+    <div
+      data-livex-hub-root="true"
+      style={{
+        position: 'relative',
+        height: '100dvh',
+        overflow: 'hidden',
+        background: 'var(--app-bg)',
+        display: 'flex',
+        flexDirection: 'column',
+        paddingTop: 'env(safe-area-inset-top)',
+        fontFamily: 'Manrope, sans-serif',
+        transform: zooming ? 'scale(1.10)' : 'scale(1)',
+        opacity: zooming ? 0 : 1,
+        transition: zooming
+          ? 'transform 380ms cubic-bezier(0.4,0,1,1), opacity 280ms ease-in, background-color 700ms cubic-bezier(0.4,0,0.2,1)'
+          : 'transform 380ms cubic-bezier(0.16, 1, 0.3, 1), opacity 380ms ease-out, background-color 700ms cubic-bezier(0.4,0,0.2,1)',
+      }}
+    >
 
       {/* ── Main scrollable content ── */}
       <div ref={scrollRef} style={{ flex: 1, overflowY: tab === 'home' ? 'hidden' : 'auto', overflowX: 'hidden' }}>

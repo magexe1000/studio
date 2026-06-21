@@ -644,7 +644,8 @@ export default function App() {
               tag: el.tagName.toLowerCase(),
               id: el.id,
               className: el.className,
-              pointerEvents: window.getComputedStyle(el).pointerEvents
+              pointerEvents: window.getComputedStyle(el).pointerEvents,
+              isHub: !!el.closest?.('[data-livex-hub-root="true"]') || !!el.closest?.('.app-main-layout')
             };
           } else {
             topmostElements[key] = null;
@@ -703,7 +704,7 @@ export default function App() {
           motionExitActive
         },
         mountedComponents: {
-          hubRoot: !!document.querySelector('#hub-root'),
+          hubRoot: !!document.querySelector('[data-livex-hub-root="true"]'),
           mainLayout: !!document.querySelector('.app-main-layout'),
           subappWrapper: subappWrapperMounted,
           subappContainer: subappContainerMounted,
@@ -777,7 +778,11 @@ export default function App() {
       let isBlocked = false;
       let reason = '';
 
-      if (!statePayload.hub.mounted) {
+      if (!statePayload.mountedComponents.hubRoot) {
+        isBlocked = true;
+        reason = 'HUB_ROOT_MISSING';
+        console.error('HUB_ROOT_MISSING', statePayload);
+      } else if (!statePayload.hub.mounted) {
         isBlocked = true;
         reason = 'Hub not mounted';
       } else if (!hubVisible) {
@@ -791,7 +796,7 @@ export default function App() {
         const id = topmostCenter.id;
         const cls = topmostCenter.className || '';
         
-        const isHubElement = id === 'hub-root' || cls.includes('hub') || cls.includes('app-main-layout') || 
+        const isHubElement = topmostCenter.isHub || id === 'hub-root' || cls.includes('hub') || cls.includes('app-main-layout') || 
                              cls.includes('studio-hub') || tag === 'body' || tag === 'html';
                              
         if (!isHubElement && (cls.includes('subapp') || cls.includes('overlay') || cls.includes('backdrop') || cls.includes('modal') || cls.includes('chordex'))) {
@@ -847,7 +852,9 @@ export default function App() {
         }}
       >
         <Suspense fallback={<SmartLoading fallbackSkeleton={<StudioHubSkeleton />} />}>
-          <StudioHub />
+          {(!isSubAppActive || transitionActive) && (
+            <StudioHub />
+          )}
         </Suspense>
       </div>
 
