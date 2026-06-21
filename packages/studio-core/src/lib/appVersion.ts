@@ -26,7 +26,7 @@ import { useMemo } from 'react';
 import { Capacitor } from '@capacitor/core';
 
 /** Canonical semver string used by the OTA comparator. */
-export const NATIVE_VERSION = '3.6.58';
+export const NATIVE_VERSION = '3.6.59';
 export const WEB_VERSION = '4.0.0';
 export const APP_VERSION = Capacitor.isNativePlatform() ? NATIVE_VERSION : WEB_VERSION;
 
@@ -61,9 +61,10 @@ export const APP_CHANGELOG_SECTIONS: ChangelogSection[] = [
   {
     heading: "Fixed",
     items: [
-      "Fixed persistent Chordex-to-Hub return black screen issue via a deterministic failsafe.",
-      "Resolved GSAP target missing console warning.",
-      "Improved diagnostics and trace logging.",
+      "Resolved Chordex -> Hub return black screen by keeping StudioHub permanently mounted.",
+      "Eliminated watchdog false-positives via an optimized 1.2s verification delay.",
+      "Added separate HUB_ROOT_MISSING_CAPTURE diagnostic snapshot inside local storage.",
+      "Preserved accurate previous mode history in failsafe recovery logs.",
     ],
   },
 ];
@@ -73,9 +74,10 @@ export const APP_CHANGELOG_SECTIONS_NATIVE: ChangelogSection[] = [
   {
     heading: "Fixed",
     items: [
-      "Fixed persistent Chordex-to-Hub return black screen issue via a deterministic failsafe.",
-      "Resolved GSAP target missing console warning.",
-      "Improved navigation and status diagnostics reporting in Developer Tools.",
+      "Resolved Chordex -> Hub return black screen by keeping StudioHub permanently mounted.",
+      "Eliminated watchdog false-positives via an optimized 1.2s verification delay.",
+      "Added separate HUB_ROOT_MISSING_CAPTURE diagnostic snapshot inside local storage.",
+      "Preserved accurate previous mode history in failsafe recovery logs.",
     ],
   },
 ];
@@ -86,9 +88,10 @@ export const APP_CHANGELOG_SECTIONS_ES: ChangelogSection[] = [
   {
     heading: "Corregido",
     items: [
-      "Corregido el problema persistente de pantalla negra al regresar de Chordex a Livex Hub mediante un mecanismo de recuperación determinista.",
-      "Resuelta la advertencia de consola por falta de objetivo en GSAP.",
-      "Mejorado el informe de diagnósticos de navegación y estado en herramientas de desarrollo.",
+      "Resuelto el problema de pantalla negra al regresar de Chordex manteniendo StudioHub montado permanentemente.",
+      "Eliminados los falsos positivos del perro guardián mediante un retraso optimizado de 1.2s.",
+      "Añadido captura de diagnóstico HUB_ROOT_MISSING_CAPTURE en el almacenamiento local.",
+      "Preservado el historial preciso del modo anterior en los registros de recuperación.",
     ],
   },
 ];

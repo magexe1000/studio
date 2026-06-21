@@ -821,6 +821,23 @@ export default function App() {
         isBlocked = true;
         reason = 'HUB_ROOT_MISSING';
         console.error('HUB_ROOT_MISSING', statePayload);
+
+        // Immediately capture detailed state separately as HUB_ROOT_MISSING_CAPTURE
+        const missingCapture = {
+          timestamp: Date.now(),
+          reactTreeState: 'crashed_or_unmounted',
+          mountedComponents: statePayload.mountedComponents,
+          navigationHistory: (window as any).__navigationTraceHistory || [],
+          stableKey: statePayload.stableKey,
+          activeSubApp: statePayload.activeSubApp,
+          previousApp: previousAppModeRef.current || 'none',
+          transitionState: statePayload.transitionActive,
+          fullPayload: statePayload
+        };
+        (window as any).HUB_ROOT_MISSING_CAPTURE = missingCapture;
+        try {
+          localStorage.setItem('HUB_ROOT_MISSING_CAPTURE', JSON.stringify(missingCapture));
+        } catch (_) {}
       } else if (!statePayload.hub.mounted) {
         isBlocked = true;
         reason = 'Hub not mounted';
@@ -864,15 +881,16 @@ export default function App() {
 
         if (reason === 'HUB_ROOT_MISSING') {
           console.warn('[Failsafe] HUB_ROOT_MISSING detected! Running deterministic Hub remount.');
+          const actualFrom = previousAppModeRef.current || 'none';
           flushSync(() => {
             setHubRenderKey(k => k + 1);
             setTransitionActive(false);
             lastActiveAppRef.current = 'chords';
-          useChordStore.getState().updateSettings({ appMode: 'hub' });
+            useChordStore.getState().updateSettings({ appMode: 'hub' });
           });
           (window as any).__navigationTraceHistory = (window as any).__navigationTraceHistory || [];
           (window as any).__navigationTraceHistory.push({
-            fromApp: 'none',
+            fromApp: actualFrom,
             toApp: 'hub',
             timestamp: Date.now(),
             transitionDuration: 0,
@@ -880,7 +898,7 @@ export default function App() {
             recoveredViaFailsafe: true
           });
           recordNavigation({
-            fromApp: 'none',
+            fromApp: actualFrom,
             toApp: 'hub',
             hubMounted: true,
             activeAppAfterTransition: 'hub',
@@ -890,7 +908,7 @@ export default function App() {
           } as any);
         }
       }
-    }, 500);
+    }, 1200);
 
     return () => clearTimeout(timer);
   }, [appMode]);
@@ -916,12 +934,12 @@ export default function App() {
           height: '100dvh',
           overflow: 'hidden',
           pointerEvents: isSubAppActive ? 'none' : 'auto',
+          opacity: isSubAppActive && !transitionActive ? 0 : 1,
+          visibility: isSubAppActive && !transitionActive ? 'hidden' : 'visible',
         }}
       >
         <Suspense fallback={<SmartLoading fallbackSkeleton={<StudioHubSkeleton />} />}>
-          {(!isSubAppActive || transitionActive) && (
-            <StudioHub key={hubRenderKey} />
-          )}
+          <StudioHub key={hubRenderKey} />
         </Suspense>
       </div>
 

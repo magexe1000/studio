@@ -31,6 +31,7 @@ export default function EmergencyDebugOverlay() {
   const [tick, setTick] = useState(0);
   const [autoCaptures, setAutoCaptures] = useState<AutoCaptureEntry[]>([]);
   const [activeCaptureIdx, setActiveCaptureIdx] = useState<number | null>(null);
+  const [hubRootMissingCapture, setHubRootMissingCapture] = useState<any>(null);
 
   // ── GESTURE AND TRIGGER LOGIC ──────────────────────────────────────────
   useEffect(() => {
@@ -94,15 +95,21 @@ export default function EmergencyDebugOverlay() {
     return () => clearInterval(timer);
   }, []);
 
-  // Load Auto Captures from localStorage on mount
+  // Load Auto Captures and HUB_ROOT_MISSING_CAPTURE from localStorage
   useEffect(() => {
     try {
       const stored = localStorage.getItem('studio_auto_captures');
       if (stored) {
         setAutoCaptures(JSON.parse(stored));
       }
+      const missing = localStorage.getItem('HUB_ROOT_MISSING_CAPTURE');
+      if (missing) {
+        setHubRootMissingCapture(JSON.parse(missing));
+      } else {
+        setHubRootMissingCapture(null);
+      }
     } catch (_) {}
-  }, []);
+  }, [isOpen, tick]);
 
   // ── CAPTURE & TELEMETRY FUNCTIONS ───────────────────────────────────────
   const getComputedStylesSafe = (el: Element | null) => {
@@ -659,6 +666,44 @@ display:        ${info.display}
             {/* TAB: AUTO CAPTURES */}
             {activeTab === 'captures' && (
               <div>
+                {/* HUB_ROOT_MISSING_CAPTURE Section */}
+                {hubRootMissingCapture && (
+                  <div style={{ background: 'rgba(239, 68, 68, 0.08)', border: '1px solid rgba(239, 68, 68, 0.25)', borderRadius: '8px', padding: '12px', marginBottom: '14px' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
+                      <strong style={{ color: '#ff8a8a', fontSize: '10px' }}>⚠️ HUB_ROOT_MISSING CAPTURE</strong>
+                      <span style={{ fontSize: '8px', color: 'rgba(255,255,255,0.4)' }}>
+                        {new Date(hubRootMissingCapture.timestamp).toLocaleTimeString()}
+                      </span>
+                    </div>
+                    <pre style={{ margin: '0 0 8px 0', background: 'rgba(0,0,0,0.25)', padding: '8px', borderRadius: '4px', fontSize: '9px', overflowX: 'auto' }}>
+{`previousApp:     ${hubRootMissingCapture.previousApp}
+stableKey:       ${hubRootMissingCapture.stableKey}
+transitionState: ${hubRootMissingCapture.transitionState}
+activeSubApp:    ${hubRootMissingCapture.activeSubApp}`}
+                    </pre>
+                    <div style={{ display: 'flex', gap: '8px' }}>
+                      <button
+                        onClick={() => copyToClipboard(JSON.stringify(hubRootMissingCapture, null, 2), 'HUB_ROOT_MISSING_CAPTURE')}
+                        style={{ flex: 1, padding: '6px', background: 'rgba(239, 68, 68, 0.2)', border: 'none', color: '#fff', borderRadius: '4px', fontSize: '9px', cursor: 'pointer' }}
+                      >
+                        Copy Capture
+                      </button>
+                      <button
+                        onClick={() => {
+                          try {
+                            localStorage.removeItem('HUB_ROOT_MISSING_CAPTURE');
+                            setHubRootMissingCapture(null);
+                            alert('HUB_ROOT_MISSING_CAPTURE cleared.');
+                          } catch (_) {}
+                        }}
+                        style={{ padding: '6px 12px', background: 'rgba(255,255,255,0.06)', border: 'none', color: 'rgba(255,255,255,0.6)', borderRadius: '4px', fontSize: '9px', cursor: 'pointer' }}
+                      >
+                        Clear
+                      </button>
+                    </div>
+                  </div>
+                )}
+
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
                   <h3 style={{ margin: 0, color: 'rgb(168, 85, 247)', fontSize: '12px' }}>BLACK SCREEN AUTO CAPTURES ({autoCaptures.length}/20)</h3>
                   <button

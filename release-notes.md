@@ -1,4 +1,5 @@
 ### Fixed
-- Fixed persistent Chordex-to-Hub return black screen issue via a deterministic failsafe.
-- Resolved GSAP target missing console warning.
-- Improved diagnostics and trace logging.
+- Resolved Chordex -> Hub return black screen by keeping StudioHub permanently mounted.
+- Eliminated watchdog false-positives via an optimized 1.2s verification delay.
+- Added separate HUB_ROOT_MISSING_CAPTURE diagnostic snapshot inside local storage.
+- Preserved accurate previous mode history in failsafe recovery logs.
