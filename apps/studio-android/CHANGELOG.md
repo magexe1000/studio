@@ -12,6 +12,14 @@ Conventions:
 - Bullets start with `- ` and use plain English a non-technical user
   can parse. Keep each line short — the modal's text area is narrow.
 
+## 3.6.72
+
+### Added
+- Restored original smooth transition animations for sub-app entries and exits.
+- Optimized navigation performance and transition frame-rates on physical Android devices.
+- Memoized SubAppWrapper component to prevent unnecessary React re-renders.
+- Hidden emergency debug UI, panic menu, and watchdog telemetry from production, keeping diagnostics accessible behind a debug flag.
+
 ## 3.6.71
 
 ### Fixed

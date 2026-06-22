@@ -1,5 +1,5 @@
 import { type AppKey } from '@workspace/studio-core';
-import { lazy, Suspense, useCallback, useEffect, useRef, useState, useMemo } from 'react';
+import { lazy, Suspense, useCallback, useEffect, useRef, useState, useMemo, memo } from 'react';
 import { createPortal, flushSync } from 'react-dom';
 import { motion, AnimatePresence } from 'motion/react';
 import {
@@ -51,6 +51,11 @@ import { Capacitor } from '@capacitor/core';
 import html2canvas from 'html2canvas';
 
 import "./index.css";
+
+const isDebugModeEnabled = typeof window !== 'undefined' && (
+  localStorage.getItem('studio_debug_mode') === 'true' ||
+  (window as any).__studio_debug_mode === true
+);
 
 
 type AccountState =
@@ -1205,7 +1210,7 @@ export default function App() {
         
         // Capture 7 timing checkpoints
         (window as any).__lastCheckpointStage = 'T+0ms';
-        captureTimelineCheckpoint(lastCaptureId, 'T+0ms');
+        if (isDebugModeEnabled) captureTimelineCheckpoint(lastCaptureId, 'T+0ms');
         
         const runWatchdogs = (name: string) => {
           (window as any).__lastCheckpointStage = name;
@@ -1223,22 +1228,22 @@ export default function App() {
 
         setTimeout(() => {
           runWatchdogs('T+50ms');
-          captureTimelineCheckpoint(lastCaptureId, 'T+50ms');
+          if (isDebugModeEnabled) captureTimelineCheckpoint(lastCaptureId, 'T+50ms');
         }, 50);
         
         setTimeout(() => {
           runWatchdogs('T+100ms');
-          captureTimelineCheckpoint(lastCaptureId, 'T+100ms');
+          if (isDebugModeEnabled) captureTimelineCheckpoint(lastCaptureId, 'T+100ms');
         }, 100);
 
         setTimeout(() => {
           runWatchdogs('T+250ms');
-          captureTimelineCheckpoint(lastCaptureId, 'T+250ms');
+          if (isDebugModeEnabled) captureTimelineCheckpoint(lastCaptureId, 'T+250ms');
         }, 250);
 
         setTimeout(() => {
           runWatchdogs('T+500ms');
-          captureTimelineCheckpoint(lastCaptureId, 'T+500ms');
+          if (isDebugModeEnabled) captureTimelineCheckpoint(lastCaptureId, 'T+500ms');
         }, 500);
 
         setTimeout(() => {
@@ -1246,12 +1251,12 @@ export default function App() {
           if (typeof (window as any).__runRootWatchdogCheck === 'function') {
             (window as any).__runRootWatchdogCheck('T+1000ms');
           }
-          captureTimelineCheckpoint(lastCaptureId, 'T+1000ms');
+          if (isDebugModeEnabled) captureTimelineCheckpoint(lastCaptureId, 'T+1000ms');
         }, 1000);
 
         setTimeout(() => {
           (window as any).__lastCheckpointStage = 'T+2000ms';
-          captureTimelineCheckpoint(lastCaptureId, 'T+2000ms');
+          if (isDebugModeEnabled) captureTimelineCheckpoint(lastCaptureId, 'T+2000ms');
         }, 2000);
         
       } catch (err) {
@@ -2070,7 +2075,7 @@ export default function App() {
       };
 
       // Perform paint verification to check if the screen is visually black even though DOM says it's visible
-      if (!isBlocked) {
+      if (!isBlocked && isDebugModeEnabled) {
         runPaintVerification().then(paintData => {
           const isVisuallyBlack = paintData.paintState === 'visually_black';
           const domExists = paintData.domExists;
@@ -2086,7 +2091,7 @@ export default function App() {
           runWatchdogVerdict(false, '');
         });
       } else {
-        runWatchdogVerdict(true, reason);
+        runWatchdogVerdict(isBlocked, reason);
       }
     }, 1200);
 
@@ -2111,13 +2116,7 @@ export default function App() {
       <LifecycleTracker name="App" />
       <LifecycleTracker name="app-container" />
       
-      <style>{`
-        .app-mode-hub .sc-subapp-wrapper {
-          pointer-events: none !important;
-          transition: opacity 250ms ease-in-out !important;
-          opacity: 0 !important;
-        }
-      `}</style>
+
       
       <ErrorBoundary moduleName="RootApp">
         <Suspense fallback={<TolgeeSuspenseFallback />}>
@@ -2149,10 +2148,10 @@ export default function App() {
                 <motion.div
                   key={stableKey}
                   className="sc-subapp-wrapper"
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  exit={{ opacity: 0, pointerEvents: 'none' as any }}
-                  transition={{ duration: 0.18, ease: 'easeOut' }}
+                  initial={{ opacity: 0, y: 16, scale: 0.972 }}
+                  animate={{ opacity: 1, y: 0, scale: 1 }}
+                  exit={{ opacity: 0, y: 16, scale: 0.972, pointerEvents: 'none' as any }}
+                  transition={{ duration: 0.28, ease: [0.33, 1, 0.68, 1] }}
                   style={{
                     position: 'absolute',
                     inset: 0,
@@ -2230,7 +2229,7 @@ function FallbackTracker({ app, children }: { app: AppKey; children: React.React
   return <>{children}</>;
 }
 
-function SubAppWrapper({ app, activePanel, settings }: SubAppWrapperProps) {
+const SubAppWrapper = memo(function SubAppWrapper({ app, activePanel, settings }: SubAppWrapperProps) {
   const [cachedApp] = useState<AppKey>(app);
 
   useEffect(() => {
@@ -2365,4 +2364,4 @@ function SubAppWrapper({ app, activePanel, settings }: SubAppWrapperProps) {
       )}
     </>
   );
-}
+});

@@ -26,7 +26,7 @@ import { useMemo } from 'react';
 import { Capacitor } from '@capacitor/core';
 
 /** Canonical semver string used by the OTA comparator. */
-export const NATIVE_VERSION = '3.6.71';
+export const NATIVE_VERSION = '3.6.72';
 export const WEB_VERSION = '4.0.0';
 export const APP_VERSION = Capacitor.isNativePlatform() ? NATIVE_VERSION : WEB_VERSION;
 
@@ -59,12 +59,12 @@ export interface ChangelogSection {
 
 export const APP_CHANGELOG_SECTIONS: ChangelogSection[] = [
   {
-    heading: "Fixed",
+    heading: "Added",
     items: [
-      "Mitigated React Error #300 hook order violation in BottomNav by hoisting hooks above conditional return statements.",
-      "Integrated runtime React stack trace symbolicator with VLQ sourcemap decoding and online/offline mapping.",
-      "Added COPY SYMBOLICATED REACT ERROR REPORT action to crashed boundaries and debug overlay timelines.",
-      "Resolved WebView black screen and compositing freezes on sub-app exits with enhanced telemetry and paint validation.",
+      "Restored original smooth transition animations for sub-app entries and exits.",
+      "Optimized navigation performance and transition frame-rates on physical Android devices.",
+      "Memoized SubAppWrapper component to prevent unnecessary React re-renders.",
+      "Hidden emergency debug UI, panic menu, and watchdog telemetry from production, keeping diagnostics accessible behind a debug flag.",
     ],
   },
 ];

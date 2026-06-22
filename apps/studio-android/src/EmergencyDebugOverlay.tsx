@@ -205,6 +205,15 @@ function getWebViewPipelineStatus(snap: any) {
 }
 
 export default function EmergencyDebugOverlay() {
+  const isDebugModeEnabled = typeof window !== 'undefined' && (
+    localStorage.getItem('studio_debug_mode') === 'true' ||
+    (window as any).__studio_debug_mode === true
+  );
+
+  if (!isDebugModeEnabled) {
+    return null;
+  }
+
   const { settings, updateSettings } = useChordStore();
   const [isOpen, setIsOpen] = useState(false);
   const [isPanicMenuOpen, setIsPanicMenuOpen] = useState(false);
