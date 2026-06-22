@@ -459,7 +459,7 @@ run('pnpm', ['build'], {
   BASE_PATH: '/',
 });
 
-const distDir = path.join(pkgRoot, 'dist', 'public');
+const distDir = path.resolve(repoRoot, 'dist', 'android-web');
 if (!existsSync(distDir)) {
   console.error(`release-firebase: ✗ Build output ${distDir} does not exist.`);
   process.exit(1);
@@ -468,7 +468,7 @@ if (!existsSync(distDir)) {
 // Zipping OTA bundle is disabled. All updates are delivered as complete signed APKs.
 
 // ── Copy all web assets into the Firebase public directory ────────────
-console.log(`release-firebase: → Copying assets from dist/public to firebase-public`);
+console.log(`release-firebase: → Copying assets from dist/android-web to firebase-public`);
 function copyTree(srcRoot, dstRoot, skip = new Set()) {
   for (const entry of readdirSync(srcRoot, { withFileTypes: true })) {
     if (skip.has(entry.name)) continue;
