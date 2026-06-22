@@ -22,7 +22,6 @@ void ensureNotificationPermission();
 // Kick off the drum-sample seed in the background.
 void seedAudioAssets();
 
-const ChangelogModal = lazy(() => import("@workspace/ui-android").then(m => ({ default: m.UpdateDiagnosticsSheet }))); // or use appropriate lazy wrapper
 const UpdateIndicator = lazy(() => import("@workspace/ui-android").then(m => ({ default: m.UpdateIndicator })));
 
 function GlobalOverlays() {

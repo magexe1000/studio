@@ -12,6 +12,13 @@ Conventions:
 - Bullets start with `- ` and use plain English a non-technical user
   can parse. Keep each line short — the modal's text area is narrow.
 
+## 3.6.76
+
+### Added
+- Implemented dedicated per-app launch screen animations with centered logos and names when opening sub-apps from the Hub.
+- Preloaded and initialized sub-app rendering in the background behind the splash screen to eliminate visually jarring entry flickers.
+- Enforced a premium minimum launch screen duration (850ms) to ensure smooth transitions.
+
 ## 3.6.75
 
 ### Added

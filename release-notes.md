@@ -1,4 +1,4 @@
 ### Added
-- Modified navigation forensic snapshot sequence to capture unconditionally at T+0ms, T+50ms, T+100ms, T+250ms, T+500ms, T+1000ms, and T+2000ms.
-- Rendered live paint verification screenshots inside the Navigation Forensics panel of the debug overlay.
-- Optimized offscreen paint capture image quality to reduce local storage footprints.
+- Implemented dedicated per-app launch screen animations with centered logos and names when opening sub-apps from the Hub.
+- Preloaded and initialized sub-app rendering in the background behind the splash screen to eliminate visually jarring entry flickers.
+- Enforced a premium minimum launch screen duration (850ms) to ensure smooth transitions.

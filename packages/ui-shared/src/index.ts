@@ -1,6 +1,4 @@
 // Export everything from ui-shared
-export { default as AnimatedBorderButton } from './components/AnimatedBorderButton';
-export { default as AnimatedProgressBar } from './components/AnimatedProgressBar';
 export { default as AppSpinner } from './components/AppSpinner';
 export { default as ElasticSlider } from './components/ElasticSlider';
 export { default as GradientBorderCard } from './components/GradientBorderCard';
@@ -32,7 +30,6 @@ export * from './components/AppAnimationSystem';
 // Remaining components in ui-shared/components
 export { default as AccountCard } from './components/AccountCard';
 export { default as ApplyToSheet } from './components/ApplyToSheet';
-export { default as ChangelogModal } from './components/ChangelogModal';
 export { default as ChangelogSheet } from './components/ChangelogSheet';
 export { default as CustomChordBuilder } from './components/CustomChordBuilder';
 export { default as DisabledAccountScreen } from './components/DisabledAccountScreen';
@@ -44,7 +41,6 @@ export * from './components/SettingControls';
 export { default as StudioAuthCard } from './components/StudioAuthCard';
 export { default as StudioPricingSection } from './components/StudioPricingSection';
 export { default as StudioUpdateScreen } from './components/StudioUpdateScreen';
-export { default as UpdateLoadingScreen } from './components/UpdateLoadingScreen';
 export { default as ProfileDropdown } from './components/kokonutui/profile-dropdown';
 
 // Animata
@@ -71,6 +67,11 @@ export { AppModeMenuLogo } from './components/AppModeMenuLogo';
 export { WebToolbar, WebButton } from './components/WebDesignSystem';
 export { default as WebAppSectionDock } from './components/WebAppSectionDock';
 export { default as DevToolsDashboard } from './components/DevToolsDashboard';
+
+export { default as BottomNav } from './components/BottomNav';
+export { default as UpdateIndicator } from './components/UpdateIndicator';
+export { default as UpdateDiagnosticsSheet } from './components/UpdateDiagnosticsSheet';
+
 
 
 
