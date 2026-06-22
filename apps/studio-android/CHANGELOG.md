@@ -12,6 +12,15 @@ Conventions:
 - Bullets start with `- ` and use plain English a non-technical user
   can parse. Keep each line short — the modal's text area is narrow.
 
+## 3.6.77
+
+### Added
+- Increased splash duration (950ms delay with 300ms fadeout) to guarantee visual presence.
+- Added fully opaque, theme-adaptive splash backgrounds preventing layout bleed-through.
+- Configured dynamic theme adaptation for splash logos and app name titles.
+- Eliminated off-screen CPU/GPU rendering overhead of loading animations in background boundaries.
+- Synced fade-out with double requestAnimationFrame to ensure browser paints first.
+
 ## 3.6.76
 
 ### Added
