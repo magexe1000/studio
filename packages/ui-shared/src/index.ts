@@ -4,7 +4,7 @@ export { default as AnimatedProgressBar } from './components/AnimatedProgressBar
 export { default as AppSpinner } from './components/AppSpinner';
 export { default as ElasticSlider } from './components/ElasticSlider';
 export { default as GradientBorderCard } from './components/GradientBorderCard';
-export { default as SmartLoading } from './components/SmartLoading';
+export { default as SmartLoading, AppLoadingScreen } from './components/SmartLoading';
 export { default as StudioCountUpPercentage } from './components/StudioCountUpPercentage';
 export { default as StudioProgressBar } from './components/StudioProgressBar';
 export { default as StudioThemeToggler } from './components/StudioThemeToggler';

@@ -23,6 +23,7 @@ import { TolgeeProvider } from '@tolgee/react';
 
 import {
   SmartLoading,
+  AppLoadingScreen,
   StudioHubSkeleton,
   VocalexTakesSkeleton,
   GroovexAppSkeleton,
@@ -2282,7 +2283,7 @@ const SubAppWrapper = memo(function SubAppWrapper({ app, activePanel, settings }
       {cachedApp === 'groovex' && (
         <div className="app-sub-app-container" style={{ position: 'relative', width: '100%', height: '100%', overflow: 'hidden' }}>
           <ErrorBoundary moduleName="Groovex">
-            <Suspense fallback={<FallbackTracker app="groovex"><SmartLoading fallbackSkeleton={<GroovexAppSkeleton />} /></FallbackTracker>}><AppEntryTransition><GroovexApp /></AppEntryTransition></Suspense>
+            <Suspense fallback={<FallbackTracker app="groovex"><SmartLoading app="groovex" /></FallbackTracker>}><AppEntryTransition><GroovexApp /></AppEntryTransition></Suspense>
           </ErrorBoundary>
         </div>
       )}
@@ -2290,7 +2291,7 @@ const SubAppWrapper = memo(function SubAppWrapper({ app, activePanel, settings }
       {cachedApp === 'vocalex' && (
         <div className="app-sub-app-container" style={{ position: 'relative', width: '100%', height: '100%', overflow: 'hidden' }}>
           <ErrorBoundary moduleName="Vocalex">
-            <Suspense fallback={<FallbackTracker app="vocalex"><SmartLoading fallbackSkeleton={<VocalexTakesSkeleton />} /></FallbackTracker>}><AppEntryTransition><VocalexApp /></AppEntryTransition></Suspense>
+            <Suspense fallback={<FallbackTracker app="vocalex"><SmartLoading app="vocalex" /></FallbackTracker>}><AppEntryTransition><VocalexApp /></AppEntryTransition></Suspense>
           </ErrorBoundary>
         </div>
       )}
@@ -2298,14 +2299,14 @@ const SubAppWrapper = memo(function SubAppWrapper({ app, activePanel, settings }
       {cachedApp === 'stage' && (
         <div className="app-sub-app-container" style={{ position: 'relative', width: '100%', height: '100%', overflow: 'hidden' }}>
           <ErrorBoundary moduleName="Stagex">
-            <Suspense fallback={<FallbackTracker app="stage"><SmartLoading fallbackSkeleton={<StagexPanelSkeleton />} /></FallbackTracker>}><AppEntryTransition><StageCorePanel /></AppEntryTransition></Suspense>
+            <Suspense fallback={<FallbackTracker app="stage"><SmartLoading app="stage" /></FallbackTracker>}><AppEntryTransition><StageCorePanel /></AppEntryTransition></Suspense>
           </ErrorBoundary>
         </div>
       )}
 
       {cachedApp === 'drums' && (
         <div className="app-sub-app-container" style={{ position: 'relative', width: '100%', height: '100%', overflow: 'hidden' }}>
-          <ErrorBoundary moduleName="Drumex"><Suspense fallback={<FallbackTracker app="drums"><SmartLoading fallbackSkeleton={<DrumEditorSkeleton />} /></FallbackTracker>}><AppEntryTransition><DrumEditor /></AppEntryTransition></Suspense></ErrorBoundary>
+          <ErrorBoundary moduleName="Drumex"><Suspense fallback={<FallbackTracker app="drums"><SmartLoading app="drums" /></FallbackTracker>}><AppEntryTransition><DrumEditor /></AppEntryTransition></Suspense></ErrorBoundary>
         </div>
       )}
 
@@ -2345,7 +2346,7 @@ const SubAppWrapper = memo(function SubAppWrapper({ app, activePanel, settings }
                       }}
                     >
                       <ErrorBoundary moduleName="Chordex">
-                        <Suspense fallback={<FallbackTracker app="chords"><SmartLoading fallbackSkeleton={<ChordexPanelSkeleton />} /></FallbackTracker>}>
+                        <Suspense fallback={<FallbackTracker app="chords"><SmartLoading app="chords" /></FallbackTracker>}>
                           {panel === 'library'  && <LibraryPanel />}
                           {panel === 'chord'    && <ChordPanel />}
                           {panel === 'songs'    && <SongsPanel />}

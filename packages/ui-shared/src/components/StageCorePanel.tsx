@@ -1571,7 +1571,7 @@ ComposedPath: ${path.slice(0, 3).join(' > ')}`;
               />
               {iframeLoading && (
                 <div style={{ position: 'absolute', inset: 0, zIndex: 10, background: stageBg }}>
-                  <SmartLoading fallbackSkeleton={<StagexPanelSkeleton />} />
+                  <SmartLoading app="stage" />
                 </div>
               )}
             </div>
@@ -2302,7 +2302,7 @@ ComposedPath: ${path.slice(0, 3).join(' > ')}`;
 
         {iframeLoading && (
           <div style={{ position: 'absolute', inset: 0, zIndex: 10, background: stageBg }}>
-            <SmartLoading fallbackSkeleton={<StagexPanelSkeleton />} />
+            <SmartLoading app="stage" />
           </div>
         )}
 

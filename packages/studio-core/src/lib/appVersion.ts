@@ -26,7 +26,7 @@ import { useMemo } from 'react';
 import { Capacitor } from '@capacitor/core';
 
 /** Canonical semver string used by the OTA comparator. */
-export const NATIVE_VERSION = '3.6.72';
+export const NATIVE_VERSION = '3.6.73';
 export const WEB_VERSION = '4.0.0';
 export const APP_VERSION = Capacitor.isNativePlatform() ? NATIVE_VERSION : WEB_VERSION;
 
@@ -61,10 +61,10 @@ export const APP_CHANGELOG_SECTIONS: ChangelogSection[] = [
   {
     heading: "Added",
     items: [
-      "Restored original smooth transition animations for sub-app entries and exits.",
-      "Optimized navigation performance and transition frame-rates on physical Android devices.",
-      "Memoized SubAppWrapper component to prevent unnecessary React re-renders.",
-      "Hidden emergency debug UI, panic menu, and watchdog telemetry from production, keeping diagnostics accessible behind a debug flag.",
+      "Restored centered app-specific loading screens showing animated logos, app names, and customized loading indicators for all sub-apps.",
+      "Smoothed sub-app entry and exit transitions, eliminating any temporary black or blank frames during bundle loading and heavy initialization.",
+      "Integrated persistent sub-app loading screens with Stagex iframe onload/bridge-ready hooks to prevent gray backgrounds.",
+      "Streamlined sub-app mount performance and eliminated rendering delays on Android devices.",
     ],
   },
 ];
@@ -74,10 +74,10 @@ export const APP_CHANGELOG_SECTIONS_NATIVE: ChangelogSection[] = [
   {
     heading: "Added",
     items: [
-      "Added pixel-level visibility probes to detect screen rendering freezes.",
-      "Added WebView computed layout, compositing, and layer count diagnostics.",
-      "Added Visual Repaint Recovery and React Nuclear Remount actions.",
-      "Upgraded Navigation Forensics with timing snapshot comparison dropdowns.",
+      "Restored original smooth transition animations for sub-app entries and exits.",
+      "Optimized navigation performance and transition frame-rates on physical Android devices.",
+      "Memoized SubAppWrapper component to prevent unnecessary React re-renders.",
+      "Hidden emergency debug UI, panic menu, and watchdog telemetry from production, keeping diagnostics accessible behind a debug flag.",
     ],
   },
 ];
@@ -88,10 +88,10 @@ export const APP_CHANGELOG_SECTIONS_ES: ChangelogSection[] = [
   {
     heading: "Añadido",
     items: [
-      "Añadidas sondas de visibilidad de píxeles para detectar congelamientos de renderizado.",
-      "Añadido diagnóstico de diseño computado, composición y conteo de capas de WebView.",
-      "Añadidas acciones de recuperación Visual Repaint Recovery y remonte React Nuclear.",
-      "Actualizada telemetría forense con selectores de comparación de capturas de tiempo.",
+      "Restauradas las animaciones de transición fluidas originales para entradas y salidas de sub-apps.",
+      "Rendimiento de navegación optimizado y tasas de cuadros de transición mejoradas en dispositivos Android físicos.",
+      "Memoizado el componente SubAppWrapper para prevenir re-renderizados innecesarios de React.",
+      "Ocultada la interfaz de depuración de emergencia, el menú de pánico y la telemetría del watchdog de producción, manteniendo los diagnósticos accesibles bajo una bandera de depuración.",
     ],
   },
 ];

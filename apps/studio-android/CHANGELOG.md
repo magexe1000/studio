@@ -12,6 +12,14 @@ Conventions:
 - Bullets start with `- ` and use plain English a non-technical user
   can parse. Keep each line short — the modal's text area is narrow.
 
+## 3.6.73
+
+### Added
+- Restored centered app-specific loading screens showing animated logos, app names, and customized loading indicators for all sub-apps.
+- Smoothed sub-app entry and exit transitions, eliminating any temporary black or blank frames during bundle loading and heavy initialization.
+- Integrated persistent sub-app loading screens with Stagex iframe onload/bridge-ready hooks to prevent gray backgrounds.
+- Streamlined sub-app mount performance and eliminated rendering delays on Android devices.
+
 ## 3.6.72
 
 ### Added
