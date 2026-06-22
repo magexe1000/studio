@@ -792,6 +792,9 @@
     "hideNav": "Ocultar navegación",
     "pdfSheetTitle": "Exportar PDF",
     "pdfSheetName": "Nombre de archivo",
+    "pdfSheetScene": "Escenas a incluir",
+    "pdfSheetSceneCurrent": "Escena actual",
+    "pdfSheetSceneAll": "Todas las escenas",
     "pdfSheetSave": "Guardar en el dispositivo",
     "pdfSheetShare": "Compartir",
     "pdfSheetCancel": "Cancelar"
@@ -800,5 +803,23 @@
     "title": "Aplicar a…",
     "subtitle": "Selecciona qué apps reciben este cambio",
     "apply": "Aplicar"
+  },
+  "practice": {
+    "practiceTitle": "Modo de Práctica",
+    "practiceCapo": "Capo {{capo}}",
+    "practiceBpm": "{{bpm}} BPM",
+    "practiceDifficulty": "Dificultad",
+    "settingsAutoscroll": "Auto-Desplazamiento",
+    "settingsFont": "Tamaño de Letra",
+    "settingsChords": "Tamaño de Acordes",
+    "settingsContrast": "Modo de Contraste",
+    "overlayCurrent": "Actual",
+    "overlayNext": "Siguiente",
+    "exit": "Salir de Práctica",
+    "speed": "Velocidad",
+    "viewMode": "Modo de Presentación",
+    "normal": "Normal",
+    "highContrast": "Alto Contraste",
+    "amoled": "AMOLED Oscuro"
   }
 }

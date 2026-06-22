@@ -26,7 +26,7 @@ import { useMemo } from 'react';
 import { Capacitor } from '@capacitor/core';
 
 /** Canonical semver string used by the OTA comparator. */
-export const NATIVE_VERSION = '3.6.77';
+export const NATIVE_VERSION = '3.6.78';
 export const WEB_VERSION = '4.0.0';
 export const APP_VERSION = Capacitor.isNativePlatform() ? NATIVE_VERSION : WEB_VERSION;
 
@@ -38,7 +38,7 @@ export const APP_VERSION_LABEL = `${APP_VERSION_TAG} ${APP_VERSION}`;
 
 /** Release date for the CURRENT bundle, shown alongside the version pill
  *  in the changelog sheet. ISO-8601 (`YYYY-MM-DD`). */
-export const APP_VERSION_DATE = '2026-06-22'; // 3.6.74
+export const APP_VERSION_DATE = '2026-06-22'; // 3.6.78
 // Note: keep ISO-8601. Bump together with APP_VERSION on each release.
 
 export const APP_COMMIT_SHA = import.meta.env.VITE_GIT_COMMIT_SHA || '78ef3651';
@@ -61,9 +61,12 @@ export const APP_CHANGELOG_SECTIONS: ChangelogSection[] = [
   {
     heading: "Added",
     items: [
-      "Implemented dedicated per-app launch screen animations with centered logos and names when opening sub-apps from the Hub.",
-      "Preloaded and initialized sub-app rendering in the background behind the splash screen to eliminate visually jarring entry flickers.",
-      "Enforced a premium minimum launch screen duration (850ms) to ensure smooth transitions.",
+      "Centralized localization (i18n) architecture using a unified JSON source of truth.",
+      "Implemented Chordex practice screen with interactive chords-above-lyrics formatting.",
+      "Added draggable floating chord overlay with screen boundary protection and local persistence.",
+      "Added karaoke mode with auto-scroll settings, custom text sizes, and AMOLED contrast themes.",
+      "Expanded Discover song library with 30 detailed song charts by Enjambre.",
+      "Polished app entry transitions with cross-fade overlays and responsive grid/flex layout scaling.",
     ],
   },
 ];
@@ -73,9 +76,12 @@ export const APP_CHANGELOG_SECTIONS_NATIVE: ChangelogSection[] = [
   {
     heading: "Added",
     items: [
-      "Integrated early orbit intro dismissal bypass when returning from sub-apps via path check and sessionStorage tracking.",
-      "Accelerated launchApp zooming timing to execute setZooming(true) immediately, aligning transition states.",
-      "Re-aligned sub-app transition behavior with the web platform to prevent double-scaling effects.",
+      "Centralized localization (i18n) architecture using a unified JSON source of truth.",
+      "Implemented Chordex practice screen with interactive chords-above-lyrics formatting.",
+      "Added draggable floating chord overlay with screen boundary protection and local persistence.",
+      "Added karaoke mode with auto-scroll settings, custom text sizes, and AMOLED contrast themes.",
+      "Expanded Discover song library with 30 detailed song charts by Enjambre.",
+      "Polished app entry transitions with cross-fade overlays and responsive grid/flex layout scaling.",
     ],
   },
 ];
@@ -86,9 +92,12 @@ export const APP_CHANGELOG_SECTIONS_ES: ChangelogSection[] = [
   {
     heading: "Añadido",
     items: [
-      "Bypass integrado para omitir la introducción al regresar de las sub-apps mediante verificación de ruta y tracking en sessionStorage.",
-      "Acelerado el tiempo de zoom en launchApp para ejecutar setZooming(true) de inmediato, alineando los estados de transición.",
-      "Realineado el comportamiento de transición de las sub-apps con la plataforma web para evitar el doble escalado.",
+      "Arquitectura de localización (i18n) centralizada usando una base unificada de JSON.",
+      "Implementado modo de práctica en Chordex con formato interactivo de acordes sobre la letra.",
+      "Añadido overlay flotante y arrastrable de acordes con persistencia local y límites de pantalla.",
+      "Añadido modo karaoke con auto-desplazamiento, tamaño de fuente y temas de contraste amoled.",
+      "Librería Discover expandida con 30 diagramas de canciones de Enjambre.",
+      "Pulidas transiciones de entrada y escalado de layouts responsivos en pantallas pequeñas.",
     ],
   },
 ];

@@ -1,5 +1,6 @@
-import { getAllChords, searchChords, getChordById, getRelatedChords, type ChordType, useChordStore, ACCENT_COLORS, SONGS, GENRE_META, type Genre, SPANISH_DESCRIPTIONS, useScrollHide, useT, useIsWebDesktop, setBackHandler, playChord, stopChordPlayback, type GuitarChordData } from '@workspace/studio-core';
+import { getAllChords, searchChords, getChordById, getRelatedChords, type ChordType, useChordStore, ACCENT_COLORS, SONGS, GENRE_META, type Genre, SPANISH_DESCRIPTIONS, useScrollHide, useT, useIsWebDesktop, setBackHandler, playChord, stopChordPlayback, type GuitarChordData, type SongChart } from '@workspace/studio-core';
 import React, { useState, useMemo, useRef, useEffect, useCallback } from 'react';
+import { SongPracticeView } from '../components/SongPracticeView';
 import EmptyStateLottie from '../components/lottie/EmptyStateLottie';
 import ChordDiagram from '../components/ChordDiagram';
 import { AppModeMenuLogo } from '../components/AppModeMenuLogo';
@@ -463,6 +464,7 @@ export default function LibraryPanel() {
   const [discoverQuery, setDiscoverQuery] = useState('');
   const DISCOVER_PAGE_SIZE = 20;
   const [discoverLimit, setDiscoverLimit] = useState(DISCOVER_PAGE_SIZE);
+  const [activePracticeSong, setActivePracticeSong] = useState<SongChart | null>(null);
 
   // Reset pagination whenever the filter or search changes so the user
   // always sees the first page of results for the new query.
@@ -974,6 +976,25 @@ export default function LibraryPanel() {
                                 </button>
                               );
                             })}
+                          </div>
+                          
+                          {/* Mobile Practice trigger row */}
+                          <div className="flex justify-between items-center mt-2 pt-2 border-t border-zinc-900/60">
+                            <span style={{ fontSize: '9px', color: 'var(--c-text-muted)', fontFamily: 'Inter' }}>
+                              {song.bpm ? `${song.bpm} BPM` : ''} {song.capo ? `· Capo ${song.capo}` : ''}
+                            </span>
+                            <button
+                              onClick={() => setActivePracticeSong(song)}
+                              style={{
+                                padding: '4px 10px', borderRadius: '6px', fontSize: '9px', fontWeight: 800,
+                                background: 'var(--c-accent)', border: 'none', color: '#ffffff',
+                                cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 2,
+                                fontFamily: 'Manrope'
+                              }}
+                            >
+                              <span className="material-symbols-outlined" style={{ fontSize: '11px' }}>play_circle</span>
+                              {isSpanish ? 'Práctica' : 'Practice'}
+                            </button>
                           </div>
                         </div>
                       );
@@ -1522,18 +1543,38 @@ export default function LibraryPanel() {
                       {describe(song.id, song.description)}
                     </p>
 
-                    {/* Key + BPM */}
-                    <div className="flex gap-3 mt-3">
-                      <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-1 rounded"
-                        style={{ background: 'var(--app-surface-low)', color: 'var(--c-text-secondary)', fontFamily: 'Manrope' }}>
-                        {(t.library as { keyOf?: (k: string) => string }).keyOf?.(song.key) ?? `Key of ${song.key}`}
-                      </span>
-                      {song.bpm && (
+                    {/* Key + BPM + Capo + Start Practice button */}
+                    <div className="flex justify-between items-center mt-3 pt-3 border-t border-zinc-900/40">
+                      <div className="flex gap-2">
                         <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-1 rounded"
                           style={{ background: 'var(--app-surface-low)', color: 'var(--c-text-secondary)', fontFamily: 'Manrope' }}>
-                          {(t.library as { bpmShort?: (n: number) => string }).bpmShort?.(song.bpm) ?? `${song.bpm} BPM`}
+                          {(t.library as { keyOf?: (k: string) => string }).keyOf?.(song.key) ?? `Key of ${song.key}`}
                         </span>
-                      )}
+                        {song.bpm && (
+                          <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-1 rounded"
+                            style={{ background: 'var(--app-surface-low)', color: 'var(--c-text-secondary)', fontFamily: 'Manrope' }}>
+                            {(t.library as { bpmShort?: (n: number) => string }).bpmShort?.(song.bpm) ?? `${song.bpm} BPM`}
+                          </span>
+                        )}
+                        {song.capo !== undefined && song.capo > 0 && (
+                          <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-1 rounded"
+                            style={{ background: 'var(--app-surface-low)', color: 'var(--c-text-secondary)', fontFamily: 'Manrope' }}>
+                            Capo {song.capo}
+                          </span>
+                        )}
+                      </div>
+                      <button
+                        onClick={() => setActivePracticeSong(song)}
+                        style={{
+                          padding: '6px 14px', borderRadius: '8px', fontSize: '11px', fontWeight: 800,
+                          background: 'var(--c-accent)', border: 'none', color: '#ffffff',
+                          cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4,
+                          fontFamily: 'Manrope'
+                        }}
+                      >
+                        <span className="material-symbols-outlined" style={{ fontSize: '14px' }}>play_circle</span>
+                        {isSpanish ? 'Iniciar Práctica' : 'Start Practice'}
+                      </button>
                     </div>
                   </div>
                 );
@@ -1566,6 +1607,12 @@ export default function LibraryPanel() {
         )}
        </div>
       </div>
+      {activePracticeSong && (
+        <SongPracticeView
+          song={activePracticeSong}
+          onClose={() => setActivePracticeSong(null)}
+        />
+      )}
     </div>
   );
 }

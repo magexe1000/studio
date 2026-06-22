@@ -1,4 +1,7 @@
 ### Added
-- Implemented dedicated per-app launch screen animations with centered logos and names when opening sub-apps from the Hub.
-- Preloaded and initialized sub-app rendering in the background behind the splash screen to eliminate visually jarring entry flickers.
-- Enforced a premium minimum launch screen duration (850ms) to ensure smooth transitions.
+- Centralized localization (i18n) architecture using a unified JSON source of truth.
+- Implemented Chordex practice screen with interactive chords-above-lyrics formatting.
+- Added draggable floating chord overlay with screen boundary protection and local persistence.
+- Added karaoke mode with auto-scroll settings, custom text sizes, and AMOLED contrast themes.
+- Expanded Discover song library with 30 detailed song charts by Enjambre.
+- Polished app entry transitions with cross-fade overlays and responsive grid/flex layout scaling.

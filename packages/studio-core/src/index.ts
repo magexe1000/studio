@@ -6,6 +6,7 @@ export * from './hooks/useStudioPreferences';
 export * from './hooks/useStudioShortcuts';
 export * from './data/chords';
 export * from './data/progressions';
+export * from './data/songs';
 export * from './data/progressionsEs';
 export * from './lib/accountStatus';
 export * from './lib/activityLogger';

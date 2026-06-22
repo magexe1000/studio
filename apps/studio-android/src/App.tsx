@@ -2269,6 +2269,7 @@ export default function App() {
                 pointerEvents: isSubAppActive ? 'none' : 'auto',
                 opacity: isSubAppActive && !transitionActive ? 0 : 1,
                 visibility: isSubAppActive && !transitionActive ? 'hidden' : 'visible',
+                transition: 'opacity 350ms cubic-bezier(0.16, 1, 0.3, 1), visibility 350ms',
               }}
             >
               <LifecycleTracker name="app-main-layout" />
@@ -2285,16 +2286,19 @@ export default function App() {
                 <motion.div
                   key={stableKey}
                   className="sc-subapp-wrapper"
-                  initial={false}
-                  animate={{ opacity: 1 }}
-                  exit={{ opacity: 0, pointerEvents: 'none' as any }}
-                  transition={{ duration: 0.22, ease: 'easeOut' }}
+                  initial={{ opacity: 0, scale: 0.98 }}
+                  animate={{ 
+                    opacity: splashVisible ? 0 : 1, 
+                    scale: splashVisible ? 0.98 : 1 
+                  }}
+                  exit={{ opacity: 0, scale: 0.98, pointerEvents: 'none' as any }}
+                  transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
                   style={{
                     position: 'absolute',
                     inset: 0,
                     zIndex: 2,
                     background: 'var(--app-bg)',
-                    pointerEvents: isSubAppActive ? 'auto' : 'none',
+                    pointerEvents: isSubAppActive && !splashVisible ? 'auto' : 'none',
                   }}
                 >
                   <LifecycleTracker name="SubAppWrapper" />

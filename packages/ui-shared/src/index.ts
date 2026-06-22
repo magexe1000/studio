@@ -26,6 +26,7 @@ export { default as StageCorePanel } from './components/StageCorePanel';
 export { default as StudioHub } from './components/StudioHub';
 export * from './components/NavIcons';
 export * from './components/AppAnimationSystem';
+export { SongPracticeView } from './components/SongPracticeView';
 
 // Remaining components in ui-shared/components
 export { default as AccountCard } from './components/AccountCard';

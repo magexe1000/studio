@@ -3223,7 +3223,7 @@ User Agent: [Automatically Generated]
           </div>
           <div style={{ padding: isWebDesktop ? '14px 0px 12px' : '14px 16px 12px' }}>
             <p style={{ fontSize: 11, fontWeight: 700, color: 'var(--c-text-secondary)', letterSpacing: '0.12em', textTransform: 'uppercase', margin: '0 0 10px', fontFamily: 'Manrope' }}>{t.settings.rows.accentColor}</p>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: 8 }}>
+            <div className="hub-accent-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: 8 }}>
               {COLOR_OPTIONS.map(c => {
                 const isActive = hubVis.accentColor === c.id;
                 return (

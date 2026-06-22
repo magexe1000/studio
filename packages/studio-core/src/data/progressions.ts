@@ -10,6 +10,9 @@ export type Genre =
   | 'hard-rock'
   | 'r-and-b';
 
+import { type SongChart, ENJAMBRE_SONGS } from './songs';
+export type { ChordMarker, LyricsLine, SongChartSection, SongChart } from './songs';
+
 export interface SongProgression {
   id: string;
   title: string;
@@ -36,7 +39,7 @@ export const GENRE_META: Record<Genre, { label: string; color: string; icon: str
   'r-and-b':      { label: 'R&B / Soul',    color: '#c084fc', icon: 'mic'               },
 };
 
-export const SONGS: SongProgression[] = [
+const ORIGINAL_SONGS: SongProgression[] = [
 
   // ── ENGLISH ROCK ──────────────────────────────────────────────
   {
@@ -1809,5 +1812,16 @@ export const SONGS: SongProgression[] = [
   { id: 'despacito', title: 'Despacito', artist: 'Luis Fonsi & Daddy Yankee', genre: 'latin', key: 'Bm', progression: ['Bm', 'G', 'D', 'A'], progressionLabel: 'i – bVI – bIII – bVII', bpm: 89, description: 'The streaming-era megahit on the most universal four-chord minor loop.', era: '2017' },
   { id: 'bailando', title: 'Bailando', artist: 'Enrique Iglesias', genre: 'latin', key: 'Bm', progression: ['Bm', 'D', 'A', 'G'], progressionLabel: 'i – bIII – bVII – bVI', bpm: 90, description: 'Latin pop polished to a club-ready sheen. The flamenco guitar is the star.', era: '2014' },
   { id: 'la-tortura', title: 'La Tortura', artist: 'Shakira & Alejandro Sanz', genre: 'latin', key: 'Am', progression: ['Am', 'C', 'G', 'F'], progressionLabel: 'i – bIII – bVII – bVI', bpm: 100, description: 'Reggaeton-flamenco fusion. Two of Latin pop\'s biggest stars in dialogue.', era: '2005' },
+];
+
+export const SONGS: SongChart[] = [
+  ...ORIGINAL_SONGS.map(s => ({
+    ...s,
+    difficulty: 'easy' as const,
+    tags: [s.genre],
+    availabilityStatus: 'available' as const,
+    sections: []
+  })),
+  ...ENJAMBRE_SONGS
 ];
 
