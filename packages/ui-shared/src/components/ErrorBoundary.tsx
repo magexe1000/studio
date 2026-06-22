@@ -1,6 +1,226 @@
 import React, { Component, ErrorInfo, ReactNode } from 'react';
 import { useChordStore } from '@workspace/studio-core';
 
+const CHARS = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
+const CHAR_MAP: Record<string, number> = {};
+for (let i = 0; i < CHARS.length; i++) {
+  CHAR_MAP[CHARS[i]] = i;
+}
+
+const KNOWN_SYMBOLS: Record<string, string> = {
+  'cee': 'BottomNav (packages/ui-android/src/components/BottomNav.tsx)',
+  'qoe': 'SubAppWrapper (apps/studio-android/src/App.tsx)',
+  'BottomNav': 'BottomNav (packages/ui-android/src/components/BottomNav.tsx)',
+  'SubAppWrapper': 'SubAppWrapper (apps/studio-android/src/App.tsx)'
+};
+
+function parseReactErrorCode(message: string): { code: string | null; url: string | null } {
+  const match = /Minified React error #(\d+)/i.exec(message);
+  if (match) {
+    const code = match[1];
+    return {
+      code,
+      url: `https://react.dev/errors/${code}`
+    };
+  }
+  return { code: null, url: null };
+}
+
+let cachedSourceMap: any = null;
+let cachedSourceMapUrl = '';
+
+async function fetchSourceMap(jsUrl: string): Promise<any> {
+  const mapUrl = jsUrl + '.map';
+  if (cachedSourceMapUrl === mapUrl && cachedSourceMap) {
+    return cachedSourceMap;
+  }
+  try {
+    const res = await fetch(mapUrl, { headers: { 'Cache-Control': 'no-cache' } });
+    if (!res.ok) return null;
+    const sm = await res.json();
+    cachedSourceMapUrl = mapUrl;
+    cachedSourceMap = sm;
+    return sm;
+  } catch (_) {
+    return null;
+  }
+}
+
+function decodeVlq(str: string): number[] {
+  const results: number[] = [];
+  let i = 0;
+  while (i < str.length) {
+    let value = 0;
+    let shift = 0;
+    let hasContinuation = true;
+    while (hasContinuation) {
+      if (i >= str.length) break;
+      const char = str[i++];
+      const digit = CHAR_MAP[char];
+      if (digit === undefined) break;
+      hasContinuation = (digit & 32) !== 0;
+      value += (digit & 31) << shift;
+      shift += 5;
+    }
+    const shouldNegate = (value & 1) !== 0;
+    value >>>= 1;
+    if (shouldNegate) {
+      value = -value;
+    }
+    results.push(value);
+  }
+  return results;
+}
+
+function findSourceMapMapping(smap: any, line1idx: number, col1idx: number) {
+  const sources = smap.sources || [];
+  const names = smap.names || [];
+  const mappings = smap.mappings || "";
+  
+  const lines = mappings.split(";");
+  const line0idx = line1idx - 1;
+  const col0idx = col1idx - 1;
+  
+  if (line0idx >= lines.length) return null;
+  
+  const lineMappings = lines[line0idx];
+  const segments = lineMappings.split(",");
+  
+  let sourceFileIdx = 0;
+  let sourceLine = 0;
+  let sourceCol = 0;
+  let nameIdx = 0;
+  let genCol = 0;
+  
+  let bestMatch: any = null;
+  
+  for (const segment of segments) {
+    if (!segment) continue;
+    const values = decodeVlq(segment);
+    if (values.length < 1) continue;
+    
+    genCol += values[0];
+    
+    if (values.length >= 4) {
+      sourceFileIdx += values[1];
+      sourceLine += values[2];
+      sourceCol += values[3];
+    }
+    
+    if (values.length === 5) {
+      nameIdx += values[4];
+    }
+    
+    if (genCol <= col0idx) {
+      bestMatch = {
+        sourceFile: sources[sourceFileIdx] || 'unknown',
+        sourceLine: sourceLine + 1,
+        sourceCol: sourceCol + 1,
+        name: values.length === 5 ? names[nameIdx] : null
+      };
+    } else {
+      break;
+    }
+  }
+  return bestMatch;
+}
+
+interface StackFrame {
+  name: string;
+  url: string;
+  line: number;
+  col: number;
+}
+
+function parseStackLine(lineStr: string): StackFrame | null {
+  const matchWithParentheses = /at\s+([^\s(]+)\s+\(([^)]+):(\d+):(\d+)\)/.exec(lineStr);
+  if (matchWithParentheses) {
+    return {
+      name: matchWithParentheses[1],
+      url: matchWithParentheses[2],
+      line: parseInt(matchWithParentheses[3], 10),
+      col: parseInt(matchWithParentheses[4], 10)
+    };
+  }
+  const matchWithoutParentheses = /at\s+([^\s]+):(\d+):(\d+)/.exec(lineStr);
+  if (matchWithoutParentheses) {
+    return {
+      name: '',
+      url: matchWithoutParentheses[1],
+      line: parseInt(matchWithoutParentheses[2], 10),
+      col: parseInt(matchWithoutParentheses[3], 10)
+    };
+  }
+  return null;
+}
+
+async function symbolicateStack(stack: string): Promise<string> {
+  const lines = stack.split("\n");
+  const resultLines: string[] = [];
+  
+  for (const line of lines) {
+    const frame = parseStackLine(line);
+    if (!frame) {
+      resultLines.push(line);
+      continue;
+    }
+    
+    let symbolicatedName = frame.name;
+    const known = KNOWN_SYMBOLS[frame.name];
+    if (known) {
+      symbolicatedName = known;
+    }
+    
+    if (frame.url.endsWith(".js")) {
+      const sm = await fetchSourceMap(frame.url);
+      if (sm) {
+        const mapping = findSourceMapMapping(sm, frame.line, frame.col);
+        if (mapping) {
+          symbolicatedName = mapping.name || symbolicatedName;
+          resultLines.push(`    at ${symbolicatedName} (${mapping.sourceFile}:${mapping.sourceLine}:${mapping.sourceCol}) [mapped from ${frame.url}:${frame.line}:${frame.col}]`);
+          continue;
+        }
+      }
+    }
+    
+    resultLines.push(line);
+  }
+  
+  return resultLines.join("\n");
+}
+
+async function generateSymbolicatedReport(logEntry: any): Promise<string> {
+  const errorInfo = parseReactErrorCode(logEntry.message);
+  
+  let symbolicatedStack = logEntry.stack;
+  try {
+    symbolicatedStack = await symbolicateStack(logEntry.stack);
+  } catch (_) {}
+  
+  return `=== SYMBOLICATED REACT ERROR REPORT ===
+Timestamp: ${new Date(logEntry.timestamp).toISOString()}
+App Mode: ${logEntry.appMode}
+Active Sub-App: ${logEntry.activeSubApp}
+Stable Key: ${logEntry.stableKey}
+Checkpoint Stage: ${logEntry.checkpointStage}
+Return In Progress: ${logEntry.returnInProgress}
+Watchdog Running: ${logEntry.watchdogRunning}
+Last Navigation Action: ${logEntry.lastNavigationAction}
+
+React Error Code: ${errorInfo.code || 'N/A'}
+React Error URL: ${errorInfo.url || 'N/A'}
+
+Original Message: ${logEntry.message}
+Original Name: ${logEntry.name}
+
+Symbolicated Stack Trace:
+${symbolicatedStack}
+
+Component Stack:
+${logEntry.componentStack}
+========================================`;
+}
+
 interface Props {
   children: ReactNode;
   fallback?: ReactNode;
@@ -112,6 +332,15 @@ export class ErrorBoundary extends Component<Props, State> {
         logs.push(logEntry);
         localStorage.setItem('studio_rootapp_error_boundary_log', JSON.stringify(logs.slice(-50)));
       } catch (_) {}
+
+      // Run symbolication report in background
+      generateSymbolicatedReport(logEntry).then(report => {
+        try {
+          localStorage.setItem('studio_rootapp_last_symbolicated_report', report);
+        } catch (_) {}
+      }).catch(err => {
+        console.error('Failed to generate symbolicated report:', err);
+      });
 
       let totalErrors = 0;
       try {
@@ -250,24 +479,42 @@ export class ErrorBoundary extends Component<Props, State> {
             </div>
             
             {isRootApp && (
-              <button
-                onClick={() => {
-                  try {
-                    const logs = localStorage.getItem('studio_rootapp_error_boundary_log') || '[]';
-                    navigator.clipboard.writeText(logs);
-                    alert('RootApp error log copied!');
-                  } catch (_) {
-                    alert('Failed to copy');
-                  }
-                }}
-                style={{
-                  marginTop: 8,
-                  padding: '8px 16px', background: 'rgba(239, 68, 68, 0.15)', border: '1px solid rgba(239, 68, 68, 0.3)', borderRadius: 8,
-                  color: '#ef4444', fontSize: 11, fontWeight: 600, cursor: 'pointer', fontFamily: 'Manrope, sans-serif'
-                }}
-              >
-                Copy RootApp Error Log
-              </button>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginTop: 8 }}>
+                <button
+                  onClick={() => {
+                    try {
+                      const logs = localStorage.getItem('studio_rootapp_error_boundary_log') || '[]';
+                      navigator.clipboard.writeText(logs);
+                      alert('RootApp error log copied!');
+                    } catch (_) {
+                      alert('Failed to copy');
+                    }
+                  }}
+                  style={{
+                    padding: '8px 16px', background: 'rgba(255, 255, 255, 0.05)', border: '1px solid rgba(255, 255, 255, 0.1)', borderRadius: 8,
+                    color: '#eaeaea', fontSize: 11, fontWeight: 600, cursor: 'pointer', fontFamily: 'Manrope, sans-serif'
+                  }}
+                >
+                  Copy RootApp Error Log
+                </button>
+                <button
+                  onClick={() => {
+                    try {
+                      const report = localStorage.getItem('studio_rootapp_last_symbolicated_report') || 'No symbolicated report found';
+                      navigator.clipboard.writeText(report);
+                      alert('Symbolicated React Error Report copied!');
+                    } catch (_) {
+                      alert('Failed to copy');
+                    }
+                  }}
+                  style={{
+                    padding: '8px 16px', background: 'rgba(239, 68, 68, 0.15)', border: '1px solid rgba(239, 68, 68, 0.3)', borderRadius: 8,
+                    color: '#ef4444', fontSize: 11, fontWeight: 600, cursor: 'pointer', fontFamily: 'Manrope, sans-serif'
+                  }}
+                >
+                  COPY SYMBOLICATED REACT ERROR REPORT
+                </button>
+              </div>
             )}
           </div>
         </div>

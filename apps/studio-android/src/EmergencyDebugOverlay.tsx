@@ -2344,6 +2344,11 @@ Total Checkpoints: ${timeline?.snapshots ? Object.keys(timeline.snapshots).lengt
       copyToClipboard(errorStr, 'Last Recoverable RootApp Error');
     };
 
+    const copySymbolicatedReactErrorReport = () => {
+      const report = localStorage.getItem('studio_rootapp_last_symbolicated_report') || 'No symbolicated React error report found.';
+      copyToClipboard(report, 'Symbolicated React Error Report');
+    };
+
     return (
       <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
         {/* Header Summary */}
@@ -2564,6 +2569,21 @@ Total Checkpoints: ${timeline?.snapshots ? Object.keys(timeline.snapshots).lengt
               }}
             >
               COPY LAST RECOVERABLE ERROR
+            </button>
+            <button
+              onClick={copySymbolicatedReactErrorReport}
+              style={{
+                background: 'rgba(244, 63, 94, 0.15)',
+                border: '1px solid rgba(244, 63, 94, 0.3)',
+                color: '#f43f5e',
+                padding: '8px 12px',
+                borderRadius: '6px',
+                fontSize: '11px',
+                fontWeight: 'bold',
+                cursor: 'pointer'
+              }}
+            >
+              COPY SYMBOLICATED REACT ERROR REPORT
             </button>
           </div>
         </div>

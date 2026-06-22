@@ -113,9 +113,6 @@ export default function BottomNav() {
   const isWebDesktop = useIsWebDesktop();
   const settings       = useChordStore(s => s.settings);
 
-  if (isWebDesktop) return null;
-  if (settings.appMode !== 'chords') return null;
-
   // Granular selectors — BottomNav only rerenders when these specific
   // slices change, not on every unrelated store mutation (selectedChordId,
   // recentChords, multiSelectChords, etc.).
@@ -220,6 +217,9 @@ export default function BottomNav() {
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activePanel]);
+
+  if (isWebDesktop) return null;
+  if (settings.appMode !== 'chords') return null;
 
   return (
     <nav

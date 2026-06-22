@@ -26,7 +26,7 @@ import { useMemo } from 'react';
 import { Capacitor } from '@capacitor/core';
 
 /** Canonical semver string used by the OTA comparator. */
-export const NATIVE_VERSION = '3.6.70';
+export const NATIVE_VERSION = '3.6.69';
 export const WEB_VERSION = '4.0.0';
 export const APP_VERSION = Capacitor.isNativePlatform() ? NATIVE_VERSION : WEB_VERSION;
 
@@ -59,13 +59,16 @@ export interface ChangelogSection {
 
 export const APP_CHANGELOG_SECTIONS: ChangelogSection[] = [
   {
-    heading: "Fixed",
+    heading: "Added",
     items: [
-      "Prevented the visible RootApp ErrorBoundary crash panel from flashing during recoverable Chordex to Hub return transitions.",
-      "Configured RootApp ErrorBoundary to render a neutral dark layout during return sequences, recovering silently.",
-      "Added detailed telemetry logging for RootApp ErrorBoundary catches, recorded under local storage logs.",
-      "Added COPY ROOTAPP ERROR LOG and COPY LAST RECOVERABLE ERROR buttons to Failed Timeline tab.",
-      "Integrated RootApp Error counts, suppression status, and recovery duration diagnostics in Emergency Debug Overlay.",
+      "Upgraded the root React app tree structure to render EmergencyDebugOverlay at root level.",
+      "Refactored App.tsx layout to keep the outer app-container permanently mounted, preventing root-level unmounts.",
+      "Integrated LifecycleTracker logging to record component mount/unmount stack traces and Suspense fallback states.",
+      "Implemented ROOT_APP_TREE_MISSING and HUB_DOM_NOT_MOUNTED diagnostics to isolate rendering failures.",
+      "Added COPY ROOT LIFECYCLE LOG and COPY MOUNT/UNMOUNT STACKS buttons to Failed Timeline tab.",
+      "Fixed React Error #300 hook order violation in BottomNav by hoisting hooks above conditional return statements.",
+      "Integrated runtime React stack trace symbolicator with VLQ sourcemap decoding and online/offline mapping.",
+      "Added COPY SYMBOLICATED REACT ERROR REPORT action to crashed boundaries and debug overlay timelines.",
     ],
   },
 ];
