@@ -1,6 +1,6 @@
-### Added
-- Upgraded the root React app tree structure to render EmergencyDebugOverlay at root level.
-- Refactored App.tsx layout to keep the outer app-container permanently mounted, preventing root-level unmounts.
-- Integrated LifecycleTracker logging to record component mount/unmount stack traces and Suspense fallback states.
-- Implemented ROOT_APP_TREE_MISSING and HUB_DOM_NOT_MOUNTED diagnostics to isolate rendering failures.
-- Added COPY ROOT LIFECYCLE LOG and COPY MOUNT/UNMOUNT STACKS buttons to Failed Timeline tab.
+### Fixed
+- Prevented the visible RootApp ErrorBoundary crash panel from flashing during recoverable Chordex to Hub return transitions.
+- Configured RootApp ErrorBoundary to render a neutral dark layout during return sequences, recovering silently.
+- Added detailed telemetry logging for RootApp ErrorBoundary catches, recorded under local storage logs.
+- Added COPY ROOTAPP ERROR LOG and COPY LAST RECOVERABLE ERROR buttons to Failed Timeline tab.
+- Integrated RootApp Error counts, suppression status, and recovery duration diagnostics in Emergency Debug Overlay.

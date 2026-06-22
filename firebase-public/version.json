@@ -1,20 +1,20 @@
 {
   "platform": "web",
   "version": "4.0.0",
-  "commit": "029b282d",
+  "commit": "f7da9781",
   "releasedAt": "6/21/2026, 12:00:00 AM CST",
   "buildTimestamp": "6/21/2026, 12:00:00 AM CST",
   "updateMode": "refresh",
-  "description": "• Upgraded the root React app tree structure to render EmergencyDebugOverlay at root level.\n• Refactored App.tsx layout to keep the outer app-container permanently mounted, preventing root-level unmounts.\n• Integrated LifecycleTracker logging to record component mount/unmount stack traces and Suspense fallback states.\n• Implemented ROOT_APP_TREE_MISSING and HUB_DOM_NOT_MOUNTED diagnostics to isolate rendering failures.\n• Added COPY ROOT LIFECYCLE LOG and COPY MOUNT/UNMOUNT STACKS buttons to Failed Timeline tab.",
-  "whatsNew": "• Upgraded the root React app tree structure to render EmergencyDebugOverlay at root level.\n• Refactored App.tsx layout to keep the outer app-container permanently mounted, preventing root-level unmounts.\n• Integrated LifecycleTracker logging to record component mount/unmount stack traces and Suspense fallback states.\n• Implemented ROOT_APP_TREE_MISSING and HUB_DOM_NOT_MOUNTED diagnostics to isolate rendering failures.\n• Added COPY ROOT LIFECYCLE LOG and COPY MOUNT/UNMOUNT STACKS buttons to Failed Timeline tab.",
-  "changelog": "• Upgraded the root React app tree structure to render EmergencyDebugOverlay at root level.\n• Refactored App.tsx layout to keep the outer app-container permanently mounted, preventing root-level unmounts.\n• Integrated LifecycleTracker logging to record component mount/unmount stack traces and Suspense fallback states.\n• Implemented ROOT_APP_TREE_MISSING and HUB_DOM_NOT_MOUNTED diagnostics to isolate rendering failures.\n• Added COPY ROOT LIFECYCLE LOG and COPY MOUNT/UNMOUNT STACKS buttons to Failed Timeline tab.",
+  "description": "• Prevented the visible RootApp ErrorBoundary crash panel from flashing during recoverable Chordex to Hub return transitions.\n• Configured RootApp ErrorBoundary to render a neutral dark layout during return sequences, recovering silently.\n• Added detailed telemetry logging for RootApp ErrorBoundary catches, recorded under local storage logs.\n• Added COPY ROOTAPP ERROR LOG and COPY LAST RECOVERABLE ERROR buttons to Failed Timeline tab.\n• Integrated RootApp Error counts, suppression status, and recovery duration diagnostics in Emergency Debug Overlay.",
+  "whatsNew": "• Prevented the visible RootApp ErrorBoundary crash panel from flashing during recoverable Chordex to Hub return transitions.\n• Configured RootApp ErrorBoundary to render a neutral dark layout during return sequences, recovering silently.\n• Added detailed telemetry logging for RootApp ErrorBoundary catches, recorded under local storage logs.\n• Added COPY ROOTAPP ERROR LOG and COPY LAST RECOVERABLE ERROR buttons to Failed Timeline tab.\n• Integrated RootApp Error counts, suppression status, and recovery duration diagnostics in Emergency Debug Overlay.",
+  "changelog": "• Prevented the visible RootApp ErrorBoundary crash panel from flashing during recoverable Chordex to Hub return transitions.\n• Configured RootApp ErrorBoundary to render a neutral dark layout during return sequences, recovering silently.\n• Added detailed telemetry logging for RootApp ErrorBoundary catches, recorded under local storage logs.\n• Added COPY ROOTAPP ERROR LOG and COPY LAST RECOVERABLE ERROR buttons to Failed Timeline tab.\n• Integrated RootApp Error counts, suppression status, and recovery duration diagnostics in Emergency Debug Overlay.",
   "releaseNotes": {
-    "added": [
-      "Upgraded the root React app tree structure to render EmergencyDebugOverlay at root level.",
-      "Refactored App.tsx layout to keep the outer app-container permanently mounted, preventing root-level unmounts.",
-      "Integrated LifecycleTracker logging to record component mount/unmount stack traces and Suspense fallback states.",
-      "Implemented ROOT_APP_TREE_MISSING and HUB_DOM_NOT_MOUNTED diagnostics to isolate rendering failures.",
-      "Added COPY ROOT LIFECYCLE LOG and COPY MOUNT/UNMOUNT STACKS buttons to Failed Timeline tab."
+    "fixed": [
+      "Prevented the visible RootApp ErrorBoundary crash panel from flashing during recoverable Chordex to Hub return transitions.",
+      "Configured RootApp ErrorBoundary to render a neutral dark layout during return sequences, recovering silently.",
+      "Added detailed telemetry logging for RootApp ErrorBoundary catches, recorded under local storage logs.",
+      "Added COPY ROOTAPP ERROR LOG and COPY LAST RECOVERABLE ERROR buttons to Failed Timeline tab.",
+      "Integrated RootApp Error counts, suppression status, and recovery duration diagnostics in Emergency Debug Overlay."
     ]
   },
   "mandatory": false

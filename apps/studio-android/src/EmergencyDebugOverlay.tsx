@@ -2170,6 +2170,12 @@ page:  (${webViewDiag.visualViewport.pageLeft}, ${webViewDiag.visualViewport.pag
         rootLifecycleLog = JSON.parse(lifecycleStr);
       } catch (_) {}
 
+      let rootAppErrorBoundaryLog = [];
+      try {
+        const errorLogStr = localStorage.getItem('studio_rootapp_error_boundary_log') || '[]';
+        rootAppErrorBoundaryLog = JSON.parse(errorLogStr);
+      } catch (_) {}
+
       const rootNode = document.getElementById('root');
       const rootDiagnostics = {
         innerHTML_length: rootNode ? rootNode.innerHTML.length : 0,
@@ -2217,7 +2223,7 @@ page:  (${webViewDiag.visualViewport.pageLeft}, ${webViewDiag.visualViewport.pag
         appMetadata: {
           appVersion: NATIVE_VERSION,
           nativeApkVersion: NATIVE_VERSION,
-          versionCode: 96,
+          versionCode: 97,
           packageName: 'com.chordex.app',
           platform: typeof navigator !== 'undefined' ? navigator.platform : 'unknown',
           userAgent: typeof navigator !== 'undefined' ? navigator.userAgent : 'unknown',
@@ -2238,6 +2244,7 @@ page:  (${webViewDiag.visualViewport.pageLeft}, ${webViewDiag.visualViewport.pag
         checkpoints: timeline?.snapshots || {},
         recoveryLog,
         rootLifecycleLog,
+        rootAppErrorBoundaryLog,
         diagnostics
       };
 
@@ -2327,6 +2334,16 @@ Total Checkpoints: ${timeline?.snapshots ? Object.keys(timeline.snapshots).lengt
       copyToClipboard(report, 'Mount/Unmount Stack Report');
     };
 
+    const copyRootAppErrorLog = () => {
+      const logsStr = localStorage.getItem('studio_rootapp_error_boundary_log') || '[]';
+      copyToClipboard(logsStr, 'RootApp Error Log');
+    };
+
+    const copyLastRecoverableRootAppError = () => {
+      const errorStr = localStorage.getItem('studio_rootapp_last_recoverable_error') || 'null';
+      copyToClipboard(errorStr, 'Last Recoverable RootApp Error');
+    };
+
     return (
       <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
         {/* Header Summary */}
@@ -2358,6 +2375,36 @@ Total Checkpoints: ${timeline?.snapshots ? Object.keys(timeline.snapshots).lengt
               textTransform: 'uppercase'
             }}>
               {reason || 'FAILED'}
+            </span>
+          </div>
+        </div>
+
+        {/* RootApp ErrorBoundary Telemetry Panel */}
+        <div style={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(2, 1fr)',
+          gap: '8px',
+          background: 'rgba(59, 130, 246, 0.08)',
+          border: '1px solid rgba(59, 130, 246, 0.25)',
+          borderRadius: '8px',
+          padding: '12px'
+        }}>
+          <div style={{ display: 'flex', flexDirection: 'column' }}>
+            <span style={{ fontSize: '9px', color: 'rgba(255,255,255,0.4)', textTransform: 'uppercase' }}>RootApp Error Count</span>
+            <span style={{ fontSize: '14px', fontWeight: 'bold', color: '#60a5fa', marginTop: '2px' }}>
+              {localStorage.getItem('studio_rootapp_error_boundary_count') || '0'}
+            </span>
+          </div>
+          <div style={{ display: 'flex', flexDirection: 'column' }}>
+            <span style={{ fontSize: '9px', color: 'rgba(255,255,255,0.4)', textTransform: 'uppercase' }}>Last Error Recovery</span>
+            <span style={{ fontSize: '10px', fontWeight: 'bold', color: localStorage.getItem('studio_rootapp_last_error_suppressed') === 'true' ? '#34d399' : '#f87171', marginTop: '4px' }}>
+              {localStorage.getItem('studio_rootapp_last_error_suppressed') === 'true' ? 'RECOVERED SILENTLY' : 'NOT SUPPRESSED / FAIL'}
+            </span>
+          </div>
+          <div style={{ display: 'flex', flexDirection: 'column', gridColumn: 'span 2', borderTop: '1px solid rgba(255,255,255,0.06)', paddingTop: '6px', marginTop: '4px' }}>
+            <span style={{ fontSize: '9px', color: 'rgba(255,255,255,0.4)', textTransform: 'uppercase' }}>Last Recovery Duration</span>
+            <span style={{ fontSize: '11px', fontWeight: 'semibold', color: '#fff', marginTop: '2px' }}>
+              {localStorage.getItem('studio_rootapp_last_error_duration') ? `${localStorage.getItem('studio_rootapp_last_error_duration')}ms` : 'N/A'}
             </span>
           </div>
         </div>
@@ -2487,6 +2534,36 @@ Total Checkpoints: ${timeline?.snapshots ? Object.keys(timeline.snapshots).lengt
               }}
             >
               COPY MOUNT/UNMOUNT STACKS
+            </button>
+            <button
+              onClick={copyRootAppErrorLog}
+              style={{
+                background: 'rgba(255,255,255,0.06)',
+                border: '1px solid rgba(255,255,255,0.1)',
+                color: '#fff',
+                padding: '8px 12px',
+                borderRadius: '6px',
+                fontSize: '11px',
+                fontWeight: 'bold',
+                cursor: 'pointer'
+              }}
+            >
+              COPY ROOTAPP ERROR LOG
+            </button>
+            <button
+              onClick={copyLastRecoverableRootAppError}
+              style={{
+                background: 'rgba(255,255,255,0.06)',
+                border: '1px solid rgba(255,255,255,0.1)',
+                color: '#fff',
+                padding: '8px 12px',
+                borderRadius: '6px',
+                fontSize: '11px',
+                fontWeight: 'bold',
+                cursor: 'pointer'
+              }}
+            >
+              COPY LAST RECOVERABLE ERROR
             </button>
           </div>
         </div>

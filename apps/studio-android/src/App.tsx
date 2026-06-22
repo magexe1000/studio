@@ -1204,9 +1204,12 @@ export default function App() {
         localStorage.setItem('studio_navigation_in_progress', 'true');
         
         // Capture 7 timing checkpoints
+        (window as any).__lastCheckpointStage = 'T+0ms';
         captureTimelineCheckpoint(lastCaptureId, 'T+0ms');
         
         const runWatchdogs = (name: string) => {
+          (window as any).__lastCheckpointStage = name;
+          (window as any).__watchdogRunning = true;
           if (typeof (window as any).__runRootWatchdogCheck === 'function') {
             (window as any).__runRootWatchdogCheck(name);
           }
@@ -1215,6 +1218,7 @@ export default function App() {
           if (currentMode === 'hub' && !rootNode) {
             (window as any).__runFailsafeRecovery?.(name);
           }
+          (window as any).__watchdogRunning = false;
         };
 
         setTimeout(() => {
@@ -1238,6 +1242,7 @@ export default function App() {
         }, 500);
 
         setTimeout(() => {
+          (window as any).__lastCheckpointStage = 'T+1000ms';
           if (typeof (window as any).__runRootWatchdogCheck === 'function') {
             (window as any).__runRootWatchdogCheck('T+1000ms');
           }
@@ -1245,6 +1250,7 @@ export default function App() {
         }, 1000);
 
         setTimeout(() => {
+          (window as any).__lastCheckpointStage = 'T+2000ms';
           captureTimelineCheckpoint(lastCaptureId, 'T+2000ms');
         }, 2000);
         
