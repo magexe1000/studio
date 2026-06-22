@@ -1,18 +1,18 @@
 {
   "platform": "web",
   "version": "4.0.0",
-  "commit": "18c85b88",
+  "commit": "0c81b265",
   "releasedAt": "6/22/2026, 12:00:00 AM CST",
   "buildTimestamp": "6/22/2026, 12:00:00 AM CST",
   "updateMode": "refresh",
-  "description": "• Integrated early orbit intro dismissal bypass when returning from sub-apps via path check and sessionStorage tracking.\n• Accelerated launchApp zooming timing to execute setZooming(true) immediately, aligning transition states.\n• Re-aligned sub-app transition behavior with the web platform to prevent double-scaling effects.",
-  "whatsNew": "• Integrated early orbit intro dismissal bypass when returning from sub-apps via path check and sessionStorage tracking.\n• Accelerated launchApp zooming timing to execute setZooming(true) immediately, aligning transition states.\n• Re-aligned sub-app transition behavior with the web platform to prevent double-scaling effects.",
-  "changelog": "• Integrated early orbit intro dismissal bypass when returning from sub-apps via path check and sessionStorage tracking.\n• Accelerated launchApp zooming timing to execute setZooming(true) immediately, aligning transition states.\n• Re-aligned sub-app transition behavior with the web platform to prevent double-scaling effects.",
+  "description": "• Modified navigation forensic snapshot sequence to capture unconditionally at T+0ms, T+50ms, T+100ms, T+250ms, T+500ms, T+1000ms, and T+2000ms.\n• Rendered live paint verification screenshots inside the Navigation Forensics panel of the debug overlay.\n• Optimized offscreen paint capture image quality to reduce local storage footprints.",
+  "whatsNew": "• Modified navigation forensic snapshot sequence to capture unconditionally at T+0ms, T+50ms, T+100ms, T+250ms, T+500ms, T+1000ms, and T+2000ms.\n• Rendered live paint verification screenshots inside the Navigation Forensics panel of the debug overlay.\n• Optimized offscreen paint capture image quality to reduce local storage footprints.",
+  "changelog": "• Modified navigation forensic snapshot sequence to capture unconditionally at T+0ms, T+50ms, T+100ms, T+250ms, T+500ms, T+1000ms, and T+2000ms.\n• Rendered live paint verification screenshots inside the Navigation Forensics panel of the debug overlay.\n• Optimized offscreen paint capture image quality to reduce local storage footprints.",
   "releaseNotes": {
     "added": [
-      "Integrated early orbit intro dismissal bypass when returning from sub-apps via path check and sessionStorage tracking.",
-      "Accelerated launchApp zooming timing to execute setZooming(true) immediately, aligning transition states.",
-      "Re-aligned sub-app transition behavior with the web platform to prevent double-scaling effects."
+      "Modified navigation forensic snapshot sequence to capture unconditionally at T+0ms, T+50ms, T+100ms, T+250ms, T+500ms, T+1000ms, and T+2000ms.",
+      "Rendered live paint verification screenshots inside the Navigation Forensics panel of the debug overlay.",
+      "Optimized offscreen paint capture image quality to reduce local storage footprints."
     ]
   },
   "mandatory": false

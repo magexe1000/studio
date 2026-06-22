@@ -2225,12 +2225,14 @@ html[data-amoled="1"] #el-properties-panel { background: #000 !important; }
     color: var(--scenes-fg-inactive);
     margin-right: 6px;
     margin-left: 4px;
+    flex-shrink: 0;
   }
 
   .sc-scene-btn {
     position: relative;
     display: inline-flex;
     align-items: center;
+    justify-content: center;
     gap: 6px;
     height: 36px;
     padding: 0 16px;
@@ -2243,6 +2245,7 @@ html[data-amoled="1"] #el-properties-panel { background: #000 !important; }
     font-weight: 600;
     cursor: pointer;
     transition: all 150ms ease;
+    flex-shrink: 0;
   }
 
   .sc-scene-btn::before {
@@ -2336,6 +2339,32 @@ html[data-amoled="1"] #el-properties-panel { background: #000 !important; }
     color: var(--scenes-fg-inactive);
     cursor: pointer;
     transition: all 150ms ease;
+    flex-shrink: 0;
+  }
+
+  @media (orientation: portrait) {
+    .sc-scene-btn {
+      height: 28px !important;
+      padding: 0 10px !important;
+      border-radius: 14px !important;
+      font-size: 11px !important;
+      gap: 4px !important;
+    }
+    .sc-scene-close {
+      width: 14px !important;
+      height: 14px !important;
+      font-size: 10px !important;
+      margin-left: 4px !important;
+      border: 8px solid transparent !important;
+    }
+    .sc-scene-add-btn {
+      width: 14px !important;
+      height: 14px !important;
+      border: 8px solid transparent !important;
+    }
+    .sc-scene-label {
+      font-size: 10px !important;
+    }
   }
 
   html[data-theme="light"] .sc-scene-add-btn {
@@ -3242,12 +3271,13 @@ html[data-amoled="1"] #el-properties-panel { background: #000 !important; }
 
       <!-- SCENES BAR — sits naturally above the stage canvas (Editor view only) -->
       <div id="sc-scenes-bar"
-           style="position:relative;display:none;align-items:center;justify-content:center;gap:6px;padding:6px 0;
+           style="position:relative;display:none;align-items:center;justify-content:flex-start;gap:6px;padding:6px 8px;
                   background:none;border:none;box-shadow:none;
                   overflow-x:auto;flex-wrap:nowrap;width:100%;
                   max-width:min(1080px,calc(100vw - 32px),calc((100vh - var(--dock-safe-gap, 40px)) * 16 / 9));
                   margin-bottom:0px;z-index:30;
-                  transition:opacity 220ms ease;"></div>
+                  transition:opacity 220ms ease;
+                  scrollbar-width:none;-ms-overflow-style:none;"></div>
       <div id="stage-canvas" class="stage-grid relative" style="width:100%;max-width:min(1080px,calc(100vw - 32px),calc((100vh - var(--dock-safe-gap, 40px)) * 16 / 9));aspect-ratio:16/9;border:1px solid rgba(255,255,255,0.08);border-radius:12px;overflow:visible;">
 
         <!-- mode-pill lives outside canvas, see #mode-pill in body -->

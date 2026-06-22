@@ -1,4 +1,4 @@
 ### Added
-- Integrated early orbit intro dismissal bypass when returning from sub-apps via path check and sessionStorage tracking.
-- Accelerated launchApp zooming timing to execute setZooming(true) immediately, aligning transition states.
-- Re-aligned sub-app transition behavior with the web platform to prevent double-scaling effects.
+- Modified navigation forensic snapshot sequence to capture unconditionally at T+0ms, T+50ms, T+100ms, T+250ms, T+500ms, T+1000ms, and T+2000ms.
+- Rendered live paint verification screenshots inside the Navigation Forensics panel of the debug overlay.
+- Optimized offscreen paint capture image quality to reduce local storage footprints.

@@ -210,7 +210,16 @@ export default function EmergencyDebugOverlay() {
     (window as any).__studio_debug_mode === true
   );
 
-  if (!isDebugModeEnabled) {
+  const [hasUnviewedFailed] = useState(() => {
+    if (typeof window !== 'undefined') {
+      return localStorage.getItem('studio_failed_navigation_unviewed') === 'true';
+    }
+    return false;
+  });
+
+  const shouldRender = isDebugModeEnabled || hasUnviewedFailed;
+
+  if (!shouldRender) {
     return null;
   }
 
@@ -2989,6 +2998,24 @@ Total Checkpoints: ${timeline?.snapshots ? Object.keys(timeline.snapshots).lengt
                     <div>Dark (gray&lt;=64): {livePaintVerify.histogram.dark}</div>
                     <div>Mid (gray&lt;=180): {livePaintVerify.histogram.mid}</div>
                     <div>Bright (gray&gt;180): {livePaintVerify.histogram.bright}</div>
+                  </div>
+                </div>
+              )}
+              {livePaintVerify.thumbnail && (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', marginTop: '6px', alignItems: 'center' }}>
+                  <span style={{ color: 'rgba(255, 255, 255, 0.5)', alignSelf: 'flex-start' }}>Captured Screenshot:</span>
+                  <div style={{
+                    width: '60px',
+                    height: '100px',
+                    background: '#000',
+                    border: '1px solid rgba(255,255,255,0.15)',
+                    borderRadius: '4px',
+                    overflow: 'hidden',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center'
+                  }}>
+                    <img src={livePaintVerify.thumbnail} style={{ width: '100%', height: '100%', objectFit: 'cover' }} alt="Live Paint Verification" />
                   </div>
                 </div>
               )}

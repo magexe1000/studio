@@ -435,7 +435,7 @@ function takeForensicSnapshot(stage: string) {
   };
 }
 
-async function runPaintVerification(scaleFactor = 0.15) {
+async function runPaintVerification(scaleFactor = 0.1) {
   const el = document.querySelector('[data-livex-hub-root="true"]') || document.getElementById('root');
   if (!el) {
     return {
@@ -494,7 +494,7 @@ async function runPaintVerification(scaleFactor = 0.15) {
     
     let thumbnail = '';
     try {
-      thumbnail = canvas.toDataURL('image/jpeg', 0.2);
+      thumbnail = canvas.toDataURL('image/jpeg', 0.1);
     } catch (_) {}
 
     return {
@@ -1211,7 +1211,7 @@ export default function App() {
         
         // Capture 7 timing checkpoints
         (window as any).__lastCheckpointStage = 'T+0ms';
-        if (isDebugModeEnabled) captureTimelineCheckpoint(lastCaptureId, 'T+0ms');
+        captureTimelineCheckpoint(lastCaptureId, 'T+0ms');
         
         const runWatchdogs = (name: string) => {
           (window as any).__lastCheckpointStage = name;
@@ -1229,22 +1229,22 @@ export default function App() {
 
         setTimeout(() => {
           runWatchdogs('T+50ms');
-          if (isDebugModeEnabled) captureTimelineCheckpoint(lastCaptureId, 'T+50ms');
+          captureTimelineCheckpoint(lastCaptureId, 'T+50ms');
         }, 50);
         
         setTimeout(() => {
           runWatchdogs('T+100ms');
-          if (isDebugModeEnabled) captureTimelineCheckpoint(lastCaptureId, 'T+100ms');
+          captureTimelineCheckpoint(lastCaptureId, 'T+100ms');
         }, 100);
 
         setTimeout(() => {
           runWatchdogs('T+250ms');
-          if (isDebugModeEnabled) captureTimelineCheckpoint(lastCaptureId, 'T+250ms');
+          captureTimelineCheckpoint(lastCaptureId, 'T+250ms');
         }, 250);
 
         setTimeout(() => {
           runWatchdogs('T+500ms');
-          if (isDebugModeEnabled) captureTimelineCheckpoint(lastCaptureId, 'T+500ms');
+          captureTimelineCheckpoint(lastCaptureId, 'T+500ms');
         }, 500);
 
         setTimeout(() => {
@@ -1252,12 +1252,12 @@ export default function App() {
           if (typeof (window as any).__runRootWatchdogCheck === 'function') {
             (window as any).__runRootWatchdogCheck('T+1000ms');
           }
-          if (isDebugModeEnabled) captureTimelineCheckpoint(lastCaptureId, 'T+1000ms');
+          captureTimelineCheckpoint(lastCaptureId, 'T+1000ms');
         }, 1000);
 
         setTimeout(() => {
           (window as any).__lastCheckpointStage = 'T+2000ms';
-          if (isDebugModeEnabled) captureTimelineCheckpoint(lastCaptureId, 'T+2000ms');
+          captureTimelineCheckpoint(lastCaptureId, 'T+2000ms');
         }, 2000);
         
       } catch (err) {
@@ -2076,7 +2076,7 @@ export default function App() {
       };
 
       // Perform paint verification to check if the screen is visually black even though DOM says it's visible
-      if (!isBlocked && isDebugModeEnabled) {
+      if (!isBlocked) {
         runPaintVerification().then(paintData => {
           const isVisuallyBlack = paintData.paintState === 'visually_black';
           const domExists = paintData.domExists;
