@@ -1,23 +1,19 @@
 {
   "platform": "web",
   "version": "4.0.0",
-  "commit": "3a682266",
+  "commit": "bdf03337",
   "releasedAt": "6/21/2026, 12:00:00 AM CST",
   "buildTimestamp": "6/21/2026, 12:00:00 AM CST",
   "updateMode": "refresh",
-  "description": "• Upgraded the root React app tree structure to render EmergencyDebugOverlay at root level.\n• Refactored App.tsx layout to keep the outer app-container permanently mounted, preventing root-level unmounts.\n• Integrated LifecycleTracker logging to record component mount/unmount stack traces and Suspense fallback states.\n• Implemented ROOT_APP_TREE_MISSING and HUB_DOM_NOT_MOUNTED diagnostics to isolate rendering failures.\n• Added COPY ROOT LIFECYCLE LOG and COPY MOUNT/UNMOUNT STACKS buttons to Failed Timeline tab.\n• Fixed React Error #300 hook order violation in BottomNav by hoisting hooks above conditional return statements.\n• Integrated runtime React stack trace symbolicator with VLQ sourcemap decoding and online/offline mapping.\n• Added COPY SYMBOLICATED REACT ERROR REPORT action to crashed boundaries and debug overlay timelines.",
-  "whatsNew": "• Upgraded the root React app tree structure to render EmergencyDebugOverlay at root level.\n• Refactored App.tsx layout to keep the outer app-container permanently mounted, preventing root-level unmounts.\n• Integrated LifecycleTracker logging to record component mount/unmount stack traces and Suspense fallback states.\n• Implemented ROOT_APP_TREE_MISSING and HUB_DOM_NOT_MOUNTED diagnostics to isolate rendering failures.\n• Added COPY ROOT LIFECYCLE LOG and COPY MOUNT/UNMOUNT STACKS buttons to Failed Timeline tab.\n• Fixed React Error #300 hook order violation in BottomNav by hoisting hooks above conditional return statements.\n• Integrated runtime React stack trace symbolicator with VLQ sourcemap decoding and online/offline mapping.\n• Added COPY SYMBOLICATED REACT ERROR REPORT action to crashed boundaries and debug overlay timelines.",
-  "changelog": "• Upgraded the root React app tree structure to render EmergencyDebugOverlay at root level.\n• Refactored App.tsx layout to keep the outer app-container permanently mounted, preventing root-level unmounts.\n• Integrated LifecycleTracker logging to record component mount/unmount stack traces and Suspense fallback states.\n• Implemented ROOT_APP_TREE_MISSING and HUB_DOM_NOT_MOUNTED diagnostics to isolate rendering failures.\n• Added COPY ROOT LIFECYCLE LOG and COPY MOUNT/UNMOUNT STACKS buttons to Failed Timeline tab.\n• Fixed React Error #300 hook order violation in BottomNav by hoisting hooks above conditional return statements.\n• Integrated runtime React stack trace symbolicator with VLQ sourcemap decoding and online/offline mapping.\n• Added COPY SYMBOLICATED REACT ERROR REPORT action to crashed boundaries and debug overlay timelines.",
+  "description": "• Mitigated React Error #300 hook order violation in BottomNav by hoisting hooks above conditional return statements.\n• Integrated runtime React stack trace symbolicator with VLQ sourcemap decoding and online/offline mapping.\n• Added COPY SYMBOLICATED REACT ERROR REPORT action to crashed boundaries and debug overlay timelines.\n• Resolved WebView black screen and compositing freezes on sub-app exits with enhanced telemetry and paint validation.",
+  "whatsNew": "• Mitigated React Error #300 hook order violation in BottomNav by hoisting hooks above conditional return statements.\n• Integrated runtime React stack trace symbolicator with VLQ sourcemap decoding and online/offline mapping.\n• Added COPY SYMBOLICATED REACT ERROR REPORT action to crashed boundaries and debug overlay timelines.\n• Resolved WebView black screen and compositing freezes on sub-app exits with enhanced telemetry and paint validation.",
+  "changelog": "• Mitigated React Error #300 hook order violation in BottomNav by hoisting hooks above conditional return statements.\n• Integrated runtime React stack trace symbolicator with VLQ sourcemap decoding and online/offline mapping.\n• Added COPY SYMBOLICATED REACT ERROR REPORT action to crashed boundaries and debug overlay timelines.\n• Resolved WebView black screen and compositing freezes on sub-app exits with enhanced telemetry and paint validation.",
   "releaseNotes": {
-    "added": [
-      "Upgraded the root React app tree structure to render EmergencyDebugOverlay at root level.",
-      "Refactored App.tsx layout to keep the outer app-container permanently mounted, preventing root-level unmounts.",
-      "Integrated LifecycleTracker logging to record component mount/unmount stack traces and Suspense fallback states.",
-      "Implemented ROOT_APP_TREE_MISSING and HUB_DOM_NOT_MOUNTED diagnostics to isolate rendering failures.",
-      "Added COPY ROOT LIFECYCLE LOG and COPY MOUNT/UNMOUNT STACKS buttons to Failed Timeline tab.",
-      "Fixed React Error #300 hook order violation in BottomNav by hoisting hooks above conditional return statements.",
+    "fixed": [
+      "Mitigated React Error #300 hook order violation in BottomNav by hoisting hooks above conditional return statements.",
       "Integrated runtime React stack trace symbolicator with VLQ sourcemap decoding and online/offline mapping.",
-      "Added COPY SYMBOLICATED REACT ERROR REPORT action to crashed boundaries and debug overlay timelines."
+      "Added COPY SYMBOLICATED REACT ERROR REPORT action to crashed boundaries and debug overlay timelines.",
+      "Resolved WebView black screen and compositing freezes on sub-app exits with enhanced telemetry and paint validation."
     ]
   },
   "mandatory": false
