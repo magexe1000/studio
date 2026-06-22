@@ -12,6 +12,14 @@ Conventions:
 - Bullets start with `- ` and use plain English a non-technical user
   can parse. Keep each line short — the modal's text area is narrow.
 
+## 3.6.68
+
+### Added
+- Upgraded StudioHub to mount synchronously and permanently, eliminating Suspense-induced unmounts.
+- Improved the failsafe watchdog to run active DOM restoration at T+50ms, T+100ms, T+250ms, and T+500ms checkpoints.
+- Added comprehensive report export options to Failed Timeline (Full Report, Timeline JSON, Summary, Checkpoints, and Recovery Log).
+- Fixed the header version display to dynamically show both the current runtime and captured timeline versions.
+
 ## 3.6.67
 
 ### Added

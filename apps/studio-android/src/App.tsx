@@ -14,7 +14,8 @@ import {
   handleGlobalBack,
   useStatusBar,
   recordNavigation,
-  getNavigationEntries
+  getNavigationEntries,
+  NATIVE_VERSION
 } from '@workspace/studio-core';
 
 import {
@@ -524,10 +525,15 @@ function captureTimelineCheckpoint(captureId: number, key: string) {
       timeline = {
         id: captureId,
         timestamp: Date.now(),
+        appVersion: NATIVE_VERSION,
+        versionCode: 95,
         snapshots: {},
         result: 'pending',
         reason: ''
       };
+    } else {
+      timeline.appVersion = NATIVE_VERSION;
+      timeline.versionCode = 95;
     }
     
     timeline.snapshots[key] = snap;
@@ -1038,12 +1044,41 @@ export default function App() {
         // Capture 7 timing checkpoints
         captureTimelineCheckpoint(lastCaptureId, 'T+0ms');
         
-        setTimeout(() => captureTimelineCheckpoint(lastCaptureId, 'T+50ms'), 50);
-        setTimeout(() => captureTimelineCheckpoint(lastCaptureId, 'T+100ms'), 100);
-        setTimeout(() => captureTimelineCheckpoint(lastCaptureId, 'T+250ms'), 250);
-        setTimeout(() => captureTimelineCheckpoint(lastCaptureId, 'T+500ms'), 500);
-        setTimeout(() => captureTimelineCheckpoint(lastCaptureId, 'T+1000ms'), 1000);
-        setTimeout(() => captureTimelineCheckpoint(lastCaptureId, 'T+2000ms'), 2000);
+        const runFailsafeCheck = (name: string) => {
+          const currentMode = useChordStore.getState().settings.appMode || 'hub';
+          const rootNode = document.querySelector('[data-livex-hub-root="true"]') || document.getElementById('hub-root');
+          if (currentMode === 'hub' && !rootNode) {
+            (window as any).__runFailsafeRecovery?.(name);
+          }
+        };
+
+        setTimeout(() => {
+          runFailsafeCheck('T+50ms');
+          captureTimelineCheckpoint(lastCaptureId, 'T+50ms');
+        }, 50);
+        
+        setTimeout(() => {
+          runFailsafeCheck('T+100ms');
+          captureTimelineCheckpoint(lastCaptureId, 'T+100ms');
+        }, 100);
+
+        setTimeout(() => {
+          runFailsafeCheck('T+250ms');
+          captureTimelineCheckpoint(lastCaptureId, 'T+250ms');
+        }, 250);
+
+        setTimeout(() => {
+          runFailsafeCheck('T+500ms');
+          captureTimelineCheckpoint(lastCaptureId, 'T+500ms');
+        }, 500);
+
+        setTimeout(() => {
+          captureTimelineCheckpoint(lastCaptureId, 'T+1000ms');
+        }, 1000);
+
+        setTimeout(() => {
+          captureTimelineCheckpoint(lastCaptureId, 'T+2000ms');
+        }, 2000);
         
       } catch (err) {
         console.error('Forensics: Failed to start multi-snapshot captures', err);
@@ -1306,56 +1341,85 @@ export default function App() {
     }
   }, [appMode]);
 
-  // T+50ms Failsafe Hub Mount Watchdog
+  // Register global failsafe recovery trigger
+  useEffect(() => {
+    (window as any).__runFailsafeRecovery = (checkpointName: string) => {
+      const checkRoot = document.querySelector('[data-livex-hub-root="true"]') || document.getElementById('hub-root');
+      if (checkRoot) return; // Already mounted, do nothing
+
+      console.warn(`[Failsafe Watchdog] Hub DOM not mounted at ${checkpointName}! Running active recovery...`);
+
+      // Record recovery attempt
+      try {
+        const recoveryLogStr = localStorage.getItem('studio_hub_mount_recovery_log') || '[]';
+        const recoveryLog = JSON.parse(recoveryLogStr);
+        recoveryLog.push({
+          timestamp: Date.now(),
+          checkpoint: checkpointName,
+          action: 'HUB_DOM_RESTORE_ATTEMPTED',
+          hubRenderKey
+        });
+        localStorage.setItem('studio_hub_mount_recovery_log', JSON.stringify(recoveryLog));
+      } catch (_) {}
+
+      // 1. Force mount Hub shell immediately
+      setShowHub(true);
+
+      // 2. Increment hubRenderKey
+      setHubRenderKey(k => k + 1);
+
+      // 3. Clear cached subapp refs
+      lastActiveAppRef.current = 'chords';
+
+      // 4. Clear transition locks
+      setTransitionActive(false);
+      (window as any).studioTransitionActive = false;
+
+      // 5. Clear navigation in progress tracking
+      try {
+        localStorage.setItem('studio_navigation_in_progress', 'false');
+      } catch (_) {}
+
+      // 6. Force root layout re-render
+      if (typeof (window as any).__forceRerenderApp === 'function') {
+        (window as any).__forceRerenderApp();
+      }
+
+      // Verify again after a microtask tick
+      setTimeout(() => {
+        const afterCheck = document.querySelector('[data-livex-hub-root="true"]') || document.getElementById('hub-root');
+        const restored = !!afterCheck;
+
+        try {
+          const recoveryLogStr = localStorage.getItem('studio_hub_mount_recovery_log') || '[]';
+          const recoveryLog = JSON.parse(recoveryLogStr);
+          recoveryLog.push({
+            timestamp: Date.now(),
+            checkpoint: checkpointName,
+            action: restored ? 'HUB_DOM_RESTORED' : 'HUB_DOM_RESTORE_FAILED',
+            hubRenderKey: hubRenderKey + 1
+          });
+          if (recoveryLog.length > 30) recoveryLog.shift();
+          localStorage.setItem('studio_hub_mount_recovery_log', JSON.stringify(recoveryLog));
+        } catch (_) {}
+
+        console.log(`[Failsafe Watchdog] Hub DOM recovery status at ${checkpointName}: ${restored ? 'HUB_DOM_RESTORED' : 'HUB_DOM_RESTORE_FAILED'}`);
+      }, 50);
+    };
+
+    return () => {
+      delete (window as any).__runFailsafeRecovery;
+    };
+  }, [hubRenderKey]);
+
+  // Failsafe auto-trigger at T+50ms
   useEffect(() => {
     if (appMode !== 'hub') return;
-
     const timer = setTimeout(() => {
-      const hubRoot = document.querySelector('[data-livex-hub-root="true"]') || document.getElementById('hub-root');
-      const hubDomMounted = !!hubRoot;
-      
-      if (!hubDomMounted) {
-        console.warn('[Failsafe Watchdog] Hub DOM not mounted at T+50ms! Forcing remount and clearing locks...');
-        
-        // 1. Force Hub render key increment
-        setHubRenderKey(k => k + 1);
-        
-        // 2. Clear transition locks
-        setTransitionActive(false);
-        (window as any).studioTransitionActive = false;
-        
-        // 3. Clear cached subapp refs
-        lastActiveAppRef.current = 'chords';
-        
-        // 4. Clear navigation in progress tracking
-        try {
-          localStorage.setItem('studio_navigation_in_progress', 'false');
-        } catch (_) {}
-        
-        // 5. Verify mount again after a microtask tick to record result
-        setTimeout(() => {
-          const checkRoot = document.querySelector('[data-livex-hub-root="true"]') || document.getElementById('hub-root');
-          const restored = !!checkRoot;
-          
-          try {
-            const recoveryLogStr = localStorage.getItem('studio_hub_mount_recovery_log') || '[]';
-            const recoveryLog = JSON.parse(recoveryLogStr);
-            recoveryLog.push({
-              timestamp: Date.now(),
-              action: restored ? 'HUB_DOM_RESTORED' : 'HUB_DOM_RESTORE_FAILED',
-              hubRenderKey: hubRenderKey + 1
-            });
-            if (recoveryLog.length > 20) recoveryLog.shift();
-            localStorage.setItem('studio_hub_mount_recovery_log', JSON.stringify(recoveryLog));
-          } catch (_) {}
-          
-          console.log(`[Failsafe Watchdog] Hub DOM recovery status: ${restored ? 'HUB_DOM_RESTORED' : 'HUB_DOM_RESTORE_FAILED'}`);
-        }, 100);
-      }
+      (window as any).__runFailsafeRecovery?.('T+50ms');
     }, 50);
-
     return () => clearTimeout(timer);
-  }, [appMode, hubRenderKey]);
+  }, [appMode]);
 
   // Define window.__captureBlackScreenState
   useEffect(() => {
@@ -1881,9 +1945,7 @@ export default function App() {
         }}
       >
         {showHub && (
-          <Suspense fallback={<SmartLoading fallbackSkeleton={<StudioHubSkeleton />} />}>
-            <StudioHub key={hubRenderKey} />
-          </Suspense>
+          <StudioHub key={hubRenderKey} />
         )}
       </div>
 

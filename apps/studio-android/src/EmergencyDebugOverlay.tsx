@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
-import { useChordStore } from '@workspace/studio-core';
+import { useChordStore, NATIVE_VERSION } from '@workspace/studio-core';
 
 interface BlockerInfo {
   tag: string;
@@ -691,8 +691,8 @@ export default function EmergencyDebugOverlay() {
       visualBlockerReport: getVisualBlockers(),
       overlayHealthCheck: getOverlayHealth(),
       metadata: {
-        appVersion: "3.6.62",
-        versionCode: 89,
+        appVersion: NATIVE_VERSION,
+        versionCode: 95,
         platform: "Android"
       },
       recentLogs: recentLogs,
@@ -731,7 +731,7 @@ export default function EmergencyDebugOverlay() {
     } catch (_) {}
 
     const lastNav = diag.lastNavigationAction;
-    const summary = `App Version: 3.6.62 (Code 89)
+    const summary = `App Version: ${NATIVE_VERSION} (Code 95)
 App Mode: ${diag.appMode}
 Active Sub-App: ${diag.activeSubApp}
 Stable Key: ${diag.stableKey || "none"}
@@ -1265,7 +1265,7 @@ Last Navigation Action: ${lastNav ? `${lastNav.fromApp} -> ${lastNav.toApp}` : "
 LIVE X BLACK SCREEN FORENSICS REPORT
 ==================================================
 Timestamp: ${new Date().toISOString()}
-App Version: 3.6.62 (Code 89)
+App Version: ${NATIVE_VERSION} (Code 95)
 Platform: Android WebView
 
 --------------------------------------------------
@@ -2060,6 +2060,91 @@ page:  (${webViewDiag.visualViewport.pageLeft}, ${webViewDiag.visualViewport.pag
     const { id, timestamp, snapshots, result, reason } = lastFailedTimeline;
     const checkpointKeys = ['T+0ms', 'T+50ms', 'T+100ms', 'T+250ms', 'T+500ms', 'T+1000ms', 'T+2000ms'];
 
+    const copyFullReport = () => {
+      let timeline: any = null;
+      try {
+        const timelineStr = localStorage.getItem('studio_last_failed_navigation_timeline');
+        if (timelineStr) timeline = JSON.parse(timelineStr);
+      } catch (_) {}
+
+      let recoveryLog = [];
+      try {
+        const recStr = localStorage.getItem('studio_hub_mount_recovery_log') || '[]';
+        recoveryLog = JSON.parse(recStr);
+      } catch (_) {}
+
+      let diagnostics: any = null;
+      try {
+        const diagStr = localStorage.getItem('studio_black_screen_diagnostics');
+        if (diagStr) diagnostics = JSON.parse(diagStr);
+      } catch (_) {}
+
+      const report = {
+        appMetadata: {
+          appVersion: NATIVE_VERSION,
+          nativeApkVersion: NATIVE_VERSION,
+          versionCode: 95,
+          packageName: 'com.chordex.app',
+          platform: typeof navigator !== 'undefined' ? navigator.platform : 'unknown',
+          userAgent: typeof navigator !== 'undefined' ? navigator.userAgent : 'unknown',
+          timestamp: new Date().toISOString()
+        },
+        navigationMetadata: {
+          id: timeline?.id,
+          timestamp: timeline?.timestamp,
+          result: timeline?.result,
+          reason: timeline?.reason,
+          activeSubApp: timeline?.snapshots?.['T+0ms']?.activeSubApp,
+          stableKey: timeline?.snapshots?.['T+0ms']?.stableKey,
+          transitionActive: timeline?.snapshots?.['T+0ms']?.transitionActive,
+          hubRenderKey: timeline?.snapshots?.['T+0ms']?.hubRenderKey,
+          lastNavigationAction: timeline?.lastNavigationAction
+        },
+        checkpoints: timeline?.snapshots || {},
+        recoveryLog,
+        diagnostics
+      };
+
+      copyToClipboard(JSON.stringify(report, null, 2), 'Full Failed Timeline Report');
+    };
+
+    const copyTimelineJson = () => {
+      const timelineStr = localStorage.getItem('studio_last_failed_navigation_timeline') || '{}';
+      copyToClipboard(timelineStr, 'Failed Timeline JSON');
+    };
+
+    const copyTimelineSummary = () => {
+      let timeline: any = null;
+      try {
+        const timelineStr = localStorage.getItem('studio_last_failed_navigation_timeline');
+        if (timelineStr) timeline = JSON.parse(timelineStr);
+      } catch (_) {}
+
+      const summaryStr = `Verdict: FAILED
+Timestamp: ${timeline ? new Date(timeline.timestamp).toISOString() : 'unknown'}
+Reason: ${timeline?.reason || 'COMPOSITOR FREEZE OR CRASH'}
+App Version: ${timeline?.appVersion || NATIVE_VERSION} (Code ${timeline?.versionCode || 95})
+First Failing Checkpoint: ${timeline?.reason?.includes('Checkpoint') ? timeline.reason.split(' ')[1] : 'unknown'}
+Total Checkpoints: ${timeline?.snapshots ? Object.keys(timeline.snapshots).length : 0}`;
+
+      copyToClipboard(summaryStr, 'Failed Timeline Summary');
+    };
+
+    const copyCheckpointsOnly = () => {
+      let timeline: any = null;
+      try {
+        const timelineStr = localStorage.getItem('studio_last_failed_navigation_timeline');
+        if (timelineStr) timeline = JSON.parse(timelineStr);
+      } catch (_) {}
+      const checkpoints = timeline?.snapshots || {};
+      copyToClipboard(JSON.stringify(checkpoints, null, 2), 'Checkpoints Only');
+    };
+
+    const copyRecoveryLog = () => {
+      const recStr = localStorage.getItem('studio_hub_mount_recovery_log') || '[]';
+      copyToClipboard(recStr, 'Recovery Log');
+    };
+
     return (
       <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
         {/* Header Summary */}
@@ -2092,6 +2177,105 @@ page:  (${webViewDiag.visualViewport.pageLeft}, ${webViewDiag.visualViewport.pag
             }}>
               {reason || 'FAILED'}
             </span>
+          </div>
+        </div>
+
+        {/* Copy Operations */}
+        <div style={{
+          display: 'flex',
+          flexDirection: 'column',
+          gap: '8px',
+          background: 'rgba(255,255,255,0.02)',
+          border: '1px solid rgba(255,255,255,0.06)',
+          borderRadius: '8px',
+          padding: '12px'
+        }}>
+          <button
+            onClick={copyFullReport}
+            style={{
+              background: 'linear-gradient(135deg, rgb(168, 85, 247) 0%, rgb(147, 51, 234) 100%)',
+              border: 'none',
+              color: '#fff',
+              padding: '10px 16px',
+              borderRadius: '6px',
+              fontSize: '12px',
+              fontWeight: 'bold',
+              cursor: 'pointer',
+              textTransform: 'uppercase',
+              letterSpacing: '0.5px',
+              boxShadow: '0 4px 12px rgba(168, 85, 247, 0.25)',
+              transition: 'transform 0.1s ease'
+            }}
+          >
+            COPY FULL FAILED TIMELINE REPORT
+          </button>
+          
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(2, 1fr)',
+            gap: '8px',
+            marginTop: '4px'
+          }}>
+            <button
+              onClick={copyTimelineJson}
+              style={{
+                background: 'rgba(255,255,255,0.06)',
+                border: '1px solid rgba(255,255,255,0.1)',
+                color: '#fff',
+                padding: '8px 12px',
+                borderRadius: '6px',
+                fontSize: '11px',
+                fontWeight: 'bold',
+                cursor: 'pointer'
+              }}
+            >
+              COPY TIMELINE JSON
+            </button>
+            <button
+              onClick={copyTimelineSummary}
+              style={{
+                background: 'rgba(255,255,255,0.06)',
+                border: '1px solid rgba(255,255,255,0.1)',
+                color: '#fff',
+                padding: '8px 12px',
+                borderRadius: '6px',
+                fontSize: '11px',
+                fontWeight: 'bold',
+                cursor: 'pointer'
+              }}
+            >
+              COPY TIMELINE SUMMARY
+            </button>
+            <button
+              onClick={copyCheckpointsOnly}
+              style={{
+                background: 'rgba(255,255,255,0.06)',
+                border: '1px solid rgba(255,255,255,0.1)',
+                color: '#fff',
+                padding: '8px 12px',
+                borderRadius: '6px',
+                fontSize: '11px',
+                fontWeight: 'bold',
+                cursor: 'pointer'
+              }}
+            >
+              COPY CHECKPOINTS ONLY
+            </button>
+            <button
+              onClick={copyRecoveryLog}
+              style={{
+                background: 'rgba(255,255,255,0.06)',
+                border: '1px solid rgba(255,255,255,0.1)',
+                color: '#fff',
+                padding: '8px 12px',
+                borderRadius: '6px',
+                fontSize: '11px',
+                fontWeight: 'bold',
+                cursor: 'pointer'
+              }}
+            >
+              COPY RECOVERY LOG
+            </button>
           </div>
         </div>
 
@@ -3127,8 +3311,13 @@ page:  (${webViewDiag.visualViewport.pageLeft}, ${webViewDiag.visualViewport.pag
               <h2 style={{ margin: 0, fontSize: '15px', fontWeight: 'bold', color: 'rgb(168, 85, 247)' }}>
                 EMERGENCY BLACK SCREEN TELEMETRY
               </h2>
-              <span style={{ fontSize: '10px', color: 'rgba(255,255,255,0.45)' }}>
-                Livex Android v3.6.63 (Code 90)
+              <span style={{ fontSize: '10px', color: 'rgba(255,255,255,0.45)', display: 'flex', flexDirection: 'column', gap: '2px', marginTop: '2px' }}>
+                <span>{`Current App Version: ${NATIVE_VERSION} (Code 95)`}</span>
+                {lastFailedTimeline && lastFailedTimeline.appVersion && lastFailedTimeline.appVersion !== NATIVE_VERSION && (
+                  <span style={{ color: '#f59e0b' }}>
+                    {`Timeline Capture Version: ${lastFailedTimeline.appVersion} (Code ${lastFailedTimeline.versionCode || 'unknown'})`}
+                  </span>
+                )}
               </span>
             </div>
             <button
