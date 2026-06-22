@@ -38,7 +38,8 @@ import {
   DrumEditor,
   GroovexApp,
   VocalexApp,
-  ErrorBoundary
+  ErrorBoundary,
+  StudioHub
 } from '@workspace/ui-shared';
 
 import { BottomNav, StageCorePanel } from '@workspace/ui-android';
@@ -47,7 +48,6 @@ import html2canvas from 'html2canvas';
 
 import "./index.css";
 
-const StudioHub = lazy(() => import('@workspace/ui-shared').then(m => ({ default: m.StudioHub })));
 
 type AccountState =
   | { phase: 'unknown' }
@@ -1306,6 +1306,57 @@ export default function App() {
     }
   }, [appMode]);
 
+  // T+50ms Failsafe Hub Mount Watchdog
+  useEffect(() => {
+    if (appMode !== 'hub') return;
+
+    const timer = setTimeout(() => {
+      const hubRoot = document.querySelector('[data-livex-hub-root="true"]') || document.getElementById('hub-root');
+      const hubDomMounted = !!hubRoot;
+      
+      if (!hubDomMounted) {
+        console.warn('[Failsafe Watchdog] Hub DOM not mounted at T+50ms! Forcing remount and clearing locks...');
+        
+        // 1. Force Hub render key increment
+        setHubRenderKey(k => k + 1);
+        
+        // 2. Clear transition locks
+        setTransitionActive(false);
+        (window as any).studioTransitionActive = false;
+        
+        // 3. Clear cached subapp refs
+        lastActiveAppRef.current = 'chords';
+        
+        // 4. Clear navigation in progress tracking
+        try {
+          localStorage.setItem('studio_navigation_in_progress', 'false');
+        } catch (_) {}
+        
+        // 5. Verify mount again after a microtask tick to record result
+        setTimeout(() => {
+          const checkRoot = document.querySelector('[data-livex-hub-root="true"]') || document.getElementById('hub-root');
+          const restored = !!checkRoot;
+          
+          try {
+            const recoveryLogStr = localStorage.getItem('studio_hub_mount_recovery_log') || '[]';
+            const recoveryLog = JSON.parse(recoveryLogStr);
+            recoveryLog.push({
+              timestamp: Date.now(),
+              action: restored ? 'HUB_DOM_RESTORED' : 'HUB_DOM_RESTORE_FAILED',
+              hubRenderKey: hubRenderKey + 1
+            });
+            if (recoveryLog.length > 20) recoveryLog.shift();
+            localStorage.setItem('studio_hub_mount_recovery_log', JSON.stringify(recoveryLog));
+          } catch (_) {}
+          
+          console.log(`[Failsafe Watchdog] Hub DOM recovery status: ${restored ? 'HUB_DOM_RESTORED' : 'HUB_DOM_RESTORE_FAILED'}`);
+        }, 100);
+      }
+    }, 50);
+
+    return () => clearTimeout(timer);
+  }, [appMode, hubRenderKey]);
+
   // Define window.__captureBlackScreenState
   useEffect(() => {
     (window as any).__captureBlackScreenState = () => {
@@ -1595,6 +1646,44 @@ export default function App() {
 
       let isBlocked = false;
       let reason = '';
+
+      // Part E: Check timeline checkpoints for failure
+      let checkpointFailed = false;
+      let checkpointReason = '';
+      try {
+        const timelineStr = localStorage.getItem('studio_current_navigation_timeline');
+        if (timelineStr) {
+          const timeline = JSON.parse(timelineStr);
+          const snaps = timeline.snapshots || {};
+          const checkKeys = ['T+50ms', 'T+250ms', 'T+1000ms'];
+          for (const key of checkKeys) {
+            const snap = snaps[key];
+            if (snap) {
+              const appModeIsHub = snap.appMode === 'hub';
+              const hubMounted = snap.hubDomState?.mounted;
+              const isBlack = snap.paintVerification?.paintState === 'visually_black';
+              
+              if (appModeIsHub && !hubMounted) {
+                checkpointFailed = true;
+                checkpointReason = `Checkpoint ${key} Hub DOM not mounted`;
+                break;
+              }
+              if (appModeIsHub && isBlack) {
+                checkpointFailed = true;
+                checkpointReason = `Checkpoint ${key} paint state is black`;
+                break;
+              }
+            }
+          }
+        }
+      } catch (e) {
+        console.error('Watchdog failed checking checkpoints:', e);
+      }
+
+      if (checkpointFailed) {
+        isBlocked = true;
+        reason = checkpointReason;
+      }
 
       if (!statePayload.hubActuallyPainted) {
         isBlocked = true;

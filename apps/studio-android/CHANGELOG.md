@@ -12,6 +12,13 @@ Conventions:
 - Bullets start with `- ` and use plain English a non-technical user
   can parse. Keep each line short — the modal's text area is narrow.
 
+## 3.6.67
+
+### Added
+- Upgraded StudioHub to a synchronous static import to prevent Suspense fallback unmounts.
+- Added a failsafe T+50ms watchdog to force-mount StudioHub and clear transition locks if the DOM is missing.
+- Updated watchdog return validation to enforce pass/fail criteria on chronological checkpoints.
+
 ## 3.6.66
 
 ### Added

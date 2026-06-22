@@ -1,6 +1,4 @@
 ### Added
-- Added automated forensic snapshots at T+0ms, T+50ms, T+100ms, T+250ms, T+500ms, T+1000ms, and T+2000ms.
-- Enhanced snapshot data model with topmost stack, computed CSS styles, bounding rects, and WebView metrics.
-- Added visual thumbnail capture with html2canvas at every checkpoint.
-- Added Last Failed Navigation Timeline panel showing chronological checkpoints.
-- Added auto-open behavior of emergency overlay on startup following force-closes.
+- Upgraded StudioHub to a synchronous static import to prevent Suspense fallback unmounts.
+- Added a failsafe T+50ms watchdog to force-mount StudioHub and clear transition locks if the DOM is missing.
+- Updated watchdog return validation to enforce pass/fail criteria on chronological checkpoints.

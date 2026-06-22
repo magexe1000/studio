@@ -2074,7 +2074,7 @@ page:  (${webViewDiag.visualViewport.pageLeft}, ${webViewDiag.visualViewport.pag
         }}>
           <div>
             <div style={{ color: '#f43f5e', fontWeight: 'bold', fontSize: '13px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-              Failed Return Timeline
+              VERDICT: FAILED (COMPOSITOR FREEZE OR CRASH)
             </div>
             <div style={{ color: 'rgba(255,255,255,0.5)', fontSize: '10px', marginTop: '2px' }}>
               Attempted: {new Date(timestamp).toLocaleDateString()} {new Date(timestamp).toLocaleTimeString()}
