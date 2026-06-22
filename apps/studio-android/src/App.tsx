@@ -2149,10 +2149,10 @@ export default function App() {
                 <motion.div
                   key={stableKey}
                   className="sc-subapp-wrapper"
-                  initial={{ opacity: 0, y: 16, scale: 0.972 }}
-                  animate={{ opacity: 1, y: 0, scale: 1 }}
-                  exit={{ opacity: 0, y: 16, scale: 0.972, pointerEvents: 'none' as any }}
-                  transition={{ duration: 0.28, ease: [0.33, 1, 0.68, 1] }}
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0, pointerEvents: 'none' as any }}
+                  transition={{ duration: 0.22, ease: 'easeOut' }}
                   style={{
                     position: 'absolute',
                     inset: 0,

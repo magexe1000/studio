@@ -26,7 +26,7 @@ import { useMemo } from 'react';
 import { Capacitor } from '@capacitor/core';
 
 /** Canonical semver string used by the OTA comparator. */
-export const NATIVE_VERSION = '3.6.73';
+export const NATIVE_VERSION = '3.6.74';
 export const WEB_VERSION = '4.0.0';
 export const APP_VERSION = Capacitor.isNativePlatform() ? NATIVE_VERSION : WEB_VERSION;
 
@@ -38,11 +38,11 @@ export const APP_VERSION_LABEL = `${APP_VERSION_TAG} ${APP_VERSION}`;
 
 /** Release date for the CURRENT bundle, shown alongside the version pill
  *  in the changelog sheet. ISO-8601 (`YYYY-MM-DD`). */
-export const APP_VERSION_DATE = '2026-06-21'; // 3.6.64
+export const APP_VERSION_DATE = '2026-06-22'; // 3.6.74
 // Note: keep ISO-8601. Bump together with APP_VERSION on each release.
 
 export const APP_COMMIT_SHA = import.meta.env.VITE_GIT_COMMIT_SHA || '78ef3651';
-export const APP_BUILD_TIMESTAMP = import.meta.env.VITE_BUILD_TIMESTAMP || '6/21/2026, 12:00:00 AM CST';
+export const APP_BUILD_TIMESTAMP = import.meta.env.VITE_BUILD_TIMESTAMP || '6/22/2026, 12:00:00 AM CST';
 
 /**
  * Changelog for the CURRENT release — shown to the user the first
@@ -61,10 +61,9 @@ export const APP_CHANGELOG_SECTIONS: ChangelogSection[] = [
   {
     heading: "Added",
     items: [
-      "Restored centered app-specific loading screens showing animated logos, app names, and customized loading indicators for all sub-apps.",
-      "Smoothed sub-app entry and exit transitions, eliminating any temporary black or blank frames during bundle loading and heavy initialization.",
-      "Integrated persistent sub-app loading screens with Stagex iframe onload/bridge-ready hooks to prevent gray backgrounds.",
-      "Streamlined sub-app mount performance and eliminated rendering delays on Android devices.",
+      "Integrated early orbit intro dismissal bypass when returning from sub-apps via path check and sessionStorage tracking.",
+      "Accelerated launchApp zooming timing to execute setZooming(true) immediately, aligning transition states.",
+      "Re-aligned sub-app transition behavior with the web platform to prevent double-scaling effects.",
     ],
   },
 ];
@@ -74,10 +73,9 @@ export const APP_CHANGELOG_SECTIONS_NATIVE: ChangelogSection[] = [
   {
     heading: "Added",
     items: [
-      "Restored original smooth transition animations for sub-app entries and exits.",
-      "Optimized navigation performance and transition frame-rates on physical Android devices.",
-      "Memoized SubAppWrapper component to prevent unnecessary React re-renders.",
-      "Hidden emergency debug UI, panic menu, and watchdog telemetry from production, keeping diagnostics accessible behind a debug flag.",
+      "Integrated early orbit intro dismissal bypass when returning from sub-apps via path check and sessionStorage tracking.",
+      "Accelerated launchApp zooming timing to execute setZooming(true) immediately, aligning transition states.",
+      "Re-aligned sub-app transition behavior with the web platform to prevent double-scaling effects.",
     ],
   },
 ];
@@ -88,10 +86,9 @@ export const APP_CHANGELOG_SECTIONS_ES: ChangelogSection[] = [
   {
     heading: "Añadido",
     items: [
-      "Restauradas las animaciones de transición fluidas originales para entradas y salidas de sub-apps.",
-      "Rendimiento de navegación optimizado y tasas de cuadros de transición mejoradas en dispositivos Android físicos.",
-      "Memoizado el componente SubAppWrapper para prevenir re-renderizados innecesarios de React.",
-      "Ocultada la interfaz de depuración de emergencia, el menú de pánico y la telemetría del watchdog de producción, manteniendo los diagnósticos accesibles bajo una bandera de depuración.",
+      "Bypass integrado para omitir la introducción al regresar de las sub-apps mediante verificación de ruta y tracking en sessionStorage.",
+      "Acelerado el tiempo de zoom en launchApp para ejecutar setZooming(true) de inmediato, alineando los estados de transición.",
+      "Realineado el comportamiento de transición de las sub-apps con la plataforma web para evitar el doble escalado.",
     ],
   },
 ];

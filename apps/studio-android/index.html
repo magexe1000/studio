@@ -43,9 +43,26 @@
     <script>
       (function() {
         try {
-          // Route detection to avoid loading planet/orb animation on landing page route
+          // Check appMode to skip intro on cold boot to a sub-app directly
+          var appMode = 'hub';
+          try {
+            var raw = localStorage.getItem('chord-explorer-storage-v3');
+            if (raw) {
+              var parsed = JSON.parse(raw);
+              if (parsed && parsed.state && parsed.state.settings) {
+                appMode = parsed.state.settings.appMode || 'hub';
+              }
+            }
+          } catch (e) {}
+
           var path = window.location.pathname;
-          if (path === '/app' || path.startsWith('/app/')) {
+          var isApp = path === '/app' || path.startsWith('/app/') || path === '/' || path === '/index.html';
+          var alreadyShown = false;
+          try {
+            alreadyShown = !!sessionStorage.getItem('studio-intro-shown');
+          } catch (e) {}
+
+          if (isApp && !alreadyShown && appMode === 'hub') {
             document.documentElement.classList.add('app-route');
             document.documentElement.classList.remove('landing-route');
           } else {
@@ -570,6 +587,9 @@
         function doFade() {
           if (dismissed) return;
           dismissed = true;
+          try {
+            sessionStorage.setItem('studio-intro-shown', 'true');
+          } catch (e) {}
           // Apply a long, smooth ease-out transition for the crossfade into the hub.
           // cubic-bezier(0.22,1,0.36,1) starts quickly then eases very gently at the
           // end — this makes the hub "breathe in" rather than snap into view.

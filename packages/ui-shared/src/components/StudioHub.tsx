@@ -421,17 +421,13 @@ export default function StudioHub() {
     });
 
     (window as any).studioTransitionActive = true;
+    setZooming(true);
     updateSettings({ appMode });
 
     // Clear any pending launch timers
     launchTimers.current.forEach(clearTimeout);
     launchTimers.current = [];
 
-    const t1 = setTimeout(() => {
-      if (useChordStore.getState().settings.appMode !== 'hub') {
-        setZooming(true);
-      }
-    }, 100);
     const t2 = setTimeout(() => {
       (window as any).studioTransitionActive = false;
       recordNavigation({
@@ -443,7 +439,7 @@ export default function StudioHub() {
         fallbackRendered: false
       });
     }, 450);
-    launchTimers.current.push(t1, t2);
+    launchTimers.current.push(t2);
   // updateSettings is stable (Zustand action), setZooming is React setState
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
