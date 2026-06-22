@@ -1009,7 +1009,7 @@ export default function App() {
     setAppPreloaded(true);
 
     const elapsed = Date.now() - launchStartTimeRef.current;
-    const minDuration = 850; // minimum duration 750ms-1000ms. 850ms feels very premium.
+    const minDuration = 950; // 950ms + 300ms fadeout = 1250ms total visibility (1000ms-1300ms target).
     const remainingTime = Math.max(0, minDuration - elapsed);
 
     console.log(`[Launch] App ${app} loaded in ${elapsed}ms. Remaining splash time: ${remainingTime}ms.`);
@@ -1022,10 +1022,10 @@ export default function App() {
       console.log(`[Launch] Transitioning splash screen out for app: ${app}`);
       setSplashVisible(false);
       
-      // Wait for the fade-out transition to complete (350ms) before clearing launchingApp
+      // Wait for the fade-out transition to complete (300ms) before clearing launchingApp
       setTimeout(() => {
         setLaunchingApp(null);
-      }, 350);
+      }, 300);
     }, remainingTime);
   }, []);
 
@@ -1149,6 +1149,25 @@ export default function App() {
       amoledMode: settings.amoledMode ?? false,
     };
   }, [activeApp, settings.perApp, settings.theme, settings.accentColor, settings.amoledMode]);
+
+  const isLightMode = useMemo(() => {
+    const theme = activeVis.theme;
+    if (theme === 'light') return true;
+    if (theme === 'dark') return false;
+    if (theme === 'system') {
+      if (typeof window !== 'undefined') {
+        return window.matchMedia('(prefers-color-scheme: light)').matches;
+      }
+      return false;
+    }
+    if (theme === 'dynamic') {
+      const h = new Date().getHours();
+      const start = settings.dynamicLightStart ?? 7;
+      const end = settings.dynamicLightEnd ?? 20;
+      return h >= start && h < end;
+    }
+    return false;
+  }, [activeVis.theme, settings.dynamicLightStart, settings.dynamicLightEnd, settings.theme]);
 
   useEffect(() => {
     const applyTheme = (skipTransitioningClass = false) => {
@@ -2266,7 +2285,7 @@ export default function App() {
                 <motion.div
                   key={stableKey}
                   className="sc-subapp-wrapper"
-                  initial={{ opacity: 0 }}
+                  initial={false}
                   animate={{ opacity: 1 }}
                   exit={{ opacity: 0, pointerEvents: 'none' as any }}
                   transition={{ duration: 0.22, ease: 'easeOut' }}
@@ -2296,30 +2315,29 @@ export default function App() {
                   initial={{ opacity: 1 }}
                   animate={{ opacity: 1 }}
                   exit={{ opacity: 0 }}
-                  transition={{ duration: 0.3, ease: 'easeInOut' }}
+                  transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
                   style={{
                     position: 'fixed',
                     inset: 0,
                     zIndex: 99999,
-                    background: `radial-gradient(circle at center, ${getAppColor(launchingApp)}12 0%, #09090b 80%)`,
+                    backgroundColor: isLightMode ? '#ffffff' : (activeVis.amoledMode ? '#000000' : '#09090b'),
+                    backgroundImage: `radial-gradient(circle at center, ${getAppColor(launchingApp)}${isLightMode ? '0b' : '15'} 0%, transparent 100%)`,
                     display: 'flex',
                     flexDirection: 'column',
                     alignItems: 'center',
                     justifyContent: 'center',
                     fontFamily: 'Inter, sans-serif',
-                    color: '#ffffff',
+                    color: isLightMode ? '#09090b' : '#ffffff',
                     pointerEvents: 'auto',
                   }}
                 >
                   <motion.div
-                    initial={{ scale: 0.92, opacity: 0 }}
+                    initial={{ scale: 0.96, opacity: 0 }}
                     animate={{ scale: 1, opacity: 1 }}
+                    exit={{ scale: 1.02, opacity: 0 }}
                     transition={{
-                      type: 'spring',
-                      stiffness: 100,
-                      damping: 15,
-                      mass: 0.9,
-                      delay: 0.05,
+                      duration: 0.35,
+                      ease: [0.16, 1, 0.3, 1]
                     }}
                     style={{
                       display: 'flex',
@@ -2335,7 +2353,7 @@ export default function App() {
                         alignItems: 'center',
                         justifyContent: 'center',
                         color: getAppColor(launchingApp),
-                        filter: `drop-shadow(0 0 24px ${getAppColor(launchingApp)}3a)`,
+                        filter: isLightMode ? 'none' : `drop-shadow(0 0 24px ${getAppColor(launchingApp)}3a)`,
                       }}
                     >
                       {renderAppLogo(launchingApp, 80)}
@@ -2346,7 +2364,7 @@ export default function App() {
                         fontWeight: 900,
                         letterSpacing: '-0.03em',
                         margin: 0,
-                        background: `linear-gradient(135deg, #ffffff 0%, ${getAppColor(launchingApp)} 100%)`,
+                        background: `linear-gradient(135deg, ${isLightMode ? '#09090b' : '#ffffff'} 0%, ${getAppColor(launchingApp)} 100%)`,
                         WebkitBackgroundClip: 'text',
                         WebkitTextFillColor: 'transparent',
                       }}
@@ -2406,10 +2424,21 @@ const AppReadyNotifier = memo(function AppReadyNotifier({
   onReady: (app: AppKey) => void;
 }) {
   useEffect(() => {
-    const timer = setTimeout(() => {
-      onReady(app);
-    }, 50);
-    return () => clearTimeout(timer);
+    let active = true;
+    
+    // Double requestAnimationFrame guarantees React completed rendering and browser finished initial paint
+    const rafId = requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        if (active) {
+          onReady(app);
+        }
+      });
+    });
+
+    return () => {
+      active = false;
+      cancelAnimationFrame(rafId);
+    };
   }, [app, onReady]);
 
   return null;
@@ -2489,7 +2518,7 @@ const SubAppWrapper = memo(function SubAppWrapper({ app, activePanel, settings, 
       {cachedApp === 'groovex' && (
         <div className="app-sub-app-container" style={{ position: 'relative', width: '100%', height: '100%', overflow: 'hidden' }}>
           <ErrorBoundary moduleName="Groovex">
-            <Suspense fallback={<FallbackTracker app="groovex"><SmartLoading app="groovex" /></FallbackTracker>}>
+            <Suspense fallback={<FallbackTracker app="groovex"><div style={{ width: '100%', height: '100%', background: 'var(--app-bg)' }} /></FallbackTracker>}>
               <AppReadyNotifier app="groovex" onReady={onReady} />
               <AppEntryTransition><GroovexApp /></AppEntryTransition>
             </Suspense>
@@ -2500,7 +2529,7 @@ const SubAppWrapper = memo(function SubAppWrapper({ app, activePanel, settings, 
       {cachedApp === 'vocalex' && (
         <div className="app-sub-app-container" style={{ position: 'relative', width: '100%', height: '100%', overflow: 'hidden' }}>
           <ErrorBoundary moduleName="Vocalex">
-            <Suspense fallback={<FallbackTracker app="vocalex"><SmartLoading app="vocalex" /></FallbackTracker>}>
+            <Suspense fallback={<FallbackTracker app="vocalex"><div style={{ width: '100%', height: '100%', background: 'var(--app-bg)' }} /></FallbackTracker>}>
               <AppReadyNotifier app="vocalex" onReady={onReady} />
               <AppEntryTransition><VocalexApp /></AppEntryTransition>
             </Suspense>
@@ -2511,7 +2540,7 @@ const SubAppWrapper = memo(function SubAppWrapper({ app, activePanel, settings, 
       {cachedApp === 'stage' && (
         <div className="app-sub-app-container" style={{ position: 'relative', width: '100%', height: '100%', overflow: 'hidden' }}>
           <ErrorBoundary moduleName="Stagex">
-            <Suspense fallback={<FallbackTracker app="stage"><SmartLoading app="stage" /></FallbackTracker>}>
+            <Suspense fallback={<FallbackTracker app="stage"><div style={{ width: '100%', height: '100%', background: 'var(--app-bg)' }} /></FallbackTracker>}>
               <AppReadyNotifier app="stage" onReady={onReady} />
               <AppEntryTransition><StageCorePanel /></AppEntryTransition>
             </Suspense>
@@ -2522,7 +2551,7 @@ const SubAppWrapper = memo(function SubAppWrapper({ app, activePanel, settings, 
       {cachedApp === 'drums' && (
         <div className="app-sub-app-container" style={{ position: 'relative', width: '100%', height: '100%', overflow: 'hidden' }}>
           <ErrorBoundary moduleName="Drumex">
-            <Suspense fallback={<FallbackTracker app="drums"><SmartLoading app="drums" /></FallbackTracker>}>
+            <Suspense fallback={<FallbackTracker app="drums"><div style={{ width: '100%', height: '100%', background: 'var(--app-bg)' }} /></FallbackTracker>}>
               <AppReadyNotifier app="drums" onReady={onReady} />
               <AppEntryTransition><DrumEditor /></AppEntryTransition>
             </Suspense>
@@ -2566,7 +2595,7 @@ const SubAppWrapper = memo(function SubAppWrapper({ app, activePanel, settings, 
                       }}
                     >
                       <ErrorBoundary moduleName="Chordex">
-                        <Suspense fallback={<FallbackTracker app="chords"><SmartLoading app="chords" /></FallbackTracker>}>
+                        <Suspense fallback={<FallbackTracker app="chords"><div style={{ width: '100%', height: '100%', background: 'var(--app-bg)' }} /></FallbackTracker>}>
                           <AppReadyNotifier app="chords" onReady={onReady} />
                           {panel === 'library'  && <LibraryPanel />}
                           {panel === 'chord'    && <ChordPanel />}
