@@ -296,6 +296,106 @@ function takeForensicSnapshot(stage: string) {
   const visualProbe = getVisuallyEmptyProbe();
   const renderAudit = getWebViewRenderAudit();
 
+  const hubRoot = document.querySelector('[data-livex-hub-root="true"]') || document.getElementById('hub-root');
+  const hubDomState = {
+    mounted: !!hubRoot,
+    htmlLength: hubRoot ? hubRoot.outerHTML.length : 0,
+    elementCount: hubRoot ? hubRoot.getElementsByTagName('*').length : 0,
+    textContentLength: hubRoot ? (hubRoot.textContent || '').trim().length : 0,
+    id: hubRoot ? hubRoot.id : '',
+    className: hubRoot ? hubRoot.className : ''
+  };
+
+  const getRectSafe = (sel: string) => {
+    const el = document.querySelector(sel);
+    if (!el) return null;
+    const r = el.getBoundingClientRect();
+    return { left: Math.round(r.left), top: Math.round(r.top), width: Math.round(r.width), height: Math.round(r.height) };
+  };
+
+  const bounds = {
+    'root': getRectSafe('#root'),
+    'app-container': getRectSafe('.app-container'),
+    'app-main-layout': getRectSafe('.app-main-layout'),
+    'hub-root': getRectSafe('[data-livex-hub-root="true"], #hub-root'),
+    'hub-content': getRectSafe('[data-livex-hub-content="true"], .gb-wrap'),
+    'subapp-wrapper': getRectSafe('.sc-subapp-wrapper'),
+    'subapp-container': getRectSafe('.app-sub-app-container')
+  };
+
+  const getStylesSafe = (sel: string) => {
+    const el = document.querySelector(sel);
+    if (!el) return null;
+    const s = window.getComputedStyle(el);
+    return {
+      display: s.display || 'none',
+      visibility: s.visibility || 'hidden',
+      opacity: s.opacity || '1',
+      transform: s.transform || 'none',
+      filter: s.filter || 'none',
+      contain: s.contain || 'none',
+      isolation: s.isolation || 'none',
+      overflow: s.overflow || 'visible',
+      zIndex: s.zIndex || 'auto',
+      position: s.position || 'static'
+    };
+  };
+
+  const computedStyles = {
+    'root': getStylesSafe('#root'),
+    'app-container': getStylesSafe('.app-container'),
+    'app-main-layout': getStylesSafe('.app-main-layout'),
+    'hub-root': getStylesSafe('[data-livex-hub-root="true"], #hub-root'),
+    'hub-content': getStylesSafe('[data-livex-hub-content="true"], .gb-wrap'),
+    'subapp-wrapper': getStylesSafe('.sc-subapp-wrapper')
+  };
+
+  const topmostElementsStack = (() => {
+    try {
+      const w = window.innerWidth;
+      const h = window.innerHeight;
+      return Array.from(document.elementsFromPoint(w / 2, h / 2)).map(el => {
+        const s = window.getComputedStyle(el);
+        return {
+          tag: el.tagName.toLowerCase(),
+          id: el.id || '',
+          className: el.className || '',
+          zIndex: s.zIndex || 'auto',
+          opacity: s.opacity || '1',
+          pointerEvents: s.pointerEvents || 'auto',
+          display: s.display || 'block',
+          visibility: s.visibility || 'visible'
+        };
+      });
+    } catch (_) {
+      return [];
+    }
+  })();
+
+  const visibilityState = document.visibilityState || 'unknown';
+
+  const webViewMetrics = {
+    innerWidth: window.innerWidth,
+    innerHeight: window.innerHeight,
+    dpr: window.devicePixelRatio || 1,
+    colorDepth: screen.colorDepth || 24,
+    orientation: screen.orientation ? {
+      type: screen.orientation.type,
+      angle: screen.orientation.angle
+    } : {
+      type: window.innerHeight > window.innerWidth ? 'portrait-primary' : 'landscape-primary',
+      angle: 0
+    },
+    visualViewport: window.visualViewport ? {
+      width: Math.round(window.visualViewport.width),
+      height: Math.round(window.visualViewport.height),
+      offsetLeft: Math.round(window.visualViewport.offsetLeft),
+      offsetTop: Math.round(window.visualViewport.offsetTop),
+      scale: window.visualViewport.scale
+    } : null,
+    layerCount: estimateCompositedLayers()
+  };
+
   return {
     timestamp: Date.now(),
     stage,
@@ -313,19 +413,19 @@ function takeForensicSnapshot(stage: string) {
       'subapp-wrapper': getVisualStateForElement('.sc-subapp-wrapper'),
       'subapp-container': getVisualStateForElement('.app-sub-app-container')
     },
-    bounds: {
-      'hub-root': getBoundingClientRectForElement('[data-livex-hub-root="true"], #hub-root'),
-      'hub-content': getBoundingClientRectForElement('[data-livex-hub-content="true"], .gb-wrap'),
-      'app-container': getBoundingClientRectForElement('.app-container'),
-      'app-main-layout': getBoundingClientRectForElement('.app-main-layout')
-    },
+    bounds,
+    computedStyles,
+    topmostElementsStack,
+    visibilityState,
+    webViewMetrics,
     viewport: getViewportAudit(),
     visualProbe,
-    renderAudit
+    renderAudit,
+    hubDomState
   };
 }
 
-async function runPaintVerification() {
+async function runPaintVerification(scaleFactor = 0.15) {
   const el = document.querySelector('[data-livex-hub-root="true"]') || document.getElementById('root');
   if (!el) {
     return {
@@ -333,7 +433,8 @@ async function runPaintVerification() {
       paintState: 'error',
       blackPercent: 0,
       histogram: { black: 0, dark: 0, mid: 0, bright: 0 },
-      totalPixels: 0
+      totalPixels: 0,
+      thumbnail: ''
     };
   }
 
@@ -341,7 +442,7 @@ async function runPaintVerification() {
     const canvas = await html2canvas(el as HTMLElement, {
       logging: false,
       useCORS: true,
-      scale: 0.5
+      scale: scaleFactor
     });
     const ctx = canvas.getContext('2d');
     if (!ctx) {
@@ -381,6 +482,11 @@ async function runPaintVerification() {
     const blackPercent = total > 0 ? Math.round((blackCount / total) * 100) : 0;
     const isVisuallyBlack = blackPercent > 98;
     
+    let thumbnail = '';
+    try {
+      thumbnail = canvas.toDataURL('image/jpeg', 0.2);
+    } catch (_) {}
+
     return {
       domExists: true,
       paintState: isVisuallyBlack ? 'visually_black' : 'painted',
@@ -391,7 +497,8 @@ async function runPaintVerification() {
         mid: midCount,
         bright: brightCount
       },
-      totalPixels: total
+      totalPixels: total,
+      thumbnail
     };
   } catch (err) {
     console.error('Paint verification failed:', err);
@@ -400,63 +507,67 @@ async function runPaintVerification() {
       paintState: 'error',
       blackPercent: 0,
       histogram: { black: 0, dark: 0, mid: 0, bright: 0 },
-      totalPixels: 0
+      totalPixels: 0,
+      thumbnail: ''
     };
   }
 }
 
-function updateForensicSnapshotPaint(captureId: number, key: string, paintData: any) {
+function captureTimelineCheckpoint(captureId: number, key: string) {
   try {
-    const listStr = localStorage.getItem('studio_forensic_captures') || '[]';
-    const list = JSON.parse(listStr);
-    const index = list.findIndex((c: any) => c.id === captureId);
-    if (index !== -1 && list[index].snapshots && list[index].snapshots[key]) {
-      list[index].snapshots[key].paintVerification = paintData;
-      localStorage.setItem('studio_forensic_captures', JSON.stringify(list));
-    }
-  } catch (e) {
-    console.error('Failed to update forensic snapshot paint data', e);
-  }
-}
-
-function saveForensicCaptureStructure(id: number, t0Snapshot: any) {
-  try {
-    const listStr = localStorage.getItem('studio_forensic_captures') || '[]';
-    const list = JSON.parse(listStr);
+    const snap = takeForensicSnapshot(key);
     
-    const newEntry = {
-      id,
-      timestamp: Date.now(),
-      snapshots: {
-        'LEAVING_CHORDEX': t0Snapshot
-      },
-      result: 'pending',
-      reason: ''
-    };
+    const currentTimelineStr = localStorage.getItem('studio_current_navigation_timeline');
+    let timeline = currentTimelineStr ? JSON.parse(currentTimelineStr) : null;
     
-    list.push(newEntry);
-    while (list.length > 20) {
-      list.shift();
+    if (!timeline || timeline.id !== captureId) {
+      timeline = {
+        id: captureId,
+        timestamp: Date.now(),
+        snapshots: {},
+        result: 'pending',
+        reason: ''
+      };
     }
     
-    localStorage.setItem('studio_forensic_captures', JSON.stringify(list));
-  } catch (e) {
-    console.error('Failed to save initial forensic capture structure', e);
-  }
-}
-
-function appendForensicSnapshot(captureId: number, key: string, snapshot: any) {
-  try {
+    timeline.snapshots[key] = snap;
+    localStorage.setItem('studio_current_navigation_timeline', JSON.stringify(timeline));
+    
     const listStr = localStorage.getItem('studio_forensic_captures') || '[]';
     const list = JSON.parse(listStr);
     const index = list.findIndex((c: any) => c.id === captureId);
     if (index !== -1) {
       list[index].snapshots = list[index].snapshots || {};
-      list[index].snapshots[key] = snapshot;
+      list[index].snapshots[key] = snap;
+      localStorage.setItem('studio_forensic_captures', JSON.stringify(list));
+    } else {
+      list.push(timeline);
+      while (list.length > 20) {
+        list.shift();
+      }
       localStorage.setItem('studio_forensic_captures', JSON.stringify(list));
     }
-  } catch (e) {
-    console.error('Failed to append forensic snapshot', e);
+
+    runPaintVerification().then(paintData => {
+      const currentTimelineStrLatest = localStorage.getItem('studio_current_navigation_timeline');
+      let tLatest = currentTimelineStrLatest ? JSON.parse(currentTimelineStrLatest) : null;
+      if (tLatest && tLatest.id === captureId) {
+        tLatest.snapshots[key].paintVerification = paintData;
+        localStorage.setItem('studio_current_navigation_timeline', JSON.stringify(tLatest));
+      }
+      
+      const listStrLatest = localStorage.getItem('studio_forensic_captures') || '[]';
+      const listLatest = JSON.parse(listStrLatest);
+      const idxLatest = listLatest.findIndex((c: any) => c.id === captureId);
+      if (idxLatest !== -1 && listLatest[idxLatest].snapshots && listLatest[idxLatest].snapshots[key]) {
+        listLatest[idxLatest].snapshots[key].paintVerification = paintData;
+        localStorage.setItem('studio_forensic_captures', JSON.stringify(listLatest));
+      }
+    }).catch(err => {
+      console.error(`Failed to capture paint verification for checkpoint ${key}:`, err);
+    });
+  } catch (err) {
+    console.error(`Failed to capture checkpoint ${key}:`, err);
   }
 }
 
@@ -666,6 +777,29 @@ export default function App() {
       transitionLockState: false,
       fallbackRendered: false
     });
+  }, []);
+
+  // Startup crash / force-close detector
+  useEffect(() => {
+    try {
+      const inProgress = localStorage.getItem('studio_navigation_in_progress') === 'true';
+      if (inProgress) {
+        // App was force-closed or crashed during returnToStudioHub navigation
+        const currentTimelineStr = localStorage.getItem('studio_current_navigation_timeline');
+        if (currentTimelineStr) {
+          const timeline = JSON.parse(currentTimelineStr);
+          timeline.result = 'failed';
+          timeline.reason = 'APP_FORCE_CLOSED';
+          localStorage.setItem('studio_current_navigation_timeline', JSON.stringify(timeline));
+          localStorage.setItem('studio_last_failed_navigation_timeline', JSON.stringify(timeline));
+          localStorage.setItem('studio_failed_navigation_unviewed', 'true');
+        }
+        localStorage.setItem('studio_navigation_in_progress', 'false');
+        console.warn('[Failsafe] Detected force-close/crash during return-to-hub navigation. Forensic timeline marked.');
+      }
+    } catch (e) {
+      console.error('Failed to run boot crash/force-close check', e);
+    }
   }, []);
 
   const [exitToast, setExitToast] = useState(false);
@@ -899,52 +1033,17 @@ export default function App() {
       try {
         const lastCaptureId = Date.now();
         (window as any).__lastForensicCaptureId = lastCaptureId;
+        localStorage.setItem('studio_navigation_in_progress', 'true');
         
-        // 1. Capture LEAVING_CHORDEX immediately (T+0ms)
-        const t0Snapshot = takeForensicSnapshot('LEAVING_CHORDEX');
-        saveForensicCaptureStructure(lastCaptureId, t0Snapshot);
-        runPaintVerification().then(paintData => {
-          updateForensicSnapshotPaint(lastCaptureId, 'LEAVING_CHORDEX', paintData);
-        }).catch(() => {});
+        // Capture 7 timing checkpoints
+        captureTimelineCheckpoint(lastCaptureId, 'T+0ms');
         
-        // 2. Capture ENTERING_HUB immediately after entering (T+100ms)
-        setTimeout(() => {
-          try {
-            const snap = takeForensicSnapshot('ENTERING_HUB');
-            appendForensicSnapshot(lastCaptureId, 'ENTERING_HUB', snap);
-            runPaintVerification().then(paintData => {
-              updateForensicSnapshotPaint(lastCaptureId, 'ENTERING_HUB', paintData);
-            }).catch(() => {});
-          } catch (err) {
-            console.error('Failed taking ENTERING_HUB snapshot', err);
-          }
-        }, 100);
-
-        // 3. Capture T+500ms (500ms later)
-        setTimeout(() => {
-          try {
-            const snap = takeForensicSnapshot('T+500ms');
-            appendForensicSnapshot(lastCaptureId, 'T+500ms', snap);
-            runPaintVerification().then(paintData => {
-              updateForensicSnapshotPaint(lastCaptureId, 'T+500ms', paintData);
-            }).catch(() => {});
-          } catch (err) {
-            console.error('Failed taking T+500ms snapshot', err);
-          }
-        }, 500);
-
-        // 4. Capture T+2000ms (2000ms later)
-        setTimeout(() => {
-          try {
-            const snap = takeForensicSnapshot('T+2000ms');
-            appendForensicSnapshot(lastCaptureId, 'T+2000ms', snap);
-            runPaintVerification().then(paintData => {
-              updateForensicSnapshotPaint(lastCaptureId, 'T+2000ms', paintData);
-            }).catch(() => {});
-          } catch (err) {
-            console.error('Failed taking T+2000ms snapshot', err);
-          }
-        }, 2000);
+        setTimeout(() => captureTimelineCheckpoint(lastCaptureId, 'T+50ms'), 50);
+        setTimeout(() => captureTimelineCheckpoint(lastCaptureId, 'T+100ms'), 100);
+        setTimeout(() => captureTimelineCheckpoint(lastCaptureId, 'T+250ms'), 250);
+        setTimeout(() => captureTimelineCheckpoint(lastCaptureId, 'T+500ms'), 500);
+        setTimeout(() => captureTimelineCheckpoint(lastCaptureId, 'T+1000ms'), 1000);
+        setTimeout(() => captureTimelineCheckpoint(lastCaptureId, 'T+2000ms'), 2000);
         
       } catch (err) {
         console.error('Forensics: Failed to start multi-snapshot captures', err);
@@ -1597,8 +1696,28 @@ export default function App() {
 
         // Resolve the forensic capture matching the current return attempt
         const lastCapId = (window as any).__lastForensicCaptureId;
+        try {
+          localStorage.setItem('studio_navigation_in_progress', 'false');
+        } catch (_) {}
+
         if (lastCapId) {
           try {
+            const currentTimelineStr = localStorage.getItem('studio_current_navigation_timeline');
+            let timeline = currentTimelineStr ? JSON.parse(currentTimelineStr) : null;
+            if (timeline && timeline.id === lastCapId) {
+              timeline.result = finalBlocked ? 'failed' : 'success';
+              timeline.reason = finalBlocked ? finalReason : '';
+              if (paintData) {
+                timeline.watchdogPaintVerification = paintData;
+              }
+              localStorage.setItem('studio_current_navigation_timeline', JSON.stringify(timeline));
+              
+              if (finalBlocked) {
+                localStorage.setItem('studio_last_failed_navigation_timeline', JSON.stringify(timeline));
+                localStorage.setItem('studio_failed_navigation_unviewed', 'true');
+              }
+            }
+
             const listStr = localStorage.getItem('studio_forensic_captures') || '[]';
             const list = JSON.parse(listStr);
             const index = list.findIndex((c: any) => c.id === lastCapId);

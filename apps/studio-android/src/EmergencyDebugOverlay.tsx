@@ -142,11 +142,12 @@ export default function EmergencyDebugOverlay() {
   const [isOpen, setIsOpen] = useState(false);
   const [isPanicMenuOpen, setIsPanicMenuOpen] = useState(false);
   const [isBlackScreenSimulated, setIsBlackScreenSimulated] = useState(false);
-  const [activeTab, setActiveTab] = useState<'status' | 'forensics' | 'nav_forensics' | 'blockers' | 'recovery' | 'captures' | 'dom'>('status');
+  const [activeTab, setActiveTab] = useState<'status' | 'forensics' | 'nav_forensics' | 'failed_timeline' | 'blockers' | 'recovery' | 'captures' | 'dom'>('status');
   const [forensicCaptures, setForensicCaptures] = useState<any[]>([]);
   const [selectedForensicIdx, setSelectedForensicIdx] = useState<number>(0);
   const [lastSuccessfulForensic, setLastSuccessfulForensic] = useState<any>(null);
   const [lastFailedForensic, setLastFailedForensic] = useState<any>(null);
+  const [lastFailedTimeline, setLastFailedTimeline] = useState<any>(null);
   const [repaintsLog, setRepaintsLog] = useState<any[]>([]);
   const [visualRepaintsLog, setVisualRepaintsLog] = useState<any[]>([]);
   const [nuclearRecoveriesLog, setNuclearRecoveriesLog] = useState<any[]>([]);
@@ -357,6 +358,31 @@ export default function EmergencyDebugOverlay() {
     return () => clearInterval(timer);
   }, []);
 
+  // Global window hook and failed navigation timeline auto-open on startup
+  useEffect(() => {
+    (window as any).__openEmergencyOverlay = (targetTab?: string) => {
+      setIsOpen(true);
+      if (targetTab) {
+        setActiveTab(targetTab as any);
+      }
+    };
+
+    try {
+      const unviewed = localStorage.getItem('studio_failed_navigation_unviewed') === 'true';
+      if (unviewed) {
+        localStorage.setItem('studio_failed_navigation_unviewed', 'false');
+        setIsOpen(true);
+        setActiveTab('failed_timeline');
+      }
+    } catch (e) {
+      console.error('Failed to process studio_failed_navigation_unviewed', e);
+    }
+
+    return () => {
+      delete (window as any).__openEmergencyOverlay;
+    };
+  }, []);
+
   // Load Auto Captures and HUB_ROOT_MISSING_CAPTURE from localStorage
   useEffect(() => {
     try {
@@ -391,6 +417,13 @@ export default function EmergencyDebugOverlay() {
         setLastFailedForensic(JSON.parse(lastFailed));
       } else {
         setLastFailedForensic(null);
+      }
+
+      const timelineStored = localStorage.getItem('studio_last_failed_navigation_timeline');
+      if (timelineStored) {
+        setLastFailedTimeline(JSON.parse(timelineStored));
+      } else {
+        setLastFailedTimeline(null);
       }
 
       const repaints = localStorage.getItem('studio_repaints_log');
@@ -2014,6 +2047,212 @@ page:  (${webViewDiag.visualViewport.pageLeft}, ${webViewDiag.visualViewport.pag
     );
   };
 
+  const renderFailedTimelineTab = () => {
+    if (!lastFailedTimeline) {
+      return (
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '200px', color: 'rgba(255,255,255,0.4)', gap: '10px' }}>
+          <span style={{ fontSize: '24px' }}>Timeline Clean</span>
+          <span>No failed navigation timeline recorded in localStorage.</span>
+        </div>
+      );
+    }
+
+    const { id, timestamp, snapshots, result, reason } = lastFailedTimeline;
+    const checkpointKeys = ['T+0ms', 'T+50ms', 'T+100ms', 'T+250ms', 'T+500ms', 'T+1000ms', 'T+2000ms'];
+
+    return (
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+        {/* Header Summary */}
+        <div style={{
+          background: 'rgba(244, 63, 94, 0.08)',
+          border: '1px solid rgba(244, 63, 94, 0.3)',
+          borderRadius: '8px',
+          padding: '12px 16px',
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center'
+        }}>
+          <div>
+            <div style={{ color: '#f43f5e', fontWeight: 'bold', fontSize: '13px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+              Failed Return Timeline
+            </div>
+            <div style={{ color: 'rgba(255,255,255,0.5)', fontSize: '10px', marginTop: '2px' }}>
+              Attempted: {new Date(timestamp).toLocaleDateString()} {new Date(timestamp).toLocaleTimeString()}
+            </div>
+          </div>
+          <div style={{ textAlign: 'right' }}>
+            <span style={{
+              background: '#f43f5e',
+              color: '#fff',
+              fontSize: '10px',
+              fontWeight: 'bold',
+              padding: '3px 8px',
+              borderRadius: '12px',
+              textTransform: 'uppercase'
+            }}>
+              {reason || 'FAILED'}
+            </span>
+          </div>
+        </div>
+
+        {/* Timeline Track */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '20px', position: 'relative', paddingLeft: '20px', borderLeft: '2px solid rgba(255,255,255,0.06)' }}>
+          {checkpointKeys.map((key, idx) => {
+            const snap = snapshots?.[key] || null;
+            if (!snap) {
+              return (
+                <div key={key} style={{ display: 'flex', gap: '12px', opacity: 0.5, position: 'relative' }}>
+                  <div style={{
+                    position: 'absolute',
+                    left: '-26px',
+                    top: '2px',
+                    width: '10px',
+                    height: '10px',
+                    borderRadius: '50%',
+                    background: 'rgba(255,255,255,0.2)',
+                    border: '2px solid rgb(24,24,27)'
+                  }} />
+                  <div>
+                    <span style={{ fontWeight: 'bold', color: 'rgba(255,255,255,0.4)' }}>{key}</span>
+                    <span style={{ marginLeft: '10px', color: 'rgba(255,255,255,0.3)', fontSize: '10px' }}>No snapshot recorded</span>
+                  </div>
+                </div>
+              );
+            }
+
+            const paint = snap.paintVerification || null;
+            const thumbnailSrc = paint?.thumbnail || snap.thumbnail || '';
+            const isBlack = paint?.paintState === 'visually_black';
+            const statusColor = isBlack ? '#f43f5e' : (paint?.paintState === 'painted' ? '#10b981' : '#f59e0b');
+
+            return (
+              <div key={key} style={{ display: 'flex', gap: '16px', position: 'relative' }}>
+                {/* Connector Node */}
+                <div style={{
+                  position: 'absolute',
+                  left: '-27px',
+                  top: '4px',
+                  width: '12px',
+                  height: '12px',
+                  borderRadius: '50%',
+                  background: statusColor,
+                  border: '2px solid rgb(24,24,27)',
+                  boxShadow: `0 0 8px ${statusColor}`
+                }} />
+
+                {/* Content Container */}
+                <div style={{
+                  flex: 1,
+                  background: 'rgba(255, 255, 255, 0.02)',
+                  border: '1px solid rgba(255, 255, 255, 0.05)',
+                  borderRadius: '8px',
+                  padding: '12px',
+                  display: 'flex',
+                  gap: '16px',
+                  alignItems: 'flex-start'
+                }}>
+                  {/* Thumbnail */}
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', alignItems: 'center' }}>
+                    <div style={{
+                      width: '60px',
+                      height: '100px',
+                      background: '#000',
+                      border: '1px solid rgba(255,255,255,0.1)',
+                      borderRadius: '4px',
+                      overflow: 'hidden',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      position: 'relative'
+                    }}>
+                      {thumbnailSrc ? (
+                        <img src={thumbnailSrc} style={{ width: '100%', height: '100%', objectFit: 'cover' }} alt={key} />
+                      ) : (
+                        <span style={{ fontSize: '8px', color: 'rgba(255,255,255,0.3)' }}>No Image</span>
+                      )}
+                    </div>
+                    <span style={{ fontSize: '9px', fontWeight: 'bold', color: 'rgba(255,255,255,0.6)', textTransform: 'uppercase' }}>
+                      {key}
+                    </span>
+                  </div>
+
+                  {/* Telemetry Detail Grid */}
+                  <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                    {/* Upper row: Core stats */}
+                    <div style={{ display: 'flex', gap: '10px', borderBottom: '1px solid rgba(255,255,255,0.04)', paddingBottom: '6px' }}>
+                      <div style={{ flex: 1 }}>
+                        <span style={{ color: 'rgba(255,255,255,0.4)', fontSize: '9px' }}>App Mode:</span>
+                        <div style={{ fontWeight: 'bold', fontSize: '10.5px' }}>{snap.appMode}</div>
+                      </div>
+                      <div style={{ flex: 1 }}>
+                        <span style={{ color: 'rgba(255,255,255,0.4)', fontSize: '9px' }}>Active SubApp:</span>
+                        <div style={{ fontWeight: 'bold', fontSize: '10.5px' }}>{snap.activeSubApp}</div>
+                      </div>
+                      <div style={{ flex: 1 }}>
+                        <span style={{ color: 'rgba(255,255,255,0.4)', fontSize: '9px' }}>Transition:</span>
+                        <div style={{ fontWeight: 'bold', fontSize: '10.5px', color: snap.transitionActive ? '#f59e0b' : '#10b981' }}>
+                          {snap.transitionActive ? 'Active' : 'Idle'}
+                        </div>
+                      </div>
+                      <div style={{ flex: 1.5 }}>
+                        <span style={{ color: 'rgba(255,255,255,0.4)', fontSize: '9px' }}>Hub DOM:</span>
+                        <div style={{ fontWeight: 'bold', fontSize: '10.5px', color: snap.hubDomState?.mounted ? '#10b981' : '#f43f5e' }}>
+                          {snap.hubDomState?.mounted ? `Mounted (${snap.hubDomState.elementCount} nodes)` : 'Not Mounted'}
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Middle row: Paint and layers */}
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px' }}>
+                      <div>
+                        <span style={{ color: 'rgba(255,255,255,0.4)', fontSize: '9px' }}>Paint State:</span>
+                        <div style={{ fontWeight: 'bold', color: statusColor }}>
+                          {paint ? String(paint.paintState).toUpperCase() : 'UNKNOWN'} {paint ? `(${paint.blackPercent}% black)` : ''}
+                        </div>
+                      </div>
+                      <div>
+                        <span style={{ color: 'rgba(255,255,255,0.4)', fontSize: '9px' }}>WebView Layers:</span>
+                        <div>{snap.webViewMetrics ? `${snap.webViewMetrics.layerCount} estimated layers` : 'N/A'}</div>
+                      </div>
+                    </div>
+
+                    {/* Collapsible stack trace */}
+                    {snap.topmostElementsStack && snap.topmostElementsStack.length > 0 && (
+                      <details style={{ marginTop: '2px' }}>
+                        <summary style={{ cursor: 'pointer', color: 'rgb(168, 85, 247)', fontSize: '9.5px', outline: 'none' }}>
+                          Topmost Element Stack ({snap.topmostElementsStack.length})
+                        </summary>
+                        <div style={{
+                          marginTop: '4px',
+                          background: 'rgba(0,0,0,0.2)',
+                          padding: '6px',
+                          borderRadius: '4px',
+                          fontFamily: 'monospace',
+                          fontSize: '9px',
+                          maxHeight: '80px',
+                          overflowY: 'auto'
+                        }}>
+                          {snap.topmostElementsStack.map((el: any, sidx: number) => (
+                            <div key={sidx} style={{ color: sidx === 0 ? '#f43f5e' : 'rgba(255,255,255,0.6)', borderBottom: '1px solid rgba(255,255,255,0.03)', padding: '2px 0' }}>
+                              #{sidx}: &lt;{el.tag}
+                              {el.id ? ` id="${el.id}"` : ''}
+                              {el.className ? ` class="${el.className.split(' ').slice(0, 2).join(' ')}"` : ''}
+                              &gt; (z-index: {el.zIndex}, opacity: {el.opacity})
+                            </div>
+                          ))}
+                        </div>
+                      </details>
+                    )}
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    );
+  };
+
   const renderNavForensicsTab = () => {
     const activeCapture = forensicCaptures[selectedForensicIdx] || null;
 
@@ -2917,7 +3156,7 @@ page:  (${webViewDiag.visualViewport.pageLeft}, ${webViewDiag.visualViewport.pag
               overflowX: 'auto'
             }}
           >
-            {(['status', 'forensics', 'nav_forensics', 'blockers', 'recovery', 'captures', 'dom'] as const).map(tab => (
+            {(['status', 'forensics', 'nav_forensics', 'failed_timeline', 'blockers', 'recovery', 'captures', 'dom'] as const).map(tab => (
               <button
                 key={tab}
                 onClick={() => {
@@ -2938,7 +3177,7 @@ page:  (${webViewDiag.visualViewport.pageLeft}, ${webViewDiag.visualViewport.pag
                   minWidth: '80px'
                 }}
               >
-                {tab === 'nav_forensics' ? 'nav forensics' : tab}
+                {tab === 'nav_forensics' ? 'nav forensics' : tab === 'failed_timeline' ? 'failed timeline' : tab}
               </button>
             ))}
           </div>
@@ -2954,6 +3193,9 @@ page:  (${webViewDiag.visualViewport.pageLeft}, ${webViewDiag.visualViewport.pag
 
             {/* TAB: NAVIGATION FORENSICS */}
             {activeTab === 'nav_forensics' && renderNavForensicsTab()}
+
+            {/* TAB: FAILED TIMELINE */}
+            {activeTab === 'failed_timeline' && renderFailedTimelineTab()}
 
             {/* TAB: BLOCKERS */}
             {activeTab === 'blockers' && (
