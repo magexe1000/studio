@@ -1,19 +1,18 @@
 {
   "platform": "web",
   "version": "4.0.0",
-  "commit": "aa8a7651",
-  "releasedAt": "6/21/2026, 12:00:00 AM CST",
-  "buildTimestamp": "6/21/2026, 12:00:00 AM CST",
+  "commit": "18c85b88",
+  "releasedAt": "6/22/2026, 12:00:00 AM CST",
+  "buildTimestamp": "6/22/2026, 12:00:00 AM CST",
   "updateMode": "refresh",
-  "description": "• Restored original smooth transition animations for sub-app entries and exits.\n• Optimized navigation performance and transition frame-rates on physical Android devices.\n• Memoized SubAppWrapper component to prevent unnecessary React re-renders.\n• Hidden emergency debug UI, panic menu, and watchdog telemetry from production, keeping diagnostics accessible behind a debug flag.",
-  "whatsNew": "• Restored original smooth transition animations for sub-app entries and exits.\n• Optimized navigation performance and transition frame-rates on physical Android devices.\n• Memoized SubAppWrapper component to prevent unnecessary React re-renders.\n• Hidden emergency debug UI, panic menu, and watchdog telemetry from production, keeping diagnostics accessible behind a debug flag.",
-  "changelog": "• Restored original smooth transition animations for sub-app entries and exits.\n• Optimized navigation performance and transition frame-rates on physical Android devices.\n• Memoized SubAppWrapper component to prevent unnecessary React re-renders.\n• Hidden emergency debug UI, panic menu, and watchdog telemetry from production, keeping diagnostics accessible behind a debug flag.",
+  "description": "• Integrated early orbit intro dismissal bypass when returning from sub-apps via path check and sessionStorage tracking.\n• Accelerated launchApp zooming timing to execute setZooming(true) immediately, aligning transition states.\n• Re-aligned sub-app transition behavior with the web platform to prevent double-scaling effects.",
+  "whatsNew": "• Integrated early orbit intro dismissal bypass when returning from sub-apps via path check and sessionStorage tracking.\n• Accelerated launchApp zooming timing to execute setZooming(true) immediately, aligning transition states.\n• Re-aligned sub-app transition behavior with the web platform to prevent double-scaling effects.",
+  "changelog": "• Integrated early orbit intro dismissal bypass when returning from sub-apps via path check and sessionStorage tracking.\n• Accelerated launchApp zooming timing to execute setZooming(true) immediately, aligning transition states.\n• Re-aligned sub-app transition behavior with the web platform to prevent double-scaling effects.",
   "releaseNotes": {
     "added": [
-      "Restored original smooth transition animations for sub-app entries and exits.",
-      "Optimized navigation performance and transition frame-rates on physical Android devices.",
-      "Memoized SubAppWrapper component to prevent unnecessary React re-renders.",
-      "Hidden emergency debug UI, panic menu, and watchdog telemetry from production, keeping diagnostics accessible behind a debug flag."
+      "Integrated early orbit intro dismissal bypass when returning from sub-apps via path check and sessionStorage tracking.",
+      "Accelerated launchApp zooming timing to execute setZooming(true) immediately, aligning transition states.",
+      "Re-aligned sub-app transition behavior with the web platform to prevent double-scaling effects."
     ]
   },
   "mandatory": false
