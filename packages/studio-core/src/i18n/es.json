@@ -62,6 +62,7 @@
     "keyOf": "Tonalidad de {{key}}",
     "bpmShort": "{{bpm}} BPM",
     "loadMore": "Cargar {{count}} más",
+    "startPractice": "Iniciar Práctica",
     "genres": {
       "english-rock": "Rock Inglés",
       "spanish-rock": "Rock en Español",
@@ -707,7 +708,11 @@
     "tipHealth2Title": "Los días de descanso importan",
     "tipHealth3Title": "Evita carraspear",
     "tipHealth4Title": "Hábitos de la voz hablada",
-    "tipHealth5Title": "Cuándo ver a un profesional"
+    "tipHealth5Title": "Cuándo ver a un profesional",
+    "tunerStop": "Detener",
+    "tunerStart": "Iniciar",
+    "tunerMicRequired": "Se requiere acceso al micrófono para el afinador.",
+    "tunerGrantStart": "Permitir e Iniciar"
   },
   "groovex": {
     "library": "Biblioteca",
@@ -820,6 +825,22 @@
     "viewMode": "Modo de Presentación",
     "normal": "Normal",
     "highContrast": "Alto Contraste",
-    "amoled": "AMOLED Oscuro"
+    "amoled": "AMOLED Oscuro",
+    "showOverlay": "Mostrar acordes flotantes",
+    "chord": "Acorde",
+    "next": "Sig.",
+    "settingsTitle": "Ajustes de Práctica",
+    "spacing": "Espaciado",
+    "spacingTight": "Corto",
+    "spacingNormal": "Normal",
+    "spacingWide": "Ancho",
+    "tempoSpeed": "Tempo / Velocidad",
+    "chartUnavailable": "Gráfico no disponible",
+    "chartUnavailableDesc": "Esta canción tiene derechos de autor y la letra/acordes autorizados no están licenciados aún. Puedes importar o pegar tu propia partitura autorizada para practicar.",
+    "importBtn": "Importar letra y acordes",
+    "pasteChartTitle": "Pegar partitura de letras y acordes",
+    "saveBtn": "Guardar partitura",
+    "cancelBtn": "Cancelar",
+    "clearCustomBtn": "Limpiar partitura"
   }
 }

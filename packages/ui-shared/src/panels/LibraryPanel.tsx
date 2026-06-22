@@ -1573,7 +1573,7 @@ export default function LibraryPanel() {
                         }}
                       >
                         <span className="material-symbols-outlined" style={{ fontSize: '14px' }}>play_circle</span>
-                        {isSpanish ? 'Iniciar Práctica' : 'Start Practice'}
+                        {t.library.startPractice}
                       </button>
                     </div>
                   </div>

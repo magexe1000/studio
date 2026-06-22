@@ -2325,7 +2325,6 @@ export default function App() {
                     inset: 0,
                     zIndex: 99999,
                     backgroundColor: isLightMode ? '#ffffff' : (activeVis.amoledMode ? '#000000' : '#09090b'),
-                    backgroundImage: `radial-gradient(circle at center, ${getAppColor(launchingApp)}${isLightMode ? '0b' : '15'} 0%, transparent 100%)`,
                     display: 'flex',
                     flexDirection: 'column',
                     alignItems: 'center',
@@ -2357,7 +2356,6 @@ export default function App() {
                         alignItems: 'center',
                         justifyContent: 'center',
                         color: getAppColor(launchingApp),
-                        filter: isLightMode ? 'none' : `drop-shadow(0 0 24px ${getAppColor(launchingApp)}3a)`,
                       }}
                     >
                       {renderAppLogo(launchingApp, 80)}

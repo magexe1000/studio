@@ -62,6 +62,7 @@
     "keyOf": "Key of {{key}}",
     "bpmShort": "{{bpm}} BPM",
     "loadMore": "Load {{count}} more",
+    "startPractice": "Start Practice",
     "genres": {
       "english-rock": "English Rock",
       "spanish-rock": "Spanish Rock",
@@ -752,7 +753,11 @@
     "tipHealth4Title": "Speaking voice habits",
     "tipHealth4Body": "Most vocal damage happens from speaking, not singing. Don't speak in noisy environments (bars, concerts) without amplification — you'll unconsciously shout. Don't speak in a pitch that's too low for your natural voice (vocal fry speech). Don't whisper when your voice is tired — whispering actually strains the folds more than normal soft speech.",
     "tipHealth5Title": "When to see a professional",
-    "tipHealth5Body": "See an ENT (ear, nose, throat doctor) or a voice specialist if: hoarseness lasts more than 2 weeks, you experience pain while singing or speaking, your range suddenly decreases, or you hear breathiness that wasn't there before. Early intervention prevents small problems from becoming permanent. A good voice teacher is also invaluable — even a few lessons can correct habits that take years to unlearn alone."
+    "tipHealth5Body": "See an ENT (ear, nose, throat doctor) or a voice specialist if: hoarseness lasts more than 2 weeks, you experience pain while singing or speaking, your range suddenly decreases, or you hear breathiness that wasn't there before. Early intervention prevents small problems from becoming permanent. A good voice teacher is also invaluable — even a few lessons can correct habits that take years to unlearn alone.",
+    "tunerStop": "Stop",
+    "tunerStart": "Start",
+    "tunerMicRequired": "Microphone access is required for pitch monitoring.",
+    "tunerGrantStart": "Grant & Start"
   },
   "groovex": {
     "library": "Library",
@@ -865,6 +870,22 @@
     "viewMode": "Presentation Mode",
     "normal": "Normal",
     "highContrast": "High Contrast",
-    "amoled": "AMOLED Dark"
+    "amoled": "AMOLED Dark",
+    "showOverlay": "Show Chord Overlay",
+    "chord": "Chord",
+    "next": "Next",
+    "settingsTitle": "Practice Settings",
+    "spacing": "Spacing",
+    "spacingTight": "Tight",
+    "spacingNormal": "Normal",
+    "spacingWide": "Wide",
+    "tempoSpeed": "Tempo / Speed",
+    "chartUnavailable": "Chart Unavailable",
+    "chartUnavailableDesc": "This song is copyrighted and authorized lyrics/chord charts are not licensed yet. You can import or paste your own authorized chart to practice.",
+    "importBtn": "Import Chords & Lyrics",
+    "pasteChartTitle": "Paste Chords & Lyrics Chart",
+    "saveBtn": "Save Chart",
+    "cancelBtn": "Cancel",
+    "clearCustomBtn": "Clear Custom Chart"
   }
 }

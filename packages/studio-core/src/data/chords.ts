@@ -772,3 +772,7 @@ export const CHORD_TYPES: { value: ChordType; label: string }[] = [
 ];
 
 export const ROOTS = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
+
+export function getChordByName(name: string): Chord | undefined {
+  return chordDatabase.find(c => c.name.replace(/\s/g, '').toLowerCase() === name.replace(/\s/g, '').toLowerCase());
+}

@@ -12,6 +12,17 @@ Conventions:
 - Bullets start with `- ` and use plain English a non-technical user
   can parse. Keep each line short — the modal's text area is narrow.
 
+## 3.6.79
+
+### Fixed
+- Fixed incomplete global language switching across the entire app suite.
+- Removed entry animation glow and bloom effects from app entries.
+- Redesigned Chordex Discover Practice UI to feel polished and native.
+- Added clean empty chart placeholder with support for custom chart importing.
+- Simplified Practice Settings, keeping size, spacing, and BPM controls.
+- Upgraded floating chord widget to display real guitar chord diagrams.
+- Scoped bottom navigation bar hiding strictly to the Chordex practice view.
+
 ## 3.6.78
 
 ### Added

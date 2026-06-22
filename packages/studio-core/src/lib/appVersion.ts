@@ -26,7 +26,7 @@ import { useMemo } from 'react';
 import { Capacitor } from '@capacitor/core';
 
 /** Canonical semver string used by the OTA comparator. */
-export const NATIVE_VERSION = '3.6.78';
+export const NATIVE_VERSION = '3.6.79';
 export const WEB_VERSION = '4.0.0';
 export const APP_VERSION = Capacitor.isNativePlatform() ? NATIVE_VERSION : WEB_VERSION;
 
@@ -38,7 +38,7 @@ export const APP_VERSION_LABEL = `${APP_VERSION_TAG} ${APP_VERSION}`;
 
 /** Release date for the CURRENT bundle, shown alongside the version pill
  *  in the changelog sheet. ISO-8601 (`YYYY-MM-DD`). */
-export const APP_VERSION_DATE = '2026-06-22'; // 3.6.78
+export const APP_VERSION_DATE = '2026-06-22'; // 3.6.79
 // Note: keep ISO-8601. Bump together with APP_VERSION on each release.
 
 export const APP_COMMIT_SHA = import.meta.env.VITE_GIT_COMMIT_SHA || '78ef3651';
@@ -59,14 +59,15 @@ export interface ChangelogSection {
 
 export const APP_CHANGELOG_SECTIONS: ChangelogSection[] = [
   {
-    heading: "Added",
+    heading: "Fixed",
     items: [
-      "Centralized localization (i18n) architecture using a unified JSON source of truth.",
-      "Implemented Chordex practice screen with interactive chords-above-lyrics formatting.",
-      "Added draggable floating chord overlay with screen boundary protection and local persistence.",
-      "Added karaoke mode with auto-scroll settings, custom text sizes, and AMOLED contrast themes.",
-      "Expanded Discover song library with 30 detailed song charts by Enjambre.",
-      "Polished app entry transitions with cross-fade overlays and responsive grid/flex layout scaling.",
+      "Fixed incomplete global i18n language switching across the entire app suite.",
+      "Removed entry animation glow/bloom effects for a clean, minimal look.",
+      "Redesigned Chordex Discover Practice UI to be polished, minimal, and native.",
+      "Added clean chart placeholder for copyrighted songs with support for text chart importing.",
+      "Simplified Practice Settings and locked the presentation mode to Scroll.",
+      "Upgraded floating chord widget to display real chord diagrams instead of plain text names.",
+      "Scoped bottom navigation bar hiding strictly to the Chordex song practice view.",
     ],
   },
 ];
@@ -74,14 +75,15 @@ export const APP_CHANGELOG_SECTIONS: ChangelogSection[] = [
 /** Native English version of the current changelog for Android. */
 export const APP_CHANGELOG_SECTIONS_NATIVE: ChangelogSection[] = [
   {
-    heading: "Added",
+    heading: "Fixed",
     items: [
-      "Centralized localization (i18n) architecture using a unified JSON source of truth.",
-      "Implemented Chordex practice screen with interactive chords-above-lyrics formatting.",
-      "Added draggable floating chord overlay with screen boundary protection and local persistence.",
-      "Added karaoke mode with auto-scroll settings, custom text sizes, and AMOLED contrast themes.",
-      "Expanded Discover song library with 30 detailed song charts by Enjambre.",
-      "Polished app entry transitions with cross-fade overlays and responsive grid/flex layout scaling.",
+      "Fixed incomplete global i18n language switching across the entire app suite.",
+      "Removed entry animation glow/bloom effects for a clean, minimal look.",
+      "Redesigned Chordex Discover Practice UI to be polished, minimal, and native.",
+      "Added clean chart placeholder for copyrighted songs with support for text chart importing.",
+      "Simplified Practice Settings and locked the presentation mode to Scroll.",
+      "Upgraded floating chord widget to display real chord diagrams instead of plain text names.",
+      "Scoped bottom navigation bar hiding strictly to the Chordex song practice view.",
     ],
   },
 ];
@@ -90,14 +92,15 @@ export const APP_CHANGELOG_SECTIONS_NATIVE: ChangelogSection[] = [
  *  by `ChangelogSheet` based on `settings.language`. */
 export const APP_CHANGELOG_SECTIONS_ES: ChangelogSection[] = [
   {
-    heading: "Añadido",
+    heading: "Corregido",
     items: [
-      "Arquitectura de localización (i18n) centralizada usando una base unificada de JSON.",
-      "Implementado modo de práctica en Chordex con formato interactivo de acordes sobre la letra.",
-      "Añadido overlay flotante y arrastrable de acordes con persistencia local y límites de pantalla.",
-      "Añadido modo karaoke con auto-desplazamiento, tamaño de fuente y temas de contraste amoled.",
-      "Librería Discover expandida con 30 diagramas de canciones de Enjambre.",
-      "Pulidas transiciones de entrada y escalado de layouts responsivos en pantallas pequeñas.",
+      "Se corrigió el cambio de idioma global incompleto en toda la aplicación.",
+      "Se eliminaron los efectos de brillo y resplandor de las animaciones de entrada.",
+      "Rediseñado el modo de práctica de Chordex para que sea pulido, mínimo y nativo.",
+      "Añadida partitura limpia para canciones con copyright con soporte para importación personalizada.",
+      "Ajustes de práctica simplificados, bloqueando la presentación en modo desplazamiento.",
+      "Widget de acordes flotante actualizado para mostrar diagramas reales en lugar de texto.",
+      "Ocultación de la barra de navegación inferior acotada estrictamente a la vista de práctica.",
     ],
   },
 ];

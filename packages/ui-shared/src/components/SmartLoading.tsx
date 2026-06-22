@@ -43,8 +43,8 @@ export function AppLoadingScreen({ app }: { app: AppKey }) {
           to { opacity: 1; }
         }
         @keyframes pulse-logo {
-          0%, 100% { transform: scale(1); filter: drop-shadow(0 0 12px var(--shadow-color)); }
-          50% { transform: scale(1.06); filter: drop-shadow(0 0 24px var(--shadow-color)); }
+          0%, 100% { transform: scale(1); }
+          50% { transform: scale(1.06); }
         }
       `}</style>
       <div

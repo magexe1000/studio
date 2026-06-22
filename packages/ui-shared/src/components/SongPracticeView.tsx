@@ -1,7 +1,8 @@
-import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { useChordStore } from '@workspace/studio-core';
+import { useChordStore, setNavLocked, setNavHidden, getChordByName, useT } from '@workspace/studio-core';
 import type { SongChart, SongChartSection, ChordMarker } from '@workspace/studio-core';
+import ChordDiagram from './ChordDiagram';
 
 interface SongPracticeViewProps {
   song: SongChart;
@@ -45,14 +46,97 @@ function getLineSegments(lyrics: string, chords: ChordMarker[]): ChordSegment[] 
   return segments;
 }
 
+// Parse standard chords-above-lyrics or ChordPro chart into structured sections
+function parseTextChart(text: string): SongChartSection[] {
+  const lines = text.split('\n');
+  const sections: SongChartSection[] = [];
+  let currentSection: SongChartSection = { name: 'Song', lines: [] };
+  
+  const isChordLine = (line: string): boolean => {
+    const trimmed = line.trim();
+    if (!trimmed) return false;
+    
+    const chordTokenRegex = /^[A-G][b#]?(m|maj|min|sus|dim|aug|add|7|9|11|13|5|6|17|22)?(sus\d)?(add\d)?(\/[A-G][b#]?)?(\(\d\))?$/i;
+    const tokens = trimmed.split(/\s+/);
+    for (const t of tokens) {
+      if (t === '|' || t === '/' || t === '-') continue;
+      const cleanToken = t.replace(/[()]/g, '');
+      if (!chordTokenRegex.test(cleanToken)) {
+        return false;
+      }
+    }
+    return true;
+  };
+
+  let pendingChords: { chord: string; offset: number }[] = [];
+
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i];
+    const trimmed = line.trim();
+    
+    if (!trimmed) continue;
+    
+    // Section headers like [Verse], [Chorus], Verse 1:
+    if (trimmed.startsWith('[') && trimmed.endsWith(']')) {
+      if (currentSection.lines.length > 0) {
+        sections.push(currentSection);
+      }
+      currentSection = { name: trimmed.substring(1, trimmed.length - 1), lines: [] };
+      pendingChords = [];
+      continue;
+    }
+    if (trimmed.match(/^(intro|verse|chorus|bridge|outro|solo|coda|pre-chorus)(\s+\d+)?$/i)) {
+      if (currentSection.lines.length > 0) {
+        sections.push(currentSection);
+      }
+      currentSection = { name: trimmed, lines: [] };
+      pendingChords = [];
+      continue;
+    }
+    
+    if (isChordLine(line)) {
+      pendingChords = [];
+      const regex = /\S+/g;
+      let match;
+      while ((match = regex.exec(line)) !== null) {
+        pendingChords.push({
+          chord: match[0],
+          offset: match.index
+        });
+      }
+    } else {
+      currentSection.lines.push({
+        lyrics: line,
+        chords: pendingChords.map(c => ({
+          chord: c.chord,
+          offset: Math.min(c.offset, line.length)
+        }))
+      });
+      pendingChords = [];
+    }
+  }
+  
+  if (currentSection.lines.length > 0 || sections.length === 0) {
+    sections.push(currentSection);
+  }
+  
+  return sections;
+}
+
 export function SongPracticeView({ song, onClose }: SongPracticeViewProps) {
-  const language = useChordStore(s => s.settings.language);
-  const isSpanish = language === 'es';
+  const t = useT();
+
+  // Hide bottom nav strictly inside Chordex Song Practice screen
+  useEffect(() => {
+    setNavLocked(true);
+    setNavHidden(true);
+    return () => {
+      setNavLocked(false);
+      setNavHidden(false);
+    };
+  }, []);
 
   // Configuration settings (persisted locally)
-  const [practiceMode, setPracticeMode] = useState<'static' | 'scroll' | 'focus' | 'highlight'>(() => {
-    return (localStorage.getItem('chordex:practice:mode') as any) ?? 'static';
-  });
   const [fontSize, setFontSize] = useState<'sm' | 'md' | 'lg' | 'xl'>(() => {
     return (localStorage.getItem('chordex:practice:fontSize') as any) ?? 'md';
   });
@@ -62,10 +146,15 @@ export function SongPracticeView({ song, onClose }: SongPracticeViewProps) {
   const [spacing, setSpacing] = useState<'tight' | 'normal' | 'wide'>(() => {
     return (localStorage.getItem('chordex:practice:spacing') as any) ?? 'normal';
   });
-  const [contrastMode, setContrastMode] = useState<'normal' | 'high' | 'amoled'>(() => {
-    return (localStorage.getItem('chordex:practice:contrast') as any) ?? 'normal';
+  const [showChordOverlay, setShowChordOverlay] = useState<boolean>(() => {
+    return localStorage.getItem('chordex:practice:showOverlay') !== 'false';
   });
   const [tempo, setTempo] = useState<number>(song.bpm || 120);
+
+  // Custom user-imported chart state
+  const [customChart, setCustomChart] = useState<SongChartSection[] | null>(null);
+  const [showImportModal, setShowImportModal] = useState(false);
+  const [importText, setImportText] = useState('');
 
   // Playback/scrolling states
   const [isPlaying, setIsPlaying] = useState(false);
@@ -79,11 +168,10 @@ export function SongPracticeView({ song, onClose }: SongPracticeViewProps) {
   const startTimeRef = useRef<number>(0);
 
   // Save settings when changed
-  useEffect(() => { localStorage.setItem('chordex:practice:mode', practiceMode); }, [practiceMode]);
   useEffect(() => { localStorage.setItem('chordex:practice:fontSize', fontSize); }, [fontSize]);
   useEffect(() => { localStorage.setItem('chordex:practice:chordSize', chordSize); }, [chordSize]);
   useEffect(() => { localStorage.setItem('chordex:practice:spacing', spacing); }, [spacing]);
-  useEffect(() => { localStorage.setItem('chordex:practice:contrast', contrastMode); }, [contrastMode]);
+  useEffect(() => { localStorage.setItem('chordex:practice:showOverlay', String(showChordOverlay)); }, [showChordOverlay]);
 
   // Floating chord overlay persistent position
   const [overlayPos, setOverlayPos] = useState({ x: 0, y: 0 });
@@ -102,6 +190,39 @@ export function SongPracticeView({ song, onClose }: SongPracticeViewProps) {
     localStorage.setItem('chordex:practice:overlayPosition', JSON.stringify(nextPos));
   };
 
+  // Load custom user chart if stored
+  useEffect(() => {
+    const saved = localStorage.getItem(`chordex:practice:custom_chart:${song.id}`);
+    if (saved) {
+      try {
+        setCustomChart(JSON.parse(saved));
+      } catch (_) {}
+    }
+  }, [song.id]);
+
+  const handleSaveCustomChart = () => {
+    if (!importText.trim()) return;
+    try {
+      const parsed = parseTextChart(importText);
+      setCustomChart(parsed);
+      localStorage.setItem(`chordex:practice:custom_chart:${song.id}`, JSON.stringify(parsed));
+      setShowImportModal(false);
+      setImportText('');
+    } catch (_) {
+      alert('Error parsing chart. Please verify spacing and headers.');
+    }
+  };
+
+  const handleClearCustomChart = () => {
+    setCustomChart(null);
+    localStorage.removeItem(`chordex:practice:custom_chart:${song.id}`);
+  };
+
+  // Final active sections source (user custom overrides catalog empty values)
+  const activeSections = useMemo(() => {
+    return customChart || song.sections || [];
+  }, [customChart, song.sections]);
+
   // Compile a flat list of lines and calculate timestamps
   const parsedLines = useMemo(() => {
     const list: { sectionName: string; lineIndex: number; lyrics: string; chords: ChordMarker[]; timestamp: number; duration: number }[] = [];
@@ -110,7 +231,7 @@ export function SongPracticeView({ song, onClose }: SongPracticeViewProps) {
     const lineDurationMs = 8 * beatDurationMs; // 8 beats per line fallback
 
     let lineCounter = 0;
-    song.sections.forEach((section) => {
+    activeSections.forEach((section) => {
       section.lines.forEach((line) => {
         const lineTime = line.timestamp !== undefined ? line.timestamp : currentTime;
         const lineDur = line.duration !== undefined ? line.duration : lineDurationMs;
@@ -127,7 +248,7 @@ export function SongPracticeView({ song, onClose }: SongPracticeViewProps) {
       });
     });
     return list;
-  }, [song, tempo]);
+  }, [activeSections, tempo]);
 
   // Total song duration derived from lines
   const totalDuration = useMemo(() => {
@@ -173,6 +294,12 @@ export function SongPracticeView({ song, onClose }: SongPracticeViewProps) {
     ? flatChords[activeChordIndex + 1].chord 
     : '—';
 
+  // Retrieve actual Chord shape from the library
+  const currentChordObj = useMemo(() => {
+    if (currentChord === '—') return null;
+    return getChordByName(currentChord);
+  }, [currentChord]);
+
   // Animation frame loop for playback
   useEffect(() => {
     if (!isPlaying) {
@@ -198,11 +325,11 @@ export function SongPracticeView({ song, onClose }: SongPracticeViewProps) {
     return () => {
       if (animationFrameRef.current) cancelAnimationFrame(animationFrameRef.current);
     };
-  }, [isPlaying, totalDuration]);
+  }, [isPlaying, totalDuration, elapsedTime]);
 
   // Trigger scrolling to active line when it changes
   useEffect(() => {
-    if (practiceMode === 'static' || !activeLine) return;
+    if (activeSections.length === 0 || !activeLine) return;
     const activeEl = lineRefs.current.get(activeLine.lineIndex);
     const container = scrollContainerRef.current;
     if (activeEl && container) {
@@ -214,7 +341,7 @@ export function SongPracticeView({ song, onClose }: SongPracticeViewProps) {
         behavior: 'smooth'
       });
     }
-  }, [activeLine, practiceMode]);
+  }, [activeLine, activeSections.length]);
 
   // Clean play/pause trigger
   const handlePlayToggle = () => {
@@ -238,20 +365,6 @@ export function SongPracticeView({ song, onClose }: SongPracticeViewProps) {
   const chordFontClass = chordSize === 'sm' ? 'text-[10px]' : (chordSize === 'lg' ? 'text-sm' : 'text-xs');
   const spacingStyle = spacing === 'tight' ? 'py-1' : (spacing === 'wide' ? 'py-4' : 'py-2');
 
-  // Theme overrides
-  const getThemeStyles = (): React.CSSProperties => {
-    if (contrastMode === 'high') {
-      return { background: '#ffffff', color: '#09090b', '--c-text-primary': '#09090b', '--c-text-secondary': '#4c4f52', '--c-text-muted': '#808285', '--c-accent': '#7c3aed' } as any;
-    }
-    if (contrastMode === 'amoled') {
-      return { background: '#000000', color: '#ffffff', '--c-text-primary': '#ffffff', '--c-text-secondary': '#acabaa', '--c-text-muted': '#5c5f62', '--c-accent': '#a855f7' } as any;
-    }
-    return { background: 'var(--app-bg)', color: 'var(--c-text-primary)' };
-  };
-
-  const themeStyle = getThemeStyles();
-  const isContrastLight = contrastMode === 'high';
-
   return (
     <div
       ref={containerRef}
@@ -259,11 +372,11 @@ export function SongPracticeView({ song, onClose }: SongPracticeViewProps) {
         position: 'fixed', inset: 0, zIndex: 100000,
         display: 'flex', flexDirection: 'column',
         fontFamily: 'Inter, sans-serif', overflow: 'hidden',
-        ...themeStyle
+        background: 'var(--app-bg)', color: 'var(--c-text-primary)'
       }}
     >
-      {/* Draggable Floating Chord Overlay */}
-      {practiceMode !== 'static' && (
+      {/* Draggable Floating Chord Overlay displaying real graphics */}
+      {showChordOverlay && activeSections.length > 0 && (
         <motion.div
           drag
           dragMomentum={false}
@@ -272,27 +385,35 @@ export function SongPracticeView({ song, onClose }: SongPracticeViewProps) {
           animate={{ x: overlayPos.x, y: overlayPos.y }}
           style={{
             position: 'absolute', top: 80, right: 20, zIndex: 101000,
-            width: 130, padding: '12px 14px', borderRadius: 16,
-            background: isContrastLight ? 'rgba(255,255,255,0.95)' : 'rgba(15,15,20,0.85)',
-            border: isContrastLight ? '1px solid #7c3aed' : '1px solid rgba(255,255,255,0.1)',
-            boxShadow: '0 8px 32px rgba(0,0,0,0.3)',
-            backdropFilter: 'blur(12px)',
+            width: chordSize === 'sm' ? 100 : (chordSize === 'lg' ? 140 : 120),
+            padding: '12px 14px', borderRadius: 16,
+            background: 'rgba(15,15,20,0.92)',
+            border: '1px solid rgba(255,255,255,0.08)',
+            boxShadow: '0 8px 32px rgba(0,0,0,0.4)',
+            backdropFilter: 'blur(16px)',
             cursor: 'grab', display: 'flex', flexDirection: 'column', gap: 6
           }}
         >
-          <div style={{ fontSize: '8px', textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--c-text-muted)', fontWeight: 700 }}>
-            {isSpanish ? 'Acorde' : 'Chord'}
-          </div>
-          <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between' }}>
-            <span style={{ fontSize: '32px', fontWeight: 900, color: 'var(--c-accent)', lineHeight: 1 }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <span style={{ fontSize: '8px', textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--c-text-muted)', fontWeight: 700 }}>
+              {t.practice.chord}
+            </span>
+            <span style={{ fontSize: '11px', fontWeight: 900, color: 'var(--c-accent)' }}>
               {currentChord}
             </span>
-            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end' }}>
-              <span style={{ fontSize: '8px', color: 'var(--c-text-muted)' }}>{isSpanish ? 'Sig.' : 'Next'}</span>
-              <span style={{ fontSize: '14px', fontWeight: 700, color: 'var(--c-text-secondary)' }}>
-                {nextChord}
-              </span>
-            </div>
+          </div>
+
+          <div style={{ background: 'rgba(0,0,0,0.25)', borderRadius: 10, padding: '6px 4px', height: 75, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            {currentChordObj ? (
+              <ChordDiagram data={currentChordObj.guitar} accentFrom="var(--c-accent)" />
+            ) : (
+              <span style={{ fontSize: '10px', color: 'var(--c-text-muted)' }}>—</span>
+            )}
+          </div>
+
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '9px', borderTop: '1px solid rgba(255,255,255,0.06)', paddingTop: 4 }}>
+            <span style={{ color: 'var(--c-text-muted)' }}>{t.practice.next}:</span>
+            <span style={{ fontWeight: 700, color: 'var(--c-text-secondary)' }}>{nextChord}</span>
           </div>
         </motion.div>
       )}
@@ -300,8 +421,8 @@ export function SongPracticeView({ song, onClose }: SongPracticeViewProps) {
       {/* Top Header */}
       <div style={{
         display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-        padding: '16px 20px', borderBottom: isContrastLight ? '2px solid #09090b' : '1px solid rgba(128,128,128,0.1)',
-        background: isContrastLight ? '#ffffff' : 'rgba(15,15,20,0.4)',
+        padding: '16px 20px', borderBottom: '1px solid rgba(128,128,128,0.1)',
+        background: 'rgba(15,15,20,0.4)',
         backdropFilter: 'blur(10px)', flexShrink: 0
       }}>
         <div style={{ minWidth: 0, flex: 1 }}>
@@ -337,95 +458,130 @@ export function SongPracticeView({ song, onClose }: SongPracticeViewProps) {
             }}
           >
             <span className="material-symbols-outlined" style={{ fontSize: '14px' }}>arrow_back</span>
-            {isSpanish ? 'Salir' : 'Exit'}
+            {t.practice.exit}
           </button>
         </div>
       </div>
 
       {/* Main Lyrics & Chords Scrollable Container */}
-      <div
-        ref={scrollContainerRef}
-        style={{
-          flex: 1, overflowY: 'auto', padding: '32px 20px 120px',
-          boxSizing: 'border-box', scrollBehavior: 'smooth'
-        }}
-      >
-        <div style={{ maxWidth: '600px', margin: '0 auto' }}>
-          {song.sections.map((section, sIdx) => (
-            <div key={sIdx} style={{ marginBottom: '28px' }}>
-              {/* Section Header */}
-              <h3 style={{
-                fontSize: '11px', fontWeight: 900, color: 'var(--c-accent)',
-                letterSpacing: '0.08em', textTransform: 'uppercase',
-                borderBottom: isContrastLight ? '1px solid #09090b' : '1px solid rgba(128,128,128,0.1)',
-                paddingBottom: '4px', marginBottom: '12px'
-              }}>
-                {section.name}
-              </h3>
-              
-              {/* Lines rendering */}
-              <div className="space-y-1">
-                {section.lines.map((line, lIdx) => {
-                  // Find corresponding parsed line
-                  const parsed = parsedLines.find(p => p.sectionName === section.name && p.lyrics === line.lyrics);
-                  const isLineActive = activeLine && parsed && activeLine.lineIndex === parsed.lineIndex;
-                  const showHighlight = practiceMode !== 'static' && isLineActive;
+      {activeSections.length > 0 ? (
+        <div
+          ref={scrollContainerRef}
+          style={{
+            flex: 1, overflowY: 'auto', padding: '32px 20px 120px',
+            boxSizing: 'border-box', scrollBehavior: 'smooth'
+          }}
+        >
+          <div style={{ maxWidth: '600px', margin: '0 auto' }}>
+            {activeSections.map((section, sIdx) => (
+              <div key={sIdx} style={{ marginBottom: '28px' }}>
+                {/* Section Header */}
+                <h3 style={{
+                  fontSize: '11px', fontWeight: 900, color: 'var(--c-accent)',
+                  letterSpacing: '0.08em', textTransform: 'uppercase',
+                  borderBottom: '1px solid rgba(128,128,128,0.1)',
+                  paddingBottom: '4px', marginBottom: '12px'
+                }}>
+                  {section.name}
+                </h3>
+                
+                {/* Lines rendering */}
+                <div className="space-y-1">
+                  {section.lines.map((line, lIdx) => {
+                    const parsed = parsedLines.find(p => p.sectionName === section.name && p.lyrics === line.lyrics);
+                    const isLineActive = activeLine && parsed && activeLine.lineIndex === parsed.lineIndex;
+                    const showHighlight = isLineActive;
 
-                  // Split line by chord markers for responsive flex block rendering
-                  const segments = getLineSegments(line.lyrics, line.chords);
+                    const segments = getLineSegments(line.lyrics, line.chords);
 
-                  return (
-                    <div
-                      key={lIdx}
-                      ref={el => { if (el && parsed) lineRefs.current.set(parsed.lineIndex, el); }}
-                      className={`rounded px-2 transition-all duration-300 ${spacingStyle}`}
-                      style={{
-                        background: showHighlight ? 'var(--c-accent)0d' : 'transparent',
-                        borderLeft: showHighlight ? '3px solid var(--c-accent)' : '3px solid transparent',
-                        paddingLeft: showHighlight ? '8px' : '8px'
-                      }}
-                    >
-                      <div className="flex flex-wrap items-end" style={{ rowGap: '12px' }}>
-                        {segments.map((seg, segIdx) => (
-                          <div
-                            key={segIdx}
-                            style={{
-                              display: 'inline-flex', flexDirection: 'column',
-                              alignItems: 'flex-start', minWidth: seg.chord ? '18px' : 'auto'
-                            }}
-                          >
-                            {/* Chord line */}
-                            <span
-                              className={`font-black ${chordFontClass}`}
+                    return (
+                      <div
+                        key={lIdx}
+                        ref={el => { if (el && parsed) lineRefs.current.set(parsed.lineIndex, el); }}
+                        className={`rounded px-2 transition-all duration-300 ${spacingStyle}`}
+                        style={{
+                          background: showHighlight ? 'var(--c-accent)0d' : 'transparent',
+                          borderLeft: showHighlight ? '3px solid var(--c-accent)' : '3px solid transparent',
+                          paddingLeft: showHighlight ? '8px' : '8px'
+                        }}
+                      >
+                        <div className="flex flex-wrap items-end" style={{ rowGap: '12px' }}>
+                          {segments.map((seg, segIdx) => (
+                            <div
+                              key={segIdx}
                               style={{
-                                color: 'var(--c-accent)', height: '14px', lineHeight: '14px',
-                                display: 'block', marginBottom: '2px', pointerEvents: 'none',
-                                opacity: seg.chord ? 1 : 0
+                                display: 'inline-flex', flexDirection: 'column',
+                                alignItems: 'flex-start', minWidth: seg.chord ? '18px' : 'auto'
                               }}
                             >
-                              {seg.chord || ''}
-                            </span>
-                            {/* Lyric segment line */}
-                            <span
-                              className={`${fontClass} font-medium`}
-                              style={{
-                                color: 'var(--c-text-primary)', whiteSpace: 'pre',
-                                lineHeight: '1.2'
-                              }}
-                            >
-                              {seg.text}
-                            </span>
-                          </div>
-                        ))}
+                              {/* Chord line */}
+                              <span
+                                className={`font-black ${chordFontClass}`}
+                                style={{
+                                  color: 'var(--c-accent)', height: '14px', lineHeight: '14px',
+                                  display: 'block', marginBottom: '2px', pointerEvents: 'none',
+                                  opacity: seg.chord ? 1 : 0
+                                }}
+                              >
+                                {seg.chord || ''}
+                              </span>
+                              {/* Lyric segment line */}
+                              <span
+                                className={`${fontClass} font-medium`}
+                                style={{
+                                  color: 'var(--c-text-primary)', whiteSpace: 'pre',
+                                  lineHeight: '1.2'
+                                }}
+                              >
+                                {seg.text}
+                              </span>
+                            </div>
+                          ))}
+                        </div>
                       </div>
-                    </div>
-                  );
-                })}
+                    );
+                  })}
+                </div>
               </div>
-            </div>
-          ))}
+            ))}
+          </div>
         </div>
-      </div>
+      ) : (
+        /* Empty state warning / Importer for copyrighted entries */
+        <div style={{
+          flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center',
+          justifyContent: 'center', padding: '24px', boxSizing: 'border-box',
+          textAlign: 'center', gap: 16
+        }}>
+          <div style={{
+            width: 72, height: 72, borderRadius: '50%', background: 'var(--c-accent)12',
+            display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--c-accent)'
+          }}>
+            <span className="material-symbols-outlined" style={{ fontSize: 36 }}>music_off</span>
+          </div>
+          <h2 style={{ fontSize: '18px', fontWeight: 900, margin: 0, color: 'var(--c-text-primary)' }}>
+            {t.practice.chartUnavailable}
+          </h2>
+          <p style={{ fontSize: '13px', color: 'var(--c-text-secondary)', maxWidth: '320px', margin: 0, lineHeight: 1.6 }}>
+            {t.practice.chartUnavailableDesc}
+          </p>
+          <button
+            onClick={() => {
+              setImportText('');
+              setShowImportModal(true);
+            }}
+            style={{
+              padding: '10px 20px', borderRadius: 8, fontSize: '13px', fontWeight: 700,
+              background: 'var(--c-accent)', border: 'none', color: '#ffffff',
+              cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6,
+              fontFamily: 'Inter, sans-serif', boxShadow: '0 4px 12px var(--c-accent)30'
+            }}
+          >
+            <span className="material-symbols-outlined" style={{ fontSize: 16 }}>upload_file</span>
+            {t.practice.importBtn}
+          </button>
+        </div>
+      )}
 
       {/* Settings Side Sheet */}
       <AnimatePresence>
@@ -453,46 +609,23 @@ export function SongPracticeView({ song, onClose }: SongPracticeViewProps) {
                 width: '80%', maxWidth: '300px', padding: '24px 20px',
                 display: 'flex', flexDirection: 'column', gap: 16,
                 boxShadow: '-8px 0 32px rgba(0,0,0,0.2)',
-                background: isContrastLight ? '#ffffff' : '#0d0d11',
-                borderLeft: isContrastLight ? '2px solid #09090b' : '1px solid rgba(255,255,255,0.06)'
+                background: '#0d0d11',
+                borderLeft: '1px solid rgba(255,255,255,0.06)'
               }}
             >
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid rgba(128,128,128,0.1)', paddingBottom: '12px' }}>
                 <h3 style={{ fontSize: '14px', fontWeight: 800, margin: 0, color: 'var(--c-text-primary)' }}>
-                  {isSpanish ? 'Ajustes de Práctica' : 'Practice Settings'}
+                  {t.practice.settingsTitle}
                 </h3>
                 <button onClick={() => setShowSettings(false)} style={{ background: 'none', border: 'none', color: 'var(--c-text-primary)', cursor: 'pointer' }}>
                   <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>close</span>
                 </button>
               </div>
 
-              {/* Presentation mode selector */}
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                <label style={{ fontSize: '10px', color: 'var(--c-text-muted)', fontWeight: 700, textTransform: 'uppercase' }}>
-                  {isSpanish ? 'Presentación' : 'Presentation'}
-                </label>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 6 }}>
-                  {(['static', 'scroll'] as const).map((m) => (
-                    <button
-                      key={m}
-                      onClick={() => setPracticeMode(m)}
-                      style={{
-                        padding: '6px', borderRadius: 8, fontSize: '10px', fontWeight: 700,
-                        background: practiceMode === m ? 'var(--c-accent)' : 'rgba(128,128,128,0.1)',
-                        border: 'none', color: practiceMode === m ? '#ffffff' : 'var(--c-text-secondary)',
-                        cursor: 'pointer'
-                      }}
-                    >
-                      {m === 'static' ? (isSpanish ? 'Fijo' : 'Static') : (isSpanish ? 'Flujo' : 'Scroll')}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
               {/* Font Size Selector */}
               <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
                 <label style={{ fontSize: '10px', color: 'var(--c-text-muted)', fontWeight: 700, textTransform: 'uppercase' }}>
-                  {isSpanish ? 'Tamaño de Letra' : 'Font Size'}
+                  {t.practice.settingsFont}
                 </label>
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 4 }}>
                   {(['sm', 'md', 'lg', 'xl'] as const).map((sz) => (
@@ -515,7 +648,7 @@ export function SongPracticeView({ song, onClose }: SongPracticeViewProps) {
               {/* Chord Size Selector */}
               <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
                 <label style={{ fontSize: '10px', color: 'var(--c-text-muted)', fontWeight: 700, textTransform: 'uppercase' }}>
-                  {isSpanish ? 'Tamaño de Acordes' : 'Chord Size'}
+                  {t.practice.settingsChords}
                 </label>
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 4 }}>
                   {(['sm', 'md', 'lg'] as const).map((sz) => (
@@ -538,7 +671,7 @@ export function SongPracticeView({ song, onClose }: SongPracticeViewProps) {
               {/* Line Spacing Selector */}
               <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
                 <label style={{ fontSize: '10px', color: 'var(--c-text-muted)', fontWeight: 700, textTransform: 'uppercase' }}>
-                  {isSpanish ? 'Espaciado' : 'Spacing'}
+                  {t.practice.spacing}
                 </label>
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 4 }}>
                   {(['tight', 'normal', 'wide'] as const).map((sp) => (
@@ -552,39 +685,29 @@ export function SongPracticeView({ song, onClose }: SongPracticeViewProps) {
                         cursor: 'pointer'
                       }}
                     >
-                      {sp === 'tight' ? (isSpanish ? 'Corto' : 'Tight') : (sp === 'wide' ? (isSpanish ? 'Ancho' : 'Wide') : (isSpanish ? 'Normal' : 'Normal'))}
+                      {sp === 'tight' ? t.practice.spacingTight : (sp === 'wide' ? t.practice.spacingWide : t.practice.spacingNormal)}
                     </button>
                   ))}
                 </div>
               </div>
 
-              {/* Contrast Mode Selector */}
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                <label style={{ fontSize: '10px', color: 'var(--c-text-muted)', fontWeight: 700, textTransform: 'uppercase' }}>
-                  {isSpanish ? 'Contraste / Tema' : 'Contrast / Theme'}
-                </label>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: 6 }}>
-                  {(['normal', 'high', 'amoled'] as const).map((ct) => (
-                    <button
-                      key={ct}
-                      onClick={() => setContrastMode(ct)}
-                      style={{
-                        padding: '8px', borderRadius: 8, fontSize: '10px', fontWeight: 700,
-                        background: contrastMode === ct ? 'var(--c-accent)' : 'rgba(128,128,128,0.1)',
-                        border: 'none', color: contrastMode === ct ? '#ffffff' : 'var(--c-text-secondary)',
-                        cursor: 'pointer', textAlign: 'left', paddingLeft: '12px'
-                      }}
-                    >
-                      {ct === 'normal' ? (isSpanish ? 'Predeterminado' : 'App Theme') : (ct === 'high' ? (isSpanish ? 'Alto Contraste (Claro)' : 'High Contrast (Light)') : (isSpanish ? 'AMOLED Oscuro' : 'AMOLED Black'))}
-                    </button>
-                  ))}
-                </div>
+              {/* Show/Hide Chord Overlay */}
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 0', borderTop: '1px solid rgba(128,128,128,0.06)', borderBottom: '1px solid rgba(128,128,128,0.06)' }}>
+                <span style={{ fontSize: '11px', fontWeight: 700, color: 'var(--c-text-secondary)' }}>
+                  {t.practice.showOverlay}
+                </span>
+                <input
+                  type="checkbox"
+                  checked={showChordOverlay}
+                  onChange={e => setShowChordOverlay(e.target.checked)}
+                  style={{ width: 16, height: 16, accentColor: 'var(--c-accent)', cursor: 'pointer' }}
+                />
               </div>
 
               {/* Tempo / speed modifier */}
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginTop: 'auto' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginTop: '12px' }}>
                 <label style={{ fontSize: '10px', color: 'var(--c-text-muted)', fontWeight: 700, textTransform: 'uppercase' }}>
-                  {isSpanish ? 'Tempo / Velocidad' : 'Tempo / Speed'}
+                  {t.practice.tempoSpeed}
                 </label>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                   <button onClick={() => setTempo(t => Math.max(40, t - 5))} style={{ background: 'rgba(128,128,128,0.1)', border: 'none', borderRadius: 6, width: 28, height: 28, color: 'var(--c-text-primary)', cursor: 'pointer', fontWeight: 'bold' }}>-</button>
@@ -592,18 +715,99 @@ export function SongPracticeView({ song, onClose }: SongPracticeViewProps) {
                   <button onClick={() => setTempo(t => Math.min(240, t + 5))} style={{ background: 'rgba(128,128,128,0.1)', border: 'none', borderRadius: 6, width: 28, height: 28, color: 'var(--c-text-primary)', cursor: 'pointer', fontWeight: 'bold' }}>+</button>
                 </div>
               </div>
+
+              {/* Clear Custom Chart Option */}
+              {customChart && (
+                <button
+                  onClick={handleClearCustomChart}
+                  style={{
+                    width: '100%', padding: '10px', borderRadius: 8, fontSize: '11px', fontWeight: 700,
+                    background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.2)',
+                    color: '#ef4444', cursor: 'pointer', marginTop: 'auto', fontFamily: 'Inter'
+                  }}
+                >
+                  {t.practice.clearCustomBtn}
+                </button>
+              )}
             </motion.div>
           </>
         )}
       </AnimatePresence>
 
-      {/* Bottom Playback Control Bar (Only for Flow/Scroll mode) */}
-      {practiceMode !== 'static' && (
+      {/* Importer Modal */}
+      <AnimatePresence>
+        {showImportModal && (
+          <div style={{ position: 'fixed', inset: 0, zIndex: 105000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
+            {/* Backdrop */}
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 0.5 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setShowImportModal(false)}
+              style={{ position: 'absolute', inset: 0, background: '#000000' }}
+            />
+            {/* Modal Body */}
+            <motion.div
+              initial={{ scale: 0.95, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.95, opacity: 0 }}
+              style={{
+                position: 'relative', width: '100%', maxWidth: '450px',
+                background: '#0d0d11', border: '1px solid rgba(255,255,255,0.08)',
+                borderRadius: 20, padding: 20, display: 'flex', flexDirection: 'column',
+                gap: 16, zIndex: 105100, boxShadow: '0 12px 40px rgba(0,0,0,0.5)'
+              }}
+            >
+              <h3 style={{ fontSize: '15px', fontWeight: 900, color: 'var(--c-text-primary)', margin: 0, fontFamily: 'Manrope' }}>
+                {t.practice.pasteChartTitle}
+              </h3>
+              
+              <textarea
+                value={importText}
+                onChange={e => setImportText(e.target.value)}
+                placeholder="Example:&#10;[Verse]&#10;Am          C&#10;Agradecido de tenerte dulce soledad&#10;G           F&#10;No me cabe duda que me vienes a buscar"
+                style={{
+                  width: '100%', height: '200px', background: 'rgba(0,0,0,0.3)',
+                  border: '1px solid rgba(255,255,255,0.06)', borderRadius: 10,
+                  padding: 12, color: '#ffffff', fontFamily: 'monospace', fontSize: '11px',
+                  lineHeight: '1.5', resize: 'none', outline: 'none', boxSizing: 'border-box'
+                }}
+              />
+              
+              <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
+                <button
+                  onClick={() => setShowImportModal(false)}
+                  style={{
+                    padding: '8px 16px', borderRadius: 8, fontSize: '11px', fontWeight: 700,
+                    background: 'rgba(128,128,128,0.1)', border: 'none', color: 'var(--c-text-secondary)',
+                    cursor: 'pointer', fontFamily: 'Manrope'
+                  }}
+                >
+                  {t.practice.cancelBtn}
+                </button>
+                <button
+                  onClick={handleSaveCustomChart}
+                  style={{
+                    padding: '8px 16px', borderRadius: 8, fontSize: '11px', fontWeight: 700,
+                    background: 'var(--c-accent)', border: 'none', color: '#ffffff',
+                    cursor: 'pointer', fontFamily: 'Manrope'
+                  }}
+                >
+                  {t.practice.saveBtn}
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* Bottom Playback Control Bar (Always visible in scroll mode) */}
+      {activeSections.length > 0 && (
         <div style={{
           position: 'absolute', bottom: 0, left: 0, right: 0, zIndex: 100500,
           padding: '12px 20px 24px', display: 'flex', flexDirection: 'column', gap: 8,
-          background: isContrastLight ? '#ffffff' : 'rgba(10,10,14,0.92)',
-          borderTop: isContrastLight ? '2px solid #09090b' : '1px solid rgba(255,255,255,0.06)',
+          background: 'rgba(10,10,14,0.92)',
+          borderTop: '1px solid rgba(255,255,255,0.06)',
           backdropFilter: 'blur(16px)'
         }}>
           {/* Progress Slider */}
