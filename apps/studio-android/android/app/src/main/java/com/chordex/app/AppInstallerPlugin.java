@@ -183,7 +183,10 @@ public class AppInstallerPlugin extends Plugin {
             result.put("computedHash", computedHash);
             call.resolve(result);
         } catch (Exception e) {
-            call.reject("Verification failed: " + e.getMessage(), e);
+            JSObject result = new JSObject();
+            result.put("matches", false);
+            result.put("computedHash", "ERROR: " + e.getMessage());
+            call.resolve(result);
         }
     }
 
@@ -848,6 +851,49 @@ public class AppInstallerPlugin extends Plugin {
             call.resolve(result);
         } catch (Exception e) {
             call.reject("Failed to read installed app info: " + e.getMessage(), e);
+        }
+    }
+
+    @PluginMethod
+    public void readFirstBytes(PluginCall call) {
+        String path = call.getString("filePath");
+        Integer bytesCount = call.getInt("count", 4);
+        if (path == null) {
+            call.reject("filePath is required");
+            return;
+        }
+        try {
+            File file;
+            if (path.startsWith("file://")) {
+                try {
+                    file = new File(new java.net.URI(path));
+                } catch (Exception e) {
+                    file = new File(path.substring(7));
+                }
+            } else {
+                file = new File(path);
+            }
+            if (!file.exists()) {
+                call.reject("File does not exist");
+                return;
+            }
+            java.io.FileInputStream fis = new java.io.FileInputStream(file);
+            byte[] buffer = new byte[bytesCount];
+            int read = fis.read(buffer);
+            fis.close();
+            
+            StringBuilder hexString = new StringBuilder();
+            for (int i = 0; i < read; i++) {
+                String hex = Integer.toHexString(0xff & buffer[i]);
+                if (hex.length() == 1) hexString.append('0');
+                hexString.append(hex);
+            }
+            JSObject result = new JSObject();
+            result.put("hex", hexString.toString());
+            result.put("ascii", new String(buffer, 0, read, "UTF-8"));
+            call.resolve(result);
+        } catch (Exception e) {
+            call.reject("Failed to read first bytes: " + e.getMessage());
         }
     }
 }

@@ -98,6 +98,7 @@ export let otaDebugLogs: {
   skippedDismissedState: string | null;
   releaseChannel: string | null;
   rolloutEligibility: string | null;
+  magicHeaderCheck: string | null;
 } = {
   appVersion: APP_VERSION,
   nativeApkVersion: null,
@@ -167,6 +168,7 @@ export let otaDebugLogs: {
   skippedDismissedState: null,
   releaseChannel: null,
   rolloutEligibility: null,
+  magicHeaderCheck: null,
 };
 
 export interface OtaDiagnostics {
@@ -240,14 +242,61 @@ export async function populateDiagnostics(err: any, reason: string) {
       }
     }
 
-    const apkPath = localStorage.getItem('studio:downloadedApkPath') || 'N/A';
+    const apkPath = otaDebugLogs.downloadedApkPath || localStorage.getItem('studio:downloadedApkPath') || 'N/A';
     let fileSize = 'N/A';
+    let magicHeader = 'N/A';
+
     if (isNative() && apkPath && apkPath !== 'N/A') {
       try {
         const { Filesystem } = await import('@capacitor/filesystem');
         const info = await Filesystem.stat({ path: apkPath });
         fileSize = `${(info.size / (1024 * 1024)).toFixed(2)} MB (${info.size} bytes)`;
-      } catch {
+
+        // Read magic header (first 4 bytes)
+        try {
+          const { AppInstaller } = await import('./apkDownloader');
+          const firstBytes = await AppInstaller.readFirstBytes({ filePath: apkPath, count: 4 });
+          const matchesPK = firstBytes.hex.toLowerCase().startsWith('504b');
+          magicHeader = `Hex: ${firstBytes.hex}, ASCII: ${firstBytes.ascii} (Matches PK/ZIP: ${matchesPK})`;
+          otaDebugLogs.magicHeaderCheck = magicHeader;
+        } catch (hErr) {
+          console.warn('[OTA] Failed to read magic bytes:', hErr);
+          magicHeader = `Failed to read: ${hErr instanceof Error ? hErr.message : String(hErr)}`;
+          otaDebugLogs.magicHeaderCheck = magicHeader;
+        }
+
+        // Run eligibility check to populate downloaded/installed details if not already done
+        if (!otaDebugLogs.downloadedPackageName) {
+          const { checkApkEligibility } = await import('./apkDownloader');
+          const el = await checkApkEligibility(apkPath);
+          
+          otaDebugLogs.installedPackageName = el.installed?.packageName ?? null;
+          otaDebugLogs.installedVersionName = el.installed?.versionName ?? null;
+          otaDebugLogs.installedVersionCode = el.installed?.versionCode ?? null;
+          otaDebugLogs.installedSigningSha256 = el.installed?.signingSha256 ?? null;
+          otaDebugLogs.installedDebuggable = el.installed?.debuggable ?? null;
+
+          otaDebugLogs.downloadedPackageName = el.downloaded?.packageName ?? null;
+          otaDebugLogs.downloadedVersionName = el.downloaded?.versionName ?? null;
+          otaDebugLogs.downloadedVersionCode = el.downloaded?.versionCode ?? null;
+          otaDebugLogs.downloadedSigningSha256 = el.downloaded?.signingSha256 ?? null;
+          otaDebugLogs.downloadedDebuggable = el.downloaded?.debuggable ?? null;
+          otaDebugLogs.downloadedApkPath = apkPath;
+          otaDebugLogs.downloadedIsValidApk = el.downloaded?.isValidApk ?? null;
+          otaDebugLogs.downloadedIsUniversalApk = el.downloaded?.isUniversalApk ?? null;
+          
+          if (el.installed && el.downloaded) {
+            otaDebugLogs.eligibilityPackageNameMatch = el.installed.packageName === el.downloaded.packageName;
+            otaDebugLogs.eligibilitySigningMatch = el.installed.signingSha256.replace(/:/g, '').toLowerCase() === el.downloaded.signingSha256.replace(/:/g, '').toLowerCase();
+            otaDebugLogs.eligibilityVersionCodeHigher = el.downloaded.versionCode > el.installed.versionCode;
+            otaDebugLogs.eligibilityReleaseBuild = el.downloaded.debuggable === false;
+            otaDebugLogs.eligibilityValidApk = el.downloaded.isValidApk === true;
+          }
+          otaDebugLogs.eligibilityFinalInstall = el.eligible ? 'can install' : 'cannot install';
+          otaDebugLogs.eligibilityReason = el.reason ?? null;
+        }
+      } catch (fErr) {
+        console.warn('[OTA] Failed to query file details:', fErr);
         fileSize = 'File not found or unreadable';
       }
     }
