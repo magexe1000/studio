@@ -15,8 +15,11 @@ import {
   useStatusBar,
   recordNavigation,
   getNavigationEntries,
-  NATIVE_VERSION
+  NATIVE_VERSION,
+  tolgee
 } from '@workspace/studio-core';
+
+import { TolgeeProvider } from '@tolgee/react';
 
 import {
   SmartLoading,
@@ -577,6 +580,110 @@ function captureTimelineCheckpoint(captureId: number, key: string) {
   }
 }
 
+function logLifecycleEvent(name: string, event: 'mount' | 'unmount') {
+  try {
+    const timestamp = Date.now();
+    const appMode = useChordStore.getState().settings.appMode || 'hub';
+    const activeSubApp = (window as any).__lastActiveSubApp || 'none';
+    const stableKey = (window as any).__lastStableKey || 'none';
+    const activeAppToRender = (window as any).__lastActiveAppToRender || 'none';
+    const cachedAppRef = (window as any).__lastCachedAppRef || 'none';
+    const transitionActive = (window as any).studioTransitionActive || false;
+    const hubRenderKey = (window as any).__lastHubRenderKey || 0;
+    const previousAppMode = (window as any).__lastPreviousAppMode || 'none';
+    
+    let lastNavigationAction = 'none';
+    try {
+      const historyStr = localStorage.getItem('studio_navigation_history') || '[]';
+      const history = JSON.parse(historyStr);
+      if (history.length > 0) {
+        lastNavigationAction = JSON.stringify(history[history.length - 1]);
+      }
+    } catch (_) {}
+
+    const stack = new Error().stack || 'unknown';
+
+    const logEntry = {
+      timestamp,
+      name,
+      event,
+      appMode,
+      activeSubApp,
+      stableKey,
+      activeAppToRender,
+      cachedAppRef,
+      transitionActive,
+      hubRenderKey,
+      previousAppMode,
+      lastNavigationAction,
+      stack
+    };
+
+    const logsStr = localStorage.getItem('studio_root_lifecycle_logs') || '[]';
+    let logs: any[] = [];
+    try {
+      logs = JSON.parse(logsStr);
+    } catch (_) {
+      logs = [];
+    }
+    logs.push(logEntry);
+    localStorage.setItem('studio_root_lifecycle_logs', JSON.stringify(logs.slice(-100)));
+  } catch (err) {
+    console.error('Failed to log lifecycle event:', err);
+  }
+}
+
+function LifecycleTracker({ name }: { name: string }) {
+  useEffect(() => {
+    logLifecycleEvent(name, 'mount');
+    return () => {
+      logLifecycleEvent(name, 'unmount');
+    };
+  }, [name]);
+  return null;
+}
+
+function TolgeeSuspenseFallback() {
+  useEffect(() => {
+    const errorLog = {
+      timestamp: Date.now(),
+      type: 'SUSPENSE_FALLBACK_RENDERED',
+      stack: new Error().stack || 'unknown'
+    };
+    try {
+      const logs = JSON.parse(localStorage.getItem('studio_root_lifecycle_logs') || '[]');
+      logs.push(errorLog);
+      localStorage.setItem('studio_root_lifecycle_logs', JSON.stringify(logs.slice(-50)));
+    } catch (_) {}
+  }, []);
+
+  return (
+    <div style={{
+      display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+      height: '100%', width: '100%', background: '#121214', color: '#eaeaea', padding: 24, textAlign: 'center',
+      fontFamily: 'Inter, sans-serif', boxSizing: 'border-box', position: 'absolute', inset: 0, zIndex: 1000
+    }}>
+      <h3 style={{ margin: '0 0 8px', fontSize: 18, fontWeight: 700 }}>Loading Translation Resources...</h3>
+      <p style={{ margin: '0 0 24px', fontSize: 13, color: '#a0a0a5', maxWidth: 360, lineHeight: 1.5 }}>
+        Please wait while language assets are being initialized. If this screen persists, return to the Studio Hub.
+      </p>
+      <button
+        onClick={() => {
+          if (typeof (window as any).returnToStudioHub === 'function') {
+            (window as any).returnToStudioHub();
+          }
+        }}
+        style={{
+          padding: '10px 20px', background: '#3b5bdb', border: 'none', borderRadius: 8,
+          color: '#fff', fontSize: 13, fontWeight: 700, cursor: 'pointer', fontFamily: 'Inter, sans-serif'
+        }}
+      >
+        Return to Hub
+      </button>
+    </div>
+  );
+}
+
 export default function App() {
   const { activePanel, settings, setActivePanel, activePresetId, updateSettings } = useChordStore();
   const { preferences } = useStudioPreferences();
@@ -741,6 +848,60 @@ export default function App() {
       setHubRenderKey(k => k + 1);
     };
 
+    (window as any).__runRootWatchdogCheck = (name: string) => {
+      const currentMode = useChordStore.getState().settings.appMode || 'hub';
+      const rootNode = document.getElementById('root');
+      const appContainer = document.querySelector('.app-container');
+
+      if (currentMode === 'hub' && rootNode && !appContainer) {
+        console.warn(`[Root Watchdog] ROOT_APP_TREE_MISSING detected at ${name}! Running force remount.`);
+        
+        const logEntry = {
+          timestamp: Date.now(),
+          type: 'ROOT_TREE_MISSING',
+          checkpoint: name,
+          action: 'FORCE_REMOUNT'
+        };
+        
+        let recoveryLog: any[] = [];
+        try {
+          const recStr = localStorage.getItem('studio_hub_mount_recovery_log') || '[]';
+          recoveryLog = JSON.parse(recStr);
+        } catch (_) {}
+        recoveryLog.push(logEntry);
+        localStorage.setItem('studio_hub_mount_recovery_log', JSON.stringify(recoveryLog));
+
+        if (typeof (window as any).__forceRerenderApp === 'function') {
+          (window as any).__forceRerenderApp();
+        }
+
+        flushSync(() => {
+          (window as any).studioTransitionActive = false;
+          useChordStore.getState().updateSettings({ appMode: 'hub' });
+        });
+
+        requestAnimationFrame(() => {
+          const checkApp = document.querySelector('.app-container');
+          const checkHub = document.querySelector('[data-livex-hub-root="true"]') || document.getElementById('hub-root');
+          const success = !!(checkApp && checkHub);
+          
+          const resultEntry = {
+            timestamp: Date.now(),
+            type: success ? 'ROOT_TREE_RESTORED' : 'ROOT_TREE_RESTORE_FAILED',
+            checkpoint: name,
+            appContainerExists: !!checkApp,
+            hubRootExists: !!checkHub
+          };
+
+          try {
+            const currentLog = JSON.parse(localStorage.getItem('studio_hub_mount_recovery_log') || '[]');
+            currentLog.push(resultEntry);
+            localStorage.setItem('studio_hub_mount_recovery_log', JSON.stringify(currentLog));
+          } catch (_) {}
+        });
+      }
+    };
+
     return () => {
       delete (window as any).runPaintVerification;
       delete (window as any).runForceWebViewRepaint;
@@ -750,6 +911,7 @@ export default function App() {
       delete (window as any).runNuclearRecovery;
       delete (window as any).forceHubRepaint;
       delete (window as any).__forceRemountHub;
+      delete (window as any).__runRootWatchdogCheck;
     };
   }, [runForceWebViewRepaint, runForceFullHubRebuild, runForceWebViewRefreshLayer]);
 
@@ -1044,7 +1206,10 @@ export default function App() {
         // Capture 7 timing checkpoints
         captureTimelineCheckpoint(lastCaptureId, 'T+0ms');
         
-        const runFailsafeCheck = (name: string) => {
+        const runWatchdogs = (name: string) => {
+          if (typeof (window as any).__runRootWatchdogCheck === 'function') {
+            (window as any).__runRootWatchdogCheck(name);
+          }
           const currentMode = useChordStore.getState().settings.appMode || 'hub';
           const rootNode = document.querySelector('[data-livex-hub-root="true"]') || document.getElementById('hub-root');
           if (currentMode === 'hub' && !rootNode) {
@@ -1053,26 +1218,29 @@ export default function App() {
         };
 
         setTimeout(() => {
-          runFailsafeCheck('T+50ms');
+          runWatchdogs('T+50ms');
           captureTimelineCheckpoint(lastCaptureId, 'T+50ms');
         }, 50);
         
         setTimeout(() => {
-          runFailsafeCheck('T+100ms');
+          runWatchdogs('T+100ms');
           captureTimelineCheckpoint(lastCaptureId, 'T+100ms');
         }, 100);
 
         setTimeout(() => {
-          runFailsafeCheck('T+250ms');
+          runWatchdogs('T+250ms');
           captureTimelineCheckpoint(lastCaptureId, 'T+250ms');
         }, 250);
 
         setTimeout(() => {
-          runFailsafeCheck('T+500ms');
+          runWatchdogs('T+500ms');
           captureTimelineCheckpoint(lastCaptureId, 'T+500ms');
         }, 500);
 
         setTimeout(() => {
+          if (typeof (window as any).__runRootWatchdogCheck === 'function') {
+            (window as any).__runRootWatchdogCheck('T+1000ms');
+          }
           captureTimelineCheckpoint(lastCaptureId, 'T+1000ms');
         }, 1000);
 
@@ -1919,11 +2087,24 @@ export default function App() {
     return () => clearTimeout(timer);
   }, [appMode]);
 
+  // Keep window globals updated for lifecycle logging
+  if (typeof window !== 'undefined') {
+    (window as any).__lastActiveSubApp = isSubAppActive ? stableKey : 'none';
+    (window as any).__lastStableKey = stableKey;
+    (window as any).__lastActiveAppToRender = stableKey;
+    (window as any).__lastCachedAppRef = lastActiveAppRef.current;
+    (window as any).__lastHubRenderKey = hubRenderKey;
+    (window as any).__lastPreviousAppMode = previousAppModeRef.current;
+  }
+
   return (
     <div
       className={`app-container app-mode-${appMode}`}
       style={{ display: 'flex', width: '100vw', height: '100dvh', overflow: 'hidden', background: 'var(--app-bg)' }}
     >
+      <LifecycleTracker name="App" />
+      <LifecycleTracker name="app-container" />
+      
       <style>{`
         .app-mode-hub .sc-subapp-wrapper {
           pointer-events: none !important;
@@ -1931,49 +2112,61 @@ export default function App() {
           opacity: 0 !important;
         }
       `}</style>
-      <div
-        className="app-main-layout"
-        style={{
-          position: 'absolute',
-          inset: 0,
-          zIndex: 1,
-          height: '100dvh',
-          overflow: 'hidden',
-          pointerEvents: isSubAppActive ? 'none' : 'auto',
-          opacity: isSubAppActive && !transitionActive ? 0 : 1,
-          visibility: isSubAppActive && !transitionActive ? 'hidden' : 'visible',
-        }}
-      >
-        {showHub && (
-          <StudioHub key={hubRenderKey} />
-        )}
-      </div>
+      
+      <ErrorBoundary moduleName="RootApp">
+        <Suspense fallback={<TolgeeSuspenseFallback />}>
+          <TolgeeProvider tolgee={tolgee} fallback={null}>
+            <div
+              className="app-main-layout"
+              style={{
+                position: 'absolute',
+                inset: 0,
+                zIndex: 1,
+                height: '100dvh',
+                overflow: 'hidden',
+                pointerEvents: isSubAppActive ? 'none' : 'auto',
+                opacity: isSubAppActive && !transitionActive ? 0 : 1,
+                visibility: isSubAppActive && !transitionActive ? 'hidden' : 'visible',
+              }}
+            >
+              <LifecycleTracker name="app-main-layout" />
+              {showHub && (
+                <>
+                  <LifecycleTracker name="StudioHub" />
+                  <StudioHub key={hubRenderKey} />
+                </>
+              )}
+            </div>
 
-      <AnimatePresence>
-        {isSubAppActive && (
-          <motion.div
-            key={stableKey}
-            className="sc-subapp-wrapper"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0, pointerEvents: 'none' as any }}
-            transition={{ duration: 0.18, ease: 'easeOut' }}
-            style={{
-              position: 'absolute',
-              inset: 0,
-              zIndex: 2,
-              background: 'var(--app-bg)',
-              pointerEvents: isSubAppActive ? 'auto' : 'none',
-            }}
-          >
-            <SubAppWrapper
-              app={stableKey}
-              activePanel={activePanel}
-              settings={settings}
-            />
-          </motion.div>
-        )}
-      </AnimatePresence>
+            <AnimatePresence>
+              {isSubAppActive && (
+                <motion.div
+                  key={stableKey}
+                  className="sc-subapp-wrapper"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0, pointerEvents: 'none' as any }}
+                  transition={{ duration: 0.18, ease: 'easeOut' }}
+                  style={{
+                    position: 'absolute',
+                    inset: 0,
+                    zIndex: 2,
+                    background: 'var(--app-bg)',
+                    pointerEvents: isSubAppActive ? 'auto' : 'none',
+                  }}
+                >
+                  <LifecycleTracker name="SubAppWrapper" />
+                  <SubAppWrapper
+                    app={stableKey}
+                    activePanel={activePanel}
+                    settings={settings}
+                  />
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </TolgeeProvider>
+        </Suspense>
+      </ErrorBoundary>
 
       {exitToast && renderExitToast()}
     </div>
@@ -2113,6 +2306,7 @@ function SubAppWrapper({ app, activePanel, settings }: SubAppWrapperProps) {
 
       {cachedApp === 'chords' && (
         <div className="app-sub-app-container" style={{ display: 'flex', flexDirection: 'column', width: '100%', height: '100%', overflow: 'hidden', userSelect: 'none', background: 'var(--app-bg)' }}>
+          <LifecycleTracker name="Chordex" />
           <AppEntryTransition
             className="flex flex-col w-full overflow-hidden select-none app-bg"
             style={{

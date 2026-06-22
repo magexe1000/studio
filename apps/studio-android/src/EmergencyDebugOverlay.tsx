@@ -137,6 +137,73 @@ const classifyBlackScreen = (state: any): string => {
   return 'UNKNOWN_BLACK_SCREEN';
 };
 
+function getWebViewPipelineStatus(snap: any) {
+  if (!snap) return { status: 'UNKNOWN', color: 'rgba(255,255,255,0.4)', desc: 'No snapshot selected' };
+  
+  const root = snap.elements?.['root'] || snap.bounds?.['root'] || null;
+  const rootExists = root ? !!root.exists : true;
+  
+  const appContainer = snap.elements?.['app-container'] || snap.bounds?.['app-container'] || null;
+  const appContainerExists = appContainer ? !!appContainer.exists : false;
+  
+  const hub = snap.elements?.['hub-root'] || snap.bounds?.['hub-root'] || null;
+  const hubMounted = !!hub?.exists;
+  
+  const renderAudit = snap.renderAudit || null;
+  const hubAudit = renderAudit?.hub || null;
+  
+  const display = hubAudit?.display || snap.elements?.['hub-root']?.display || 'none';
+  const visibility = hubAudit?.visibility || snap.elements?.['hub-root']?.visibility || 'hidden';
+  const opacityVal = hubAudit?.opacity !== undefined ? hubAudit.opacity : snap.elements?.['hub-root']?.opacity;
+  const opacity = parseFloat(opacityVal || '0');
+  
+  const domSaysVisible = hubMounted && display !== 'none' && visibility !== 'hidden' && opacity > 0.05;
+  
+  const probe = snap.visualProbe || null;
+  const visuallyEmpty = !!probe?.allEmpty;
+  
+  const paintVerification = snap.paintVerification || snap.watchdogPaintVerification || null;
+  const paintSaysBlack = paintVerification?.paintState === 'visually_black';
+  
+  if (rootExists && !appContainerExists) {
+    return {
+      status: 'ROOT_APP_TREE_MISSING',
+      color: '#ef4444',
+      desc: 'Root App Tree Missing: The outer React app shell (#root) exists but the root layout (.app-container) is unmounted or empty.'
+    };
+  }
+  
+  if (!hubMounted) {
+    return {
+      status: 'HUB_DOM_NOT_MOUNTED',
+      color: '#ef4444',
+      desc: 'Hub DOM Not Mounted: The layout container exists but the Hub DOM subtree is completely missing.'
+    };
+  }
+  
+  if (!domSaysVisible) {
+    return {
+      status: 'DOM_UNPAINTED',
+      color: '#f59e0b',
+      desc: `DOM Unpainted: Hub mounted but hidden via CSS (display: ${display}, visibility: ${visibility}, opacity: ${opacityVal}).`
+    };
+  }
+  
+  if (paintSaysBlack || (visuallyEmpty && !paintVerification)) {
+    return {
+      status: 'COMPOSITOR_FREEZE',
+      color: '#ef4444',
+      desc: 'WebView Compositor Freeze: Hub is fully mounted and visible in DOM/CSS, but pixel/canvas paint verification detects a black/empty screen. WebView is failing to repaint!'
+    };
+  }
+  
+  return {
+    status: 'PIPELINE_OK',
+    color: '#10b981',
+    desc: 'Pipeline OK: Hub is visible in DOM and pixel probe detects active rendering.'
+  };
+}
+
 export default function EmergencyDebugOverlay() {
   const { settings, updateSettings } = useChordStore();
   const [isOpen, setIsOpen] = useState(false);
@@ -2060,6 +2127,24 @@ page:  (${webViewDiag.visualViewport.pageLeft}, ${webViewDiag.visualViewport.pag
     const { id, timestamp, snapshots, result, reason } = lastFailedTimeline;
     const checkpointKeys = ['T+0ms', 'T+50ms', 'T+100ms', 'T+250ms', 'T+500ms', 'T+1000ms', 'T+2000ms'];
 
+    let verdictLabel = 'FAILED (COMPOSITOR FREEZE OR CRASH)';
+    if (snapshots) {
+      const failingCheckpoints = ['T+0ms', 'T+50ms', 'T+100ms', 'T+250ms', 'T+500ms', 'T+1000ms', 'T+2000ms'];
+      for (const key of failingCheckpoints) {
+        const snap = snapshots[key];
+        if (snap) {
+          const statusObj = getWebViewPipelineStatus(snap);
+          if (statusObj.status === 'ROOT_APP_TREE_MISSING') {
+            verdictLabel = 'FAILED (ROOT APP TREE MISSING)';
+            break;
+          } else if (statusObj.status === 'HUB_DOM_NOT_MOUNTED') {
+            verdictLabel = 'FAILED (HUB DOM NOT MOUNTED)';
+            break;
+          }
+        }
+      }
+    }
+
     const copyFullReport = () => {
       let timeline: any = null;
       try {
@@ -2079,16 +2164,66 @@ page:  (${webViewDiag.visualViewport.pageLeft}, ${webViewDiag.visualViewport.pag
         if (diagStr) diagnostics = JSON.parse(diagStr);
       } catch (_) {}
 
+      let rootLifecycleLog = [];
+      try {
+        const lifecycleStr = localStorage.getItem('studio_root_lifecycle_logs') || '[]';
+        rootLifecycleLog = JSON.parse(lifecycleStr);
+      } catch (_) {}
+
+      const rootNode = document.getElementById('root');
+      const rootDiagnostics = {
+        innerHTML_length: rootNode ? rootNode.innerHTML.length : 0,
+        childElementCount: rootNode ? rootNode.childElementCount : 0,
+        firstElementChildSelector: rootNode && rootNode.firstElementChild 
+          ? `${rootNode.firstElementChild.tagName.toLowerCase()}${rootNode.firstElementChild.id ? '#' + rootNode.firstElementChild.id : ''}${rootNode.firstElementChild.className ? '.' + rootNode.firstElementChild.className.split(' ').join('.') : ''}`
+          : 'none',
+        appContainerExists: !!document.querySelector('.app-container'),
+        appMainLayoutExists: !!document.querySelector('.app-main-layout'),
+        appReturnedNull: rootNode ? rootNode.innerHTML.trim() === '' : true
+      };
+
+      let firstFailingCheckpoint = 'unknown';
+      let failureType = 'unknown';
+      let missingNodes: string[] = [];
+
+      if (timeline && timeline.snapshots) {
+        const checkpointKeys = ['T+0ms', 'T+50ms', 'T+100ms', 'T+250ms', 'T+500ms', 'T+1000ms', 'T+2000ms'];
+        for (const key of checkpointKeys) {
+          const snap = timeline.snapshots[key];
+          if (snap) {
+            const statusObj = getWebViewPipelineStatus(snap);
+            if (statusObj.status === 'ROOT_APP_TREE_MISSING' || statusObj.status === 'HUB_DOM_NOT_MOUNTED' || statusObj.status === 'COMPOSITOR_FREEZE') {
+              firstFailingCheckpoint = key;
+              failureType = statusObj.status;
+              
+              const elementsToCheck = ['app-container', 'app-main-layout', 'hub-root', 'hub-content', 'subapp-wrapper', 'subapp-container'];
+              elementsToCheck.forEach(node => {
+                if (!snap.elements?.[node]?.exists) {
+                  missingNodes.push(node);
+                }
+              });
+              break;
+            }
+          }
+        }
+      }
+
       const report = {
+        verdictSummary: {
+          firstFailingCheckpoint,
+          failureType,
+          missingNodes
+        },
         appMetadata: {
           appVersion: NATIVE_VERSION,
           nativeApkVersion: NATIVE_VERSION,
-          versionCode: 95,
+          versionCode: 96,
           packageName: 'com.chordex.app',
           platform: typeof navigator !== 'undefined' ? navigator.platform : 'unknown',
           userAgent: typeof navigator !== 'undefined' ? navigator.userAgent : 'unknown',
           timestamp: new Date().toISOString()
         },
+        rootDOM: rootDiagnostics,
         navigationMetadata: {
           id: timeline?.id,
           timestamp: timeline?.timestamp,
@@ -2102,6 +2237,7 @@ page:  (${webViewDiag.visualViewport.pageLeft}, ${webViewDiag.visualViewport.pag
         },
         checkpoints: timeline?.snapshots || {},
         recoveryLog,
+        rootLifecycleLog,
         diagnostics
       };
 
@@ -2120,11 +2256,29 @@ page:  (${webViewDiag.visualViewport.pageLeft}, ${webViewDiag.visualViewport.pag
         if (timelineStr) timeline = JSON.parse(timelineStr);
       } catch (_) {}
 
+      let firstFailingCheckpoint = 'unknown';
+      let failureType = 'unknown';
+      if (timeline && timeline.snapshots) {
+        const checkpointKeys = ['T+0ms', 'T+50ms', 'T+100ms', 'T+250ms', 'T+500ms', 'T+1000ms', 'T+2000ms'];
+        for (const key of checkpointKeys) {
+          const snap = timeline.snapshots[key];
+          if (snap) {
+            const statusObj = getWebViewPipelineStatus(snap);
+            if (statusObj.status !== 'PIPELINE_OK') {
+              firstFailingCheckpoint = key;
+              failureType = statusObj.status;
+              break;
+            }
+          }
+        }
+      }
+
       const summaryStr = `Verdict: FAILED
 Timestamp: ${timeline ? new Date(timeline.timestamp).toISOString() : 'unknown'}
 Reason: ${timeline?.reason || 'COMPOSITOR FREEZE OR CRASH'}
-App Version: ${timeline?.appVersion || NATIVE_VERSION} (Code ${timeline?.versionCode || 95})
-First Failing Checkpoint: ${timeline?.reason?.includes('Checkpoint') ? timeline.reason.split(' ')[1] : 'unknown'}
+App Version: ${timeline?.appVersion || NATIVE_VERSION} (Code ${timeline?.versionCode || 96})
+First Failing Checkpoint: ${firstFailingCheckpoint}
+Failure Type: ${failureType}
 Total Checkpoints: ${timeline?.snapshots ? Object.keys(timeline.snapshots).length : 0}`;
 
       copyToClipboard(summaryStr, 'Failed Timeline Summary');
@@ -2145,6 +2299,34 @@ Total Checkpoints: ${timeline?.snapshots ? Object.keys(timeline.snapshots).lengt
       copyToClipboard(recStr, 'Recovery Log');
     };
 
+    const copyRootLifecycleLog = () => {
+      const logsStr = localStorage.getItem('studio_root_lifecycle_logs') || '[]';
+      copyToClipboard(logsStr, 'Root Lifecycle Log');
+    };
+
+    const copyMountUnmountStackReport = () => {
+      let logs = [];
+      try {
+        logs = JSON.parse(localStorage.getItem('studio_root_lifecycle_logs') || '[]');
+      } catch (_) {}
+
+      let report = '=== MOUNT/UNMOUNT STACK REPORT ===\n\n';
+      logs.forEach((log: any) => {
+        if (log.name) {
+          report += `[${new Date(log.timestamp).toISOString()}] ${log.name} ${log.event.toUpperCase()}\n`;
+          report += `appMode: ${log.appMode} | subApp: ${log.activeSubApp} | transition: ${log.transitionActive}\n`;
+          report += `Stack Trace:\n${log.stack}\n`;
+          report += '--------------------------------------------------\n\n';
+        } else if (log.type === 'SUSPENSE_FALLBACK_RENDERED') {
+          report += `[${new Date(log.timestamp).toISOString()}] SUSPENSE_FALLBACK_RENDERED\n`;
+          report += `Stack Trace:\n${log.stack}\n`;
+          report += '--------------------------------------------------\n\n';
+        }
+      });
+
+      copyToClipboard(report, 'Mount/Unmount Stack Report');
+    };
+
     return (
       <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
         {/* Header Summary */}
@@ -2159,7 +2341,7 @@ Total Checkpoints: ${timeline?.snapshots ? Object.keys(timeline.snapshots).lengt
         }}>
           <div>
             <div style={{ color: '#f43f5e', fontWeight: 'bold', fontSize: '13px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-              VERDICT: FAILED (COMPOSITOR FREEZE OR CRASH)
+              VERDICT: {verdictLabel}
             </div>
             <div style={{ color: 'rgba(255,255,255,0.5)', fontSize: '10px', marginTop: '2px' }}>
               Attempted: {new Date(timestamp).toLocaleDateString()} {new Date(timestamp).toLocaleTimeString()}
@@ -2275,6 +2457,36 @@ Total Checkpoints: ${timeline?.snapshots ? Object.keys(timeline.snapshots).lengt
               }}
             >
               COPY RECOVERY LOG
+            </button>
+            <button
+              onClick={copyRootLifecycleLog}
+              style={{
+                background: 'rgba(255,255,255,0.06)',
+                border: '1px solid rgba(255,255,255,0.1)',
+                color: '#fff',
+                padding: '8px 12px',
+                borderRadius: '6px',
+                fontSize: '11px',
+                fontWeight: 'bold',
+                cursor: 'pointer'
+              }}
+            >
+              COPY ROOT LIFECYCLE LOG
+            </button>
+            <button
+              onClick={copyMountUnmountStackReport}
+              style={{
+                background: 'rgba(255,255,255,0.06)',
+                border: '1px solid rgba(255,255,255,0.1)',
+                color: '#fff',
+                padding: '8px 12px',
+                borderRadius: '6px',
+                fontSize: '11px',
+                fontWeight: 'bold',
+                cursor: 'pointer'
+              }}
+            >
+              COPY MOUNT/UNMOUNT STACKS
             </button>
           </div>
         </div>
@@ -2493,58 +2705,6 @@ Total Checkpoints: ${timeline?.snapshots ? Object.keys(timeline.snapshots).lengt
       return null;
     };
 
-    const getWebViewPipelineStatus = (snap: any) => {
-      if (!snap) return { status: 'UNKNOWN', color: 'rgba(255,255,255,0.4)', desc: 'No snapshot selected' };
-      
-      const hub = snap.elements?.['hub-root'] || snap.bounds?.['hub-root'] || null;
-      const hubMounted = !!hub?.exists;
-      
-      const renderAudit = snap.renderAudit || null;
-      const hubAudit = renderAudit?.hub || null;
-      
-      const display = hubAudit?.display || snap.elements?.['hub-root']?.display || 'none';
-      const visibility = hubAudit?.visibility || snap.elements?.['hub-root']?.visibility || 'hidden';
-      const opacityVal = hubAudit?.opacity !== undefined ? hubAudit.opacity : snap.elements?.['hub-root']?.opacity;
-      const opacity = parseFloat(opacityVal || '0');
-      
-      const domSaysVisible = hubMounted && display !== 'none' && visibility !== 'hidden' && opacity > 0.05;
-      
-      const probe = snap.visualProbe || null;
-      const visuallyEmpty = !!probe?.allEmpty;
-      
-      const paintVerification = snap.paintVerification || snap.watchdogPaintVerification || null;
-      const paintSaysBlack = paintVerification?.paintState === 'visually_black';
-      
-      if (!hubMounted) {
-        return {
-          status: 'DOM_EMPTY',
-          color: '#ef4444',
-          desc: 'DOM Empty: Hub root element is not mounted in React.'
-        };
-      }
-      
-      if (!domSaysVisible) {
-        return {
-          status: 'DOM_UNPAINTED',
-          color: '#f59e0b',
-          desc: `DOM Unpainted: Hub mounted but hidden via CSS (display: ${display}, visibility: ${visibility}, opacity: ${opacityVal}).`
-        };
-      }
-      
-      if (paintSaysBlack || (visuallyEmpty && !paintVerification)) {
-        return {
-          status: 'COMPOSITOR_FREEZE',
-          color: '#ef4444',
-          desc: 'WebView Compositor Freeze: Hub is fully mounted and visible in DOM/CSS, but pixel/canvas paint verification detects a black/empty screen. WebView is failing to repaint!'
-        };
-      }
-      
-      return {
-        status: 'PIPELINE_OK',
-        color: '#10b981',
-        desc: 'Pipeline OK: Hub is visible in DOM and pixel probe detects active rendering.'
-      };
-    };
 
     // Live paint verification handler
     const handleVerifyPaintLive = async () => {

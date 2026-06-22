@@ -73,11 +73,11 @@ if (typeof document !== 'undefined') {
 }
 
 createRoot(document.getElementById("root")!).render(
-  <TolgeeProvider tolgee={tolgee} fallback={null}>
+  <>
     <RootAppContainer />
     <GlobalOverlays />
     <EmergencyDebugOverlay />
-  </TolgeeProvider>,
+  </>,
 );
 
 // Clean up all service workers since they are not supported in native wrappers.

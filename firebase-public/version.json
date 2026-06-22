@@ -1,19 +1,20 @@
 {
   "platform": "web",
   "version": "4.0.0",
-  "commit": "9c7176c1",
+  "commit": "029b282d",
   "releasedAt": "6/21/2026, 12:00:00 AM CST",
   "buildTimestamp": "6/21/2026, 12:00:00 AM CST",
   "updateMode": "refresh",
-  "description": "• Upgraded StudioHub to mount synchronously and permanently, eliminating Suspense-induced unmounts.\n• Improved the failsafe watchdog to run active DOM restoration at T+50ms, T+100ms, T+250ms, and T+500ms checkpoints.\n• Added comprehensive report export options to Failed Timeline (Full Report, Timeline JSON, Summary, Checkpoints, and Recovery Log).\n• Fixed the header version display to dynamically show both the current runtime and captured timeline versions.",
-  "whatsNew": "• Upgraded StudioHub to mount synchronously and permanently, eliminating Suspense-induced unmounts.\n• Improved the failsafe watchdog to run active DOM restoration at T+50ms, T+100ms, T+250ms, and T+500ms checkpoints.\n• Added comprehensive report export options to Failed Timeline (Full Report, Timeline JSON, Summary, Checkpoints, and Recovery Log).\n• Fixed the header version display to dynamically show both the current runtime and captured timeline versions.",
-  "changelog": "• Upgraded StudioHub to mount synchronously and permanently, eliminating Suspense-induced unmounts.\n• Improved the failsafe watchdog to run active DOM restoration at T+50ms, T+100ms, T+250ms, and T+500ms checkpoints.\n• Added comprehensive report export options to Failed Timeline (Full Report, Timeline JSON, Summary, Checkpoints, and Recovery Log).\n• Fixed the header version display to dynamically show both the current runtime and captured timeline versions.",
+  "description": "• Upgraded the root React app tree structure to render EmergencyDebugOverlay at root level.\n• Refactored App.tsx layout to keep the outer app-container permanently mounted, preventing root-level unmounts.\n• Integrated LifecycleTracker logging to record component mount/unmount stack traces and Suspense fallback states.\n• Implemented ROOT_APP_TREE_MISSING and HUB_DOM_NOT_MOUNTED diagnostics to isolate rendering failures.\n• Added COPY ROOT LIFECYCLE LOG and COPY MOUNT/UNMOUNT STACKS buttons to Failed Timeline tab.",
+  "whatsNew": "• Upgraded the root React app tree structure to render EmergencyDebugOverlay at root level.\n• Refactored App.tsx layout to keep the outer app-container permanently mounted, preventing root-level unmounts.\n• Integrated LifecycleTracker logging to record component mount/unmount stack traces and Suspense fallback states.\n• Implemented ROOT_APP_TREE_MISSING and HUB_DOM_NOT_MOUNTED diagnostics to isolate rendering failures.\n• Added COPY ROOT LIFECYCLE LOG and COPY MOUNT/UNMOUNT STACKS buttons to Failed Timeline tab.",
+  "changelog": "• Upgraded the root React app tree structure to render EmergencyDebugOverlay at root level.\n• Refactored App.tsx layout to keep the outer app-container permanently mounted, preventing root-level unmounts.\n• Integrated LifecycleTracker logging to record component mount/unmount stack traces and Suspense fallback states.\n• Implemented ROOT_APP_TREE_MISSING and HUB_DOM_NOT_MOUNTED diagnostics to isolate rendering failures.\n• Added COPY ROOT LIFECYCLE LOG and COPY MOUNT/UNMOUNT STACKS buttons to Failed Timeline tab.",
   "releaseNotes": {
     "added": [
-      "Upgraded StudioHub to mount synchronously and permanently, eliminating Suspense-induced unmounts.",
-      "Improved the failsafe watchdog to run active DOM restoration at T+50ms, T+100ms, T+250ms, and T+500ms checkpoints.",
-      "Added comprehensive report export options to Failed Timeline (Full Report, Timeline JSON, Summary, Checkpoints, and Recovery Log).",
-      "Fixed the header version display to dynamically show both the current runtime and captured timeline versions."
+      "Upgraded the root React app tree structure to render EmergencyDebugOverlay at root level.",
+      "Refactored App.tsx layout to keep the outer app-container permanently mounted, preventing root-level unmounts.",
+      "Integrated LifecycleTracker logging to record component mount/unmount stack traces and Suspense fallback states.",
+      "Implemented ROOT_APP_TREE_MISSING and HUB_DOM_NOT_MOUNTED diagnostics to isolate rendering failures.",
+      "Added COPY ROOT LIFECYCLE LOG and COPY MOUNT/UNMOUNT STACKS buttons to Failed Timeline tab."
     ]
   },
   "mandatory": false
