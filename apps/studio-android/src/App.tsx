@@ -1402,6 +1402,16 @@ export default function App() {
       return; // Already in hub, no need to navigate
     }
 
+    // Diagnostics Logging
+    try {
+      const activeTab = useChordStore.getState().activePanel;
+      const transitionState = (window as any).studioTransitionActive || false;
+      const lastBack = (window as any).__lastBackEventDetails;
+      addLog('info', 'nav', `returnToStudioHub invoked: fromApp=${fromApp}, isSwipeSuccess=${isSwipeSuccess}, activeTab=${activeTab}, transitionActive=${transitionState}, lastBackEvent=${lastBack ? JSON.stringify(lastBack) : 'none'}`);
+    } catch (e: any) {
+      console.warn('Failed to print returnToStudioHub diagnostics:', e);
+    }
+
     // FORENSIC AUTO-CAPTURE FOR CHORDEX -> HUB
     const isFromChords = fromApp === 'chords';
     if (isFromChords) {
@@ -1553,6 +1563,17 @@ export default function App() {
     window.history.pushState({ chordex: 'app' }, '');
 
     const onBack = () => {
+      const now = Date.now();
+      try {
+        (window as any).__lastBackEventTime = now;
+        (window as any).__lastBackEventDetails = {
+          timestamp: now,
+          activeApp: useChordStore.getState().settings.appMode,
+          activePanel: useChordStore.getState().activePanel,
+          selectedChordId: useChordStore.getState().selectedChordId,
+        };
+      } catch (_) {}
+
       const handled = handleGlobalBack();
       addLog('info', 'nav', `Android back button / swipe gesture triggered. handleGlobalBack returned: ${handled}`);
 

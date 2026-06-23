@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
-import type { Chord, Instrument } from '../data/chords';
+import type { Chord, Instrument, ChordType } from '../data/chords';
 import { detectDeviceLanguage, type Language as I18nLanguage } from '../lib/i18n';
 import { secureReadLocal, secureWriteLocal } from '../lib/security';
 
@@ -151,6 +151,7 @@ interface ChordStore {
   customChords: CustomChord[];
   chordUsage: Record<string, number>;
   activityLog?: any[];
+  libraryActiveType: ChordType | 'all' | null;
 
   /**
    * Persisted "where was the user last?" snapshot — used at app launch to
@@ -168,6 +169,7 @@ interface ChordStore {
 
   selectChord: (chordId: string) => void;
   trackChordUsage: (chordId: string) => void;
+  setLibraryActiveType: (type: ChordType | 'all' | null) => void;
   setActivePanel: (panel: ActivePanel) => void;
   toggleFavorite: (chordId: string) => void;
   isFavorite: (chordId: string) => boolean;
@@ -253,6 +255,7 @@ export const useChordStore = create<ChordStore>()(
   persist(
     (set, get) => ({
       selectedChordId: 'C-major',
+      libraryActiveType: null,
       activePanel: 'library',
       settings: {
         instrument: 'guitar',
@@ -349,10 +352,15 @@ export const useChordStore = create<ChordStore>()(
 
       selectChord: (chordId) => {
         set((state) => {
+          if (!chordId) {
+            return { selectedChordId: null };
+          }
           const recent = [chordId, ...state.recentChords.filter(id => id !== chordId)].slice(0, 10);
           return { selectedChordId: chordId, recentChords: recent, activePanel: 'chord' };
         });
       },
+
+      setLibraryActiveType: (type) => set({ libraryActiveType: type }),
 
       setActivePanel: (panel) => set({ activePanel: panel }),
 

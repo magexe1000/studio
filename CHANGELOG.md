@@ -12,6 +12,15 @@ Conventions:
 - Bullets start with `- ` and use plain English a non-technical user
   can parse. Keep each line short — the modal's text area is narrow.
 
+## 3.6.86
+
+### Added
+- Added suggested practice chords mapped to lyrics when verified chord charts are missing.
+- Redesigned Chords Home with Chord of the Day, quick categories, and practice tips.
+
+### Fixed
+- Fixed Library back button navigation and improved return-to-hub transition logging.
+
 ## 3.6.85
 
 ### Added

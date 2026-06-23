@@ -430,7 +430,18 @@ function ChordCard({
 // ── Main panel ────────────────────────────────────────────────
 export default function LibraryPanel() {
   const isWebDesktop = useIsWebDesktop();
-  const { selectedChordId, recentChords, favorites, selectChord, settings, activePanel, toggleFavorite, addToProgression } = useChordStore();
+  const {
+    selectedChordId,
+    recentChords,
+    favorites,
+    selectChord,
+    settings,
+    activePanel,
+    toggleFavorite,
+    addToProgression,
+    libraryActiveType: activeType,
+    setLibraryActiveType: setActiveType,
+  } = useChordStore();
   const [chordPlaying, setChordPlaying] = useState(false);
 
   const handleChordClick = (chordId: string) => {
@@ -457,7 +468,6 @@ export default function LibraryPanel() {
   // Library tab state
   const [mainTab, setMainTab]     = useState<'explore' | 'discover'>('explore');
   const [query, setQuery]         = useState('');
-  const [activeType, setActiveType] = useState<ChordType | 'all' | null>(null);
 
   // Discover state
   const [activeGenre, setActiveGenre]   = useState<Genre | null>(null);
@@ -477,7 +487,7 @@ export default function LibraryPanel() {
       setActivePracticeSong(null);
       return true;
     }
-    if (selectedChordId) {
+    if (isWebDesktop && selectedChordId) {
       selectChord(null as any);
       return true;
     }
@@ -489,7 +499,7 @@ export default function LibraryPanel() {
       return true;
     }
     return false;
-  }, [activePanel, activePracticeSong, selectedChordId, query, activeType, activeGenre, mainTab]);
+  }, [activePanel, activePracticeSong, selectedChordId, query, activeType, activeGenre, mainTab, isWebDesktop]);
 
   const allChords = getAllChords();
   const chord = useMemo(() => selectedChordId ? getChordById(selectedChordId) : null, [selectedChordId]);

@@ -774,5 +774,26 @@ export const CHORD_TYPES: { value: ChordType; label: string }[] = [
 export const ROOTS = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
 
 export function getChordByName(name: string): Chord | undefined {
-  return chordDatabase.find(c => c.name.replace(/\s/g, '').toLowerCase() === name.replace(/\s/g, '').toLowerCase());
+  const normalized = name.replace(/\s/g, '').toLowerCase();
+  
+  // 1. Direct name match
+  let found = chordDatabase.find(c => c.name.replace(/\s/g, '').toLowerCase() === normalized);
+  if (found) return found;
+
+  // 2. ID match
+  found = chordDatabase.find(c => c.id.toLowerCase() === normalized);
+  if (found) return found;
+
+  // 3. Match parts of a slash-separated name (e.g. "C#/Db" matching "C#" or "Db")
+  found = chordDatabase.find(c => {
+    const cName = c.name.replace(/\s/g, '').toLowerCase();
+    if (cName.includes('/')) {
+      const parts = cName.split('/');
+      return parts.includes(normalized);
+    }
+    return false;
+  });
+  if (found) return found;
+
+  return undefined;
 }

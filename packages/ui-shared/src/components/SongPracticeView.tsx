@@ -375,10 +375,89 @@ export function SongPracticeView({ song, onClose }: SongPracticeViewProps) {
     localStorage.removeItem(`chordex:practice:custom_chart_text:${song.id}`);
   };
 
+  const isSpanish = useMemo(() => {
+    return useChordStore.getState().settings.language === 'es';
+  }, []);
+
+  const isSuggestedChords = useMemo(() => {
+    return !customChart && (!song.sections || song.sections.length === 0);
+  }, [customChart, song.sections]);
+
+  // Generate suggested progression if using suggested chords
+  const suggestedProgression = useMemo(() => {
+    if (!isSuggestedChords) return [];
+    
+    // If song has its own progression defined, use it
+    if (song.progression && song.progression.length > 0) {
+      return song.progression;
+    }
+    
+    // Otherwise infer from key
+    const cleanKey = (song.key || 'C').trim();
+    const isMinor = cleanKey.endsWith('m') || cleanKey.toLowerCase().includes('minor');
+    
+    const match = cleanKey.match(/^([A-G][#b]?)/);
+    if (!match) return ['C', 'F', 'G', 'C'];
+    
+    const root = match[1];
+    // Map root to index
+    const CHROMATIC = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
+    const ROOT_TO_IDX: Record<string, number> = {
+      C: 0, 'C#': 1, Db: 1, D: 2, 'D#': 3, Eb: 3, E: 4, F: 5, 'F#': 6, Gb: 6, G: 7, 'G#': 8, Ab: 8, A: 9, 'A#': 10, Bb: 10, B: 11
+    };
+    
+    const idx = ROOT_TO_IDX[root];
+    if (idx === undefined) return ['C', 'F', 'G', 'C'];
+    
+    const steps = isMinor
+      ? [
+          { offset: 0, suffix: 'm' },   // i
+          { offset: 8, suffix: '' },    // bVI
+          { offset: 3, suffix: '' },    // bIII
+          { offset: 10, suffix: '' }    // bVII
+        ]
+      : [
+          { offset: 0, suffix: '' },    // I
+          { offset: 9, suffix: 'm' },   // vi
+          { offset: 2, suffix: 'm' },   // ii
+          { offset: 7, suffix: '' }     // V
+        ];
+        
+    return steps.map(step => {
+      const chordIdx = (idx + step.offset) % 12;
+      return `${CHROMATIC[chordIdx]}${step.suffix}`;
+    });
+  }, [isSuggestedChords, song.key, song.progression]);
+
   // Final active sections source (user custom overrides catalog empty values, falls back to providerLyrics)
   const activeSections = useMemo(() => {
-    return customChart || (song.sections && song.sections.length > 0 ? song.sections : providerLyrics) || [];
-  }, [customChart, song.sections, providerLyrics]);
+    const rawSections = customChart || (song.sections && song.sections.length > 0 ? song.sections : providerLyrics) || [];
+    
+    // If using suggested chords, enrich the rawSections lines with the suggested chords!
+    if (isSuggestedChords && rawSections.length > 0 && suggestedProgression.length > 0) {
+      return rawSections.map(section => {
+        let chordIdx = 0;
+        const enrichedLines = section.lines.map(line => {
+          // If line has no lyrics or only whitespace, don't place a chord
+          if (!line.lyrics.trim()) {
+            return { ...line, chords: [] };
+          }
+          const chord = suggestedProgression[chordIdx % suggestedProgression.length];
+          chordIdx++;
+          return {
+            ...line,
+            chords: [{ chord, offset: 0 }]
+          };
+        });
+        return {
+          ...section,
+          lines: enrichedLines
+        };
+      });
+    }
+    
+    return rawSections;
+  }, [customChart, song.sections, providerLyrics, isSuggestedChords, suggestedProgression]);
 
   // Compile a flat list of lines and calculate timestamps
   const parsedLines = useMemo(() => {
@@ -599,18 +678,7 @@ export function SongPracticeView({ song, onClose }: SongPracticeViewProps) {
           <p style={{ fontSize: '11px', color: 'var(--c-text-secondary)', margin: '2px 0 0', fontWeight: 500 }}>
             {song.artist} {song.capo ? `· Capo ${song.capo}` : ''}
           </p>
-        </div>
-
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-          <button
-            onClick={() => setShowSettings(!showSettings)}
-            style={{
-              background: 'none', border: 'none', color: 'var(--c-text-primary)',
-              cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center'
-            }}
-          >
-            <span className="material-symbols-outlined" style={{ fontSize: '20px' }}>settings</span>
-          </button>
+               <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
           <button
             onClick={onClose}
             style={{
@@ -622,7 +690,7 @@ export function SongPracticeView({ song, onClose }: SongPracticeViewProps) {
             <span className="material-symbols-outlined" style={{ fontSize: '14px' }}>arrow_back</span>
             {t.practice.exit}
           </button>
-        </div>
+        </div>   </div>
       </div>
 
       {/* Main Lyrics & Chords Scrollable Container */}
@@ -641,6 +709,34 @@ export function SongPracticeView({ song, onClose }: SongPracticeViewProps) {
           }}
         >
           <div style={{ maxWidth: '600px', margin: '0 auto' }}>
+            {isSuggestedChords && flatChords.length > 0 && (
+              <div style={{
+                background: 'rgba(28, 186, 127, 0.1)',
+                border: '1px solid rgba(28, 186, 127, 0.25)',
+                borderRadius: 12,
+                padding: '12px 16px',
+                marginBottom: '20px',
+                textAlign: 'left',
+                fontSize: '11px',
+                color: 'rgb(28, 186, 127)',
+                fontFamily: 'Inter, sans-serif',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px'
+              }}>
+                <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>auto_awesome</span>
+                <div>
+                  <span style={{ fontWeight: 800 }}>
+                    {isSpanish ? 'Acordes de práctica sugeridos' : 'Suggested practice chords'}
+                  </span>
+                  <span style={{ opacity: 0.85, marginLeft: 6 }}>
+                    {isSpanish 
+                      ? `(Basados en la escala de ${song.key}): ${song.progressionLabel || suggestedProgression.join(' – ')}`
+                      : `(Based on the key of ${song.key}): ${song.progressionLabel || suggestedProgression.join(' – ')}`}
+                  </span>
+                </div>
+              </div>
+            )}
             {flatChords.length === 0 && (
               <div style={{
                 background: 'rgba(255,165,0,0.1)',
