@@ -26,7 +26,7 @@ import { useMemo } from 'react';
 import { Capacitor } from '@capacitor/core';
 
 /** Canonical semver string used by the OTA comparator. */
-export const NATIVE_VERSION = '3.6.82';
+export const NATIVE_VERSION = '3.6.83';
 export const WEB_VERSION = '4.0.0';
 export const APP_VERSION = Capacitor.isNativePlatform() ? NATIVE_VERSION : WEB_VERSION;
 
@@ -38,7 +38,7 @@ export const APP_VERSION_LABEL = `${APP_VERSION_TAG} ${APP_VERSION}`;
 
 /** Release date for the CURRENT bundle, shown alongside the version pill
  *  in the changelog sheet. ISO-8601 (`YYYY-MM-DD`). */
-export const APP_VERSION_DATE = '2026-06-23'; // 3.6.82
+export const APP_VERSION_DATE = '2026-06-23'; // 3.6.83
 // Note: keep ISO-8601. Bump together with APP_VERSION on each release.
 
 export const APP_COMMIT_SHA = import.meta.env.VITE_GIT_COMMIT_SHA || 'efd2b1a3';
@@ -59,13 +59,12 @@ export interface ChangelogSection {
 
 export const APP_CHANGELOG_SECTIONS: ChangelogSection[] = [
   {
-    heading: "Fixed",
+    heading: "Improved",
     items: [
-      "Optimized startup planets animation with cached dimensions and pre-computed logo offsets.",
-      "Expanded Stagex plot object selection hitboxes by 16px and suppressed tap highlight overlays.",
-      "Redesigned Stagex history menu into a responsive bottom sheet and disabled undo/redo on open.",
-      "Resolved Stagex back-gesture coverage, including presets panel and history overlay detection.",
-      "Refactored native update progress flows with support for all 10 states and automated install.",
+      "Added performance diagnostics for sub-app transitions.",
+      "Optimized startup sequence and deferred heavy bundle compilation.",
+      "Polished Stagex touch targets and back button navigation.",
+      "Enhanced native OTA update installer progress tracking.",
     ],
   },
 ];
@@ -73,13 +72,12 @@ export const APP_CHANGELOG_SECTIONS: ChangelogSection[] = [
 /** Native English version of the current changelog for Android. */
 export const APP_CHANGELOG_SECTIONS_NATIVE: ChangelogSection[] = [
   {
-    heading: "Fixed",
+    heading: "Improved",
     items: [
-      "Optimized startup planets animation with cached dimensions and pre-computed logo offsets.",
-      "Expanded Stagex plot object selection hitboxes by 16px and suppressed tap highlight overlays.",
-      "Redesigned Stagex history menu into a responsive bottom sheet and disabled undo/redo on open.",
-      "Resolved Stagex back-gesture coverage, including presets panel and history overlay detection.",
-      "Refactored native update progress flows with support for all 10 states and automated install.",
+      "Added performance diagnostics for sub-app transitions.",
+      "Optimized startup sequence and deferred heavy bundle compilation.",
+      "Polished Stagex touch targets and back button navigation.",
+      "Enhanced native OTA update installer progress tracking.",
     ],
   },
 ];
@@ -88,16 +86,16 @@ export const APP_CHANGELOG_SECTIONS_NATIVE: ChangelogSection[] = [
  *  by `ChangelogSheet` based on `settings.language`. */
 export const APP_CHANGELOG_SECTIONS_ES: ChangelogSection[] = [
   {
-    heading: "Corregido",
+    heading: "Mejorado",
     items: [
-      "Optimización visual del inicio y precomputación del logo para evitar retrasos.",
-      "Ampliadas las áreas de contacto de los objetos de Stagex y eliminados los resaltados grises al tocar.",
-      "Rediseñado el menú de historial de Stagex como una hoja inferior adaptativa.",
-      "Soporte universal para gestos de retroceso en paneles, ajustes y el historial de Stagex.",
-      "Rediseñada la pantalla de progreso de actualización nativa con aplicación automática en segundo plano.",
+      "Añadidos diagnósticos de rendimiento para transiciones entre aplicaciones.",
+      "Optimización del flujo de inicio y compilación diferida de paquetes pesados.",
+      "Ajustes de navegación y áreas táctiles mejoradas en Stagex.",
+      "Seguimiento de progreso mejorado en el instalador OTA nativo.",
     ],
   },
 ];
+
 
 /** German version of the current changelog. */
 export const APP_CHANGELOG_SECTIONS_DE: ChangelogSection[] = [

@@ -12,6 +12,14 @@ Conventions:
 - Bullets start with `- ` and use plain English a non-technical user
   can parse. Keep each line short — the modal's text area is narrow.
 
+## 3.6.83
+
+### Improved
+- Added performance diagnostics for sub-app transitions.
+- Optimized startup sequence and deferred heavy bundle compilation.
+- Polished Stagex touch targets and back button navigation.
+- Enhanced native OTA update installer progress tracking.
+
 ## 3.6.82
 
 ### Fixed
