@@ -1,8 +1,8 @@
-import React, { useState, useEffect, useRef, useMemo } from 'react';
+import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { useChordStore, setNavLocked, setNavHidden, getChordByName, useT, useBackHandler } from '@workspace/studio-core';
-import type { SongChart, SongChartSection, ChordMarker } from '@workspace/studio-core';
+import { useChordStore, setNavLocked, setNavHidden, getChordByName, useT, useBackHandler, fetchLyricsOnline, type SongChart, type SongChartSection, type ChordMarker } from '@workspace/studio-core';
 import ChordDiagram from './ChordDiagram';
+
 
 interface SongPracticeViewProps {
   song: SongChart;
@@ -134,6 +134,26 @@ function cleanChordName(name: string): string {
   return clean.trim();
 }
 
+function mapLyricsToSections(result: any): SongChartSection[] {
+  if (!result) return [];
+  if (result.syncedLines && result.syncedLines.length > 0) {
+    const lines = result.syncedLines.map((line: any) => ({
+      lyrics: line.text || ' ',
+      chords: [],
+      timestamp: line.timestamp,
+      duration: line.duration
+    }));
+    return [{ name: 'Lyrics (Synced)', lines }];
+  } else if (result.plainLyrics) {
+    const lines = result.plainLyrics.split('\n').map((lineText: string) => ({
+      lyrics: lineText.trim() || ' ',
+      chords: []
+    }));
+    return [{ name: 'Lyrics', lines }];
+  }
+  return [];
+}
+
 export function SongPracticeView({ song, onClose }: SongPracticeViewProps) {
   const t = useT();
 
@@ -183,6 +203,125 @@ export function SongPracticeView({ song, onClose }: SongPracticeViewProps) {
   const lineRefs = useRef<Map<number, HTMLDivElement>>(new Map());
   const animationFrameRef = useRef<number | null>(null);
   const startTimeRef = useRef<number>(0);
+
+  // Lyrics Provider States
+  const [providerLyrics, setProviderLyrics] = useState<SongChartSection[] | null>(null);
+  const [lyricsLoading, setLyricsLoading] = useState(false);
+  const [lyricsError, setLyricsError] = useState<string | null>(null);
+  const [lyricsDiagnostics, setLyricsDiagnostics] = useState<{
+    provider: string;
+    success: boolean;
+    confidence: number;
+    type: 'synced' | 'plain' | 'unavailable';
+    duration: number;
+  } | null>(null);
+
+  // Settings states for lyrics providers
+  const [lrclibEnabled, setLrclibEnabled] = useState<boolean>(() => {
+    return localStorage.getItem('chordex:lyrics:provider_enabled:lrclib') !== 'false';
+  });
+  const [kugouEnabled, setKugouEnabled] = useState<boolean>(() => {
+    return localStorage.getItem('chordex:lyrics:provider_enabled:kugou') === 'true';
+  });
+  const [preferSynced, setPreferSynced] = useState<boolean>(() => {
+    return localStorage.getItem('chordex:lyrics:prefer_synced') !== 'false';
+  });
+
+  useEffect(() => { localStorage.setItem('chordex:lyrics:provider_enabled:lrclib', String(lrclibEnabled)); }, [lrclibEnabled]);
+  useEffect(() => { localStorage.setItem('chordex:lyrics:provider_enabled:kugou', String(kugouEnabled)); }, [kugouEnabled]);
+  useEffect(() => { localStorage.setItem('chordex:lyrics:prefer_synced', String(preferSynced)); }, [preferSynced]);
+
+  const hasLocalChart = customChart || (song.sections && song.sections.length > 0);
+
+  const fetchLyrics = useCallback(async (force = false) => {
+    if (hasLocalChart && !force) return;
+
+    setLyricsLoading(true);
+    setLyricsError(null);
+    const startTime = Date.now();
+
+    try {
+      const cacheKey = `chordex:lyrics:cache:${song.id}`;
+      const cached = localStorage.getItem(cacheKey);
+      if (cached && !force) {
+        if (cached === 'none') {
+          setProviderLyrics(null);
+          setLyricsLoading(false);
+          setLyricsDiagnostics({
+            provider: 'cache',
+            success: false,
+            confidence: 0,
+            type: 'unavailable',
+            duration: Date.now() - startTime
+          });
+          return;
+        }
+        try {
+          const parsedRes = JSON.parse(cached);
+          const sections = mapLyricsToSections(parsedRes);
+          setProviderLyrics(sections);
+          setLyricsLoading(false);
+          setLyricsDiagnostics({
+            provider: parsedRes.provider || 'cache',
+            success: true,
+            confidence: parsedRes.confidence || 1.0,
+            type: parsedRes.syncedLines && parsedRes.syncedLines.length > 0 ? 'synced' : 'plain',
+            duration: Date.now() - startTime
+          });
+          return;
+        } catch (_) {}
+      }
+
+      const enabledProviders: string[] = [];
+      if (lrclibEnabled) enabledProviders.push('lrclib');
+      if (kugouEnabled) enabledProviders.push('kugou');
+
+      const result = await fetchLyricsOnline(song.title, song.artist, {
+        preferSynced,
+        enabledProviders
+      });
+
+      if (result) {
+        localStorage.setItem(cacheKey, JSON.stringify(result));
+        const sections = mapLyricsToSections(result);
+        setProviderLyrics(sections);
+        setLyricsDiagnostics({
+          provider: result.provider,
+          success: true,
+          confidence: result.confidence,
+          type: result.syncedLines.length > 0 ? 'synced' : 'plain',
+          duration: Date.now() - startTime
+        });
+      } else {
+        localStorage.setItem(cacheKey, 'none');
+        setProviderLyrics(null);
+        setLyricsDiagnostics({
+          provider: 'none',
+          success: false,
+          confidence: 0,
+          type: 'unavailable',
+          duration: Date.now() - startTime
+        });
+      }
+    } catch (e: any) {
+      console.error('[Chordex Lyrics] Fetch error:', e);
+      setLyricsError(e.message || 'Error fetching lyrics');
+    } finally {
+      setLyricsLoading(false);
+    }
+  }, [song.id, song.title, song.artist, hasLocalChart, lrclibEnabled, kugouEnabled, preferSynced]);
+
+  useEffect(() => {
+    fetchLyrics();
+  }, [fetchLyrics]);
+
+  const handleClearLyricsCache = () => {
+    localStorage.removeItem(`chordex:lyrics:cache:${song.id}`);
+    setProviderLyrics(null);
+    setLyricsDiagnostics(null);
+    alert('Lyrics cache cleared for this song.');
+  };
+
 
   // Save settings when changed
   useEffect(() => { localStorage.setItem('chordex:practice:fontSize', fontSize); }, [fontSize]);
@@ -236,10 +375,10 @@ export function SongPracticeView({ song, onClose }: SongPracticeViewProps) {
     localStorage.removeItem(`chordex:practice:custom_chart_text:${song.id}`);
   };
 
-  // Final active sections source (user custom overrides catalog empty values)
+  // Final active sections source (user custom overrides catalog empty values, falls back to providerLyrics)
   const activeSections = useMemo(() => {
-    return customChart || song.sections || [];
-  }, [customChart, song.sections]);
+    return customChart || (song.sections && song.sections.length > 0 ? song.sections : providerLyrics) || [];
+  }, [customChart, song.sections, providerLyrics]);
 
   // Compile a flat list of lines and calculate timestamps
   const parsedLines = useMemo(() => {
@@ -395,7 +534,7 @@ export function SongPracticeView({ song, onClose }: SongPracticeViewProps) {
       }}
     >
       {/* Draggable Floating Chord Overlay displaying real graphics */}
-      {showChordOverlay && activeSections.length > 0 && (
+      {showChordOverlay && flatChords.length > 0 && (
         <motion.div
           drag
           dragMomentum={false}
@@ -487,7 +626,13 @@ export function SongPracticeView({ song, onClose }: SongPracticeViewProps) {
       </div>
 
       {/* Main Lyrics & Chords Scrollable Container */}
-      {activeSections.length > 0 ? (
+      {lyricsLoading ? (
+        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 16 }}>
+          <div style={{ width: 32, height: 32, borderRadius: '50%', border: '2px solid rgba(255,255,255,0.1)', borderTopColor: 'var(--c-accent)', animation: 'spin 0.8s linear infinite' }}></div>
+          <style>{`@keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }`}</style>
+          <p style={{ fontSize: '12px', color: 'var(--c-text-secondary)' }}>Searching for lyrics...</p>
+        </div>
+      ) : activeSections.length > 0 ? (
         <div
           ref={scrollContainerRef}
           style={{
@@ -496,6 +641,22 @@ export function SongPracticeView({ song, onClose }: SongPracticeViewProps) {
           }}
         >
           <div style={{ maxWidth: '600px', margin: '0 auto' }}>
+            {flatChords.length === 0 && (
+              <div style={{
+                background: 'rgba(255,165,0,0.1)',
+                border: '1px dashed rgba(255,165,0,0.3)',
+                borderRadius: 12,
+                padding: '12px 16px',
+                marginBottom: '20px',
+                textAlign: 'center',
+                fontSize: '11px',
+                color: 'rgba(255,165,0,0.9)',
+                fontFamily: 'Inter, sans-serif'
+              }}>
+                <span className="material-symbols-outlined" style={{ fontSize: '16px', verticalAlign: 'middle', marginRight: '6px' }}>info</span>
+                Chords not added yet. You can paste a chord-over-lyrics chart or edit it manually.
+              </div>
+            )}
             {activeSections.map((section, sIdx) => (
               <div key={sIdx} style={{ marginBottom: '28px' }}>
                 {/* Section Header */}
@@ -588,21 +749,36 @@ export function SongPracticeView({ song, onClose }: SongPracticeViewProps) {
           <p style={{ fontSize: '13px', color: 'var(--c-text-secondary)', maxWidth: '320px', margin: 0, lineHeight: 1.6 }}>
             {t.practice.chartUnavailableDesc}
           </p>
-          <button
-            onClick={() => {
-              setImportText('');
-              setShowImportModal(true);
-            }}
-            style={{
-              padding: '10px 20px', borderRadius: 8, fontSize: '13px', fontWeight: 700,
-              background: 'var(--c-accent)', border: 'none', color: '#ffffff',
-              cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6,
-              fontFamily: 'Inter, sans-serif', boxShadow: '0 4px 12px var(--c-accent)30'
-            }}
-          >
-            <span className="material-symbols-outlined" style={{ fontSize: 16 }}>upload_file</span>
-            {t.practice.importBtn}
-          </button>
+          <div style={{ display: 'flex', gap: 10, marginTop: 8 }}>
+            <button
+              onClick={() => {
+                setImportText('');
+                setShowImportModal(true);
+              }}
+              style={{
+                padding: '10px 20px', borderRadius: 8, fontSize: '13px', fontWeight: 700,
+                background: 'var(--c-accent)', border: 'none', color: '#ffffff',
+                cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6,
+                fontFamily: 'Inter, sans-serif', boxShadow: '0 4px 12px var(--c-accent)30'
+              }}
+            >
+              <span className="material-symbols-outlined" style={{ fontSize: 16 }}>upload_file</span>
+              {t.practice.importBtn}
+            </button>
+            <button
+              onClick={() => fetchLyrics(true)}
+              style={{
+                padding: '10px 20px', borderRadius: 8, fontSize: '13px', fontWeight: 700,
+                background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.12)',
+                color: 'var(--c-text-primary)',
+                cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6,
+                fontFamily: 'Inter, sans-serif'
+              }}
+            >
+              <span className="material-symbols-outlined" style={{ fontSize: 16 }}>sync</span>
+              Retry Search
+            </button>
+          </div>
         </div>
       )}
 
@@ -738,6 +914,76 @@ export function SongPracticeView({ song, onClose }: SongPracticeViewProps) {
                   <button onClick={() => setTempo(t => Math.min(240, t + 5))} style={{ background: 'rgba(128,128,128,0.1)', border: 'none', borderRadius: 6, width: 28, height: 28, color: 'var(--c-text-primary)', cursor: 'pointer', fontWeight: 'bold' }}>+</button>
                 </div>
               </div>
+
+              {/* Lyrics Provider Settings */}
+              <div style={{ borderTop: '1px solid rgba(128,128,128,0.1)', paddingTop: '12px', marginTop: '4px', display: 'flex', flexDirection: 'column', gap: 10 }}>
+                <label style={{ fontSize: '10px', color: 'var(--c-text-muted)', fontWeight: 700, textTransform: 'uppercase' }}>
+                  Lyrics Providers
+                </label>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                    <span style={{ fontSize: '11px', color: 'var(--c-text-secondary)' }}>LRCLIB (Synced)</span>
+                    <input
+                      type="checkbox"
+                      checked={lrclibEnabled}
+                      onChange={e => setLrclibEnabled(e.target.checked)}
+                      style={{ width: 14, height: 14, accentColor: 'var(--c-accent)', cursor: 'pointer' }}
+                    />
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                    <span style={{ fontSize: '11px', color: 'var(--c-text-secondary)' }}>KuGou (Synced/Plain)</span>
+                    <input
+                      type="checkbox"
+                      checked={kugouEnabled}
+                      onChange={e => setKugouEnabled(e.target.checked)}
+                      style={{ width: 14, height: 14, accentColor: 'var(--c-accent)', cursor: 'pointer' }}
+                    />
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                    <span style={{ fontSize: '11px', color: 'var(--c-text-secondary)' }}>Prefer Synced Lyrics</span>
+                    <input
+                      type="checkbox"
+                      checked={preferSynced}
+                      onChange={e => setPreferSynced(e.target.checked)}
+                      style={{ width: 14, height: 14, accentColor: 'var(--c-accent)', cursor: 'pointer' }}
+                    />
+                  </div>
+                  <button
+                    onClick={handleClearLyricsCache}
+                    style={{
+                      padding: '6px 12px', borderRadius: 6, fontSize: '10px', fontWeight: 800,
+                      background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)',
+                      color: 'var(--c-text-secondary)', cursor: 'pointer', textAlign: 'center', marginTop: 4
+                    }}
+                  >
+                    Clear Lyrics Cache
+                  </button>
+                </div>
+              </div>
+
+              {/* Lyrics Diagnostics */}
+              {lyricsDiagnostics && (
+                <div style={{
+                  borderTop: '1px solid rgba(128,128,128,0.1)',
+                  paddingTop: '12px',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: 4,
+                  fontSize: '9px',
+                  color: 'var(--c-text-muted)',
+                  fontFamily: 'monospace'
+                }}>
+                  <div style={{ fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--c-text-secondary)', fontSize: '8px', marginBottom: 2 }}>
+                    Diagnostics
+                  </div>
+                  <div>Provider: {lyricsDiagnostics.provider}</div>
+                  <div>Status: {lyricsDiagnostics.success ? 'Success' : 'Unavailable'}</div>
+                  <div>Type: {lyricsDiagnostics.type}</div>
+                  <div>Match Score: {lyricsDiagnostics.confidence.toFixed(2)}</div>
+                  <div>Fetch Time: {lyricsDiagnostics.duration}ms</div>
+                </div>
+              )}
+
 
               {/* Custom Chart Options */}
               {customChart ? (

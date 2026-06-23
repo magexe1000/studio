@@ -51,4 +51,6 @@ export * from './vocalex/takesDb';
 export { applyUpdate } from './lib/capgoUpdater';
 export { type Language, default as translations } from './lib/i18n';
 export * from './lib/devTools';
+export * from './lib/lyricsService';
+
 
