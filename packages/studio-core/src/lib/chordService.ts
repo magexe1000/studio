@@ -396,8 +396,10 @@ function parseCifraClubChordsFromLine(lineText: string): NormalizedChordMarker[]
         chordText += lineText[j];
         j++;
       }
+      const parsedChord = decodeHtmlEntities(chordText.trim());
+      const normalizedChord = normalizeChordName(parsedChord);
       chords.push({
-        chord: decodeHtmlEntities(chordText.trim()),
+        chord: normalizedChord || parsedChord,
         offset: visualIndex
       });
       i = j - 1;
@@ -862,8 +864,9 @@ function parseChordProLine(lineText: string): { lyrics: string; chords: Normaliz
       if (closeIdx !== -1) {
         const chordName = lineText.substring(i + 1, closeIdx).trim();
         if (chordName && validateChord(chordName)) {
+          const normalizedChord = normalizeChordName(chordName);
           chords.push({
-            chord: chordName,
+            chord: normalizedChord || chordName,
             offset: lyrics.length
           });
         }
@@ -903,8 +906,9 @@ function parseChordsFromLine(lineText: string): NormalizedChordMarker[] {
   while ((match = regex.exec(lineText)) !== null) {
     const chordName = match[0].replace(/[()\[\]]/g, '').trim();
     if (chordName && validateChord(chordName)) {
+      const normalizedChord = normalizeChordName(chordName);
       chords.push({
-        chord: chordName,
+        chord: normalizedChord || chordName,
         offset: match.index
       });
     }

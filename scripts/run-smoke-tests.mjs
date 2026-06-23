@@ -69,6 +69,55 @@ try {
   execSync('node scripts/test-gradle-signing.mjs', { stdio: 'inherit', cwd: repoRoot });
   console.log('✓ Gradle Signing Regression Tests passed.');
 
+  // 8. Run Chord Normalization & Resolution Tests
+  console.log('Running Chord Normalization & Resolution Tests...');
+  const chordsModulePath = path.join(repoRoot, 'packages/studio-core/dist/src/data/chords.js');
+  fileExists(chordsModulePath, 'TypeScript must compile chords.ts to dist/src/data/chords.js first.');
+  
+  const chordsModuleUrl = `file://${chordsModulePath.replace(/\\/g, '/')}`;
+  const { normalizeChordName, getChordByName } = await import(chordsModuleUrl);
+  
+  const tests = [
+    { input: 'Dó', expected: 'C' },
+    { input: 'Rém', expected: 'Dm' },
+    { input: 'Sol7', expected: 'G7' },
+    { input: 'Lámaj7', expected: 'Amaj7' },
+    { input: 'Sib', expected: 'Bb' },
+    { input: 'Fá#', expected: 'F#' },
+    { input: 'Réb', expected: 'Db' },
+    { input: 'Dó/E', expected: 'C/E' },
+    { input: 'C / E', expected: 'C/E' },
+    { input: 'F# m7', expected: 'F#m7' },
+    { input: 'C7M', expected: 'Cmaj7' },
+    { input: 'CM7', expected: 'Cmaj7' },
+    { input: 'C7maj', expected: 'Cmaj7' },
+    { input: 'Cº', expected: 'Cdim' },
+    { input: 'C°', expected: 'Cdim' },
+    { input: 'C*', expected: 'Caug' },
+    { input: 'C+', expected: 'Caug' },
+    { input: 'C(no5)', expected: 'C' }
+  ];
+  
+  for (const { input, expected } of tests) {
+    const res = normalizeChordName(input);
+    assert.strictEqual(res, expected, `Normalization failed: "${input}" -> expected "${expected}", got "${res}"`);
+  }
+  
+  // Verify slash chord resolution / fallback checks
+  const resolvedBase = getChordByName(normalizeChordName('C/E').split('/')[0]);
+  assert(resolvedBase !== undefined, 'Slash chord base C must exist in database.');
+  
+  // Verify that an unknown chord returns undefined
+  const unresolved = getChordByName(normalizeChordName('completely-unknown-chord-xyz'));
+  assert.strictEqual(unresolved, undefined, 'Unknown chord should return undefined.');
+  
+  // Verify min13 is generated and resolves
+  const min13Resolved = getChordByName('Am13');
+  assert(min13Resolved !== undefined, 'Generated minor 13th (Am13) must exist in database.');
+  assert.strictEqual(min13Resolved.type, 'min13', 'Am13 must be classified under min13 type.');
+  
+  console.log('✓ Chord Normalization & Resolution Tests passed.');
+
   console.log('\x1b[32m=== ALL SMOKE TESTS PASSED SUCCESSFULLY ===\x1b[0m');
   process.exit(0);
 } catch (error) {

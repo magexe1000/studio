@@ -1,4 +1,4 @@
-export type ChordType = 'major' | 'minor' | '7th' | 'maj7' | 'min7' | 'sus2' | 'sus4' | 'dim' | 'aug' | '9th' | 'add9' | '11th' | '13th' | 'min9' | 'maj9' | '6th' | 'min6' | 'dom9' | 'halfdim' | 'dim7' | 'min11' | 'maj6' | '7sus4' | '7sus2' | 'power' | 'minmaj7' | 'aug7' | '7b9' | '7s9' | '69' | '9sus4';
+export type ChordType = 'major' | 'minor' | '7th' | 'maj7' | 'min7' | 'sus2' | 'sus4' | 'dim' | 'aug' | '9th' | 'add9' | '11th' | '13th' | 'min9' | 'maj9' | '6th' | 'min6' | 'dom9' | 'halfdim' | 'dim7' | 'min11' | 'maj6' | '7sus4' | '7sus2' | 'power' | 'minmaj7' | 'aug7' | '7b9' | '7s9' | '69' | '9sus4' | 'min13';
 
 export type Instrument = 'guitar' | 'piano' | 'bass';
 
@@ -481,6 +481,7 @@ const CHORD_INTERVALS: Record<ChordType, number[]> = {
   '11th':  [0,4,7,10,14,17],
   '13th':  [0,4,7,10,14,17,21],
   dim7:    [0,3,6,9],
+  min13:   [0,3,7,10,14,17,21],
   min11:   [0,3,7,10,14,17],
   maj6:    [0,4,7,9],
   '7sus4': [0,5,7,10],
@@ -516,6 +517,7 @@ const CHORD_INTERVAL_NAMES: Record<ChordType, string[]> = {
   '11th':  ['1','3','5','b7','9','11'],
   '13th':  ['1','3','5','b7','9','11','13'],
   dim7:    ['1','b3','b5','bb7'],
+  min13:   ['1','b3','5','b7','9','11','13'],
   min11:   ['1','b3','5','b7','9','11'],
   maj6:    ['1','3','5','6'],
   '7sus4': ['1','4','5','b7'],
@@ -538,6 +540,7 @@ const CHORD_SUFFIX: Record<ChordType, string> = {
   dim7:    'dim7', min11: 'm11', maj6:   'maj6', '7sus4': '7sus4', '7sus2': '7sus2',
   power:   '5',    minmaj7: 'm/maj7', aug7: 'aug7',
   '7b9':   '7b9',  '7s9':  '7#9',    '69': '6/9',   '9sus4': '9sus4',
+  min13:   'm13',
 };
 
 // Guitar shape templates: offsets from root fret; -1 = mute
@@ -649,6 +652,10 @@ const GUITAR_SHAPES: Record<ChordType, GuitarShapeTemplate> = {
   // 9sus4 (1,4,5,b7,9): A-shape flat barre — all strings at rootFret give root,4th,b7,9th,5th
   // Verified: A9sus4 = A,D,G,B,E — pure A-shape barre, no extra fingers needed
   '9sus4': { shape:'A', offsets:[-1,0,0,0,0,0],    fingers:[0,1,1,1,1,1], hasBarre:true  },
+  
+  // min13 (1,b3,5,b7,9,11,13): E-shape minor barre + 13th on B string
+  // Verified: Am13 = A,G,C,F#,A — index-barre(1)@str6+str4+str3+str1; ring(3)@str2+2
+  min13:   { shape:'E', offsets:[0,-1,0,0,2,0],    fingers:[1,0,1,1,3,1], hasBarre:true  },
 };
 
 function buildGuitarChord(root: string, type: ChordType): GuitarChordData {
@@ -777,13 +784,16 @@ export function normalizeChordName(name: string): string {
   if (!name || name === '—') return '';
   let clean = name.trim();
   
-  // 1. Remove brackets/parentheses and comments
+  // 1. Remove brackets/parentheses and comments, e.g. (no5) or (omit5) or [Verse]
   clean = clean.replace(/\([^)]*\)/g, '').replace(/\[[^\]]*\]/g, '').trim();
   
-  // 2. Normalize spaces
+  // 2. Remove commas, trailing punctuation and HTML tags
+  clean = clean.replace(/<[^>]*>/g, '').replace(/[.,!$%\^&;:{}=\-_`~()]/g, '').trim();
+  
+  // 3. Normalize spaces
   clean = clean.replace(/\s+/g, '');
   
-  // 3. Handle slash chords recursively
+  // 4. Handle slash chords recursively
   if (clean.includes('/')) {
     const parts = clean.split('/');
     if (parts.length === 2) {
@@ -849,34 +859,61 @@ function normalizeSingleChord(chord: string): string {
   if (root === 'E#') root = 'F';
   
   // 4. Normalize suffix
-  let normSuffix = suffix;
+  let normSuffix = suffix.trim();
   
-  if (normSuffix.startsWith('minor')) {
-    normSuffix = 'm' + normSuffix.slice(5);
-  } else if (normSuffix.startsWith('min')) {
-    normSuffix = 'm' + normSuffix.slice(3);
-  } else if (normSuffix.startsWith('Minor')) {
-    normSuffix = 'm' + normSuffix.slice(5);
-  } else if (normSuffix.startsWith('Min')) {
-    normSuffix = 'm' + normSuffix.slice(3);
-  } else if (normSuffix.startsWith('major')) {
-    normSuffix = 'maj' + normSuffix.slice(5);
-  } else if (normSuffix.startsWith('Major')) {
-    normSuffix = 'maj' + normSuffix.slice(5);
-  } else if (normSuffix.startsWith('maj')) {
-    normSuffix = 'maj' + normSuffix.slice(3);
-  } else if (normSuffix.startsWith('Maj')) {
-    normSuffix = 'maj' + normSuffix.slice(3);
-  } else if (normSuffix.startsWith('M')) {
-    normSuffix = 'maj' + normSuffix.slice(1);
-  }
-  
-  normSuffix = normSuffix.toLowerCase()
+  // Normalize Diminished / Augmented symbols first
+  normSuffix = normSuffix
     .replace(/[º°]/g, 'dim')
     .replace(/\*/g, 'aug')
-    .replace(/^sus$/g, 'sus4');
-    
-  if (normSuffix === 'maj' || normSuffix === 'major') {
+    .replace(/\+/g, 'aug');
+
+  // Case-sensitive replacements to preserve Major (M) vs minor (m) distinction
+  normSuffix = normSuffix.replace(/7M/g, 'maj7');
+  if (normSuffix.startsWith('M') && !normSuffix.startsWith('Min') && !normSuffix.startsWith('Minor')) {
+    normSuffix = 'maj' + normSuffix.slice(1);
+  }
+
+  const lowerSuffix = normSuffix.toLowerCase();
+  
+  // Handle major/minor/7M/M7 standardizations
+  if (lowerSuffix.startsWith('minor') || lowerSuffix.startsWith('minor')) {
+    normSuffix = 'm' + normSuffix.slice(5);
+  } else if (lowerSuffix.startsWith('min')) {
+    normSuffix = 'm' + normSuffix.slice(3);
+  } else if (lowerSuffix.startsWith('maior') || lowerSuffix.startsWith('major')) {
+    normSuffix = 'maj' + normSuffix.slice(5);
+  } else if (lowerSuffix.startsWith('maj')) {
+    normSuffix = 'maj' + normSuffix.slice(3);
+  }
+  
+  // Specific translations for major 7th variations (e.g. 7M, M7, maj7)
+  const cleanLower = normSuffix.toLowerCase();
+  if (cleanLower === '7m' || cleanLower === 'm7' || cleanLower === 'maj7' || cleanLower === '7maj') {
+    if (cleanLower === '7m' || cleanLower === 'maj7' || cleanLower === '7maj') {
+      normSuffix = 'maj7';
+    } else {
+      normSuffix = 'm7';
+    }
+  } else if (cleanLower === 'm/maj7' || cleanLower === 'm(maj7)' || cleanLower === 'mmaj7' || cleanLower === 'minmaj7') {
+    normSuffix = 'm/maj7';
+  } else if (cleanLower === 'm' || cleanLower === 'min' || cleanLower === 'menor') {
+    normSuffix = 'm';
+  } else if (cleanLower === 'maj' || cleanLower === 'maior' || cleanLower === 'major') {
+    normSuffix = '';
+  } else {
+    // General character replacements for common aliases
+    normSuffix = normSuffix
+      .replace(/7M/g, 'maj7')
+      .replace(/M7/g, 'maj7')
+      .replace(/7maj/gi, 'maj7')
+      .replace(/maj7/gi, 'maj7')
+      .replace(/^sus$/i, 'sus4');
+      
+    // Lowercase everything remaining (e.g. sus2, sus4, add9, m11, m13)
+    normSuffix = normSuffix.toLowerCase();
+  }
+  
+  if (normSuffix === 'maj') {
     normSuffix = '';
   }
   

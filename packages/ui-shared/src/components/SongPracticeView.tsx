@@ -48,7 +48,7 @@ function getLineSegments(lyrics: string, chords: NormalizedChordMarker[]): Chord
     }
     
     segments.push({
-      chord: chord.chord,
+      chord: normalizeChordName(chord.chord),
       text: lyrics.substring(chord.offset, nextOffset) || ' '
     });
     lastOffset = nextOffset;
@@ -233,40 +233,93 @@ export function SongPracticeView({ song, onClose }: SongPracticeViewProps) {
 
   const diagLogs = useMemo(() => {
     if (!previewChart) return null;
-    let resolvedCount = 0;
-    let missingCount = 0;
-    const unresolvedNames = new Set<string>();
     let totalChords = 0;
     let lyricLinesCount = 0;
+    
+    const uniqueRawChords = new Set<string>();
+    const rawToNormalized = new Map<string, string>();
     
     previewChart.sections.forEach(sec => {
       sec.lines.forEach(line => {
         lyricLinesCount++;
         line.chords.forEach(c => {
           totalChords++;
-          const cleaned = normalizeChordName(c.chord);
-          let found = getChordByName(cleaned);
-          if (!found && cleaned.includes('/')) {
-            const basePart = cleaned.split('/')[0].trim();
-            found = getChordByName(basePart);
+          uniqueRawChords.add(c.chord);
+        });
+      });
+    });
+    
+    let resolvedCount = 0;
+    let missingCount = 0;
+    let slashFallbackCount = 0;
+    const missingChordList = new Set<string>();
+    const normalizedChordList = new Set<string>();
+    const sourceToNormalizedMapping: { from: string; to: string }[] = [];
+    
+    uniqueRawChords.forEach(raw => {
+      const normalized = normalizeChordName(raw);
+      rawToNormalized.set(raw, normalized);
+      normalizedChordList.add(normalized);
+      sourceToNormalizedMapping.push({ from: raw, to: normalized });
+      
+      // Determine if this unique chord is resolved (either exact, or slash fallback)
+      let found = getChordByName(normalized);
+      if (!found && normalized.includes('/')) {
+        const basePart = normalized.split('/')[0].trim();
+        found = getChordByName(basePart);
+      }
+      if (!found) {
+        missingChordList.add(normalized);
+      }
+    });
+    
+    // Now count the actual markers
+    previewChart.sections.forEach(sec => {
+      sec.lines.forEach(line => {
+        line.chords.forEach(c => {
+          const norm = rawToNormalized.get(c.chord) || normalizeChordName(c.chord);
+          let foundExact = getChordByName(norm);
+          let isResolved = false;
+          let isSlashFallback = false;
+          
+          if (foundExact) {
+            isResolved = true;
+          } else if (norm.includes('/')) {
+            const basePart = norm.split('/')[0].trim();
+            const foundBase = getChordByName(basePart);
+            if (foundBase) {
+              isResolved = true;
+              isSlashFallback = true;
+            }
           }
-          if (found) {
+          
+          if (isResolved) {
             resolvedCount++;
+            if (isSlashFallback) {
+              slashFallbackCount++;
+            }
           } else {
             missingCount++;
-            unresolvedNames.add(c.chord);
           }
         });
       });
     });
     
-    return {
+    const diagnosticsObject = {
       totalChords,
       lyricLinesCount,
+      uniqueChordsCount: uniqueRawChords.size,
+      uniqueRawChords: Array.from(uniqueRawChords),
+      normalizedChords: Array.from(normalizedChordList),
       resolvedCount,
       missingCount,
-      unresolvedNames: Array.from(unresolvedNames)
+      missingChordList: Array.from(missingChordList),
+      sourceToNormalizedMapping,
+      slashFallbackCount
     };
+
+    console.log('[Chordex Import Diagnostics]', diagnosticsObject);
+    return diagnosticsObject;
   }, [previewChart]);
 
   const isSpanish = useMemo(() => {
@@ -682,7 +735,7 @@ export function SongPracticeView({ song, onClose }: SongPracticeViewProps) {
 
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2 }}>
             <span style={{ fontSize: '14px', fontWeight: 900, color: 'var(--c-accent)' }}>
-              {currentChord}
+              {normalizeChordName(currentChord)}
             </span>
             {currentBassNote && (
               <span style={{ fontSize: '9px', fontWeight: 700, color: 'var(--c-text-secondary)', marginTop: -2 }}>
@@ -691,7 +744,7 @@ export function SongPracticeView({ song, onClose }: SongPracticeViewProps) {
             )}
             <span style={{ display: 'flex', gap: 6, fontSize: '9px', color: 'var(--c-text-muted)' }}>
               <span>{t.practice.next}:</span>
-              <span style={{ fontWeight: 700, color: 'var(--c-text-secondary)' }}>{nextChord}</span>
+              <span style={{ fontWeight: 700, color: 'var(--c-text-secondary)' }}>{normalizeChordName(nextChord)}</span>
             </span>
           </div>
         </motion.div>
@@ -1405,14 +1458,34 @@ export function SongPracticeView({ song, onClose }: SongPracticeViewProps) {
                       {previewChart.importDiagnostics.map((d, idx) => <li key={idx}>{d}</li>)}
                       {diagLogs && (
                         <>
-                          <li>{isSpanish ? 'Secciones' : 'Sections'}: {previewChart.sections.length}</li>
-                          <li>{isSpanish ? 'Líneas de letra' : 'Lyric lines'}: {diagLogs.lyricLinesCount}</li>
-                          <li>{isSpanish ? 'Acordes totales' : 'Total chords'}: {diagLogs.totalChords}</li>
+                          <li>{isSpanish ? 'Marcadores de acorde' : 'Total chord markers'}: {diagLogs.totalChords}</li>
+                          <li>{isSpanish ? 'Acordes únicos' : 'Unique chords'}: {diagLogs.uniqueRawChords.join(', ')}</li>
+                          <li>{isSpanish ? 'Nombres normalizados' : 'Normalized names'}: {diagLogs.normalizedChords.join(', ')}</li>
                           <li>{isSpanish ? 'Diagramas resueltos' : 'Diagrams resolved'}: {diagLogs.resolvedCount}</li>
                           <li>{isSpanish ? 'Diagramas faltantes' : 'Diagrams missing'}: {diagLogs.missingCount}</li>
-                          {diagLogs.unresolvedNames.length > 0 && (
+                          <li>{isSpanish ? 'Reemplazos de bajo (Slash)' : 'Slash chord fallbacks'}: {diagLogs.slashFallbackCount}</li>
+                          {diagLogs.missingChordList.length > 0 && (
                             <li style={{ color: '#ef4444' }}>
-                              {isSpanish ? 'Acordes no soportados' : 'Unsupported chords'}: {diagLogs.unresolvedNames.join(', ')}
+                              {isSpanish ? 'Diagramas faltantes' : 'Missing diagrams'}: {diagLogs.missingChordList.join(', ')}
+                            </li>
+                          )}
+                          <li style={{ marginTop: '4px', listStyleType: 'none', background: 'rgba(255,255,255,0.02)', padding: '6px', borderRadius: '4px' }}>
+                            <strong style={{ display: 'block', marginBottom: '2px', fontSize: '9px', color: 'var(--c-accent)' }}>
+                              {isSpanish ? 'Mapeo de Acordes (Original → Normalizado):' : 'Chord Mapping (Original → Normalized):'}
+                            </strong>
+                            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', fontSize: '9px' }}>
+                              {diagLogs.sourceToNormalizedMapping.map((m, idx) => (
+                                <span key={idx} style={{ background: 'rgba(255,255,255,0.05)', padding: '2px 6px', borderRadius: '3px' }}>
+                                  {m.from} → {m.to}
+                                </span>
+                              ))}
+                            </div>
+                          </li>
+                          {diagLogs.missingCount > 0 && (
+                            <li style={{ color: '#fbbf24', listStyleType: 'none', marginTop: '4px', fontWeight: 'bold' }}>
+                              ⚠️ {isSpanish 
+                                ? 'Algunos diagramas no están disponibles, pero el diagrama se importó correctamente.' 
+                                : 'Some diagrams are unavailable, but the chart was imported successfully.'}
                             </li>
                           )}
                         </>

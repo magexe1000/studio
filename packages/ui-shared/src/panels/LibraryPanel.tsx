@@ -76,7 +76,9 @@ const CATEGORIES: {
   { type: 'halfdim', icon: 'contrast',            label: 'Half-Dim ø7',  desc: 'Jazz & classical tension.',        color: '#ee7d77' },
   { type: 'dim7',    icon: 'block',               label: 'Dim7',         desc: 'Symmetrical & eerie.',             color: '#ee7d77' },
   { type: '11th',    icon: 'stacked_bar_chart',   label: '11th',         desc: 'Dense & modern.',                  color: '#b57bee' },
+  { type: 'min11',   icon: 'stacked_bar_chart',   label: 'Min11',        desc: 'Mellow minor 11th.',               color: '#b57bee' },
   { type: '13th',    icon: 'equalizer',           label: '13th',         desc: 'Full jazz voicing.',               color: '#b57bee' },
+  { type: 'min13',   icon: 'equalizer',           label: 'Min13',        desc: 'Rich minor 13th.',                 color: '#b57bee' },
   { type: '7sus4',   icon: 'pending',             label: '7sus4',        desc: 'Funky & unresolved.',              color: '#34d399' },
   { type: '7sus2',   icon: 'radio_button_unchecked', label: '7sus2',     desc: 'Open dominant.',                   color: '#34d399' },
   { type: 'maj6',    icon: 'grade',               label: 'Maj6',         desc: 'Vintage & melodic.',               color: '#fbbf24' },
@@ -531,7 +533,18 @@ export default function LibraryPanel() {
     if (!activeType || activeType === 'all') return [];
     const seen = new Set<string>();
     return allChords.filter(c => {
-      if (c.type !== activeType) return false;
+      let match = c.type === activeType;
+      if (!match) {
+        if (activeType === '11th' && c.type === 'min11') match = true;
+        else if (activeType === '13th' && c.type === 'min13') match = true;
+        else if (activeType === '9th' && ['dom9', 'maj9', 'min9', '7b9', '7s9'].includes(c.type)) match = true;
+        else if (activeType === '6th' && ['maj6', 'min6', '69'].includes(c.type)) match = true;
+        else if (activeType === 'dim' && ['dim7', 'halfdim'].includes(c.type)) match = true;
+        else if (activeType === 'aug' && c.type === 'aug7') match = true;
+        else if (activeType === 'sus4' && ['7sus4', '9sus4'].includes(c.type)) match = true;
+        else if (activeType === 'sus2' && c.type === '7sus2') match = true;
+      }
+      if (!match) return false;
       const key = c.guitar.frets.join(',');
       if (seen.has(key)) return false;
       seen.add(key);

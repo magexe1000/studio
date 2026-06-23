@@ -26,7 +26,7 @@ import { useMemo } from 'react';
 import { Capacitor } from '@capacitor/core';
 
 /** Canonical semver string used by the OTA comparator. */
-export const NATIVE_VERSION = '3.6.91';
+export const NATIVE_VERSION = '3.6.92';
 export const WEB_VERSION = '4.0.0';
 export const APP_VERSION = Capacitor.isNativePlatform() ? NATIVE_VERSION : WEB_VERSION;
 
@@ -61,11 +61,10 @@ export const APP_CHANGELOG_SECTIONS: ChangelogSection[] = [
   {
     heading: "Added",
     items: [
-      "Expanded chord diagram coverage in Practice mode by auto-generating complete guitar shapes for all standard roots and extensions.",
-      "Implemented a robust chord normalization layer converting Latin roots, unicode accidentals, and suffix aliases before resolution.",
-      "Added slash chord fallback rendering: shows the base chord shape and details the bass note on missing slash definitions.",
-      "Integrated a Supported Sites status checklist inside the URL Import modal showing Supported, Limited, and Blocked hosts.",
-      "Implemented dedicated import adapters with detailed error diagnostics for E-Chords and 7 other chord search sites.",
+      "Expanded guitar chord database by adding the minor 13th (min13) quality and chord shape definitions.",
+      "Enhanced normalization layer to support Latin roots, unicode symbols, and suffix aliases like 7M/M7/menor/maior.",
+      "Upgraded import diagnostics and chord mapping tooltips in the preview modal for better diagram verification.",
+      "Correctly categorized extended and new chord shapes under the right sections in Chordex Library.",
     ],
   },
 ];
@@ -75,9 +74,9 @@ export const APP_CHANGELOG_SECTIONS_NATIVE: ChangelogSection[] = [
   {
     heading: "What's New",
     items: [
-      "Added Import from URL workflow for Cifra Club and generic preformatted chord charts.",
-      "Implemented interactive Preview-Before-Save layout and private user chart storage.",
-      "Integrated URL imported chords directly into Practice view and floating diagram overlays.",
+      "Added minor 13th (min13) guitar chords and playable shapes to the database.",
+      "Standardized Portuguese and Latin chord naming formats before resolving diagrams.",
+      "Improved slash chord fallback and added warning notifications for missing diagrams.",
     ],
   },
 ];
@@ -88,9 +87,9 @@ export const APP_CHANGELOG_SECTIONS_ES: ChangelogSection[] = [
   {
     heading: "Novedades",
     items: [
-      "Se agregó el flujo de importación desde URL para diagramas de Cifra Club y texto genérico.",
-      "Se implementó la vista previa interactiva antes de guardar y el almacenamiento local.",
-      "Integración de acordes importados directamente en la vista de práctica y superposición de diagramas.",
+      "Se agregaron acordes de menor 13ª (min13) y sus posiciones al diccionario.",
+      "Estandarización de nombres en portugués y latín antes de buscar diagramas.",
+      "Búsqueda mejorada de acordes con bajo (slash) y advertencias para diagramas faltantes.",
     ],
   },
 ];
