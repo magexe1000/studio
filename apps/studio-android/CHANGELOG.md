@@ -12,6 +12,12 @@ Conventions:
 - Bullets start with `- ` and use plain English a non-technical user
   can parse. Keep each line short — the modal's text area is narrow.
 
+## 3.6.84
+
+### Fixed
+- Matched Stagex History panel design and transitions to Layouts UI.
+- Resolved Android native swipe-back gestures for PDF Export and History panel.
+
 ## 3.6.83
 
 ### Improved

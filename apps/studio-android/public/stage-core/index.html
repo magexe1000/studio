@@ -5178,14 +5178,13 @@ window.addEventListener('message', function(e) {
     }
 
     if (e.data && e.data.type === 'sc-back-request') {
-      if (typeof window.stageHasOpenOverlay === 'function' && window.stageHasOpenOverlay()) {
-        if (typeof window.stageGoBack === 'function') window.stageGoBack();
-      } else {
-        if (typeof _curView !== 'undefined' && _curView !== 'Editor') {
-          if (typeof window.stageGoBack === 'function') window.stageGoBack();
-        } else {
-          window.parent.postMessage({ type: 'sc-back-bubble' }, '*');
-        }
+      var consumed = false;
+      if (typeof window.stageGoBack === 'function') {
+        consumed = window.stageGoBack();
+      }
+      window.parent.postMessage({ type: 'sc-back-response', consumed: consumed }, '*');
+      if (typeof window.reportStagexState === 'function') {
+        window.reportStagexState();
       }
       return;
     }
@@ -5272,6 +5271,7 @@ window.addEventListener('message', function(e) {
   /* ── MutationObserver state sync to track open overlays ── */
   (function() {
     var lastState = false;
+    var lastReport = '';
     function checkOverlays() {
       var currentState = false;
       if (typeof window.stageHasOpenOverlay === 'function') {
@@ -5280,6 +5280,21 @@ window.addEventListener('message', function(e) {
       if (currentState !== lastState) {
         lastState = currentState;
         window.parent.postMessage({ type: 'sc-overlay-state', open: currentState }, '*');
+      }
+      if (typeof window.reportStagexState === 'function') {
+        const presetsOpen = !!(document.getElementById('presets-panel')?.classList.contains('preset-open'));
+        const historyOpen = !!(window._histTimelineOpen);
+        const pdfExportOpen = (typeof state !== 'undefined' && state.currentView === 'Export') || (_curView === 'Export');
+        const serialized = presetsOpen + '-' + historyOpen + '-' + pdfExportOpen;
+        if (serialized !== lastReport) {
+          lastReport = serialized;
+          window.parent.postMessage({
+            type: 'sc-state-report',
+            pdfExportOpen: pdfExportOpen,
+            historyOpen: historyOpen,
+            layoutsOpen: presetsOpen
+          }, '*');
+        }
       }
     }
     try {

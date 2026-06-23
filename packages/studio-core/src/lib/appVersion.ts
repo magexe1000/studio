@@ -26,7 +26,7 @@ import { useMemo } from 'react';
 import { Capacitor } from '@capacitor/core';
 
 /** Canonical semver string used by the OTA comparator. */
-export const NATIVE_VERSION = '3.6.83';
+export const NATIVE_VERSION = '3.6.84';
 export const WEB_VERSION = '4.0.0';
 export const APP_VERSION = Capacitor.isNativePlatform() ? NATIVE_VERSION : WEB_VERSION;
 
@@ -38,7 +38,7 @@ export const APP_VERSION_LABEL = `${APP_VERSION_TAG} ${APP_VERSION}`;
 
 /** Release date for the CURRENT bundle, shown alongside the version pill
  *  in the changelog sheet. ISO-8601 (`YYYY-MM-DD`). */
-export const APP_VERSION_DATE = '2026-06-23'; // 3.6.83
+export const APP_VERSION_DATE = '2026-06-23'; // 3.6.84
 // Note: keep ISO-8601. Bump together with APP_VERSION on each release.
 
 export const APP_COMMIT_SHA = import.meta.env.VITE_GIT_COMMIT_SHA || 'efd2b1a3';
@@ -59,12 +59,10 @@ export interface ChangelogSection {
 
 export const APP_CHANGELOG_SECTIONS: ChangelogSection[] = [
   {
-    heading: "Improved",
+    heading: "Fixed",
     items: [
-      "Added performance diagnostics for sub-app transitions.",
-      "Optimized startup sequence and deferred heavy bundle compilation.",
-      "Polished Stagex touch targets and back button navigation.",
-      "Enhanced native OTA update installer progress tracking.",
+      "Matched Stagex History panel design and transitions to Layouts UI.",
+      "Resolved Android native swipe-back gestures for PDF Export and History panel.",
     ],
   },
 ];
@@ -72,12 +70,10 @@ export const APP_CHANGELOG_SECTIONS: ChangelogSection[] = [
 /** Native English version of the current changelog for Android. */
 export const APP_CHANGELOG_SECTIONS_NATIVE: ChangelogSection[] = [
   {
-    heading: "Improved",
+    heading: "Fixed",
     items: [
-      "Added performance diagnostics for sub-app transitions.",
-      "Optimized startup sequence and deferred heavy bundle compilation.",
-      "Polished Stagex touch targets and back button navigation.",
-      "Enhanced native OTA update installer progress tracking.",
+      "Matched Stagex History panel design and transitions to Layouts UI.",
+      "Resolved Android native swipe-back gestures for PDF Export and History panel.",
     ],
   },
 ];
@@ -86,12 +82,10 @@ export const APP_CHANGELOG_SECTIONS_NATIVE: ChangelogSection[] = [
  *  by `ChangelogSheet` based on `settings.language`. */
 export const APP_CHANGELOG_SECTIONS_ES: ChangelogSection[] = [
   {
-    heading: "Mejorado",
+    heading: "Corregido",
     items: [
-      "Añadidos diagnósticos de rendimiento para transiciones entre aplicaciones.",
-      "Optimización del flujo de inicio y compilación diferida de paquetes pesados.",
-      "Ajustes de navegación y áreas táctiles mejoradas en Stagex.",
-      "Seguimiento de progreso mejorado en el instalador OTA nativo.",
+      "Diseño del panel de historial de Stagex adaptado al panel de diseños.",
+      "Corregidos gestos de retroceso nativos de Android para Exportación PDF e Historial.",
     ],
   },
 ];

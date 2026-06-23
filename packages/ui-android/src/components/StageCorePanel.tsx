@@ -482,6 +482,8 @@ export default function StagexPanel() {
   const [stagePill, setStagePill] = useState<{ left: number; right: number; ready: boolean }>({ left: 0, right: 0, ready: false });
   const [fabOpen, setFabOpen] = useState(false);
   const [hasOpenOverlay, setHasOpenOverlay] = useState(false);
+  const [historyOpen, setHistoryOpen] = useState(false);
+  const [layoutsOpen, setLayoutsOpen] = useState(false);
   const [liveMode, setLiveMode] = useState(false);
   const [iframeLoading, setIframeLoading] = useState(true);
   const navCollapsed = useNavCollapsed();
@@ -1338,6 +1340,13 @@ ComposedPath: ${path.slice(0, 3).join(' > ')}`;
       if (e.data?.type === 'sc-prop-state') setPropPanelOpen(e.data.state === 'open' || e.data.state === 'peek');
       if (e.data?.type === 'sc-live-mode') setLiveMode(!!e.data.on);
       if (e.data?.type === 'sc-overlay-state') setHasOpenOverlay(!!e.data.open);
+      if (e.data?.type === 'sc-state-report') {
+        setHistoryOpen(!!e.data.historyOpen);
+        setLayoutsOpen(!!e.data.layoutsOpen);
+        if (e.data.pdfExportOpen !== undefined) {
+          setCurView(e.data.pdfExportOpen ? 'Export' : (curViewRef.current === 'Export' ? 'Editor' : curViewRef.current));
+        }
+      }
       if (e.data?.type === 'sc-scene-touch') {
         setSceneTouchTelemetry(prev => {
           const next = [...prev, e.data];
@@ -1365,7 +1374,7 @@ ComposedPath: ${path.slice(0, 3).join(' > ')}`;
     };
     window.addEventListener('message', onMsg);
     return () => window.removeEventListener('message', onMsg);
-  }, [showDiagnostics, logDiagnostic, setSceneTouchTelemetry]);
+  }, [showDiagnostics, logDiagnostic, setSceneTouchTelemetry, setHistoryOpen, setLayoutsOpen, setCurView]);
 
   useEffect(() => {
     updateStagexDiagnostics({
@@ -1471,26 +1480,34 @@ ComposedPath: ${path.slice(0, 3).join(' > ')}`;
       setShowDiagnostics(false);
       return true;
     }
-    if (fabOpen) {
-      callIframe('toggleSCDial');
-      setFabOpen(false);
-      return true;
-    }
     return false;
-  }, [pdfSheetOpen, showDiagnostics, fabOpen, callIframe]);
+  }, [pdfSheetOpen, showDiagnostics]);
 
   useBackHandler('nested', () => {
-    if (!iframeReady.current) {
+    const iframeHasActiveOverlay = hasOpenOverlay || historyOpen || layoutsOpen || fabOpen || (curViewRef.current !== 'Editor');
+    
+    if (iframeHasActiveOverlay) {
+      try {
+        iframeRef.current?.contentWindow?.postMessage({ type: 'sc-back-request' }, '*');
+      } catch (e) {
+        console.error('Error posting sc-back-request to iframe:', e);
+      }
+      return true; // Consumed synchronously
+    }
+    
+    if (isStageExpanded) {
+      toggleStageExpanded();
+      return true;
+    }
+    
+    const behavior = useChordStore.getState().settings.swipeBackBehavior || 'exit-to-hub';
+    if (behavior === 'exit-to-hub') {
       returnToStudioHub();
       return true;
     }
-    try {
-      iframeRef.current?.contentWindow?.postMessage({ type: 'sc-back-request' }, '*');
-    } catch (e) {
-      returnToStudioHub();
-    }
-    return true;
-  }, [returnToStudioHub]);
+    
+    return false; // Do not return to hub, stay in Stagex (manual-only)
+  }, [hasOpenOverlay, historyOpen, layoutsOpen, fabOpen, isStageExpanded, returnToStudioHub]);
 
   const hasWebHeader = !isWebDesktop || (curView === 'Editor' || curView === 'Export' || showBack);
   const collapseHeader = (isLandscape && curView === 'Editor') || liveMode || !hasWebHeader || isStageExpanded;

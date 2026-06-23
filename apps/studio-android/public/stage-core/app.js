@@ -5027,11 +5027,13 @@ function openPresetsPanel(triggerEl) {
   hideSaveForm();
   renderPresetsList();
   lcIcons();
+  if (typeof window.reportStagexState === 'function') window.reportStagexState();
 }
 function closePresetsPanel() {
   document.getElementById('presets-panel').classList.remove('preset-open');
   document.getElementById('presets-backdrop').style.display = 'none';
   hideSaveForm();
+  if (typeof window.reportStagexState === 'function') window.reportStagexState();
 }
 
 function triggerSavePreset() {
@@ -7770,29 +7772,7 @@ window.stageGoBack = function() {
     closeScenesSheet();
     return true;
   }
-  // 13. Layouts/presets panel
-  const pm = document.getElementById('presets-panel');
-  if (pm && (pm.style.display !== 'none' || pm.classList.contains('preset-open'))) {
-    closePresetsPanel();
-    return true;
-  }
-  // 14. History panel
-  const hp = document.getElementById('sc-hist-panel');
-  if (hp && (hp.style.display !== 'none' || hp.classList.contains('sc-hist-open'))) {
-    if (typeof closeTimelinePanel === 'function') {
-      closeTimelinePanel();
-    } else {
-      hp.classList.remove('sc-hist-open');
-    }
-    return true;
-  }
-  // 14.5 Timeline panel
-  const tl = document.getElementById('timeline-panel');
-  if (tl && tl.style.display !== 'none') {
-    closeTimeline();
-    return true;
-  }
-  // 15. Item sheet
+  // 15. Item sheet (item details sheet/modal)
   const sheet = document.getElementById('sc-item-sheet');
   if (sheet && sheet.classList.contains('sc-sheet-open')) {
     closeItemSheet();
@@ -7809,15 +7789,65 @@ window.stageGoBack = function() {
     return true;
   }
 
-  if (state.currentView === 'Export') { leaveExport(); return true; }
+  // --- HIERARCHICAL VIEW BACK NAVIGATION ---
+  
+  // A. PDF Export View
+  if (state.currentView === 'Export') {
+    leaveExport();
+    return true;
+  }
+
+  // B. History Panel
+  const hp = document.getElementById('sc-hist-panel');
+  if (hp && (hp.style.display !== 'none' || hp.classList.contains('sc-hist-open'))) {
+    if (typeof closeTimelinePanel === 'function') {
+      closeTimelinePanel();
+    } else {
+      hp.classList.remove('sc-hist-open');
+    }
+    return true;
+  }
+
+  // C. Layouts panel (presets panel)
+  const pm = document.getElementById('presets-panel');
+  if (pm && (pm.style.display !== 'none' || pm.classList.contains('preset-open'))) {
+    closePresetsPanel();
+    return true;
+  }
+
+  // D. Timeline panel
+  const tl = document.getElementById('timeline-panel');
+  if (tl && tl.style.display !== 'none') {
+    closeTimeline();
+    return true;
+  }
+
+  // E. Other nested views
   if (state.currentView === 'Rider' || state.currentView === 'Setlist' ||
       state.currentView === 'Gear' || state.currentView === 'Members') {
-    switchView('SetupHub'); return true;
+    switchView('SetupHub');
+    return true;
   }
   if (state.currentView === 'SetupHub' || state.currentView === 'Preferences' || state.currentView === 'Assistant') {
-    switchView('Editor'); return true;
+    switchView('Editor');
+    return true;
   }
+
   return false;
+};
+
+// Report the state of nested panels to the parent React wrapper
+window.reportStagexState = function() {
+  const presetsOpen = !!(document.getElementById('presets-panel')?.classList.contains('preset-open'));
+  const historyOpen = !!(window._histTimelineOpen);
+  const pdfExportOpen = state.currentView === 'Export';
+  
+  window.parent.postMessage({
+    type: 'sc-state-report',
+    pdfExportOpen: pdfExportOpen,
+    historyOpen: historyOpen,
+    layoutsOpen: presetsOpen
+  }, '*');
 };
 
 // Hide parent's top header + bottom nav while scrolling down inside the export

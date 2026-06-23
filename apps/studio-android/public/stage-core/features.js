@@ -3445,6 +3445,7 @@ function openTimelinePanel() {
   if (r) { r.disabled = true; r.style.opacity = '0.15'; r.style.pointerEvents = 'none'; }
 
   if (typeof closeShareModal === 'function') closeShareModal();
+  if (typeof window.reportStagexState === 'function') window.reportStagexState();
 }
 
 function closeTimelinePanel() {
@@ -3467,6 +3468,7 @@ function closeTimelinePanel() {
     if (u) { u.disabled = false; u.style.pointerEvents = 'auto'; }
     if (r) { r.disabled = false; r.style.pointerEvents = 'auto'; }
   }
+  if (typeof window.reportStagexState === 'function') window.reportStagexState();
 }
 
 function _renderHistTimeline() {
@@ -3477,28 +3479,10 @@ function _renderHistTimeline() {
   const light   = _scIsLight();
 
   const c = light ? {
-    headerBorder: 'rgba(0,0,0,0.10)',
-    title: '#1a1a1c',
-    closeIdle: '#7a7a7d',
-    closeHover: '#1a1a1c',
     emptyText: '#6c6c70',
-    footerBorder: 'rgba(0,0,0,0.08)',
-    btnBorder: 'rgba(0,0,0,0.14)',
-    btnText: '#5c5c60',
-    btnHoverText: '#1a1a1c',
-    btnHoverBorder: 'rgba(122,175,255,0.45)',
     scrollThumb: 'rgba(0,0,0,0.18)',
   } : {
-    headerBorder: 'rgba(72,72,71,0.22)',
-    title: '#e0e0e0',
-    closeIdle: '#484847',
-    closeHover: '#e0e0e0',
     emptyText: '#767575',
-    footerBorder: 'rgba(72,72,71,0.15)',
-    btnBorder: 'rgba(72,72,71,0.3)',
-    btnText: '#767575',
-    btnHoverText: '#e0e0e0',
-    btnHoverBorder: 'rgba(122,175,255,0.35)',
     scrollThumb: 'rgba(72,72,71,0.4)',
   };
 
@@ -3520,20 +3504,24 @@ function _renderHistTimeline() {
       </div>`;
   }).reverse().join('');
 
+  const isUndoDisabled = cur <= 0;
+  const isRedoDisabled = cur >= entries.length - 1;
+
   panel.innerHTML = DOMPurify.sanitize(`
-    <div style="display:flex;align-items:center;padding:8px 10px;border-bottom:1px solid ${c.headerBorder};flex-shrink:0;gap:6px;">
-      <span class="material-symbols-outlined" style="font-size:12px;color:#7aafff;">history</span>
-      <span style="font-family:'Manrope',sans-serif;font-size:9px;font-weight:900;text-transform:uppercase;letter-spacing:.12em;color:${c.title};flex:1;">History</span>
-      <button onclick="closeTimelinePanel()" style="background:none;border:none;color:${c.closeIdle};cursor:pointer;font-size:15px;line-height:1;padding:0 2px;" onmouseover="this.style.color='${c.closeHover}'" onmouseout="this.style.color='${c.closeIdle}'">×</button>
+    <div id="sc-hist-panel-hdr">
+      <button id="sc-hist-back-btn" onclick="closeTimelinePanel()">
+        <span class="material-symbols-outlined" style="font-size:15px;display:block;">arrow_back</span>
+      </button>
+      <span id="sc-hist-panel-title">History</span>
     </div>
-    <div style="flex:1;overflow-y:auto;padding:4px 0;scrollbar-width:thin;scrollbar-color:${c.scrollThumb} transparent;">
+    <div id="sc-hist-list-wrap" style="scrollbar-width:thin;scrollbar-color:${c.scrollThumb} transparent;">
       ${entries.length === 0
         ? `<p style="font-family:'Inter';font-size:9px;color:${c.emptyText};text-align:center;margin:14px 0;line-height:1.5;">No history yet.<br>Make edits to see your timeline.</p>`
         : rows}
     </div>
-    <div style="padding:6px 8px;border-top:1px solid ${c.footerBorder};display:flex;gap:5px;flex-shrink:0;">
-      <button onclick="undo();_renderHistTimeline();" style="flex:1;padding:4px 4px;font-family:'Manrope',sans-serif;font-size:8px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;background:transparent;border:1px solid ${c.btnBorder};color:${c.btnText};cursor:pointer;transition:all .12s;border-radius:4px;" onmouseover="this.style.color='${c.btnHoverText}';this.style.borderColor='${c.btnHoverBorder}'" onmouseout="this.style.color='${c.btnText}';this.style.borderColor='${c.btnBorder}'">← Undo</button>
-      <button onclick="redo();_renderHistTimeline();" style="flex:1;padding:4px 4px;font-family:'Manrope',sans-serif;font-size:8px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;background:transparent;border:1px solid ${c.btnBorder};color:${c.btnText};cursor:pointer;transition:all .12s;border-radius:4px;" onmouseover="this.style.color='${c.btnHoverText}';this.style.borderColor='${c.btnHoverBorder}'" onmouseout="this.style.color='${c.btnText}';this.style.borderColor='${c.btnBorder}'">Redo →</button>
+    <div id="sc-hist-footer">
+      <button onclick="undo();_renderHistTimeline();" ${isUndoDisabled ? 'disabled' : ''}>← Undo</button>
+      <button onclick="redo();_renderHistTimeline();" ${isRedoDisabled ? 'disabled' : ''}>Redo →</button>
     </div>`);
 }
 
