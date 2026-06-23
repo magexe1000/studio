@@ -123,6 +123,17 @@ function parseTextChart(text: string): SongChartSection[] {
   return sections;
 }
 
+function cleanChordName(name: string): string {
+  if (!name || name === '—') return '';
+  let clean = name.trim();
+  const slashIdx = clean.indexOf('/');
+  if (slashIdx !== -1) {
+    clean = clean.substring(0, slashIdx);
+  }
+  clean = clean.replace(/[()\[\]]/g, '');
+  return clean.trim();
+}
+
 export function SongPracticeView({ song, onClose }: SongPracticeViewProps) {
   const t = useT();
 
@@ -206,8 +217,8 @@ export function SongPracticeView({ song, onClose }: SongPracticeViewProps) {
       const parsed = parseTextChart(importText);
       setCustomChart(parsed);
       localStorage.setItem(`chordex:practice:custom_chart:${song.id}`, JSON.stringify(parsed));
+      localStorage.setItem(`chordex:practice:custom_chart_text:${song.id}`, importText);
       setShowImportModal(false);
-      setImportText('');
     } catch (_) {
       alert('Error parsing chart. Please verify spacing and headers.');
     }
@@ -216,6 +227,7 @@ export function SongPracticeView({ song, onClose }: SongPracticeViewProps) {
   const handleClearCustomChart = () => {
     setCustomChart(null);
     localStorage.removeItem(`chordex:practice:custom_chart:${song.id}`);
+    localStorage.removeItem(`chordex:practice:custom_chart_text:${song.id}`);
   };
 
   // Final active sections source (user custom overrides catalog empty values)
@@ -297,7 +309,8 @@ export function SongPracticeView({ song, onClose }: SongPracticeViewProps) {
   // Retrieve actual Chord shape from the library
   const currentChordObj = useMemo(() => {
     if (currentChord === '—') return null;
-    return getChordByName(currentChord);
+    const cleaned = cleanChordName(currentChord);
+    return getChordByName(cleaned);
   }, [currentChord]);
 
   // Animation frame loop for playback
@@ -391,29 +404,33 @@ export function SongPracticeView({ song, onClose }: SongPracticeViewProps) {
             border: '1px solid rgba(255,255,255,0.08)',
             boxShadow: '0 8px 32px rgba(0,0,0,0.4)',
             backdropFilter: 'blur(16px)',
-            cursor: 'grab', display: 'flex', flexDirection: 'column', gap: 6
+            cursor: 'grab', display: 'flex', flexDirection: 'column', gap: 8
           }}
         >
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <div style={{ display: 'flex', justifyContent: 'center', borderBottom: '1px solid rgba(255,255,255,0.06)', paddingBottom: 4 }}>
             <span style={{ fontSize: '8px', textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--c-text-muted)', fontWeight: 700 }}>
-              {t.practice.chord}
-            </span>
-            <span style={{ fontSize: '11px', fontWeight: 900, color: 'var(--c-accent)' }}>
-              {currentChord}
+              {t.practice.practiceTitle || 'Practice'}
             </span>
           </div>
 
-          <div style={{ background: 'rgba(0,0,0,0.25)', borderRadius: 10, padding: '6px 4px', height: 75, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          {/* Diagram Graphics (Primary focus) */}
+          <div style={{ background: 'rgba(0,0,0,0.25)', borderRadius: 10, padding: '8px 4px', height: 75, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
             {currentChordObj ? (
               <ChordDiagram data={currentChordObj.guitar} accentFrom="var(--c-accent)" />
             ) : (
-              <span style={{ fontSize: '10px', color: 'var(--c-text-muted)' }}>—</span>
+              <span style={{ fontSize: '12px', color: 'var(--c-text-muted)', fontWeight: 700 }}>{currentChord}</span>
             )}
           </div>
 
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '9px', borderTop: '1px solid rgba(255,255,255,0.06)', paddingTop: 4 }}>
-            <span style={{ color: 'var(--c-text-muted)' }}>{t.practice.next}:</span>
-            <span style={{ fontWeight: 700, color: 'var(--c-text-secondary)' }}>{nextChord}</span>
+          {/* Chord name as secondary label below the graphic */}
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2 }}>
+            <span style={{ fontSize: '14px', fontWeight: 900, color: 'var(--c-accent)' }}>
+              {currentChord}
+            </span>
+            <span style={{ display: 'flex', gap: 6, fontSize: '9px', color: 'var(--c-text-muted)' }}>
+              <span>{t.practice.next}:</span>
+              <span style={{ fontWeight: 700, color: 'var(--c-text-secondary)' }}>{nextChord}</span>
+            </span>
           </div>
         </motion.div>
       )}
@@ -716,17 +733,49 @@ export function SongPracticeView({ song, onClose }: SongPracticeViewProps) {
                 </div>
               </div>
 
-              {/* Clear Custom Chart Option */}
-              {customChart && (
+              {/* Custom Chart Options */}
+              {customChart ? (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginTop: 'auto' }}>
+                  <button
+                    onClick={() => {
+                      const rawText = localStorage.getItem(`chordex:practice:custom_chart_text:${song.id}`) || '';
+                      setImportText(rawText);
+                      setShowImportModal(true);
+                      setShowSettings(false);
+                    }}
+                    style={{
+                      width: '100%', padding: '10px', borderRadius: 8, fontSize: '11px', fontWeight: 700,
+                      background: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.12)',
+                      color: 'var(--c-text-primary)', cursor: 'pointer', fontFamily: 'Inter'
+                    }}
+                  >
+                    {t.practice.editBtn || 'Edit Chords & Lyrics'}
+                  </button>
+                  <button
+                    onClick={handleClearCustomChart}
+                    style={{
+                      width: '100%', padding: '10px', borderRadius: 8, fontSize: '11px', fontWeight: 700,
+                      background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.2)',
+                      color: '#ef4444', cursor: 'pointer', fontFamily: 'Inter'
+                    }}
+                  >
+                    {t.practice.clearCustomBtn}
+                  </button>
+                </div>
+              ) : (
                 <button
-                  onClick={handleClearCustomChart}
+                  onClick={() => {
+                    setImportText('');
+                    setShowImportModal(true);
+                    setShowSettings(false);
+                  }}
                   style={{
                     width: '100%', padding: '10px', borderRadius: 8, fontSize: '11px', fontWeight: 700,
-                    background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.2)',
-                    color: '#ef4444', cursor: 'pointer', marginTop: 'auto', fontFamily: 'Inter'
+                    background: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.12)',
+                    color: 'var(--c-text-primary)', cursor: 'pointer', marginTop: 'auto', fontFamily: 'Inter'
                   }}
                 >
-                  {t.practice.clearCustomBtn}
+                  {t.practice.importBtn}
                 </button>
               )}
             </motion.div>

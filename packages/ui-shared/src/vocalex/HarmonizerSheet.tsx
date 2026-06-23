@@ -1,4 +1,4 @@
-import { type TakeRecord, blobToAudioBuffer, createAudioContext } from '@workspace/studio-core';
+import { type TakeRecord, blobToAudioBuffer, createAudioContext, useT } from '@workspace/studio-core';
 /**
  * HarmonizerSheet — Full-screen professional vocal harmonizer for Vocalex.
  *
@@ -43,6 +43,7 @@ interface Props {
 // ─── Main component ────────────────────────────────────────────────────────
 
 export default function HarmonizerSheet({ take, accent = '#007aff', onClose, onBounce }: Props) {
+  const t = useT();
   const [layers, setLayers]               = useState<HarmonyLayerState[]>(() => DEFAULT_HARMONY_LAYERS.map(l => ({ ...l })));
   const [dryGain, setDryGain]             = useState(1.0);
   const [humanize, setHumanize]           = useState(0.28);
@@ -236,7 +237,7 @@ export default function HarmonizerSheet({ take, accent = '#007aff', onClose, onB
               fontFamily: 'Manrope, sans-serif', fontWeight: 800,
               fontSize: 17, color: 'var(--vx-text, #fff)',
               margin: 0, letterSpacing: '-0.02em',
-            }}>Harmonizer</h2>
+            }}>{t.vocalex.harmonizerTitle || 'Harmonizer'}</h2>
             {detectedKey && (
               <span style={{
                 background: `${accent}22`, border: `1px solid ${accent}55`,
@@ -336,7 +337,7 @@ export default function HarmonizerSheet({ take, accent = '#007aff', onClose, onB
                 }}>
                   <span>{fmt(currentTimeSec)}</span>
                   <span style={{ color: isGenerating ? accent : 'rgba(255,255,255,0.4)' }}>
-                    {isGenerating ? 'Generating…' : isPlaying ? 'Playing' : 'Ready'}
+                    {isGenerating ? (t.vocalex.statusGenerating || 'Generating…') : isPlaying ? (t.vocalex.statusPlaying || 'Playing') : (t.vocalex.statusReady || 'Ready')}
                   </span>
                   <span>−{fmt(totalDuration - currentTimeSec)}</span>
                 </div>
@@ -366,7 +367,7 @@ export default function HarmonizerSheet({ take, accent = '#007aff', onClose, onB
         <div style={{ padding: '10px 16px 0' }}>
           <SliderRow
             icon="mic"
-            label="Lead Vocal"
+            label={t.vocalex.leadVocal || 'Lead Vocal'}
             value={dryGain}
             min={0} max={1.5} step={0.01}
             accent="rgba(255,255,255,0.55)"
@@ -384,7 +385,7 @@ export default function HarmonizerSheet({ take, accent = '#007aff', onClose, onB
             <span style={{
               fontSize: 9.5, fontWeight: 800, letterSpacing: '0.14em',
               textTransform: 'uppercase', color: 'rgba(255,255,255,0.35)',
-            }}>Harmony Layers</span>
+            }}>{t.vocalex.harmonyLayers || 'Harmony Layers'}</span>
 
             <button
               onClick={() => setShowAddLayer(v => !v)}
@@ -398,7 +399,7 @@ export default function HarmonizerSheet({ take, accent = '#007aff', onClose, onB
               }}
             >
               <span className="material-symbols-outlined" style={{ fontSize: 14 }}>add</span>
-              Add
+              {t.vocalex.addLayer || 'Add'}
             </button>
           </div>
 
@@ -465,7 +466,7 @@ export default function HarmonizerSheet({ take, accent = '#007aff', onClose, onB
           >
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, fontWeight: 600 }}>
               <span className="material-symbols-outlined" style={{ fontSize: 16, color: 'rgba(255,255,255,0.4)' }}>tune</span>
-              Advanced Processing
+              {t.vocalex.advancedProcessing || 'Advanced Processing'}
             </div>
             <span className="material-symbols-outlined" style={{
               fontSize: 18,
@@ -482,16 +483,16 @@ export default function HarmonizerSheet({ take, accent = '#007aff', onClose, onB
               display: 'flex', flexDirection: 'column', gap: 16,
             }}>
               <AdvSlider
-                label="Humanize"
-                hint="Adds natural micro-timing and pitch variation between layers"
+                label={t.vocalex.humanize || 'Humanize'}
+                hint={t.vocalex.humanizeDesc || 'Adds natural micro-timing and pitch variation between layers'}
                 value={humanize}
                 color="#32d74b"
                 icon="person"
                 onChange={setHumanize}
               />
               <AdvSlider
-                label="Formant Correction"
-                hint="Preserves vocal character when shifting large intervals"
+                label={t.vocalex.formantCorrection || 'Formant Correction'}
+                hint={t.vocalex.formantCorrectionDesc || 'Preserves vocal character when shifting large intervals'}
                 value={formant}
                 color="#ff9f0a"
                 icon="graphic_eq"
@@ -501,7 +502,7 @@ export default function HarmonizerSheet({ take, accent = '#007aff', onClose, onB
                 fontSize: 10, color: 'rgba(255,255,255,0.25)',
                 margin: 0, lineHeight: 1.5,
               }}>
-                Changes apply on next playback. Larger corrections increase generation time.
+                {t.vocalex.changesApplyHint || 'Changes apply on next playback. Larger corrections increase generation time.'}
               </p>
             </div>
           )}
@@ -551,7 +552,7 @@ export default function HarmonizerSheet({ take, accent = '#007aff', onClose, onB
           }}>
             {isBouncing ? 'progress_activity' : 'save'}
           </span>
-          {isBouncing ? 'Saving…' : 'Save as Take'}
+          {isBouncing ? (t.vocalex.saving || 'Saving…') : (t.vocalex.saveAsTake || 'Save as Take')}
         </button>
 
         {/* Export dropdown */}
@@ -571,7 +572,7 @@ export default function HarmonizerSheet({ take, accent = '#007aff', onClose, onB
             }}
           >
             <span className="material-symbols-outlined" style={{ fontSize: 15 }}>download</span>
-            Export
+            {t.vocalex.export || 'Export'}
             <span className="material-symbols-outlined" style={{
               fontSize: 13,
               transform: showExport ? 'rotate(180deg)' : 'none',
@@ -589,8 +590,8 @@ export default function HarmonizerSheet({ take, accent = '#007aff', onClose, onB
               minWidth: 200, zIndex: 10,
             }}>
               {[
-                { label: 'Full Mix  (WAV)', icon: 'audio_file', harmonyOnly: false },
-                { label: 'Harmony Only  (WAV)', icon: 'music_note', harmonyOnly: true },
+                { label: t.vocalex.fullMixWav || 'Full Mix  (WAV)', icon: 'audio_file', harmonyOnly: false },
+                { label: t.vocalex.harmonyOnlyWav || 'Harmony Only  (WAV)', icon: 'music_note', harmonyOnly: true },
               ].map(opt => (
                 <button
                   key={opt.label}
@@ -631,6 +632,7 @@ function LayerCard({
   onChange:  (patch: Partial<HarmonyLayerState>) => void;
   onDelete:  () => void;
 }) {
+  const t = useT();
   const def     = HARMONIES.find(h => h.id === layer.id)!;
   const semis   = layerSemitones(layer);
   const isActive = layer.enabled && !layer.mute;
@@ -649,7 +651,7 @@ function LayerCard({
         {/* Color dot = enable toggle */}
         <button
           onClick={() => onChange({ enabled: !layer.enabled })}
-          title={layer.enabled ? 'Disable layer' : 'Enable layer'}
+          title={layer.enabled ? (t.vocalex.disableLayer || 'Disable layer') : (t.vocalex.enableLayer || 'Enable layer')}
           style={{
             width: 11, height: 11, borderRadius: '50%',
             background: layer.enabled ? def.color : 'rgba(255,255,255,0.18)',
@@ -684,7 +686,7 @@ function LayerCard({
           activeTextColor="#ef4444"
           onClick={() => onChange({ mute: !layer.mute })}
           label="M"
-          title={layer.mute ? 'Unmute' : 'Mute'}
+          title={layer.mute ? (t.vocalex.unmute || 'Unmute') : (t.vocalex.mute || 'Mute')}
         />
 
         {/* Solo */}
@@ -695,14 +697,14 @@ function LayerCard({
           activeTextColor="#ffcc00"
           onClick={() => onChange({ solo: !layer.solo })}
           label="S"
-          title={layer.solo ? 'Unsolo' : 'Solo'}
+          title={layer.solo ? (t.vocalex.unsolo || 'Unsolo') : (t.vocalex.solo || 'Solo')}
         />
 
         {/* Delete */}
         {canDelete && (
           <button
             onClick={onDelete}
-            title="Remove layer"
+            title={t.vocalex.removeLayer || 'Remove layer'}
             style={{
               width: 26, height: 26, borderRadius: 7,
               background: 'none', border: 'none',

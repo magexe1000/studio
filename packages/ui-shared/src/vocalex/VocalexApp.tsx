@@ -306,7 +306,7 @@ export default function VocalexApp() {
                 headerBack?.();
               }}
               data-testid="vocalex-back-button"
-              aria-label="Back"
+              aria-label={t.vocalex.back}
               style={{
                 width: '32px', height: '32px', borderRadius: '50%',
                 background: 'var(--app-surface-high)',
@@ -335,7 +335,7 @@ export default function VocalexApp() {
           <button
             onClick={() => headerBack?.()}
             data-testid="vocalex-back-button"
-            aria-label="Back"
+            aria-label={t.vocalex.back}
             className="btn-smooth"
             style={{
               width: '32px', height: '32px', borderRadius: '50%',

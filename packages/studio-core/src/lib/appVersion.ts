@@ -26,7 +26,7 @@ import { useMemo } from 'react';
 import { Capacitor } from '@capacitor/core';
 
 /** Canonical semver string used by the OTA comparator. */
-export const NATIVE_VERSION = '3.6.79';
+export const NATIVE_VERSION = '3.6.80';
 export const WEB_VERSION = '4.0.0';
 export const APP_VERSION = Capacitor.isNativePlatform() ? NATIVE_VERSION : WEB_VERSION;
 
@@ -38,11 +38,11 @@ export const APP_VERSION_LABEL = `${APP_VERSION_TAG} ${APP_VERSION}`;
 
 /** Release date for the CURRENT bundle, shown alongside the version pill
  *  in the changelog sheet. ISO-8601 (`YYYY-MM-DD`). */
-export const APP_VERSION_DATE = '2026-06-22'; // 3.6.79
+export const APP_VERSION_DATE = '2026-06-22'; // 3.6.80
 // Note: keep ISO-8601. Bump together with APP_VERSION on each release.
 
-export const APP_COMMIT_SHA = import.meta.env.VITE_GIT_COMMIT_SHA || '78ef3651';
-export const APP_BUILD_TIMESTAMP = import.meta.env.VITE_BUILD_TIMESTAMP || '6/22/2026, 12:00:00 AM CST';
+export const APP_COMMIT_SHA = import.meta.env.VITE_GIT_COMMIT_SHA || 'efd2b1a3';
+export const APP_BUILD_TIMESTAMP = import.meta.env.VITE_BUILD_TIMESTAMP || '6/22/2026, 6:00:00 PM CST';
 
 /**
  * Changelog for the CURRENT release — shown to the user the first
@@ -61,13 +61,10 @@ export const APP_CHANGELOG_SECTIONS: ChangelogSection[] = [
   {
     heading: "Fixed",
     items: [
-      "Fixed incomplete global i18n language switching across the entire app suite.",
-      "Removed entry animation glow/bloom effects for a clean, minimal look.",
-      "Redesigned Chordex Discover Practice UI to be polished, minimal, and native.",
-      "Added clean chart placeholder for copyrighted songs with support for text chart importing.",
-      "Simplified Practice Settings and locked the presentation mode to Scroll.",
-      "Upgraded floating chord widget to display real chord diagrams instead of plain text names.",
-      "Scoped bottom navigation bar hiding strictly to the Chordex song practice view.",
+      "Fixed global i18n root causes in settings menus and Vocalex Harmonizer.",
+      "Added authorized lyrics and chords support for public-domain songs in Chordex Practice.",
+      "Implemented user-provided custom lyrics/charts paste, edit, and delete flows.",
+      "Optimized floating chord overlay to make diagrams primary and chord names secondary labels.",
     ],
   },
 ];
@@ -77,13 +74,10 @@ export const APP_CHANGELOG_SECTIONS_NATIVE: ChangelogSection[] = [
   {
     heading: "Fixed",
     items: [
-      "Fixed incomplete global i18n language switching across the entire app suite.",
-      "Removed entry animation glow/bloom effects for a clean, minimal look.",
-      "Redesigned Chordex Discover Practice UI to be polished, minimal, and native.",
-      "Added clean chart placeholder for copyrighted songs with support for text chart importing.",
-      "Simplified Practice Settings and locked the presentation mode to Scroll.",
-      "Upgraded floating chord widget to display real chord diagrams instead of plain text names.",
-      "Scoped bottom navigation bar hiding strictly to the Chordex song practice view.",
+      "Fixed global i18n root causes in settings menus and Vocalex Harmonizer.",
+      "Added authorized lyrics and chords support for public-domain songs in Chordex Practice.",
+      "Implemented user-provided custom lyrics/charts paste, edit, and delete flows.",
+      "Optimized floating chord overlay to make diagrams primary and chord names secondary labels.",
     ],
   },
 ];
@@ -94,13 +88,10 @@ export const APP_CHANGELOG_SECTIONS_ES: ChangelogSection[] = [
   {
     heading: "Corregido",
     items: [
-      "Se corrigió el cambio de idioma global incompleto en toda la aplicación.",
-      "Se eliminaron los efectos de brillo y resplandor de las animaciones de entrada.",
-      "Rediseñado el modo de práctica de Chordex para que sea pulido, mínimo y nativo.",
-      "Añadida partitura limpia para canciones con copyright con soporte para importación personalizada.",
-      "Ajustes de práctica simplificados, bloqueando la presentación en modo desplazamiento.",
-      "Widget de acordes flotante actualizado para mostrar diagramas reales en lugar de texto.",
-      "Ocultación de la barra de navegación inferior acotada estrictamente a la vista de práctica.",
+      "Se corrigió la traducción global incompleta en ajustes y en el Armonizador de Vocalex.",
+      "Añadida letra y acordes autorizados para canciones de dominio público en el modo de práctica.",
+      "Implementado flujo para pegar, editar y eliminar partituras y letras personalizadas.",
+      "Optimizado el panel flotante para priorizar gráficos de acordes sobre nombres de texto.",
     ],
   },
 ];

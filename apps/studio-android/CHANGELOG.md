@@ -12,6 +12,14 @@ Conventions:
 - Bullets start with `- ` and use plain English a non-technical user
   can parse. Keep each line short — the modal's text area is narrow.
 
+## 3.6.80
+
+### Fixed
+- Fixed global i18n root causes in settings menus and Vocalex Harmonizer.
+- Added authorized lyrics and chords support for public-domain songs in Chordex Practice.
+- Implemented user-provided custom lyrics/charts paste, edit, and delete flows.
+- Optimized floating chord overlay to make diagrams primary and chord names secondary labels.
+
 ## 3.6.79
 
 ### Fixed

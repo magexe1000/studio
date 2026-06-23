@@ -1,7 +1,5 @@
-### Added
-- Centralized localization (i18n) architecture using a unified JSON source of truth.
-- Implemented Chordex practice screen with interactive chords-above-lyrics formatting.
-- Added draggable floating chord overlay with screen boundary protection and local persistence.
-- Added karaoke mode with auto-scroll settings, custom text sizes, and AMOLED contrast themes.
-- Expanded Discover song library with 30 detailed song charts by Enjambre.
-- Polished app entry transitions with cross-fade overlays and responsive grid/flex layout scaling.
+### Fixed
+- Fixed global i18n root causes in settings menus and Vocalex Harmonizer.
+- Added authorized lyrics and chords support for public-domain songs in Chordex Practice.
+- Implemented user-provided custom lyrics/charts paste, edit, and delete flows.
+- Optimized floating chord overlay to make diagrams primary and chord names secondary labels.
