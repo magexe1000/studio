@@ -1,9 +1,11 @@
+### Removed
+- Removed suggested/generated fallback chord progressions.
+- Purged hand-aligned chord charts for copyrighted songs in compliance with licensing guidelines.
+
 ### Added
-- Implemented hand-aligned verified chord charts database for curated song lists.
-- Integrated new ChordChartProvider search hierarchy prioritising user and verified charts.
-- Added premium status indicators indicating chord authenticity (Verified, User, Suggested, Lyrics).
+- Integrated custom user import and edit chord sheet fallback actions.
+- Implemented premium badge indicators for Verified, User, Provider, and Unavailable states.
 
 ### Improved
-- Aligned chord placement to lyrics with accurate timestamp interpolation.
-- Refactored manual chord editor modal to easily customize, paste, or reset chord sheets.
-- Polished Practice UI layout, typography, line highlights, and viewport spacing.
+- Polished Practice UI and layout when chords are unavailable (showing lyrics only).
+- Disabled floating chord diagrams overlay when no verified or user chords are present.

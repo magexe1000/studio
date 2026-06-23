@@ -30,9 +30,10 @@ export interface NormalizedChordChart {
   capo?: number;
   tuning?: string;
   sections: NormalizedSection[];
-  source: string;          // e.g. 'builtin', 'user', 'lrclib', 'suggested'
+  source: string;          // e.g. 'builtin', 'user', 'lrclib'
+  licenseInfo?: string;
   confidence: number;      // 0.0 to 1.0
-  status: 'verified' | 'user' | 'provider' | 'suggested' | 'lyrics-only';
+  chartStatus: 'verified' | 'user' | 'provider' | 'unavailable';
 }
 
 export interface ChordChartProvider {
@@ -40,15 +41,17 @@ export interface ChordChartProvider {
   name: string;
   enabled: boolean;
   priority: number;
+  licenseInfo?: string;
   searchChart(song: SongChart): Promise<NormalizedChordChart | null>;
 }
 
 // ── BUILT-IN CHORD PROVIDER ───────────────────────────────────
 export class BuiltInChordProvider implements ChordChartProvider {
   id = 'builtin';
-  name = 'Built-in Authorized Charts';
+  name = 'Built-in Verified Charts';
   enabled = true;
   priority = 2;
+  licenseInfo = 'Authorized / Public Domain';
 
   async searchChart(song: SongChart): Promise<NormalizedChordChart | null> {
     const sections = AUTHORIZED_CHORD_CHARTS[song.id];
@@ -78,8 +81,9 @@ export class BuiltInChordProvider implements ChordChartProvider {
       capo: song.capo,
       sections: normalizedSections,
       source: this.id,
+      licenseInfo: this.licenseInfo,
       confidence: 1.0,
-      status: 'verified'
+      chartStatus: 'verified'
     };
   }
 }
@@ -90,6 +94,7 @@ export class UserImportedChordProvider implements ChordChartProvider {
   name = 'User Custom Charts';
   enabled = true;
   priority = 1;
+  licenseInfo = 'User Provided';
 
   async searchChart(song: SongChart): Promise<NormalizedChordChart | null> {
     const saved = localStorage.getItem(`chordex:practice:custom_chart:${song.id}`);
@@ -121,8 +126,9 @@ export class UserImportedChordProvider implements ChordChartProvider {
         capo: song.capo,
         sections: normalizedSections,
         source: this.id,
+        licenseInfo: this.licenseInfo,
         confidence: 1.0,
-        status: 'user'
+        chartStatus: 'user'
       };
     } catch (_) {
       return null;
@@ -153,15 +159,29 @@ function mapLyricsResultToSections(result: LyricsResult): NormalizedSection[] {
   return [];
 }
 
+// ── OPEN CHORD PRO API PROVIDER (SEARCH ADAPTER STUB) ─────────
+export class OpenChordProApiProvider implements ChordChartProvider {
+  id = 'openchordpro';
+  name = 'OpenChordPro Repository';
+  enabled = true;
+  priority = 3;
+  licenseInfo = 'Creative Commons / Public Domain';
+
+  async searchChart(song: SongChart): Promise<NormalizedChordChart | null> {
+    // Stub search for CC / PD ChordPro repositories online
+    return null;
+  }
+}
+
 // ── OPEN CHORD CHARTS PROVIDER (LRCLIB & METADATA ADAPTER) ──────
 export class OpenChordChartsProvider implements ChordChartProvider {
   id = 'openchords';
   name = 'Open Chords Adapter';
   enabled = true;
-  priority = 3;
+  priority = 4;
+  licenseInfo = 'LRCLIB Terms Compatible';
 
   async searchChart(song: SongChart): Promise<NormalizedChordChart | null> {
-    // Queries LRCLIB for lyrics and returns a lyrics-only status
     const enabledProviders = ['lrclib'];
     const preferSynced = true;
     
@@ -181,8 +201,9 @@ export class OpenChordChartsProvider implements ChordChartProvider {
       capo: song.capo,
       sections,
       source: result.provider,
+      licenseInfo: this.licenseInfo,
       confidence: result.confidence,
-      status: 'lyrics-only'
+      chartStatus: 'unavailable' // No chords in LRCLIB lyrics, marks as unavailable
     };
   }
 }
@@ -191,6 +212,7 @@ export class OpenChordChartsProvider implements ChordChartProvider {
 export const CHORD_PROVIDERS: ChordChartProvider[] = [
   new UserImportedChordProvider(),
   new BuiltInChordProvider(),
+  new OpenChordProApiProvider(),
   new OpenChordChartsProvider()
 ];
 
@@ -228,7 +250,7 @@ export async function getChordChart(song: SongChart, forceRefresh = false): Prom
     return userChart;
   }
 
-  // 2. Check Built-in Authorized Provider second
+  // 2. Check Built-in Verified Provider second
   const builtinProvider = new BuiltInChordProvider();
   const builtinChart = await builtinProvider.searchChart(song);
   if (builtinChart) {
@@ -250,7 +272,15 @@ export async function getChordChart(song: SongChart, forceRefresh = false): Prom
     }
   }
 
-  // 4. Query remaining providers (OpenChords)
+  // 4. Query remaining providers (OpenChordPro, OpenChords)
+  const openProProvider = new OpenChordProApiProvider();
+  const openProChart = await openProProvider.searchChart(song);
+  if (openProChart) {
+    validateChartChords(openProChart);
+    localStorage.setItem(cacheKey, JSON.stringify(openProChart));
+    return openProChart;
+  }
+
   const openProvider = new OpenChordChartsProvider();
   try {
     const chart = await openProvider.searchChart(song);
@@ -273,9 +303,7 @@ function validateChartChords(chart: NormalizedChordChart): void {
   chart.sections.forEach(sec => {
     sec.lines.forEach(line => {
       line.chords.forEach(c => {
-        // Strip out brackets/spaces
         c.chord = c.chord.trim();
-        // Warn if chord is invalid
         if (!validateChord(c.chord)) {
           console.warn(`[ChordService] Invalid/Unknown chord: ${c.chord} in song ${chart.title}`);
         }
