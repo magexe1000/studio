@@ -1021,6 +1021,8 @@ export default function App() {
 
   const launchStartTimeRef = useRef<number>(0);
   const launchTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const longTasksRef = useRef<number[]>([]);
+  const observerRef = useRef<PerformanceObserver | null>(null);
 
   const handleAppPreloaded = useCallback((app: AppKey) => {
     if (useChordStore.getState().settings.appMode !== app) return;
@@ -1044,8 +1046,14 @@ export default function App() {
       
       // Wait for the fade-out transition to complete (300ms) before clearing launchingApp
       setTimeout(() => {
+        if (observerRef.current) {
+          observerRef.current.disconnect();
+          observerRef.current = null;
+        }
+        const maxDuration = longTasksRef.current.length > 0 ? Math.max(...longTasksRef.current) : 0;
         setLaunchingApp(null);
         addLog('info', 'perf', `App entry transition complete: ${app} fully active after ${Date.now() - launchStartTimeRef.current}ms.`);
+        addLog('info', 'perf', `Longest main-thread blocking task during ${app} transition: ${maxDuration > 0 ? maxDuration.toFixed(1) + 'ms' : 'none detected'}.`);
       }, 300);
     }, remainingTime);
   }, []);
@@ -1066,6 +1074,25 @@ export default function App() {
       if (launchTimerRef.current) {
         clearTimeout(launchTimerRef.current);
         launchTimerRef.current = null;
+      }
+
+      // Initialize long task detection during this transition
+      longTasksRef.current = [];
+      if (typeof PerformanceObserver !== 'undefined') {
+        try {
+          if (observerRef.current) {
+            observerRef.current.disconnect();
+          }
+          const obs = new PerformanceObserver((list) => {
+            for (const entry of list.getEntries()) {
+              longTasksRef.current.push(entry.duration);
+            }
+          });
+          obs.observe({ entryTypes: ['longtask'] });
+          observerRef.current = obs;
+        } catch (e) {
+          console.warn('[Perf] PerformanceObserver longtask not supported:', e);
+        }
       }
 
       launchStartTimeRef.current = Date.now();
