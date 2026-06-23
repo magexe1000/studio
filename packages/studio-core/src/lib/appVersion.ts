@@ -26,7 +26,7 @@ import { useMemo } from 'react';
 import { Capacitor } from '@capacitor/core';
 
 /** Canonical semver string used by the OTA comparator. */
-export const NATIVE_VERSION = '3.6.90';
+export const NATIVE_VERSION = '3.6.91';
 export const WEB_VERSION = '4.0.0';
 export const APP_VERSION = Capacitor.isNativePlatform() ? NATIVE_VERSION : WEB_VERSION;
 
@@ -38,7 +38,7 @@ export const APP_VERSION_LABEL = `${APP_VERSION_TAG} ${APP_VERSION}`;
 
 /** Release date for the CURRENT bundle, shown alongside the version pill
  *  in the changelog sheet. ISO-8601 (`YYYY-MM-DD`). */
-export const APP_VERSION_DATE = '2026-06-23'; // 3.6.90
+export const APP_VERSION_DATE = '2026-06-23'; // 3.6.91
 // Note: keep ISO-8601. Bump together with APP_VERSION on each release.
 
 export const APP_COMMIT_SHA = import.meta.env.VITE_GIT_COMMIT_SHA || 'efd2b1a3';
@@ -59,11 +59,13 @@ export interface ChangelogSection {
 
 export const APP_CHANGELOG_SECTIONS: ChangelogSection[] = [
   {
-    heading: "Fixed",
+    heading: "Added",
     items: [
-      "Fixed Cifra Club URL importer failure in production by implementing a resilient, multi-strategy layout parser.",
-      "Added support for both mobile and desktop Cifra Club web structures using Apollo JSON parsing and wildcard <pre> tag recognition.",
-      "Integrated inline parser diagnostics list in the chart preview screen to display execution strategies.",
+      "Expanded chord diagram coverage in Practice mode by auto-generating complete guitar shapes for all standard roots and extensions.",
+      "Implemented a robust chord normalization layer converting Latin roots, unicode accidentals, and suffix aliases before resolution.",
+      "Added slash chord fallback rendering: shows the base chord shape and details the bass note on missing slash definitions.",
+      "Integrated a Supported Sites status checklist inside the URL Import modal showing Supported, Limited, and Blocked hosts.",
+      "Implemented dedicated import adapters with detailed error diagnostics for E-Chords and 7 other chord search sites.",
     ],
   },
 ];

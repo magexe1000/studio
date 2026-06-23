@@ -773,8 +773,119 @@ export const CHORD_TYPES: { value: ChordType; label: string }[] = [
 
 export const ROOTS = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
 
+export function normalizeChordName(name: string): string {
+  if (!name || name === '—') return '';
+  let clean = name.trim();
+  
+  // 1. Remove brackets/parentheses and comments
+  clean = clean.replace(/\([^)]*\)/g, '').replace(/\[[^\]]*\]/g, '').trim();
+  
+  // 2. Normalize spaces
+  clean = clean.replace(/\s+/g, '');
+  
+  // 3. Handle slash chords recursively
+  if (clean.includes('/')) {
+    const parts = clean.split('/');
+    if (parts.length === 2) {
+      const base = normalizeSingleChord(parts[0]);
+      const bass = normalizeSingleChord(parts[1]);
+      if (base && bass) {
+        return `${base}/${bass}`;
+      }
+    }
+  }
+  
+  return normalizeSingleChord(clean);
+}
+
+function normalizeSingleChord(chord: string): string {
+  if (!chord) return '';
+  
+  // 1. Unicode accidentals
+  let clean = chord
+    .replace(/♭/g, 'b')
+    .replace(/♯/g, '#');
+    
+  // 2. Extract root and suffix
+  // Latin roots mapping: Do, Re, Mi, Fa, Sol, La, Si
+  const latinRoots: Record<string, string> = {
+    'do': 'C', 'dó': 'C',
+    're': 'D', 'ré': 'D',
+    'mi': 'E',
+    'fa': 'F', 'fá': 'F',
+    'sol': 'G',
+    'la': 'A', 'lá': 'A',
+    'si': 'B'
+  };
+  
+  const latinPattern = /^(do|dó|re|ré|mi|fa|fá|sol|la|lá|si)(#|b)?/i;
+  const englishPattern = /^[a-g](#|b)?/i;
+  
+  let root = '';
+  let suffix = '';
+  
+  let match = clean.match(latinPattern);
+  if (match) {
+    const rootName = match[1].toLowerCase();
+    const accidental = match[2] || '';
+    root = latinRoots[rootName] + accidental;
+    suffix = clean.slice(match[0].length);
+  } else {
+    match = clean.match(englishPattern);
+    if (match) {
+      root = match[0];
+      // Normalize casing of root: first letter capitalized, second letter (if accidental) stays as is
+      root = root.charAt(0).toUpperCase() + root.slice(1);
+      suffix = clean.slice(match[0].length);
+    } else {
+      return clean; // Fallback if no root matches
+    }
+  }
+  
+  // 3. Normalize enharmonic equivalents
+  if (root === 'Cb') root = 'B';
+  if (root === 'B#') root = 'C';
+  if (root === 'Fb') root = 'E';
+  if (root === 'E#') root = 'F';
+  
+  // 4. Normalize suffix
+  let normSuffix = suffix;
+  
+  if (normSuffix.startsWith('minor')) {
+    normSuffix = 'm' + normSuffix.slice(5);
+  } else if (normSuffix.startsWith('min')) {
+    normSuffix = 'm' + normSuffix.slice(3);
+  } else if (normSuffix.startsWith('Minor')) {
+    normSuffix = 'm' + normSuffix.slice(5);
+  } else if (normSuffix.startsWith('Min')) {
+    normSuffix = 'm' + normSuffix.slice(3);
+  } else if (normSuffix.startsWith('major')) {
+    normSuffix = 'maj' + normSuffix.slice(5);
+  } else if (normSuffix.startsWith('Major')) {
+    normSuffix = 'maj' + normSuffix.slice(5);
+  } else if (normSuffix.startsWith('maj')) {
+    normSuffix = 'maj' + normSuffix.slice(3);
+  } else if (normSuffix.startsWith('Maj')) {
+    normSuffix = 'maj' + normSuffix.slice(3);
+  } else if (normSuffix.startsWith('M')) {
+    normSuffix = 'maj' + normSuffix.slice(1);
+  }
+  
+  normSuffix = normSuffix.toLowerCase()
+    .replace(/[º°]/g, 'dim')
+    .replace(/\*/g, 'aug')
+    .replace(/^sus$/g, 'sus4');
+    
+  if (normSuffix === 'maj' || normSuffix === 'major') {
+    normSuffix = '';
+  }
+  
+  return root + normSuffix;
+}
+
 export function getChordByName(name: string): Chord | undefined {
-  const normalized = name.replace(/\s/g, '').toLowerCase();
+  const normName = normalizeChordName(name);
+  const normalized = normName.toLowerCase();
   
   // 1. Direct name match
   let found = chordDatabase.find(c => c.name.replace(/\s/g, '').toLowerCase() === normalized);

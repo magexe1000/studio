@@ -5,6 +5,7 @@ import {
   setNavLocked, 
   setNavHidden, 
   getChordByName, 
+  normalizeChordName,
   useT, 
   useBackHandler, 
   getChordChart, 
@@ -138,14 +139,7 @@ function parseTextChart(text: string): SongChartSection[] {
 }
 
 function cleanChordName(name: string): string {
-  if (!name || name === '—') return '';
-  let clean = name.trim();
-  const slashIdx = clean.indexOf('/');
-  if (slashIdx !== -1) {
-    clean = clean.substring(0, slashIdx);
-  }
-  clean = clean.replace(/[()\[\]]/g, '');
-  return clean.trim();
+  return normalizeChordName(name);
 }
 
 function generateTextRepresentation(chart: NormalizedChordChart): string {
@@ -236,6 +230,44 @@ export function SongPracticeView({ song, onClose }: SongPracticeViewProps) {
   const [importError, setImportError] = useState('');
   const [previewChart, setPreviewChart] = useState<NormalizedChordChart | null>(null);
   const [showPreviewModal, setShowPreviewModal] = useState(false);
+
+  const diagLogs = useMemo(() => {
+    if (!previewChart) return null;
+    let resolvedCount = 0;
+    let missingCount = 0;
+    const unresolvedNames = new Set<string>();
+    let totalChords = 0;
+    let lyricLinesCount = 0;
+    
+    previewChart.sections.forEach(sec => {
+      sec.lines.forEach(line => {
+        lyricLinesCount++;
+        line.chords.forEach(c => {
+          totalChords++;
+          const cleaned = normalizeChordName(c.chord);
+          let found = getChordByName(cleaned);
+          if (!found && cleaned.includes('/')) {
+            const basePart = cleaned.split('/')[0].trim();
+            found = getChordByName(basePart);
+          }
+          if (found) {
+            resolvedCount++;
+          } else {
+            missingCount++;
+            unresolvedNames.add(c.chord);
+          }
+        });
+      });
+    });
+    
+    return {
+      totalChords,
+      lyricLinesCount,
+      resolvedCount,
+      missingCount,
+      unresolvedNames: Array.from(unresolvedNames)
+    };
+  }, [previewChart]);
 
   const isSpanish = useMemo(() => {
     return useChordStore.getState().settings.language === 'es';
@@ -463,12 +495,34 @@ export function SongPracticeView({ song, onClose }: SongPracticeViewProps) {
     ? flatChords[activeChordIndex + 1].chord 
     : '—';
 
-  // Retrieve actual Chord shape from the library
-  const currentChordObj = useMemo(() => {
-    if (currentChord === '—') return null;
+  // Retrieve actual Chord shape from the library, supporting slash chord fallbacks
+  const resolvedChordData = useMemo(() => {
+    if (currentChord === '—') return { chordObj: null, bassNote: '' };
     const cleaned = cleanChordName(currentChord);
-    return getChordByName(cleaned);
+    
+    // 1. Try exact match first
+    let found = getChordByName(cleaned);
+    if (found) {
+      return { chordObj: found, bassNote: '' };
+    }
+    
+    // 2. If it's a slash chord, try splitting it
+    const slashIdx = cleaned.indexOf('/');
+    if (slashIdx !== -1) {
+      const basePart = cleaned.substring(0, slashIdx).trim();
+      const bassPart = cleaned.substring(slashIdx + 1).trim();
+      
+      found = getChordByName(basePart);
+      if (found) {
+        return { chordObj: found, bassNote: bassPart };
+      }
+    }
+    
+    return { chordObj: null, bassNote: '' };
   }, [currentChord]);
+
+  const currentChordObj = resolvedChordData.chordObj;
+  const currentBassNote = resolvedChordData.bassNote;
 
   // Playback timer loop
   useEffect(() => {
@@ -617,10 +671,12 @@ export function SongPracticeView({ song, onClose }: SongPracticeViewProps) {
           </div>
 
           <div style={{ background: 'rgba(0,0,0,0.25)', borderRadius: 10, padding: '8px 4px', height: 75, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            {currentChordObj ? (
+            {currentChordObj && currentChordObj.guitar ? (
               <ChordDiagram data={currentChordObj.guitar} accentFrom="var(--c-accent)" />
             ) : (
-              <span style={{ fontSize: '12px', color: 'var(--c-text-muted)', fontWeight: 700 }}>{currentChord}</span>
+              <span style={{ fontSize: '10px', color: 'var(--c-text-muted)', fontWeight: 600, textAlign: 'center', padding: '0 8px' }}>
+                {isSpanish ? 'Diagrama no disponible' : 'Diagram unavailable'}
+              </span>
             )}
           </div>
 
@@ -628,6 +684,11 @@ export function SongPracticeView({ song, onClose }: SongPracticeViewProps) {
             <span style={{ fontSize: '14px', fontWeight: 900, color: 'var(--c-accent)' }}>
               {currentChord}
             </span>
+            {currentBassNote && (
+              <span style={{ fontSize: '9px', fontWeight: 700, color: 'var(--c-text-secondary)', marginTop: -2 }}>
+                {isSpanish ? 'Bajo' : 'Bass'}: {currentBassNote}
+              </span>
+            )}
             <span style={{ display: 'flex', gap: 6, fontSize: '9px', color: 'var(--c-text-muted)' }}>
               <span>{t.practice.next}:</span>
               <span style={{ fontWeight: 700, color: 'var(--c-text-secondary)' }}>{nextChord}</span>
@@ -1207,6 +1268,46 @@ export function SongPracticeView({ song, onClose }: SongPracticeViewProps) {
                       : 'Only import charts you have the right to use. Imported charts are stored locally for your personal practice.'}
                   </div>
 
+                  <div style={{ marginTop: 4, padding: 10, background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.04)', borderRadius: 10, fontSize: '10px', fontFamily: 'Inter' }}>
+                    <strong style={{ color: 'var(--c-text-secondary)', display: 'block', marginBottom: 6, fontSize: '11px' }}>
+                      {isSpanish ? 'Sitios Soportados' : 'Supported sites'}
+                    </strong>
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: 6, maxHeight: '110px', overflowY: 'auto', paddingRight: 4 }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', color: '#10b981' }}>
+                        <span>• Cifra Club</span>
+                        <span style={{ fontWeight: 'bold' }}>{isSpanish ? 'Soportado' : 'Supported'}</span>
+                      </div>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', color: '#10b981' }}>
+                        <span>• E-Chords</span>
+                        <span style={{ fontWeight: 'bold' }}>{isSpanish ? 'Soportado' : 'Supported'}</span>
+                      </div>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', color: '#10b981' }}>
+                        <span>• {isSpanish ? 'Texto / ChordPro genérico' : 'Generic Text / ChordPro'}</span>
+                        <span style={{ fontWeight: 'bold' }}>{isSpanish ? 'Soportado' : 'Supported'}</span>
+                      </div>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', color: '#f59e0b' }}>
+                        <span>• Songsterr</span>
+                        <span style={{ fontWeight: 'bold' }}>{isSpanish ? 'Limitado' : 'Limited'}</span>
+                      </div>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', color: '#f59e0b' }}>
+                        <span>• Chordify</span>
+                        <span style={{ fontWeight: 'bold' }}>{isSpanish ? 'Limitado' : 'Limited'}</span>
+                      </div>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', color: '#f59e0b' }}>
+                        <span>• ChordU</span>
+                        <span style={{ fontWeight: 'bold' }}>{isSpanish ? 'Limitado' : 'Limited'}</span>
+                      </div>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', color: '#ef4444' }}>
+                        <span>• Ultimate Guitar</span>
+                        <span style={{ fontWeight: 'bold' }}>{isSpanish ? 'Bloqueado (Copiar)' : 'Blocked (Paste)'}</span>
+                      </div>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', color: '#ef4444' }}>
+                        <span>• GuitarTuna</span>
+                        <span style={{ fontWeight: 'bold' }}>{isSpanish ? 'No Soportado' : 'Unsupported'}</span>
+                      </div>
+                    </div>
+                  </div>
+
                   {importLoadingState !== 'idle' && importLoadingState !== 'success' && (
                     <div style={{ fontSize: '11px', color: 'var(--c-accent)', fontWeight: 600, display: 'flex', alignItems: 'center', gap: 6, fontFamily: 'Inter' }}>
                       <span className="material-symbols-outlined spin" style={{ fontSize: 16 }}>sync</span>
@@ -1299,9 +1400,23 @@ export function SongPracticeView({ song, onClose }: SongPracticeViewProps) {
                 <div><strong>License:</strong> {previewChart.licenseInfo}</div>
                 {previewChart.importDiagnostics && (
                   <div style={{ gridColumn: 'span 2', marginTop: 4, padding: 8, background: 'rgba(255,255,255,0.03)', borderRadius: 6 }}>
-                    <strong style={{ color: 'var(--c-accent)' }}>Parser Diagnostic Logs:</strong>
-                    <ul style={{ margin: '4px 0 0 0', paddingLeft: 16, fontSize: '10px', color: 'var(--c-text-muted)', listStyleType: 'disc' }}>
+                    <strong style={{ color: 'var(--c-accent)', fontSize: '11px', display: 'block', marginBottom: 4 }}>Parser Diagnostic Logs:</strong>
+                    <ul style={{ margin: '4px 0 0 0', paddingLeft: 16, fontSize: '10px', color: 'var(--c-text-secondary)', listStyleType: 'disc', display: 'flex', flexDirection: 'column', gap: '2px' }}>
                       {previewChart.importDiagnostics.map((d, idx) => <li key={idx}>{d}</li>)}
+                      {diagLogs && (
+                        <>
+                          <li>{isSpanish ? 'Secciones' : 'Sections'}: {previewChart.sections.length}</li>
+                          <li>{isSpanish ? 'Líneas de letra' : 'Lyric lines'}: {diagLogs.lyricLinesCount}</li>
+                          <li>{isSpanish ? 'Acordes totales' : 'Total chords'}: {diagLogs.totalChords}</li>
+                          <li>{isSpanish ? 'Diagramas resueltos' : 'Diagrams resolved'}: {diagLogs.resolvedCount}</li>
+                          <li>{isSpanish ? 'Diagramas faltantes' : 'Diagrams missing'}: {diagLogs.missingCount}</li>
+                          {diagLogs.unresolvedNames.length > 0 && (
+                            <li style={{ color: '#ef4444' }}>
+                              {isSpanish ? 'Acordes no soportados' : 'Unsupported chords'}: {diagLogs.unresolvedNames.join(', ')}
+                            </li>
+                          )}
+                        </>
+                      )}
                     </ul>
                   </div>
                 )}
