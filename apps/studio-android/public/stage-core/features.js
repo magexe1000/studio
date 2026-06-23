@@ -3412,40 +3412,12 @@ function openTimelinePanel() {
   // Sits just below the React top toolbar so it doesn't cover the stage.
   const isNarrow = window.innerWidth < 520;
   const panelW = isNarrow ? Math.min(window.innerWidth - 16, 320) : 320;
-  const panelTop = 8;
-  const panelLeft = Math.round((window.innerWidth - panelW) / 2);
-  const maxH = Math.min(260, Math.round(window.innerHeight * 0.5));
-
   let panel = document.getElementById('sc-hist-panel');
   if (!panel) {
     panel = document.createElement('div');
     panel.id = 'sc-hist-panel';
     document.body.appendChild(panel);
   }
-  const light = _scIsLight();
-  const bg = light ? 'rgba(252,252,253,0.98)' : 'rgba(10,10,12,0.97)';
-  const border = light ? 'rgba(0,0,0,0.10)' : 'rgba(72,72,71,0.35)';
-  const shadow = light
-    ? '0 12px 40px rgba(0,0,0,0.12), 0 2px 6px rgba(0,0,0,0.08)'
-    : '0 24px 60px rgba(0,0,0,0.55), 0 2px 8px rgba(0,0,0,0.3)';
-  panel.style.cssText = [
-    `position:fixed;top:${panelTop}px;left:${panelLeft}px;width:${panelW}px;`,
-    `max-height:${maxH}px;`,
-    `background:${bg};`,
-    `border:1px solid ${border};`,
-    'border-radius:12px;',
-    `box-shadow:${shadow};`,
-    'z-index:9000;display:flex;flex-direction:column;overflow:hidden;',
-    'transform:translateY(-12px);opacity:0;',
-    'transition:transform 0.22s cubic-bezier(.16,1,.3,1), opacity 0.18s ease;',
-  ].join('');
-
-  _histTimelineOpen = true;
-  _renderHistTimeline();
-  requestAnimationFrame(() => {
-    panel.style.transform = 'translateY(0)';
-    panel.style.opacity = '1';
-  });
 
   // Backdrop tap closes the panel (mobile-friendly)
   let backdrop = document.getElementById('sc-hist-backdrop');
@@ -3455,8 +3427,22 @@ function openTimelinePanel() {
     document.body.appendChild(backdrop);
     backdrop.addEventListener('click', closeTimelinePanel);
   }
-  backdrop.style.cssText =
-    'position:fixed;inset:0;background:transparent;z-index:8999;';
+
+  _histTimelineOpen = true;
+  _renderHistTimeline();
+
+  // Trigger transitions by adding classes in requestAnimationFrame
+  requestAnimationFrame(() => {
+    panel.classList.add('sc-hist-open');
+    backdrop.classList.add('sc-hist-open');
+    document.body.classList.add('sc-hist-open');
+  });
+
+  // Disable native Undo/Redo buttons while the history panel is open
+  const u = document.getElementById('btn-undo');
+  const r = document.getElementById('btn-redo');
+  if (u) { u.disabled = true; u.style.opacity = '0.15'; u.style.pointerEvents = 'none'; }
+  if (r) { r.disabled = true; r.style.opacity = '0.15'; r.style.pointerEvents = 'none'; }
 
   if (typeof closeShareModal === 'function') closeShareModal();
 }
@@ -3464,13 +3450,23 @@ function openTimelinePanel() {
 function closeTimelinePanel() {
   const panel = document.getElementById('sc-hist-panel');
   if (panel) {
-    panel.style.transform = 'translateY(-12px)';
-    panel.style.opacity = '0';
-    panel.style.pointerEvents = 'none';
+    panel.classList.remove('sc-hist-open');
   }
   const backdrop = document.getElementById('sc-hist-backdrop');
-  if (backdrop && backdrop.parentNode) backdrop.parentNode.removeChild(backdrop);
+  if (backdrop) {
+    backdrop.classList.remove('sc-hist-open');
+  }
+  document.body.classList.remove('sc-hist-open');
   _histTimelineOpen = false;
+
+  // Restore/Re-enable native Undo/Redo buttons
+  if (typeof updateHistoryButtons === 'function') {
+    updateHistoryButtons();
+    const u = document.getElementById('btn-undo');
+    const r = document.getElementById('btn-redo');
+    if (u) { u.disabled = false; u.style.pointerEvents = 'auto'; }
+    if (r) { r.disabled = false; r.style.pointerEvents = 'auto'; }
+  }
 }
 
 function _renderHistTimeline() {

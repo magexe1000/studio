@@ -1521,10 +1521,16 @@ function isPointerInBounds(e, dom, el) {
   const lx = rxUn + imgW / 2;
   const ly = ryUn + imgH / 2;
   
-  const px = lx / imgW;
-  const py = ly / imgH;
+  // Expand touch boundaries by 16px on each side in pixel space
+  const padX = 16;
+  const padY = 16;
   
-  return px >= bounds.left && px <= bounds.right && py >= bounds.top && py <= bounds.bottom;
+  const minX = bounds.left * imgW - padX;
+  const maxX = bounds.right * imgW + padX;
+  const minY = bounds.top * imgH - padY;
+  const maxY = bounds.bottom * imgH + padY;
+  
+  return lx >= minX && lx <= maxX && ly >= minY && ly <= maxY;
 }
 
 function repositionResizeBar(wrap) {
@@ -7766,11 +7772,21 @@ window.stageGoBack = function() {
   }
   // 13. Layouts/presets panel
   const pm = document.getElementById('presets-panel');
-  if (pm && pm.style.display !== 'none') {
+  if (pm && (pm.style.display !== 'none' || pm.classList.contains('preset-open'))) {
     closePresetsPanel();
     return true;
   }
-  // 14. Timeline panel
+  // 14. History panel
+  const hp = document.getElementById('sc-hist-panel');
+  if (hp && (hp.style.display !== 'none' || hp.classList.contains('sc-hist-open'))) {
+    if (typeof closeTimelinePanel === 'function') {
+      closeTimelinePanel();
+    } else {
+      hp.classList.remove('sc-hist-open');
+    }
+    return true;
+  }
+  // 14.5 Timeline panel
   const tl = document.getElementById('timeline-panel');
   if (tl && tl.style.display !== 'none') {
     closeTimeline();
@@ -9729,11 +9745,17 @@ function downloadQRCode() {
   window.stageHasOpenOverlay = function() {
     const ccm = document.getElementById('cable-context-menu');
     if (ccm && ccm.classList.contains('visible')) return true;
+    
+    // Check presets-panel and sc-hist-panel by class list (since they use transitions)
+    const pm = document.getElementById('presets-panel');
+    if (pm && pm.classList.contains('preset-open')) return true;
+    const hp = document.getElementById('sc-hist-panel');
+    if (hp && hp.classList.contains('sc-hist-open')) return true;
+
     const ids = [
       'gear-modal', 'sections-modal', 'batch-import-modal', 'segment-modal',
       'smart-sort-modal', 'autosave-modal', 'share-modal', 'tl-item-modal',
-      'custom-el-modal', 'song-modal', 'confirm-modal', 'presets-panel',
-      'timeline-panel'
+      'custom-el-modal', 'song-modal', 'confirm-modal', 'timeline-panel'
     ];
     for (var i = 0; i < ids.length; i++) {
       const el = document.getElementById(ids[i]);

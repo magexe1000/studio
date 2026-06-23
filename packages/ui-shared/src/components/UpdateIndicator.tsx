@@ -853,8 +853,25 @@ function UpdateModal({
       description = 'This version of Studio cannot install updates automatically. Please download and install Studio manually once. Future updates will install automatically.';
       break;
 
-    case 'downloading_ota':
-    case 'downloading_apk':
+    case 'preparing':
+      iconName = 'sync';
+      iconColor = purpleFrom;
+      showSpinner = true;
+      title = 'Preparing update';
+      description = 'Initializing update system...';
+      showButtons = false;
+      break;
+
+    case 'enteringProgressScreen':
+      iconName = 'sync';
+      iconColor = purpleFrom;
+      showSpinner = true;
+      title = 'Starting update';
+      description = 'Transitioning to progress screen...';
+      showButtons = false;
+      break;
+
+    case 'downloading':
       iconName = 'cloud_download';
       iconColor = purpleFrom;
       title = 'Downloading update';
@@ -863,24 +880,32 @@ function UpdateModal({
       showButtons = false;
       break;
 
-    case 'verifying_apk':
+    case 'verifying':
       iconName = 'verified_user';
       iconColor = purpleFrom;
       title = 'Verifying update';
-      description = 'Studio is checking the update package before installation.';
+      description = ota.statusText || 'Studio is checking the update package before installation.';
       showSpinner = true;
       showButtons = false;
       break;
 
-    case 'ready_to_install':
+    case 'readyForInstallPrompt':
       iconName = 'task_alt';
       iconColor = '#22c55e';
       title = 'Ready to install';
       description = 'The update package is verified. Android will now ask you to confirm the installation.';
       break;
 
+    case 'waitingForUserInstallConfirmation':
+      iconName = 'security';
+      iconColor = '#eab308';
+      title = 'Installation pending';
+      description = 'Please follow system prompts to complete installation.';
+      showSpinner = true;
+      break;
+
     case 'installing':
-    case 'completed':
+    case 'installedOrReady':
       iconName = 'sync';
       iconColor = purpleFrom;
       showSpinner = true;
@@ -1639,14 +1664,56 @@ function UpdateModal({
     );
   };
 
-  // Fullscreen premium progress overlay for active installation states
-  if (state === 'installing' || state === 'completed') {
+  const isProgressScreenActive = [
+    'preparing',
+    'enteringProgressScreen',
+    'downloading',
+    'verifying',
+    'readyForInstallPrompt',
+    'waitingForUserInstallConfirmation',
+    'installing',
+    'installedOrReady',
+    'failed'
+  ].includes(state);
+
+  if (isProgressScreenActive) {
+    let actionButtons: React.ReactNode = null;
+    if (state === 'failed') {
+      actionButtons = (
+        <div style={{ display: 'flex', gap: 10, width: '100%', marginTop: 20 }}>
+          <button
+            onClick={handleStartUpdate}
+            style={{
+              flex: 1, padding: '12px', borderRadius: 12,
+              background: `linear-gradient(90deg, ${purpleFrom}, ${purpleTo})`,
+              color: '#fff', border: 'none', fontWeight: 700, cursor: 'pointer',
+              fontFamily: 'Manrope, sans-serif'
+            }}
+          >
+            Retry
+          </button>
+          <button
+            onClick={onClose}
+            style={{
+              flex: 1, padding: '12px', borderRadius: 12,
+              background: 'rgba(128,128,128,0.12)',
+              color: 'var(--c-text-primary)', border: 'none', fontWeight: 700, cursor: 'pointer',
+              fontFamily: 'Manrope, sans-serif'
+            }}
+          >
+            Cancel
+          </button>
+        </div>
+      );
+    }
+
     return (
       <StudioUpdateScreen
         progress={progressVal}
         accentFrom={purpleFrom}
         accentTo={purpleTo}
         statusText={description}
+        actionButtons={actionButtons}
       />
     );
   }

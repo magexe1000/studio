@@ -38,18 +38,20 @@ import {
   GroovexLogo,
   VocalexLogo,
   AppEntryTransition,
-  LibraryPanel,
-  ChordPanel,
-  SettingsPanel,
-  SongsPanel,
-  DrumEditor,
-  GroovexApp,
-  VocalexApp,
   ErrorBoundary,
-  StudioHub
 } from '@workspace/ui-shared';
 
-import { BottomNav, StageCorePanel } from '@workspace/ui-android';
+import { BottomNav } from '@workspace/ui-android';
+
+const StudioHub = lazy(() => import('@workspace/ui-shared').then(m => ({ default: m.StudioHub })));
+const LibraryPanel = lazy(() => import('@workspace/ui-shared').then(m => ({ default: m.LibraryPanel })));
+const ChordPanel = lazy(() => import('@workspace/ui-shared').then(m => ({ default: m.ChordPanel })));
+const SettingsPanel = lazy(() => import('@workspace/ui-shared').then(m => ({ default: m.SettingsPanel })));
+const SongsPanel = lazy(() => import('@workspace/ui-shared').then(m => ({ default: m.SongsPanel })));
+const DrumEditor = lazy(() => import('@workspace/ui-shared').then(m => ({ default: m.DrumEditor })));
+const GroovexApp = lazy(() => import('@workspace/ui-shared').then(m => ({ default: m.GroovexApp })));
+const VocalexApp = lazy(() => import('@workspace/ui-shared').then(m => ({ default: m.VocalexApp })));
+const StageCorePanel = lazy(() => import('@workspace/ui-android').then(m => ({ default: m.StageCorePanel })));
 import { Capacitor } from '@capacitor/core';
 import html2canvas from 'html2canvas';
 
@@ -2318,7 +2320,9 @@ export default function App() {
               {showHub && (
                 <>
                   <LifecycleTracker name="StudioHub" />
-                  <StudioHub key={hubRenderKey} />
+                  <Suspense fallback={<StudioHubSkeleton />}>
+                    <StudioHub key={hubRenderKey} />
+                  </Suspense>
                 </>
               )}
             </div>

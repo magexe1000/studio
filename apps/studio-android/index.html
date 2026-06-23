@@ -338,6 +338,15 @@
           return;
         }
 
+        // Cache window dimensions to prevent repeated layout reads
+        var cachedWidth = window.innerWidth || 360;
+        var cachedHeight = window.innerHeight || 640;
+
+        // Pre-query DOM elements once to avoid querying them inside the animation frame loop
+        var logoEl   = center.querySelector('.logo');
+        var titleEl  = center.querySelector('.title');
+        var subEl    = center.querySelector('.sub');
+
         // Fade in the intro overlay smoothly
         requestAnimationFrame(function() {
           requestAnimationFrame(function() {
@@ -390,8 +399,8 @@
 
         // Default fallback targets (relative to viewport center) if measurement fails
         function fallbackTargets() {
-          var W = Math.max(window.innerWidth || 360, 320);
-          var H = Math.max(window.innerHeight || 640, 480);
+          var W = Math.max(cachedWidth, 320);
+          var H = Math.max(cachedHeight, 480);
           var x = -(W / 2) + 64;
           var y0 = -(H / 2) + 240;
           var gap = Math.min(76, (H * 0.5) / (N + 1));
@@ -408,8 +417,8 @@
         // Measure actual hub icon positions from data-intro-target elements.
         // Returns null if not all targets are present or layout size is invalid.
         function measureTargets() {
-          var W = window.innerWidth;
-          var H = window.innerHeight;
+          var W = cachedWidth;
+          var H = cachedHeight;
           if (!W || !H || W < 100 || H < 100) return null;
           var cxV = W / 2, cyV = H / 2;
           var centerEl = document.querySelector('[data-intro-target="studio"]');
@@ -438,20 +447,14 @@
         }
 
         // Measure vertical offset of the logo's center relative to the
-        // #intro-center container's center. The container holds logo + title +
-        // subtitle in normal flow, so the logo center sits ABOVE the container
-        // center. We use this offset (scaled) to make the LOGO land on the
-        // measured hub target, not the container.
-        var _cachedLogoOffY = null;
+        // #intro-center container's center.
+        var logoOffY = 0;
         function getLogoOffsetY() {
-          if (_cachedLogoOffY !== null) return _cachedLogoOffY;
-          var logoEl = center.querySelector('.logo');
-          if (!logoEl) return 0;
+          if (!logoEl || !center) return 0;
           var lr = logoEl.getBoundingClientRect();
           var cr = center.getBoundingClientRect();
-          if (cr.height === 0) return 0;  // not laid out yet — try later
-          _cachedLogoOffY = (lr.top + lr.height / 2) - (cr.top + cr.height / 2);
-          return _cachedLogoOffY;
+          if (cr.height === 0) return 0;  // not laid out yet
+          return (lr.top + lr.height / 2) - (cr.top + cr.height / 2);
         }
 
         function easeInOutCubic(t) {
@@ -502,9 +505,11 @@
               var measured = measureTargets();
               if (measured) {
                 targets = measured;
+                logoOffY = getLogoOffsetY(); // Compute once on transition start
                 settleStartTime = now;
               } else if (t >= MAX_WAIT_TIME) {
                 targets = fallbackTargets();
+                logoOffY = getLogoOffsetY(); // Compute once on transition start
                 settleStartTime = now;
               }
             }
@@ -556,13 +561,10 @@
           if (targets) {
             var ct = targets.center;
             var ccs = 1 + (ct.scale - 1) * sE;
-            var logoOffY = getLogoOffsetY(); // px, logo-center relative to container-center
             var ccx = ct.x * sE;
             var ccy = (ct.y - logoOffY * ccs) * sE;
             center.style.transform = 'translate(-50%, -50%) translate(' + ccx.toFixed(2) + 'px,' + ccy.toFixed(2) + 'px) scale(' + ccs.toFixed(3) + ')';
             // Fade out title/sub during settle so only the logo "lands"
-            var titleEl = center.querySelector('.title');
-            var subEl   = center.querySelector('.sub');
             if (titleEl) titleEl.style.opacity = String(1 - sE);
             if (subEl)   subEl.style.opacity   = String(1 - sE);
           }

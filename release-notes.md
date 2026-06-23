@@ -1,6 +1,6 @@
 ### Fixed
-- Optimized startup planets animation and throttled layout queries to prevent freezes.
-- Deferred React mounting and non-critical assets load to ensure smooth initial frames.
-- Implemented double-buffered loading to eliminate sub-app entry transition stutters.
-- Added universal swipe-to-back navigation and root screen exit behavior setting.
-- Fixed bottom nav restoration stutters upon exiting nested panels or practice mode.
+- Optimized startup planets animation with cached dimensions and pre-computed logo offsets.
+- Expanded Stagex plot object selection hitboxes by 16px and suppressed tap highlight overlays.
+- Redesigned Stagex history menu into a responsive bottom sheet and disabled undo/redo on open.
+- Resolved Stagex back-gesture coverage, including presets panel and history overlay detection.
+- Refactored native update progress flows with support for all 10 states and automated install.

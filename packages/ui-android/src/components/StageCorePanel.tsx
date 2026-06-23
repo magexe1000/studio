@@ -1467,8 +1467,17 @@ ComposedPath: ${path.slice(0, 3).join(' > ')}`;
       setPdfSheetOpen(false);
       return true;
     }
+    if (showDiagnostics) {
+      setShowDiagnostics(false);
+      return true;
+    }
+    if (fabOpen) {
+      callIframe('toggleSCDial');
+      setFabOpen(false);
+      return true;
+    }
     return false;
-  }, [pdfSheetOpen]);
+  }, [pdfSheetOpen, showDiagnostics, fabOpen, callIframe]);
 
   useBackHandler('nested', () => {
     if (!iframeReady.current) {

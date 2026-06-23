@@ -695,7 +695,14 @@ export type OtaUpdateState =
   | 'completed'
   | 'failed'
   | 'signature_mismatch'
-  | 'versionCode_low';
+  | 'versionCode_low'
+  | 'preparing'
+  | 'enteringProgressScreen'
+  | 'downloading'
+  | 'verifying'
+  | 'readyForInstallPrompt'
+  | 'waitingForUserInstallConfirmation'
+  | 'installedOrReady';
 
 export interface CentralizedOtaState {
   updateState: OtaUpdateState;
@@ -1338,7 +1345,7 @@ export function downloadUpdate(trigger?: string): Promise<void> {
   const { apkUrl, remoteVersion } = globalOtaState;
   const ver = remoteVersion || '';
 
-  if (globalOtaState.updateState === 'ready_to_install' || globalOtaState.updateState === 'completed') {
+  if (globalOtaState.updateState === 'readyForInstallPrompt' || globalOtaState.updateState === 'installedOrReady') {
     const downloadedPath = localStorage.getItem('studio:downloadedApkPath');
     if (downloadedPath) {
       return Promise.resolve();
@@ -1387,6 +1394,9 @@ export function downloadUpdate(trigger?: string): Promise<void> {
     return Promise.reject(new Error('No APK download URL available'));
   }
 
+  // Set initial preparation state immediately to trigger progress screens instantly
+  updateGlobalState({ updateState: 'preparing', progress: 0, statusText: 'Preparing update...', error: null });
+
   activeDownloadPromise = (async () => {
     // Clear stale path for different versions before starting the download
     const downloadedPath = localStorage.getItem('studio:downloadedApkPath');
@@ -1395,12 +1405,16 @@ export function downloadUpdate(trigger?: string): Promise<void> {
     }
     
     otaDebugLogs.downloadStatus = `Update started: apk\nAPK URL: ${apkUrl}`;
-    updateGlobalState({ updateState: 'downloading_apk', progress: 0.01, statusText: 'Downloading update', error: null });
+    updateGlobalState({ updateState: 'enteringProgressScreen', progress: 0.0, statusText: 'Entering progress screen...' });
+    
     try {
       const { downloadApk } = await import('./apkDownloader');
       
       otaDebugLogs.downloadStatus += `\nAPK download started...`;
       const fileName = `studio-update-${ver}.apk`;
+      
+      updateGlobalState({ updateState: 'downloading', progress: 0.01, statusText: 'Downloading update' });
+      
       const filePath = await downloadApk(apkUrl, fileName, (percent) => {
         updateGlobalState({ 
           progress: Math.max(0, Math.min(1, percent / 100)),
@@ -1413,7 +1427,7 @@ export function downloadUpdate(trigger?: string): Promise<void> {
       const expectedHash = globalOtaState.apkSha256;
       if (expectedHash) {
         otaDebugLogs.downloadStatus += `\nStarting SHA verification (Expected: ${expectedHash})...`;
-        updateGlobalState({ updateState: 'verifying_apk', statusText: 'Verifying package' });
+        updateGlobalState({ updateState: 'verifying', statusText: 'Verifying package' });
         const { verifyApkSha256 } = await import('./apkDownloader');
         const isValid = await verifyApkSha256(filePath, expectedHash);
         otaDebugLogs.shaVerification = isValid ? 'SUCCESS' : 'FAILED';
@@ -1433,19 +1447,25 @@ export function downloadUpdate(trigger?: string): Promise<void> {
         otaDebugLogs.fileDetails = `Error reading file stats: ${statErr instanceof Error ? statErr.message : String(statErr)}`;
       }
 
-      updateGlobalState({ progress: 1.0, statusText: 'Downloading update' });
+      updateGlobalState({ progress: 1.0, statusText: 'Verifying update' });
       await new Promise((resolve) => setTimeout(resolve, 300));
 
       otaDebugLogs.downloadStatus += `\nRunning pre-install eligibility check...`;
+      updateGlobalState({ updateState: 'verifying', statusText: 'Checking eligibility...' });
       const isEligible = await runEligibilityCheck(filePath);
       if (!isEligible) {
         throw new Error('Eligibility validation failed: ' + (otaDebugLogs.eligibilityReason || 'unknown'));
       }
 
-      updateGlobalState({ statusText: 'Ready to install', updateState: 'ready_to_install' });
+      updateGlobalState({ statusText: 'Ready to install', updateState: 'readyForInstallPrompt' });
       localStorage.setItem('studio:downloadedApkPath', filePath);
       localStorage.removeItem('studio:downloadedBundleId');
       addToStoredList('studio:downloadedVersions', ver);
+
+      // Automatically trigger native installation once verified
+      setTimeout(() => {
+        applyUpdate('AutoInstall: downloadUpdate');
+      }, 1000);
     } catch (err) {
       console.error('[OTA] APK download failed:', err);
       const errMsg = err instanceof Error ? err.message : String(err);
@@ -1537,7 +1557,7 @@ export function applyUpdate(trigger?: string): Promise<void> {
       otaDebugLogs.lastExceptionStackTrace = 'None';
       otaDebugLogs.finalPathExecuted = 'APK installer launched';
       updateGlobalState({ 
-        updateState: 'idle', 
+        updateState: 'installedOrReady', 
         updateAvailable: false,
         statusText: 'APK installer launched',
         finalPathExecuted: 'APK installer launched'

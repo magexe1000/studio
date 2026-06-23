@@ -515,6 +515,60 @@ export default function StudioHub() {
     [greetName, lang],
   );
 
+  if (!introFinished) {
+    return (
+      <div
+        data-livex-hub-root="true"
+        style={{
+          position: 'relative',
+          height: '100dvh',
+          overflow: 'hidden',
+          background: 'var(--app-bg)',
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          paddingTop: 'env(safe-area-inset-top)',
+          fontFamily: 'Manrope, sans-serif',
+        }}
+      >
+        <div style={{ flex: 1, width: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '0 20px' }}>
+          {/* Logo area */}
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', paddingTop: 'clamp(36px, 7vh, 56px)' }}>
+            <div data-intro-target="studio" style={{ width: 56, height: 56 }} />
+            <div style={{ height: 28, marginTop: 10 }} />
+          </div>
+
+          {/* Combined welcome + apps card */}
+          <div style={{
+            width: '100%', maxWidth: 380,
+            marginTop: 'clamp(28px, 6vh, 48px)',
+            background: 'var(--app-surface)',
+            borderRadius: 24,
+            border: '1px solid rgba(128,128,128,0.07)',
+            display: 'flex',
+            flexDirection: 'column',
+            padding: '22px 22px 14px',
+            boxSizing: 'border-box'
+          }}>
+            {/* Welcome header placeholder */}
+            <div style={{ height: 48 }} />
+            {/* Divider */}
+            <div style={{ height: 1, background: 'rgba(128,128,128,0.08)', margin: '12px 0' }} />
+            {/* App rows placeholders */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+              {['chords', 'drums', 'stage', 'groovex', 'vocalex'].map((app) => (
+                <div key={app} style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '13px 18px', boxSizing: 'border-box' }}>
+                  <div data-intro-target={app} style={{ width: 42, height: 42, borderRadius: 12 }} />
+                  <div style={{ flex: 1, height: 20 }} />
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div
       data-livex-hub-root="true"

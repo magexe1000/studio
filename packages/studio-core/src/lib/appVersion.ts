@@ -26,7 +26,7 @@ import { useMemo } from 'react';
 import { Capacitor } from '@capacitor/core';
 
 /** Canonical semver string used by the OTA comparator. */
-export const NATIVE_VERSION = '3.6.81';
+export const NATIVE_VERSION = '3.6.82';
 export const WEB_VERSION = '4.0.0';
 export const APP_VERSION = Capacitor.isNativePlatform() ? NATIVE_VERSION : WEB_VERSION;
 
@@ -38,7 +38,7 @@ export const APP_VERSION_LABEL = `${APP_VERSION_TAG} ${APP_VERSION}`;
 
 /** Release date for the CURRENT bundle, shown alongside the version pill
  *  in the changelog sheet. ISO-8601 (`YYYY-MM-DD`). */
-export const APP_VERSION_DATE = '2026-06-22'; // 3.6.81
+export const APP_VERSION_DATE = '2026-06-23'; // 3.6.82
 // Note: keep ISO-8601. Bump together with APP_VERSION on each release.
 
 export const APP_COMMIT_SHA = import.meta.env.VITE_GIT_COMMIT_SHA || 'efd2b1a3';
@@ -61,11 +61,11 @@ export const APP_CHANGELOG_SECTIONS: ChangelogSection[] = [
   {
     heading: "Fixed",
     items: [
-      "Optimized startup planets animation and throttled layout queries to prevent freezes.",
-      "Deferred React mounting and non-critical assets load to ensure smooth initial frames.",
-      "Implemented double-buffered loading to eliminate sub-app entry transition stutters.",
-      "Added universal swipe-to-back navigation and root screen exit behavior setting.",
-      "Fixed bottom nav restoration stutters upon exiting nested panels or practice mode.",
+      "Optimized startup planets animation with cached dimensions and pre-computed logo offsets.",
+      "Expanded Stagex plot object selection hitboxes by 16px and suppressed tap highlight overlays.",
+      "Redesigned Stagex history menu into a responsive bottom sheet and disabled undo/redo on open.",
+      "Resolved Stagex back-gesture coverage, including presets panel and history overlay detection.",
+      "Refactored native update progress flows with support for all 10 states and automated install.",
     ],
   },
 ];
@@ -75,11 +75,11 @@ export const APP_CHANGELOG_SECTIONS_NATIVE: ChangelogSection[] = [
   {
     heading: "Fixed",
     items: [
-      "Optimized startup planets animation and throttled layout queries to prevent freezes.",
-      "Deferred React mounting and non-critical assets load to ensure smooth initial frames.",
-      "Implemented double-buffered loading to eliminate sub-app entry transition stutters.",
-      "Added universal swipe-to-back navigation and root screen exit behavior setting.",
-      "Fixed bottom nav restoration stutters upon exiting nested panels or practice mode.",
+      "Optimized startup planets animation with cached dimensions and pre-computed logo offsets.",
+      "Expanded Stagex plot object selection hitboxes by 16px and suppressed tap highlight overlays.",
+      "Redesigned Stagex history menu into a responsive bottom sheet and disabled undo/redo on open.",
+      "Resolved Stagex back-gesture coverage, including presets panel and history overlay detection.",
+      "Refactored native update progress flows with support for all 10 states and automated install.",
     ],
   },
 ];
@@ -90,11 +90,11 @@ export const APP_CHANGELOG_SECTIONS_ES: ChangelogSection[] = [
   {
     heading: "Corregido",
     items: [
-      "Optimizado el rendimiento de la animación inicial y eliminadas las consultas de diseño repetitivas.",
-      "Diferido el montaje de React y cargas secundarias para asegurar fotogramas fluidos al iniciar.",
-      "Doble búfer implementado para transiciones de entrada a sub-apps libres de congelamientos.",
-      "Gesto universal de retroceso y opción para requerir salida manual a la pantalla principal.",
-      "Corregido el retraso en la restauración del menú inferior al salir del modo de práctica.",
+      "Optimización visual del inicio y precomputación del logo para evitar retrasos.",
+      "Ampliadas las áreas de contacto de los objetos de Stagex y eliminados los resaltados grises al tocar.",
+      "Rediseñado el menú de historial de Stagex como una hoja inferior adaptativa.",
+      "Soporte universal para gestos de retroceso en paneles, ajustes y el historial de Stagex.",
+      "Rediseñada la pantalla de progreso de actualización nativa con aplicación automática en segundo plano.",
     ],
   },
 ];
@@ -104,10 +104,11 @@ export const APP_CHANGELOG_SECTIONS_DE: ChangelogSection[] = [
   {
     heading: "Behoben",
     items: [
-      "Optimierte 120-Hz-Rendering- und Routen-Animationen für extreme Reaktionsfähigkeit.",
-      "Graue Hintergrund-Blitze durch rein schwarzes (#000000) Layout und Fenster eliminiert.",
-      "Entwickler-Tools in ein intuitives Dashboard mit Unteransicht-Karten umgestaltet.",
-      "Modulares Kopieren von Diagnosen für einzelne Debug-Bereiche implementiert.",
+      "Optimierte Startanimation durch Zwischenspeichern von Dimensionen und Logo-Offsets.",
+      "Vergrößerte Klickbereiche für Stagex-Objekte und Deaktivierung grauer Tipp-Overlays.",
+      "Umgestaltung des Stagex-Verlaufspanels in ein responsives Bottom-Sheet für Mobilgeräte.",
+      "Universelle Wischgeste-Zurück-Navigation für Overlays, Presets und Verlauf in Stagex.",
+      "Neugestaltung der App-Update-Fortschrittsanzeige mit automatischer Hintergrundinstallation.",
     ],
   },
 ];

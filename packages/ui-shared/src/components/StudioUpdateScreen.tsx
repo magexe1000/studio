@@ -56,6 +56,7 @@ interface StudioUpdateScreenProps {
   accentFrom: string;
   accentTo: string;
   statusText?: React.ReactNode;
+  actionButtons?: React.ReactNode;
 }
 
 export default function StudioUpdateScreen({
@@ -63,6 +64,7 @@ export default function StudioUpdateScreen({
   accentFrom,
   accentTo,
   statusText,
+  actionButtons,
 }: StudioUpdateScreenProps) {
   const pct = Math.round(progress * 100);
   const isDone = pct >= 100;
@@ -188,6 +190,9 @@ export default function StudioUpdateScreen({
           >
             {displayMsg}
           </motion.div>
+
+          {/* ── Action buttons ── */}
+          {actionButtons}
         </div>
       </StudioUpdateAuroraBackground>
     </motion.div>

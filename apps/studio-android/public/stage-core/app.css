@@ -37,7 +37,8 @@
   transform-origin: center center;
 }
 /* ── Stage elements: GPU layer per element during drag ─────────────────────── */
-.stage-element { contain: style; }
+.stage-element { contain: style; -webkit-tap-highlight-color: transparent !important; }
+.stage-element * { -webkit-tap-highlight-color: transparent !important; }
 .stage-element.dragging { will-change: transform; }
 /* ── Spawn animation for newly dropped elements ─── */
 @keyframes el-spawn {
@@ -2880,3 +2881,80 @@ html[data-theme="light"] #exp-options-drawer button span:not(.material-symbols-o
 html[data-theme="light"] #exp-options-drawer button {
   border-bottom-color: rgba(0,0,0,0.06) !important;
 }
+
+/* Responsive History Menu bottom sheet / floating card */
+#sc-hist-panel {
+  position: fixed;
+  z-index: 9000;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  box-sizing: border-box;
+  box-shadow: 0 12px 40px rgba(0,0,0,0.12), 0 2px 6px rgba(0,0,0,0.08);
+  transition: transform 0.28s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.24s ease;
+  pointer-events: auto;
+  background: rgba(10,10,12,0.97);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  color: #e0e0e0;
+}
+
+html[data-theme="light"] #sc-hist-panel {
+  background: rgba(252,252,253,0.98);
+  color: #1a1a1c;
+}
+
+@media (max-width: 767px) {
+  #sc-hist-panel {
+    bottom: 0;
+    left: 0;
+    right: 0;
+    width: 100%;
+    max-height: 50vh;
+    border-radius: 20px 20px 0 0;
+    border: 1px solid rgba(72,72,71,0.22);
+    border-bottom: none;
+    transform: translateY(100%);
+    opacity: 0;
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+  #sc-hist-panel.sc-hist-open {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+@media (min-width: 768px) {
+  #sc-hist-panel {
+    top: 16px;
+    left: 50%;
+    transform: translate(-50%, -16px);
+    width: 320px;
+    max-height: 380px;
+    border-radius: 12px;
+    border: 1px solid rgba(72,72,71,0.3);
+    opacity: 0;
+  }
+  #sc-hist-panel.sc-hist-open {
+    transform: translate(-50%, 0);
+    opacity: 1;
+  }
+}
+
+#sc-hist-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.4);
+  backdrop-filter: blur(2px);
+  -webkit-backdrop-filter: blur(2px);
+  z-index: 8999;
+  opacity: 0;
+  transition: opacity 0.24s ease;
+  pointer-events: none;
+}
+
+#sc-hist-backdrop.sc-hist-open {
+  opacity: 1;
+  pointer-events: auto;
+}
+

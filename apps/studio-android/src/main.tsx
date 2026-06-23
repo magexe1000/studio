@@ -74,7 +74,7 @@ if (typeof document !== 'undefined') {
   }
 }
 
-// Defer React mount by 600ms to let startup planets animation run stutter-free initially
+// Defer React mount by 100ms to let startup planets animation run stutter-free initially
 setTimeout(() => {
   createRoot(document.getElementById("root")!).render(
     <>
@@ -83,7 +83,7 @@ setTimeout(() => {
       <EmergencyDebugOverlay />
     </>,
   );
-}, 600);
+}, 100);
 
 // Clean up all service workers since they are not supported in native wrappers.
 if (typeof window !== 'undefined' && 'serviceWorker' in navigator) {
