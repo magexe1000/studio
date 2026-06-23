@@ -26,7 +26,7 @@ import { useMemo } from 'react';
 import { Capacitor } from '@capacitor/core';
 
 /** Canonical semver string used by the OTA comparator. */
-export const NATIVE_VERSION = '3.6.86';
+export const NATIVE_VERSION = '3.6.87';
 export const WEB_VERSION = '4.0.0';
 export const APP_VERSION = Capacitor.isNativePlatform() ? NATIVE_VERSION : WEB_VERSION;
 
@@ -59,11 +59,19 @@ export interface ChangelogSection {
 
 export const APP_CHANGELOG_SECTIONS: ChangelogSection[] = [
   {
-    heading: "What's New",
+    heading: "Added",
     items: [
-      "Added suggested practice chords mapped to lyrics when verified chord charts are missing.",
-      "Redesigned Chords Home with Chord of the Day, quick categories, and practice tips.",
-      "Fixed Library back button navigation and improved return-to-hub transition logging.",
+      "Implemented hand-aligned verified chord charts database for curated song lists.",
+      "Integrated new ChordChartProvider search hierarchy prioritising user and verified charts.",
+      "Added premium status indicators indicating chord authenticity (Verified, User, Suggested, Lyrics).",
+    ],
+  },
+  {
+    heading: "Improved",
+    items: [
+      "Aligned chord placement to lyrics with accurate timestamp interpolation.",
+      "Refactored manual chord editor modal to easily customize, paste, or reset chord sheets.",
+      "Polished Practice UI layout, typography, line highlights, and viewport spacing.",
     ],
   },
 ];

@@ -1,8 +1,21 @@
 import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { useChordStore, setNavLocked, setNavHidden, getChordByName, useT, useBackHandler, fetchLyricsOnline, type SongChart, type SongChartSection, type ChordMarker } from '@workspace/studio-core';
+import { 
+  useChordStore, 
+  setNavLocked, 
+  setNavHidden, 
+  getChordByName, 
+  useT, 
+  useBackHandler, 
+  getChordChart, 
+  type NormalizedChordChart, 
+  type NormalizedSection, 
+  type NormalizedLyricsLine, 
+  type NormalizedChordMarker, 
+  type SongChart, 
+  type SongChartSection 
+} from '@workspace/studio-core';
 import ChordDiagram from './ChordDiagram';
-
 
 interface SongPracticeViewProps {
   song: SongChart;
@@ -15,7 +28,7 @@ interface ChordSegment {
 }
 
 // Partition a lyrics line into chord-text segments for inline-flex rendering
-function getLineSegments(lyrics: string, chords: ChordMarker[]): ChordSegment[] {
+function getLineSegments(lyrics: string, chords: NormalizedChordMarker[]): ChordSegment[] {
   if (!chords || chords.length === 0) {
     return [{ text: lyrics || ' ' }];
   }
@@ -134,26 +147,6 @@ function cleanChordName(name: string): string {
   return clean.trim();
 }
 
-function mapLyricsToSections(result: any): SongChartSection[] {
-  if (!result) return [];
-  if (result.syncedLines && result.syncedLines.length > 0) {
-    const lines = result.syncedLines.map((line: any) => ({
-      lyrics: line.text || ' ',
-      chords: [],
-      timestamp: line.timestamp,
-      duration: line.duration
-    }));
-    return [{ name: 'Lyrics (Synced)', lines }];
-  } else if (result.plainLyrics) {
-    const lines = result.plainLyrics.split('\n').map((lineText: string) => ({
-      lyrics: lineText.trim() || ' ',
-      chords: []
-    }));
-    return [{ name: 'Lyrics', lines }];
-  }
-  return [];
-}
-
 export function SongPracticeView({ song, onClose }: SongPracticeViewProps) {
   const t = useT();
 
@@ -173,7 +166,7 @@ export function SongPracticeView({ song, onClose }: SongPracticeViewProps) {
     return true;
   }, [onClose]);
 
-  // Configuration settings (persisted locally)
+  // Sizing and spacing styles (persisted locally)
   const [fontSize, setFontSize] = useState<'sm' | 'md' | 'lg' | 'xl'>(() => {
     return (localStorage.getItem('chordex:practice:fontSize') as any) ?? 'md';
   });
@@ -188,11 +181,6 @@ export function SongPracticeView({ song, onClose }: SongPracticeViewProps) {
   });
   const [tempo, setTempo] = useState<number>(song.bpm || 120);
 
-  // Custom user-imported chart state
-  const [customChart, setCustomChart] = useState<SongChartSection[] | null>(null);
-  const [showImportModal, setShowImportModal] = useState(false);
-  const [importText, setImportText] = useState('');
-
   // Playback/scrolling states
   const [isPlaying, setIsPlaying] = useState(false);
   const [elapsedTime, setElapsedTime] = useState(0);
@@ -204,11 +192,11 @@ export function SongPracticeView({ song, onClose }: SongPracticeViewProps) {
   const animationFrameRef = useRef<number | null>(null);
   const startTimeRef = useRef<number>(0);
 
-  // Lyrics Provider States
-  const [providerLyrics, setProviderLyrics] = useState<SongChartSection[] | null>(null);
-  const [lyricsLoading, setLyricsLoading] = useState(false);
-  const [lyricsError, setLyricsError] = useState<string | null>(null);
-  const [lyricsDiagnostics, setLyricsDiagnostics] = useState<{
+  // Chord Provider States
+  const [activeChart, setActiveChart] = useState<NormalizedChordChart | null>(null);
+  const [chartLoading, setChartLoading] = useState(false);
+  const [chartError, setChartError] = useState<string | null>(null);
+  const [chartDiagnostics, setChartDiagnostics] = useState<{
     provider: string;
     success: boolean;
     confidence: number;
@@ -216,86 +204,38 @@ export function SongPracticeView({ song, onClose }: SongPracticeViewProps) {
     duration: number;
   } | null>(null);
 
-  // Settings states for lyrics providers
-  const [lrclibEnabled, setLrclibEnabled] = useState<boolean>(() => {
-    return localStorage.getItem('chordex:lyrics:provider_enabled:lrclib') !== 'false';
-  });
-  const [kugouEnabled, setKugouEnabled] = useState<boolean>(() => {
-    return localStorage.getItem('chordex:lyrics:provider_enabled:kugou') === 'true';
-  });
-  const [preferSynced, setPreferSynced] = useState<boolean>(() => {
-    return localStorage.getItem('chordex:lyrics:prefer_synced') !== 'false';
+  // Suggested Chords Options
+  const [showSuggestedFallback, setShowSuggestedFallback] = useState<boolean>(() => {
+    return localStorage.getItem('chordex:practice:showSuggestedFallback') === 'true';
   });
 
-  useEffect(() => { localStorage.setItem('chordex:lyrics:provider_enabled:lrclib', String(lrclibEnabled)); }, [lrclibEnabled]);
-  useEffect(() => { localStorage.setItem('chordex:lyrics:provider_enabled:kugou', String(kugouEnabled)); }, [kugouEnabled]);
-  useEffect(() => { localStorage.setItem('chordex:lyrics:prefer_synced', String(preferSynced)); }, [preferSynced]);
+  const [importText, setImportText] = useState('');
+  const [showImportModal, setShowImportModal] = useState(false);
 
-  const hasLocalChart = customChart || (song.sections && song.sections.length > 0);
+  const isSpanish = useMemo(() => {
+    return useChordStore.getState().settings.language === 'es';
+  }, []);
 
-  const fetchLyrics = useCallback(async (force = false) => {
-    if (hasLocalChart && !force) return;
-
-    setLyricsLoading(true);
-    setLyricsError(null);
+  // Fetch chart using the orchestrator
+  const fetchChordChart = useCallback(async (force = false) => {
+    setChartLoading(true);
+    setChartError(null);
     const startTime = Date.now();
 
     try {
-      const cacheKey = `chordex:lyrics:cache:${song.id}`;
-      const cached = localStorage.getItem(cacheKey);
-      if (cached && !force) {
-        if (cached === 'none') {
-          setProviderLyrics(null);
-          setLyricsLoading(false);
-          setLyricsDiagnostics({
-            provider: 'cache',
-            success: false,
-            confidence: 0,
-            type: 'unavailable',
-            duration: Date.now() - startTime
-          });
-          return;
-        }
-        try {
-          const parsedRes = JSON.parse(cached);
-          const sections = mapLyricsToSections(parsedRes);
-          setProviderLyrics(sections);
-          setLyricsLoading(false);
-          setLyricsDiagnostics({
-            provider: parsedRes.provider || 'cache',
-            success: true,
-            confidence: parsedRes.confidence || 1.0,
-            type: parsedRes.syncedLines && parsedRes.syncedLines.length > 0 ? 'synced' : 'plain',
-            duration: Date.now() - startTime
-          });
-          return;
-        } catch (_) {}
-      }
-
-      const enabledProviders: string[] = [];
-      if (lrclibEnabled) enabledProviders.push('lrclib');
-      if (kugouEnabled) enabledProviders.push('kugou');
-
-      const result = await fetchLyricsOnline(song.title, song.artist, {
-        preferSynced,
-        enabledProviders
-      });
-
-      if (result) {
-        localStorage.setItem(cacheKey, JSON.stringify(result));
-        const sections = mapLyricsToSections(result);
-        setProviderLyrics(sections);
-        setLyricsDiagnostics({
-          provider: result.provider,
+      const chart = await getChordChart(song, force);
+      setActiveChart(chart);
+      
+      if (chart) {
+        setChartDiagnostics({
+          provider: chart.source,
           success: true,
-          confidence: result.confidence,
-          type: result.syncedLines.length > 0 ? 'synced' : 'plain',
+          confidence: chart.confidence,
+          type: chart.sections.some(s => s.lines.some(l => l.timestamp !== undefined)) ? 'synced' : 'plain',
           duration: Date.now() - startTime
         });
       } else {
-        localStorage.setItem(cacheKey, 'none');
-        setProviderLyrics(null);
-        setLyricsDiagnostics({
+        setChartDiagnostics({
           provider: 'none',
           success: false,
           confidence: 0,
@@ -304,32 +244,31 @@ export function SongPracticeView({ song, onClose }: SongPracticeViewProps) {
         });
       }
     } catch (e: any) {
-      console.error('[Chordex Lyrics] Fetch error:', e);
-      setLyricsError(e.message || 'Error fetching lyrics');
+      console.error('[Chordex Practice] Chart fetch error:', e);
+      setChartError(e.message || 'Error loading chord chart');
     } finally {
-      setLyricsLoading(false);
+      setChartLoading(false);
     }
-  }, [song.id, song.title, song.artist, hasLocalChart, lrclibEnabled, kugouEnabled, preferSynced]);
+  }, [song]);
 
   useEffect(() => {
-    fetchLyrics();
-  }, [fetchLyrics]);
+    fetchChordChart();
+  }, [fetchChordChart]);
 
-  const handleClearLyricsCache = () => {
-    localStorage.removeItem(`chordex:lyrics:cache:${song.id}`);
-    setProviderLyrics(null);
-    setLyricsDiagnostics(null);
-    alert('Lyrics cache cleared for this song.');
+  // Clean cache and refetch
+  const handleClearCacheAndRetry = () => {
+    localStorage.removeItem(`chordex:chords:cache:${song.id}`);
+    fetchChordChart(true);
   };
 
-
-  // Save settings when changed
+  // Save settings
   useEffect(() => { localStorage.setItem('chordex:practice:fontSize', fontSize); }, [fontSize]);
   useEffect(() => { localStorage.setItem('chordex:practice:chordSize', chordSize); }, [chordSize]);
   useEffect(() => { localStorage.setItem('chordex:practice:spacing', spacing); }, [spacing]);
   useEffect(() => { localStorage.setItem('chordex:practice:showOverlay', String(showChordOverlay)); }, [showChordOverlay]);
+  useEffect(() => { localStorage.setItem('chordex:practice:showSuggestedFallback', String(showSuggestedFallback)); }, [showSuggestedFallback]);
 
-  // Floating chord overlay persistent position
+  // Drag overlay position
   const [overlayPos, setOverlayPos] = useState({ x: 0, y: 0 });
   const containerRef = useRef<HTMLDivElement>(null);
 
@@ -346,66 +285,53 @@ export function SongPracticeView({ song, onClose }: SongPracticeViewProps) {
     localStorage.setItem('chordex:practice:overlayPosition', JSON.stringify(nextPos));
   };
 
-  // Load custom user chart if stored
-  useEffect(() => {
-    const saved = localStorage.getItem(`chordex:practice:custom_chart:${song.id}`);
-    if (saved) {
-      try {
-        setCustomChart(JSON.parse(saved));
-      } catch (_) {}
-    }
-  }, [song.id]);
-
   const handleSaveCustomChart = () => {
     if (!importText.trim()) return;
     try {
       const parsed = parseTextChart(importText);
-      setCustomChart(parsed);
       localStorage.setItem(`chordex:practice:custom_chart:${song.id}`, JSON.stringify(parsed));
       localStorage.setItem(`chordex:practice:custom_chart_text:${song.id}`, importText);
       setShowImportModal(false);
+      fetchChordChart(true);
     } catch (_) {
       alert('Error parsing chart. Please verify spacing and headers.');
     }
   };
 
   const handleClearCustomChart = () => {
-    setCustomChart(null);
     localStorage.removeItem(`chordex:practice:custom_chart:${song.id}`);
     localStorage.removeItem(`chordex:practice:custom_chart_text:${song.id}`);
+    fetchChordChart(true);
   };
 
-  const isSpanish = useMemo(() => {
-    return useChordStore.getState().settings.language === 'es';
-  }, []);
+  // Determine if actual chords exist in the retrieved chart
+  const hasRealChords = useMemo(() => {
+    if (!activeChart) return false;
+    return activeChart.status === 'verified' || activeChart.status === 'user' || activeChart.status === 'provider';
+  }, [activeChart]);
 
+  // Determine if suggested chords are active
   const isSuggestedChords = useMemo(() => {
-    return !customChart && (!song.sections || song.sections.length === 0);
-  }, [customChart, song.sections]);
+    if (!activeChart) return false;
+    return !hasRealChords && showSuggestedFallback;
+  }, [activeChart, hasRealChords, showSuggestedFallback]);
 
-  // Generate suggested progression if using suggested chords
+  // Suggested progression generated deterministic from key
   const suggestedProgression = useMemo(() => {
     if (!isSuggestedChords) return [];
-    
-    // If song has its own progression defined, use it
     if (song.progression && song.progression.length > 0) {
       return song.progression;
     }
-    
-    // Otherwise infer from key
     const cleanKey = (song.key || 'C').trim();
     const isMinor = cleanKey.endsWith('m') || cleanKey.toLowerCase().includes('minor');
-    
     const match = cleanKey.match(/^([A-G][#b]?)/);
     if (!match) return ['C', 'F', 'G', 'C'];
     
     const root = match[1];
-    // Map root to index
     const CHROMATIC = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
     const ROOT_TO_IDX: Record<string, number> = {
       C: 0, 'C#': 1, Db: 1, D: 2, 'D#': 3, Eb: 3, E: 4, F: 5, 'F#': 6, Gb: 6, G: 7, 'G#': 8, Ab: 8, A: 9, 'A#': 10, Bb: 10, B: 11
     };
-    
     const idx = ROOT_TO_IDX[root];
     if (idx === undefined) return ['C', 'F', 'G', 'C'];
     
@@ -429,16 +355,14 @@ export function SongPracticeView({ song, onClose }: SongPracticeViewProps) {
     });
   }, [isSuggestedChords, song.key, song.progression]);
 
-  // Final active sections source (user custom overrides catalog empty values, falls back to providerLyrics)
+  // Resolved active sections
   const activeSections = useMemo(() => {
-    const rawSections = customChart || (song.sections && song.sections.length > 0 ? song.sections : providerLyrics) || [];
+    if (!activeChart) return [];
     
-    // If using suggested chords, enrich the rawSections lines with the suggested chords!
-    if (isSuggestedChords && rawSections.length > 0 && suggestedProgression.length > 0) {
-      return rawSections.map(section => {
-        let chordIdx = 0;
+    if (isSuggestedChords && suggestedProgression.length > 0) {
+      let chordIdx = 0;
+      return activeChart.sections.map(section => {
         const enrichedLines = section.lines.map(line => {
-          // If line has no lyrics or only whitespace, don't place a chord
           if (!line.lyrics.trim()) {
             return { ...line, chords: [] };
           }
@@ -456,12 +380,12 @@ export function SongPracticeView({ song, onClose }: SongPracticeViewProps) {
       });
     }
     
-    return rawSections;
-  }, [customChart, song.sections, providerLyrics, isSuggestedChords, suggestedProgression]);
+    return activeChart.sections;
+  }, [activeChart, isSuggestedChords, suggestedProgression]);
 
   // Compile a flat list of lines and calculate timestamps
   const parsedLines = useMemo(() => {
-    const list: { sectionName: string; lineIndex: number; lyrics: string; chords: ChordMarker[]; timestamp: number; duration: number }[] = [];
+    const list: { sectionName: string; lineIndex: number; lyrics: string; chords: NormalizedChordMarker[]; timestamp: number; duration: number }[] = [];
     let currentTime = 0;
     const beatDurationMs = (60 / tempo) * 1000;
     const lineDurationMs = 8 * beatDurationMs; // 8 beats per line fallback
@@ -486,14 +410,14 @@ export function SongPracticeView({ song, onClose }: SongPracticeViewProps) {
     return list;
   }, [activeSections, tempo]);
 
-  // Total song duration derived from lines
+  // Total song duration
   const totalDuration = useMemo(() => {
     if (parsedLines.length === 0) return 0;
     const last = parsedLines[parsedLines.length - 1];
     return last.timestamp + last.duration;
   }, [parsedLines]);
 
-  // Flat list of chords with timestamps
+  // Flat list of chords with timestamps interpolated accurately
   const flatChords = useMemo(() => {
     const list: { chord: string; time: number }[] = [];
     parsedLines.forEach((line) => {
@@ -501,7 +425,9 @@ export function SongPracticeView({ song, onClose }: SongPracticeViewProps) {
         const sorted = [...line.chords].sort((a, b) => a.offset - b.offset);
         sorted.forEach((marker) => {
           const relativeRatio = marker.offset / Math.max(1, line.lyrics.length);
-          const chordTime = marker.timestamp !== undefined ? marker.timestamp : (line.timestamp + relativeRatio * line.duration);
+          const chordTime = marker.timestamp !== undefined 
+            ? marker.timestamp 
+            : (line.timestamp + relativeRatio * line.duration);
           list.push({ chord: marker.chord, time: chordTime });
         });
       }
@@ -537,7 +463,7 @@ export function SongPracticeView({ song, onClose }: SongPracticeViewProps) {
     return getChordByName(cleaned);
   }, [currentChord]);
 
-  // Animation frame loop for playback
+  // Playback timer loop
   useEffect(() => {
     if (!isPlaying) {
       if (animationFrameRef.current) cancelAnimationFrame(animationFrameRef.current);
@@ -564,7 +490,7 @@ export function SongPracticeView({ song, onClose }: SongPracticeViewProps) {
     };
   }, [isPlaying, totalDuration, elapsedTime]);
 
-  // Trigger scrolling to active line when it changes
+  // Scroll to active line
   useEffect(() => {
     if (activeSections.length === 0 || !activeLine) return;
     const activeEl = lineRefs.current.get(activeLine.lineIndex);
@@ -580,7 +506,6 @@ export function SongPracticeView({ song, onClose }: SongPracticeViewProps) {
     }
   }, [activeLine, activeSections.length]);
 
-  // Clean play/pause trigger
   const handlePlayToggle = () => {
     if (elapsedTime >= totalDuration) {
       setElapsedTime(0);
@@ -588,7 +513,6 @@ export function SongPracticeView({ song, onClose }: SongPracticeViewProps) {
     setIsPlaying(!isPlaying);
   };
 
-  // Skip/seek handler
   const handleProgressChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const nextTime = parseFloat(e.target.value);
     setElapsedTime(nextTime);
@@ -602,6 +526,63 @@ export function SongPracticeView({ song, onClose }: SongPracticeViewProps) {
   const chordFontClass = chordSize === 'sm' ? 'text-[10px]' : (chordSize === 'lg' ? 'text-sm' : 'text-xs');
   const spacingStyle = spacing === 'tight' ? 'py-1' : (spacing === 'wide' ? 'py-4' : 'py-2');
 
+  // Status Badge Configuration Info
+  const statusInfo = useMemo(() => {
+    if (!activeChart) {
+      return { 
+        text: isSpanish ? 'Sin Acordes' : 'No Chords', 
+        bg: 'rgba(107,114,128,0.1)', 
+        color: '#9ca3af', 
+        border: '1px solid rgba(107,114,128,0.2)',
+        desc: 'No chords or lyrics available' 
+      };
+    }
+    if (isSuggestedChords) {
+      return {
+        text: isSpanish ? 'Sugeridos' : 'Suggested Chords',
+        bg: 'rgba(249, 115, 22, 0.1)',
+        color: '#f97316',
+        border: '1px dashed rgba(249, 115, 22, 0.35)',
+        desc: isSpanish ? 'Acordes de práctica sugeridos — no verificados' : 'Suggested practice chords — not verified'
+      };
+    }
+    switch (activeChart.status) {
+      case 'verified':
+        return {
+          text: isSpanish ? 'Verificados' : 'Verified Chords',
+          bg: 'rgba(16, 185, 129, 0.1)',
+          color: '#10b981',
+          border: '1px solid rgba(16, 185, 129, 0.25)',
+          desc: isSpanish ? 'Acordes oficiales verificados' : 'Verified official chords'
+        };
+      case 'user':
+        return {
+          text: isSpanish ? 'Usuario' : 'User Chords',
+          bg: 'rgba(139, 92, 246, 0.1)',
+          color: '#8b5cf6',
+          border: '1px solid rgba(139, 92, 246, 0.25)',
+          desc: isSpanish ? 'Acordes personalizados por el usuario' : 'User customized chords'
+        };
+      case 'provider':
+        return {
+          text: 'Provider Chords',
+          bg: 'rgba(59, 130, 246, 0.1)',
+          color: '#3b82f6',
+          border: '1px solid rgba(59, 130, 246, 0.25)',
+          desc: isSpanish ? 'Acordes obtenidos de base de datos en línea' : 'Chords fetched from online provider'
+        };
+      case 'lyrics-only':
+      default:
+        return {
+          text: isSpanish ? 'Solo Letra' : 'Lyrics Only',
+          bg: 'rgba(107, 114, 128, 0.1)',
+          color: '#9ca3af',
+          border: '1px solid rgba(107, 114, 128, 0.2)',
+          desc: isSpanish ? 'Solo letra disponible, sin acordes' : 'Lyrics available without chords'
+        };
+    }
+  }, [activeChart, isSuggestedChords, isSpanish]);
+
   return (
     <div
       ref={containerRef}
@@ -612,7 +593,7 @@ export function SongPracticeView({ song, onClose }: SongPracticeViewProps) {
         background: 'var(--app-bg)', color: 'var(--c-text-primary)'
       }}
     >
-      {/* Draggable Floating Chord Overlay displaying real graphics */}
+      {/* Draggable Floating Chord Overlay */}
       {showChordOverlay && flatChords.length > 0 && (
         <motion.div
           drag
@@ -632,12 +613,11 @@ export function SongPracticeView({ song, onClose }: SongPracticeViewProps) {
           }}
         >
           <div style={{ display: 'flex', justifyContent: 'center', borderBottom: '1px solid rgba(255,255,255,0.06)', paddingBottom: 4 }}>
-            <span style={{ fontSize: '8px', textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--c-text-muted)', fontWeight: 700 }}>
-              {t.practice.practiceTitle || 'Practice'}
+            <span style={{ fontSize: '8px', textTransform: 'uppercase', letterSpacing: '0.05em', color: isSuggestedChords ? '#f97316' : 'var(--c-text-muted)', fontWeight: 700 }}>
+              {isSuggestedChords ? (isSpanish ? 'Sugerido' : 'Suggested') : (t.practice.practiceTitle || 'Practice')}
             </span>
           </div>
 
-          {/* Diagram Graphics (Primary focus) */}
           <div style={{ background: 'rgba(0,0,0,0.25)', borderRadius: 10, padding: '8px 4px', height: 75, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
             {currentChordObj ? (
               <ChordDiagram data={currentChordObj.guitar} accentFrom="var(--c-accent)" />
@@ -646,7 +626,6 @@ export function SongPracticeView({ song, onClose }: SongPracticeViewProps) {
             )}
           </div>
 
-          {/* Chord name as secondary label below the graphic */}
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2 }}>
             <span style={{ fontSize: '14px', fontWeight: 900, color: 'var(--c-accent)' }}>
               {currentChord}
@@ -674,11 +653,24 @@ export function SongPracticeView({ song, onClose }: SongPracticeViewProps) {
             <span style={{ fontSize: '9px', fontWeight: 800, padding: '2px 6px', borderRadius: 4, background: 'var(--c-accent)20', color: 'var(--c-accent)' }}>
               {song.key}
             </span>
+            {/* Status Badge Pill */}
+            <span style={{
+              fontSize: '8px',
+              fontWeight: 800,
+              padding: '2px 6px',
+              borderRadius: 4,
+              background: statusInfo.bg,
+              color: statusInfo.color,
+              border: statusInfo.border || 'none'
+            }} title={statusInfo.desc}>
+              {statusInfo.text}
+            </span>
           </div>
           <p style={{ fontSize: '11px', color: 'var(--c-text-secondary)', margin: '2px 0 0', fontWeight: 500 }}>
             {song.artist} {song.capo ? `· Capo ${song.capo}` : ''}
           </p>
-               <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+        </div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
           <button
             onClick={onClose}
             style={{
@@ -690,15 +682,39 @@ export function SongPracticeView({ song, onClose }: SongPracticeViewProps) {
             <span className="material-symbols-outlined" style={{ fontSize: '14px' }}>arrow_back</span>
             {t.practice.exit}
           </button>
-        </div>   </div>
+        </div>
       </div>
 
-      {/* Main Lyrics & Chords Scrollable Container */}
-      {lyricsLoading ? (
+      {/* Suggested Chords Banner Info Warning (Only when Suggested Mode is active) */}
+      {isSuggestedChords && (
+        <div style={{
+          background: 'rgba(249, 115, 22, 0.08)',
+          borderBottom: '1px solid rgba(249, 115, 22, 0.15)',
+          padding: '8px 20px',
+          fontSize: '10px',
+          color: '#f97316',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '6px',
+          fontWeight: 600
+        }}>
+          <span className="material-symbols-outlined" style={{ fontSize: '14px' }}>auto_awesome</span>
+          <span>
+            {isSpanish 
+              ? `Acordes de práctica sugeridos — no verificados (basados en escala de ${song.key}): ${song.progressionLabel || suggestedProgression.join(' – ')}`
+              : `Suggested practice chords — not verified (based on key of ${song.key}): ${song.progressionLabel || suggestedProgression.join(' – ')}`}
+          </span>
+        </div>
+      )}
+
+      {/* Main Lyrics & Chords Viewport */}
+      {chartLoading ? (
         <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 16 }}>
           <div style={{ width: 32, height: 32, borderRadius: '50%', border: '2px solid rgba(255,255,255,0.1)', borderTopColor: 'var(--c-accent)', animation: 'spin 0.8s linear infinite' }}></div>
           <style>{`@keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }`}</style>
-          <p style={{ fontSize: '12px', color: 'var(--c-text-secondary)' }}>Searching for lyrics...</p>
+          <p style={{ fontSize: '12px', color: 'var(--c-text-secondary)' }}>
+            {isSpanish ? 'Buscando acordes y letras...' : 'Searching for chords and lyrics...'}
+          </p>
         </div>
       ) : activeSections.length > 0 ? (
         <div
@@ -709,50 +725,42 @@ export function SongPracticeView({ song, onClose }: SongPracticeViewProps) {
           }}
         >
           <div style={{ maxWidth: '600px', margin: '0 auto' }}>
-            {isSuggestedChords && flatChords.length > 0 && (
+            {/* Lyrics Only Mode Banner */}
+            {activeChart && activeChart.status === 'lyrics-only' && !showSuggestedFallback && (
               <div style={{
-                background: 'rgba(28, 186, 127, 0.1)',
-                border: '1px solid rgba(28, 186, 127, 0.25)',
+                background: 'rgba(128,128,128,0.06)',
+                border: '1px dashed rgba(128,128,128,0.2)',
                 borderRadius: 12,
                 padding: '12px 16px',
                 marginBottom: '20px',
                 textAlign: 'left',
                 fontSize: '11px',
-                color: 'rgb(28, 186, 127)',
-                fontFamily: 'Inter, sans-serif',
+                color: 'var(--c-text-secondary)',
                 display: 'flex',
                 alignItems: 'center',
-                gap: '8px'
+                justifyContent: 'space-between',
+                gap: '12px'
               }}>
-                <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>auto_awesome</span>
-                <div>
-                  <span style={{ fontWeight: 800 }}>
-                    {isSpanish ? 'Acordes de práctica sugeridos' : 'Suggested practice chords'}
-                  </span>
-                  <span style={{ opacity: 0.85, marginLeft: 6 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>lyrics</span>
+                  <span>
                     {isSpanish 
-                      ? `(Basados en la escala de ${song.key}): ${song.progressionLabel || suggestedProgression.join(' – ')}`
-                      : `(Based on the key of ${song.key}): ${song.progressionLabel || suggestedProgression.join(' – ')}`}
+                      ? 'Sólo se cargaron las letras. Puedes editarlas para agregar acordes o activar acordes de sugerencia.' 
+                      : 'Lyrics loaded without chords. You can edit them to add chords or enable suggested fallback chords.'}
                   </span>
                 </div>
+                <button
+                  onClick={() => setShowSuggestedFallback(true)}
+                  style={{
+                    padding: '4px 10px', borderRadius: 6, fontSize: '10px', fontWeight: 800,
+                    background: 'var(--c-accent)', border: 'none', color: '#ffffff', cursor: 'pointer'
+                  }}
+                >
+                  {isSpanish ? 'Sugerir' : 'Suggest'}
+                </button>
               </div>
             )}
-            {flatChords.length === 0 && (
-              <div style={{
-                background: 'rgba(255,165,0,0.1)',
-                border: '1px dashed rgba(255,165,0,0.3)',
-                borderRadius: 12,
-                padding: '12px 16px',
-                marginBottom: '20px',
-                textAlign: 'center',
-                fontSize: '11px',
-                color: 'rgba(255,165,0,0.9)',
-                fontFamily: 'Inter, sans-serif'
-              }}>
-                <span className="material-symbols-outlined" style={{ fontSize: '16px', verticalAlign: 'middle', marginRight: '6px' }}>info</span>
-                Chords not added yet. You can paste a chord-over-lyrics chart or edit it manually.
-              </div>
-            )}
+
             {activeSections.map((section, sIdx) => (
               <div key={sIdx} style={{ marginBottom: '28px' }}>
                 {/* Section Header */}
@@ -765,8 +773,8 @@ export function SongPracticeView({ song, onClose }: SongPracticeViewProps) {
                   {section.name}
                 </h3>
                 
-                {/* Lines rendering */}
-                <div className="space-y-1">
+                {/* Lines Rendering */}
+                <div className="space-y-1" style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
                   {section.lines.map((line, lIdx) => {
                     const parsed = parsedLines.find(p => p.sectionName === section.name && p.lyrics === line.lyrics);
                     const isLineActive = activeLine && parsed && activeLine.lineIndex === parsed.lineIndex;
@@ -785,7 +793,7 @@ export function SongPracticeView({ song, onClose }: SongPracticeViewProps) {
                           paddingLeft: showHighlight ? '8px' : '8px'
                         }}
                       >
-                        <div className="flex flex-wrap items-end" style={{ rowGap: '12px' }}>
+                        <div className="flex flex-wrap items-end" style={{ rowGap: '16px' }}>
                           {segments.map((seg, segIdx) => (
                             <div
                               key={segIdx}
@@ -794,7 +802,7 @@ export function SongPracticeView({ song, onClose }: SongPracticeViewProps) {
                                 alignItems: 'flex-start', minWidth: seg.chord ? '18px' : 'auto'
                               }}
                             >
-                              {/* Chord line */}
+                              {/* Chord Label */}
                               <span
                                 className={`font-black ${chordFontClass}`}
                                 style={{
@@ -805,7 +813,7 @@ export function SongPracticeView({ song, onClose }: SongPracticeViewProps) {
                               >
                                 {seg.chord || ''}
                               </span>
-                              {/* Lyric segment line */}
+                              {/* Lyric text */}
                               <span
                                 className={`${fontClass} font-medium`}
                                 style={{
@@ -827,7 +835,7 @@ export function SongPracticeView({ song, onClose }: SongPracticeViewProps) {
           </div>
         </div>
       ) : (
-        /* Empty state warning / Importer for copyrighted entries */
+        /* Empty / No Lyrics State */
         <div style={{
           flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center',
           justifyContent: 'center', padding: '24px', boxSizing: 'border-box',
@@ -862,7 +870,7 @@ export function SongPracticeView({ song, onClose }: SongPracticeViewProps) {
               {t.practice.importBtn}
             </button>
             <button
-              onClick={() => fetchLyrics(true)}
+              onClick={handleClearCacheAndRetry}
               style={{
                 padding: '10px 20px', borderRadius: 8, fontSize: '13px', fontWeight: 700,
                 background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.12)',
@@ -882,7 +890,6 @@ export function SongPracticeView({ song, onClose }: SongPracticeViewProps) {
       <AnimatePresence>
         {showSettings && (
           <>
-            {/* Backdrop */}
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 0.5 }}
@@ -893,7 +900,6 @@ export function SongPracticeView({ song, onClose }: SongPracticeViewProps) {
                 background: '#000000', pointerEvents: 'auto'
               }}
             />
-            {/* Sidebar container */}
             <motion.div
               initial={{ x: '100%' }}
               animate={{ x: 0 }}
@@ -999,8 +1005,21 @@ export function SongPracticeView({ song, onClose }: SongPracticeViewProps) {
                 />
               </div>
 
-              {/* Tempo / speed modifier */}
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginTop: '12px' }}>
+              {/* Show/Hide Suggested Fallback Chords */}
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 0', borderBottom: '1px solid rgba(128,128,128,0.06)' }}>
+                <span style={{ fontSize: '11px', fontWeight: 700, color: 'var(--c-text-secondary)' }}>
+                  {isSpanish ? 'Sugerir acordes de práctica' : 'Suggest practice chords'}
+                </span>
+                <input
+                  type="checkbox"
+                  checked={showSuggestedFallback}
+                  onChange={e => setShowSuggestedFallback(e.target.checked)}
+                  style={{ width: 16, height: 16, accentColor: 'var(--c-accent)', cursor: 'pointer' }}
+                />
+              </div>
+
+              {/* Tempo Speed Modifier */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginTop: '4px' }}>
                 <label style={{ fontSize: '10px', color: 'var(--c-text-muted)', fontWeight: 700, textTransform: 'uppercase' }}>
                   {t.practice.tempoSpeed}
                 </label>
@@ -1011,54 +1030,8 @@ export function SongPracticeView({ song, onClose }: SongPracticeViewProps) {
                 </div>
               </div>
 
-              {/* Lyrics Provider Settings */}
-              <div style={{ borderTop: '1px solid rgba(128,128,128,0.1)', paddingTop: '12px', marginTop: '4px', display: 'flex', flexDirection: 'column', gap: 10 }}>
-                <label style={{ fontSize: '10px', color: 'var(--c-text-muted)', fontWeight: 700, textTransform: 'uppercase' }}>
-                  Lyrics Providers
-                </label>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                    <span style={{ fontSize: '11px', color: 'var(--c-text-secondary)' }}>LRCLIB (Synced)</span>
-                    <input
-                      type="checkbox"
-                      checked={lrclibEnabled}
-                      onChange={e => setLrclibEnabled(e.target.checked)}
-                      style={{ width: 14, height: 14, accentColor: 'var(--c-accent)', cursor: 'pointer' }}
-                    />
-                  </div>
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                    <span style={{ fontSize: '11px', color: 'var(--c-text-secondary)' }}>KuGou (Synced/Plain)</span>
-                    <input
-                      type="checkbox"
-                      checked={kugouEnabled}
-                      onChange={e => setKugouEnabled(e.target.checked)}
-                      style={{ width: 14, height: 14, accentColor: 'var(--c-accent)', cursor: 'pointer' }}
-                    />
-                  </div>
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                    <span style={{ fontSize: '11px', color: 'var(--c-text-secondary)' }}>Prefer Synced Lyrics</span>
-                    <input
-                      type="checkbox"
-                      checked={preferSynced}
-                      onChange={e => setPreferSynced(e.target.checked)}
-                      style={{ width: 14, height: 14, accentColor: 'var(--c-accent)', cursor: 'pointer' }}
-                    />
-                  </div>
-                  <button
-                    onClick={handleClearLyricsCache}
-                    style={{
-                      padding: '6px 12px', borderRadius: 6, fontSize: '10px', fontWeight: 800,
-                      background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)',
-                      color: 'var(--c-text-secondary)', cursor: 'pointer', textAlign: 'center', marginTop: 4
-                    }}
-                  >
-                    Clear Lyrics Cache
-                  </button>
-                </div>
-              </div>
-
-              {/* Lyrics Diagnostics */}
-              {lyricsDiagnostics && (
+              {/* Diagnostics */}
+              {chartDiagnostics && (
                 <div style={{
                   borderTop: '1px solid rgba(128,128,128,0.1)',
                   paddingTop: '12px',
@@ -1072,17 +1045,28 @@ export function SongPracticeView({ song, onClose }: SongPracticeViewProps) {
                   <div style={{ fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--c-text-secondary)', fontSize: '8px', marginBottom: 2 }}>
                     Diagnostics
                   </div>
-                  <div>Provider: {lyricsDiagnostics.provider}</div>
-                  <div>Status: {lyricsDiagnostics.success ? 'Success' : 'Unavailable'}</div>
-                  <div>Type: {lyricsDiagnostics.type}</div>
-                  <div>Match Score: {lyricsDiagnostics.confidence.toFixed(2)}</div>
-                  <div>Fetch Time: {lyricsDiagnostics.duration}ms</div>
+                  <div>Provider: {chartDiagnostics.provider}</div>
+                  <div>Status: {chartDiagnostics.success ? 'Success' : 'Unavailable'}</div>
+                  <div>Type: {chartDiagnostics.type}</div>
+                  <div>Match Score: {chartDiagnostics.confidence.toFixed(2)}</div>
+                  <div>Fetch Time: {chartDiagnostics.duration}ms</div>
                 </div>
               )}
 
+              {/* Clear Cache Button */}
+              <button
+                onClick={handleClearCacheAndRetry}
+                style={{
+                  padding: '8px 12px', borderRadius: 6, fontSize: '10px', fontWeight: 800,
+                  background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)',
+                  color: 'var(--c-text-secondary)', cursor: 'pointer', textAlign: 'center', marginTop: 4
+                }}
+              >
+                {isSpanish ? 'Refrescar Cache de Acordes' : 'Refresh Chords Cache'}
+              </button>
 
               {/* Custom Chart Options */}
-              {customChart ? (
+              {activeChart && activeChart.status === 'user' ? (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginTop: 'auto' }}>
                   <button
                     onClick={() => {
@@ -1107,7 +1091,7 @@ export function SongPracticeView({ song, onClose }: SongPracticeViewProps) {
                       color: '#ef4444', cursor: 'pointer', fontFamily: 'Inter'
                     }}
                   >
-                    {t.practice.clearCustomBtn}
+                    {t.practice.clearCustomBtn || 'Reset to Default'}
                   </button>
                 </div>
               ) : (
@@ -1135,7 +1119,6 @@ export function SongPracticeView({ song, onClose }: SongPracticeViewProps) {
       <AnimatePresence>
         {showImportModal && (
           <div style={{ position: 'fixed', inset: 0, zIndex: 105000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
-            {/* Backdrop */}
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 0.5 }}
@@ -1143,7 +1126,6 @@ export function SongPracticeView({ song, onClose }: SongPracticeViewProps) {
               onClick={() => setShowImportModal(false)}
               style={{ position: 'absolute', inset: 0, background: '#000000' }}
             />
-            {/* Modal Body */}
             <motion.div
               initial={{ scale: 0.95, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
@@ -1155,7 +1137,7 @@ export function SongPracticeView({ song, onClose }: SongPracticeViewProps) {
                 gap: 16, zIndex: 105100, boxShadow: '0 12px 40px rgba(0,0,0,0.5)'
               }}
             >
-              <h3 style={{ fontSize: '15px', fontWeight: 900, color: 'var(--c-text-primary)', margin: 0, fontFamily: 'Manrope' }}>
+              <h3 style={{ fontSize: '15px', fontWeight: 900, color: 'var(--c-text-primary)', margin: 0, fontFamily: 'Inter' }}>
                 {t.practice.pasteChartTitle}
               </h3>
               
@@ -1177,7 +1159,7 @@ export function SongPracticeView({ song, onClose }: SongPracticeViewProps) {
                   style={{
                     padding: '8px 16px', borderRadius: 8, fontSize: '11px', fontWeight: 700,
                     background: 'rgba(128,128,128,0.1)', border: 'none', color: 'var(--c-text-secondary)',
-                    cursor: 'pointer', fontFamily: 'Manrope'
+                    cursor: 'pointer', fontFamily: 'Inter'
                   }}
                 >
                   {t.practice.cancelBtn}
@@ -1187,7 +1169,7 @@ export function SongPracticeView({ song, onClose }: SongPracticeViewProps) {
                   style={{
                     padding: '8px 16px', borderRadius: 8, fontSize: '11px', fontWeight: 700,
                     background: 'var(--c-accent)', border: 'none', color: '#ffffff',
-                    cursor: 'pointer', fontFamily: 'Manrope'
+                    cursor: 'pointer', fontFamily: 'Inter'
                   }}
                 >
                   {t.practice.saveBtn}
@@ -1198,7 +1180,7 @@ export function SongPracticeView({ song, onClose }: SongPracticeViewProps) {
         )}
       </AnimatePresence>
 
-      {/* Bottom Playback Control Bar (Always visible in scroll mode) */}
+      {/* Bottom Playback Control Bar */}
       {activeSections.length > 0 && (
         <div style={{
           position: 'absolute', bottom: 0, left: 0, right: 0, zIndex: 100500,
@@ -1228,7 +1210,7 @@ export function SongPracticeView({ song, onClose }: SongPracticeViewProps) {
             </span>
           </div>
 
-          {/* Action Row */}
+          {/* Action Control Row */}
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 24 }}>
             <button
               onClick={() => setElapsedTime(0)}

@@ -52,5 +52,5 @@ export { applyUpdate } from './lib/capgoUpdater';
 export { type Language, default as translations } from './lib/i18n';
 export * from './lib/devTools';
 export * from './lib/lyricsService';
-
-
+export * from './data/authorizedChords';
+export * from './lib/chordService';
