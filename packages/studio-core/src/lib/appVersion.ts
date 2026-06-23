@@ -26,7 +26,7 @@ import { useMemo } from 'react';
 import { Capacitor } from '@capacitor/core';
 
 /** Canonical semver string used by the OTA comparator. */
-export const NATIVE_VERSION = '3.6.88';
+export const NATIVE_VERSION = '3.6.89';
 export const WEB_VERSION = '4.0.0';
 export const APP_VERSION = Capacitor.isNativePlatform() ? NATIVE_VERSION : WEB_VERSION;
 
@@ -38,7 +38,7 @@ export const APP_VERSION_LABEL = `${APP_VERSION_TAG} ${APP_VERSION}`;
 
 /** Release date for the CURRENT bundle, shown alongside the version pill
  *  in the changelog sheet. ISO-8601 (`YYYY-MM-DD`). */
-export const APP_VERSION_DATE = '2026-06-23'; // 3.6.86
+export const APP_VERSION_DATE = '2026-06-23'; // 3.6.89
 // Note: keep ISO-8601. Bump together with APP_VERSION on each release.
 
 export const APP_COMMIT_SHA = import.meta.env.VITE_GIT_COMMIT_SHA || 'efd2b1a3';
@@ -61,15 +61,10 @@ export const APP_CHANGELOG_SECTIONS: ChangelogSection[] = [
   {
     heading: "Added",
     items: [
-      "Integrated custom user import and edit chord sheet fallback actions.",
-      "Implemented premium badge indicators for Verified, User, Provider, and Unavailable states.",
-    ],
-  },
-  {
-    heading: "Improved",
-    items: [
-      "Polished Practice UI and layout when chords are unavailable (showing lyrics only).",
-      "Disabled floating chord diagrams overlay when no verified or user chords are present.",
+      "Added user-initiated Import from URL workflow for Cifra Club and generic preformatted chord charts.",
+      "Implemented interactive Preview-Before-Save layout to inspect parsed chords and lyrics.",
+      "Integrated imported chords directly into the Practice view and floating diagram overlays.",
+      "Saved imported charts privately in local storage as User Imported charts.",
     ],
   },
 ];
@@ -79,9 +74,9 @@ export const APP_CHANGELOG_SECTIONS_NATIVE: ChangelogSection[] = [
   {
     heading: "What's New",
     items: [
-      "Added suggested practice chords mapped to lyrics when verified chord charts are missing.",
-      "Redesigned Chords Home with Chord of the Day, quick categories, and practice tips.",
-      "Fixed Library back button navigation and improved return-to-hub transition logging.",
+      "Added Import from URL workflow for Cifra Club and generic preformatted chord charts.",
+      "Implemented interactive Preview-Before-Save layout and private user chart storage.",
+      "Integrated URL imported chords directly into Practice view and floating diagram overlays.",
     ],
   },
 ];
@@ -92,9 +87,9 @@ export const APP_CHANGELOG_SECTIONS_ES: ChangelogSection[] = [
   {
     heading: "Novedades",
     items: [
-      "Se agregaron acordes de práctica sugeridos para canciones sin diagramas nativos.",
-      "Rediseño de la pantalla de inicio de acordes con el Acorde del Día y categorías rápidas.",
-      "Corrección de navegación del botón atrás en Biblioteca y registro de diagnóstico de retorno a Hub.",
+      "Se agregó el flujo de importación desde URL para diagramas de Cifra Club y texto genérico.",
+      "Se implementó la vista previa interactiva antes de guardar y el almacenamiento local.",
+      "Integración de acordes importados directamente en la vista de práctica y superposición de diagramas.",
     ],
   },
 ];

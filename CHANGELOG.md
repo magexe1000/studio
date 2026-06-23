@@ -12,6 +12,14 @@ Conventions:
 - Bullets start with `- ` and use plain English a non-technical user
   can parse. Keep each line short — the modal's text area is narrow.
 
+## 3.6.89
+
+### Added
+- Added user-initiated Import from URL workflow for Cifra Club and generic preformatted chord charts.
+- Implemented interactive Preview-Before-Save layout to inspect parsed chords and lyrics.
+- Integrated imported chords directly into the Practice view and floating diagram overlays.
+- Saved imported charts privately in local storage as User Imported charts.
+
 ## 3.6.88
 
 ### Removed

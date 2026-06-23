@@ -8,6 +8,7 @@ import {
   useT, 
   useBackHandler, 
   getChordChart, 
+  importChartFromUrl,
   type NormalizedChordChart, 
   type NormalizedSection, 
   type NormalizedLyricsLine, 
@@ -147,6 +148,29 @@ function cleanChordName(name: string): string {
   return clean.trim();
 }
 
+function generateTextRepresentation(chart: NormalizedChordChart): string {
+  let output = '';
+  chart.sections.forEach(sec => {
+    output += `[${sec.name}]\n`;
+    sec.lines.forEach(line => {
+      if (line.chords && line.chords.length > 0) {
+        let chordLine = '';
+        let lastOffset = 0;
+        const sortedChords = [...line.chords].sort((a, b) => a.offset - b.offset);
+        sortedChords.forEach(c => {
+          const padding = ' '.repeat(Math.max(0, c.offset - lastOffset));
+          chordLine += padding + c.chord;
+          lastOffset = c.offset + c.chord.length;
+        });
+        output += chordLine + '\n';
+      }
+      output += line.lyrics + '\n';
+    });
+    output += '\n';
+  });
+  return output.trim();
+}
+
 export function SongPracticeView({ song, onClose }: SongPracticeViewProps) {
   const t = useT();
 
@@ -206,6 +230,12 @@ export function SongPracticeView({ song, onClose }: SongPracticeViewProps) {
 
   const [importText, setImportText] = useState('');
   const [showImportModal, setShowImportModal] = useState(false);
+  const [importTab, setImportTab] = useState<'paste' | 'url'>('paste');
+  const [importUrl, setImportUrl] = useState('');
+  const [importLoadingState, setImportLoadingState] = useState<'idle' | 'fetching' | 'parsing' | 'success' | 'failed'>('idle');
+  const [importError, setImportError] = useState('');
+  const [previewChart, setPreviewChart] = useState<NormalizedChordChart | null>(null);
+  const [showPreviewModal, setShowPreviewModal] = useState(false);
 
   const isSpanish = useMemo(() => {
     return useChordStore.getState().settings.language === 'es';
@@ -294,7 +324,59 @@ export function SongPracticeView({ song, onClose }: SongPracticeViewProps) {
   const handleClearCustomChart = () => {
     localStorage.removeItem(`chordex:practice:custom_chart:${song.id}`);
     localStorage.removeItem(`chordex:practice:custom_chart_text:${song.id}`);
+    localStorage.removeItem(`chordex:practice:custom_chart_source:${song.id}`);
     fetchChordChart(true);
+  };
+
+  const handleUrlImport = async () => {
+    if (!importUrl.trim()) return;
+    setImportLoadingState('fetching');
+    setImportError('');
+    try {
+      setImportLoadingState('parsing');
+      const chart = await importChartFromUrl(importUrl.trim(), song);
+      setPreviewChart(chart);
+      setImportLoadingState('success');
+      setShowPreviewModal(true);
+      setShowImportModal(false);
+    } catch (err: any) {
+      setImportLoadingState('failed');
+      setImportError(err.message || 'Failed to import from URL.');
+    }
+  };
+
+  const handleSavePreviewChart = () => {
+    if (!previewChart) return;
+    try {
+      const savedSections: SongChartSection[] = previewChart.sections.map(sec => ({
+        name: sec.name,
+        lines: sec.lines.map(line => ({
+          lyrics: line.lyrics,
+          chords: line.chords.map(c => ({
+            chord: c.chord,
+            offset: c.offset,
+            timestamp: c.timestamp
+          })),
+          timestamp: line.timestamp,
+          duration: line.duration
+        }))
+      }));
+      localStorage.setItem(`chordex:practice:custom_chart:${song.id}`, JSON.stringify(savedSections));
+      
+      localStorage.setItem(`chordex:practice:custom_chart_source:${song.id}`, JSON.stringify({
+        url: importUrl,
+        site: previewChart.source,
+        importedAt: Date.now()
+      }));
+
+      const textRep = generateTextRepresentation(previewChart);
+      localStorage.setItem(`chordex:practice:custom_chart_text:${song.id}`, textRep);
+
+      setShowPreviewModal(false);
+      fetchChordChart(true);
+    } catch (err: any) {
+      alert(`Error saving chart: ${err.message || err}`);
+    }
   };
 
   // Determine if actual chords exist in the chart
@@ -473,11 +555,11 @@ export function SongPracticeView({ song, onClose }: SongPracticeViewProps) {
         };
       case 'user':
         return {
-          text: isSpanish ? 'Usuario' : 'User Chords',
+          text: isSpanish ? 'Usuario (Importado)' : 'User Imported',
           bg: 'rgba(139, 92, 246, 0.1)',
           color: '#8b5cf6',
           border: '1px solid rgba(139, 92, 246, 0.25)',
-          desc: isSpanish ? 'Acordes personalizados por el usuario' : 'User customized chords'
+          desc: isSpanish ? 'Acordes importados por el usuario' : 'User imported chords'
         };
       case 'provider':
         return {
@@ -1029,42 +1111,263 @@ export function SongPracticeView({ song, onClose }: SongPracticeViewProps) {
                 gap: 16, zIndex: 105100, boxShadow: '0 12px 40px rgba(0,0,0,0.5)'
               }}
             >
+              <div style={{ display: 'flex', borderBottom: '1px solid rgba(255,255,255,0.06)', paddingBottom: '8px', gap: '16px' }}>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setImportTab('paste');
+                    setImportError('');
+                  }}
+                  style={{
+                    background: 'none', border: 'none', padding: '4px 8px', fontSize: '12px',
+                    fontWeight: 700, color: importTab === 'paste' ? 'var(--c-accent)' : 'var(--c-text-secondary)',
+                    borderBottom: importTab === 'paste' ? '2px solid var(--c-accent)' : 'none',
+                    cursor: 'pointer', fontFamily: 'Inter'
+                  }}
+                >
+                  {isSpanish ? 'Pegar Manualmente' : 'Paste Manually'}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setImportTab('url');
+                    setImportError('');
+                  }}
+                  style={{
+                    background: 'none', border: 'none', padding: '4px 8px', fontSize: '12px',
+                    fontWeight: 700, color: importTab === 'url' ? 'var(--c-accent)' : 'var(--c-text-secondary)',
+                    borderBottom: importTab === 'url' ? '2px solid var(--c-accent)' : 'none',
+                    cursor: 'pointer', fontFamily: 'Inter'
+                  }}
+                >
+                  {isSpanish ? 'Importar desde URL' : 'Import from URL'}
+                </button>
+              </div>
+
+              {importTab === 'paste' ? (
+                <>
+                  <h3 style={{ fontSize: '13px', fontWeight: 700, color: 'var(--c-text-primary)', margin: 0, fontFamily: 'Inter' }}>
+                    {t.practice.pasteChartTitle}
+                  </h3>
+                  <textarea
+                    value={importText}
+                    onChange={e => setImportText(e.target.value)}
+                    placeholder="Example:&#10;[Verse]&#10;Am          C&#10;Agradecido de tenerte dulce soledad&#10;G           F&#10;No me cabe duda que me vienes a buscar"
+                    style={{
+                      width: '100%', height: '200px', background: 'rgba(0,0,0,0.3)',
+                      border: '1px solid rgba(255,255,255,0.06)', borderRadius: 10,
+                      padding: 12, color: '#ffffff', fontFamily: 'monospace', fontSize: '11px',
+                      lineHeight: '1.5', resize: 'none', outline: 'none', boxSizing: 'border-box'
+                    }}
+                  />
+                  <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
+                    <button
+                      onClick={() => setShowImportModal(false)}
+                      style={{
+                        padding: '8px 16px', borderRadius: 8, fontSize: '11px', fontWeight: 700,
+                        background: 'rgba(128,128,128,0.1)', border: 'none', color: 'var(--c-text-secondary)',
+                        cursor: 'pointer', fontFamily: 'Inter'
+                      }}
+                    >
+                      {t.practice.cancelBtn}
+                    </button>
+                    <button
+                      onClick={handleSaveCustomChart}
+                      style={{
+                        padding: '8px 16px', borderRadius: 8, fontSize: '11px', fontWeight: 700,
+                        background: 'var(--c-accent)', border: 'none', color: '#ffffff',
+                        cursor: 'pointer', fontFamily: 'Inter'
+                      }}
+                    >
+                      {t.practice.saveBtn}
+                    </button>
+                  </div>
+                </>
+              ) : (
+                <>
+                  <h3 style={{ fontSize: '13px', fontWeight: 700, color: 'var(--c-text-primary)', margin: 0, fontFamily: 'Inter' }}>
+                    {isSpanish ? 'Pegar enlace del diagrama de acordes' : 'Paste chord chart web address'}
+                  </h3>
+                  <input
+                    type="text"
+                    value={importUrl}
+                    onChange={e => setImportUrl(e.target.value)}
+                    placeholder="https://www.cifraclub.com.br/the-beatles/let-it-be/"
+                    style={{
+                      width: '100%', background: 'rgba(0,0,0,0.3)',
+                      border: '1px solid rgba(255,255,255,0.06)', borderRadius: 10,
+                      padding: 12, color: '#ffffff', fontFamily: 'Inter', fontSize: '12px',
+                      outline: 'none', boxSizing: 'border-box'
+                    }}
+                  />
+                  
+                  <div style={{ fontSize: '10px', color: 'var(--c-text-muted)', lineHeight: '1.4', fontFamily: 'Inter' }}>
+                    {isSpanish 
+                      ? 'Importa solo diagramas que tengas derecho a usar. Los diagramas importados se almacenan localmente para tu práctica personal.'
+                      : 'Only import charts you have the right to use. Imported charts are stored locally for your personal practice.'}
+                  </div>
+
+                  {importLoadingState !== 'idle' && importLoadingState !== 'success' && (
+                    <div style={{ fontSize: '11px', color: 'var(--c-accent)', fontWeight: 600, display: 'flex', alignItems: 'center', gap: 6, fontFamily: 'Inter' }}>
+                      <span className="material-symbols-outlined spin" style={{ fontSize: 16 }}>sync</span>
+                      <span>
+                        {importLoadingState === 'fetching' 
+                          ? (isSpanish ? 'Descargando página...' : 'Fetching web page...')
+                          : (isSpanish ? 'Analizando acordes...' : 'Parsing chord chart...')}
+                      </span>
+                    </div>
+                  )}
+
+                  {importError && (
+                    <div style={{
+                      padding: 10, background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.2)',
+                      borderRadius: 8, color: '#ef4444', fontSize: '11px', lineHeight: '1.4', fontFamily: 'Inter'
+                    }}>
+                      {importError}
+                    </div>
+                  )}
+
+                  <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end', marginTop: 4 }}>
+                    <button
+                      onClick={() => setShowImportModal(false)}
+                      style={{
+                        padding: '8px 16px', borderRadius: 8, fontSize: '11px', fontWeight: 700,
+                        background: 'rgba(128,128,128,0.1)', border: 'none', color: 'var(--c-text-secondary)',
+                        cursor: 'pointer', fontFamily: 'Inter'
+                      }}
+                    >
+                      {t.practice.cancelBtn}
+                    </button>
+                    <button
+                      onClick={handleUrlImport}
+                      disabled={importLoadingState === 'fetching' || importLoadingState === 'parsing' || !importUrl.trim()}
+                      style={{
+                        padding: '8px 16px', borderRadius: 8, fontSize: '11px', fontWeight: 700,
+                        background: (importLoadingState === 'fetching' || importLoadingState === 'parsing' || !importUrl.trim()) ? 'rgba(255,255,255,0.05)' : 'var(--c-accent)',
+                        border: 'none', color: (importLoadingState === 'fetching' || importLoadingState === 'parsing' || !importUrl.trim()) ? 'var(--c-text-muted)' : '#ffffff',
+                        cursor: (importLoadingState === 'fetching' || importLoadingState === 'parsing' || !importUrl.trim()) ? 'default' : 'pointer',
+                        fontFamily: 'Inter'
+                      }}
+                    >
+                      {isSpanish ? 'Cargar Acordes' : 'Load Chart'}
+                    </button>
+                  </div>
+                </>
+              )}
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* Preview Modal */}
+      <AnimatePresence>
+        {showPreviewModal && previewChart && (
+          <div style={{ position: 'fixed', inset: 0, zIndex: 105200, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 0.5 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setShowPreviewModal(false)}
+              style={{ position: 'absolute', inset: 0, background: '#000000' }}
+            />
+            <motion.div
+              initial={{ scale: 0.95, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.95, opacity: 0 }}
+              style={{
+                position: 'relative', width: '100%', maxWidth: '550px', maxHeight: '85vh',
+                background: '#0d0d11', border: '1px solid rgba(255,255,255,0.08)',
+                borderRadius: 20, padding: 24, display: 'flex', flexDirection: 'column',
+                gap: 16, zIndex: 105300, boxShadow: '0 12px 40px rgba(0,0,0,0.5)'
+              }}
+            >
               <h3 style={{ fontSize: '15px', fontWeight: 900, color: 'var(--c-text-primary)', margin: 0, fontFamily: 'Inter' }}>
-                {t.practice.pasteChartTitle}
+                {isSpanish ? 'Vista Previa del Diagrama' : 'Chart Import Preview'}
               </h3>
               
-              <textarea
-                value={importText}
-                onChange={e => setImportText(e.target.value)}
-                placeholder="Example:&#10;[Verse]&#10;Am          C&#10;Agradecido de tenerte dulce soledad&#10;G           F&#10;No me cabe duda que me vienes a buscar"
-                style={{
-                  width: '100%', height: '200px', background: 'rgba(0,0,0,0.3)',
-                  border: '1px solid rgba(255,255,255,0.06)', borderRadius: 10,
-                  padding: 12, color: '#ffffff', fontFamily: 'monospace', fontSize: '11px',
-                  lineHeight: '1.5', resize: 'none', outline: 'none', boxSizing: 'border-box'
-                }}
-              />
-              
-              <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
+              <div style={{
+                display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px 16px',
+                padding: 12, background: 'rgba(255,255,255,0.02)', borderRadius: 10,
+                fontSize: '11px', color: 'var(--c-text-secondary)', fontFamily: 'Inter'
+              }}>
+                <div><strong>Title:</strong> {previewChart.title}</div>
+                <div><strong>Artist:</strong> {previewChart.artist}</div>
+                <div><strong>Key:</strong> {previewChart.key}</div>
+                <div><strong>Capo:</strong> {previewChart.capo ? `${previewChart.capo} fret` : 'None'}</div>
+                <div><strong>Source:</strong> {previewChart.source}</div>
+                <div><strong>License:</strong> {previewChart.licenseInfo}</div>
+              </div>
+
+              <div style={{
+                flex: 1, overflowY: 'auto', background: 'rgba(0,0,0,0.2)',
+                border: '1px solid rgba(255,255,255,0.04)', borderRadius: 12,
+                padding: 16, maxHeight: '350px', boxSizing: 'border-box'
+              }}>
+                {previewChart.sections.map((sec, sIdx) => (
+                  <div key={sIdx} style={{ marginBottom: 16 }}>
+                    <h4 style={{ fontSize: '10px', fontWeight: 950, color: 'var(--c-accent)', margin: '0 0 8px 0', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                      {sec.name}
+                    </h4>
+                    {sec.lines.map((line, lIdx) => (
+                      <div key={lIdx} style={{ marginBottom: 6, fontSize: '11px', fontFamily: 'monospace', whiteSpace: 'pre', lineHeight: '1.4' }}>
+                        {line.chords && line.chords.length > 0 && (
+                          <div style={{ color: 'var(--c-accent)', fontWeight: 700 }}>
+                            {(() => {
+                              let chordLine = '';
+                              let lastOffset = 0;
+                              const sortedChords = [...line.chords].sort((a, b) => a.offset - b.offset);
+                              sortedChords.forEach(c => {
+                                const padding = ' '.repeat(Math.max(0, c.offset - lastOffset));
+                                chordLine += padding + c.chord;
+                                lastOffset = c.offset + c.chord.length;
+                              });
+                              return chordLine;
+                            })()}
+                          </div>
+                        )}
+                        <div style={{ color: '#ffffff' }}>{line.lyrics}</div>
+                      </div>
+                    ))}
+                  </div>
+                ))}
+              </div>
+
+              <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end', marginTop: 8 }}>
                 <button
-                  onClick={() => setShowImportModal(false)}
+                  onClick={() => setShowPreviewModal(false)}
                   style={{
-                    padding: '8px 16px', borderRadius: 8, fontSize: '11px', fontWeight: 700,
+                    padding: '10px 20px', borderRadius: 8, fontSize: '11px', fontWeight: 700,
                     background: 'rgba(128,128,128,0.1)', border: 'none', color: 'var(--c-text-secondary)',
                     cursor: 'pointer', fontFamily: 'Inter'
                   }}
                 >
-                  {t.practice.cancelBtn}
+                  {isSpanish ? 'Cancelar' : 'Cancel'}
                 </button>
                 <button
-                  onClick={handleSaveCustomChart}
+                  onClick={() => {
+                    const textRep = generateTextRepresentation(previewChart);
+                    setImportText(textRep);
+                    setShowPreviewModal(false);
+                    setShowImportModal(true);
+                    setImportTab('paste');
+                  }}
                   style={{
-                    padding: '8px 16px', borderRadius: 8, fontSize: '11px', fontWeight: 700,
+                    padding: '10px 20px', borderRadius: 8, fontSize: '11px', fontWeight: 700,
+                    background: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.12)',
+                    color: 'var(--c-text-primary)', cursor: 'pointer', fontFamily: 'Inter'
+                  }}
+                >
+                  {isSpanish ? 'Editar' : 'Edit Manually'}
+                </button>
+                <button
+                  onClick={handleSavePreviewChart}
+                  style={{
+                    padding: '10px 20px', borderRadius: 8, fontSize: '11px', fontWeight: 700,
                     background: 'var(--c-accent)', border: 'none', color: '#ffffff',
                     cursor: 'pointer', fontFamily: 'Inter'
                   }}
                 >
-                  {t.practice.saveBtn}
+                  {isSpanish ? 'Confirmar y Guardar' : 'Confirm & Save'}
                 </button>
               </div>
             </motion.div>
