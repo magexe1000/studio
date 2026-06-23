@@ -16,7 +16,9 @@ import {
   recordNavigation,
   getNavigationEntries,
   NATIVE_VERSION,
-  tolgee
+  tolgee,
+  addLog,
+  useBackHandler
 } from '@workspace/studio-core';
 
 import { TolgeeProvider } from '@tolgee/react';
@@ -999,6 +1001,21 @@ export default function App() {
   const [launchingApp, setLaunchingApp] = useState<AppKey | null>(null);
   const [splashVisible, setSplashVisible] = useState(false);
   const [appPreloaded, setAppPreloaded] = useState(false);
+  const [splashFullyOpaque, setSplashFullyOpaque] = useState(false);
+  const isInitialMount = useRef(true);
+
+  useEffect(() => {
+    isInitialMount.current = false;
+  }, []);
+
+  useEffect(() => {
+    if ((window as any).__startupAnimationFreezes) {
+      (window as any).__startupAnimationFreezes.forEach((f: any) => {
+        addLog('warn', 'perf', `Pre-mount startup planets animation freeze: at ${f.t}ms, duration ${f.dt}ms`);
+      });
+      delete (window as any).__startupAnimationFreezes;
+    }
+  }, []);
 
   const launchStartTimeRef = useRef<number>(0);
   const launchTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -1013,6 +1030,7 @@ export default function App() {
     const remainingTime = Math.max(0, minDuration - elapsed);
 
     console.log(`[Launch] App ${app} loaded in ${elapsed}ms. Remaining splash time: ${remainingTime}ms.`);
+    addLog('info', 'perf', `App preloaded: ${app} in ${elapsed}ms. First paint complete. Remaining splash: ${remainingTime}ms.`);
 
     if (launchTimerRef.current) {
       clearTimeout(launchTimerRef.current);
@@ -1025,6 +1043,7 @@ export default function App() {
       // Wait for the fade-out transition to complete (300ms) before clearing launchingApp
       setTimeout(() => {
         setLaunchingApp(null);
+        addLog('info', 'perf', `App entry transition complete: ${app} fully active after ${Date.now() - launchStartTimeRef.current}ms.`);
       }, 300);
     }, remainingTime);
   }, []);
@@ -1032,12 +1051,15 @@ export default function App() {
   const appMode = settings.appMode || 'hub';
 
   useEffect(() => {
+    let cleanup: (() => void) | undefined = undefined;
+
     if (appMode !== 'hub') {
       const targetApp = appMode as AppKey;
 
       if (launchingApp === targetApp) return;
 
       console.log(`[Launch] Initiating transition from hub to sub-app: ${targetApp}`);
+      addLog('info', 'perf', `App launch transition started: hub -> ${targetApp}`);
 
       if (launchTimerRef.current) {
         clearTimeout(launchTimerRef.current);
@@ -1048,6 +1070,16 @@ export default function App() {
       setLaunchingApp(targetApp);
       setSplashVisible(true);
       setAppPreloaded(false);
+
+      if (!isInitialMount.current) {
+        setSplashFullyOpaque(false);
+        const tid = setTimeout(() => {
+          setSplashFullyOpaque(true);
+        }, 350);
+        cleanup = () => clearTimeout(tid);
+      } else {
+        setSplashFullyOpaque(true);
+      }
     } else {
       if (launchTimerRef.current) {
         clearTimeout(launchTimerRef.current);
@@ -1056,7 +1088,10 @@ export default function App() {
       setLaunchingApp(null);
       setSplashVisible(false);
       setAppPreloaded(false);
+      setSplashFullyOpaque(false);
     }
+
+    return cleanup;
   }, [appMode]);
 
   useEffect(() => {
@@ -1490,11 +1525,18 @@ export default function App() {
 
     const onBack = () => {
       const handled = handleGlobalBack();
+      addLog('info', 'nav', `Android back button / swipe gesture triggered. handleGlobalBack returned: ${handled}`);
 
       if (!handled) {
         const isSubApp = useChordStore.getState().settings.appMode !== 'hub';
         if (isSubApp) {
-          returnToStudioHubRef.current(false);
+          const behavior = useChordStore.getState().settings.swipeBackBehavior || 'exit-to-hub';
+          addLog('info', 'nav', `Root screen back gesture inside sub-app: appMode=${useChordStore.getState().settings.appMode}, behavior=${behavior}`);
+          if (behavior === 'exit-to-hub') {
+            returnToStudioHubRef.current(false);
+          } else {
+            addLog('info', 'nav', `Exit to Hub prevented: Manual Back Only is active.`);
+          }
         } else {
           // Double press to exit when already on the Studio Hub
           const now = Date.now();
@@ -2302,12 +2344,16 @@ export default function App() {
                   }}
                 >
                   <LifecycleTracker name="SubAppWrapper" />
-                  <SubAppWrapper
-                    app={stableKey}
-                    activePanel={activePanel}
-                    settings={settings}
-                    onReady={handleAppPreloaded}
-                  />
+                  {splashFullyOpaque ? (
+                    <SubAppWrapper
+                      app={stableKey}
+                      activePanel={activePanel}
+                      settings={settings}
+                      onReady={handleAppPreloaded}
+                    />
+                  ) : (
+                    <div style={{ width: '100%', height: '100%', background: 'var(--app-bg)' }} />
+                  )}
                 </motion.div>
               )}
             </AnimatePresence>
@@ -2468,6 +2514,17 @@ function FallbackTracker({ app, children }: { app: AppKey; children: React.React
 
 const SubAppWrapper = memo(function SubAppWrapper({ app, activePanel, settings, onReady }: SubAppWrapperProps) {
   const [cachedApp] = useState<AppKey>(app);
+
+  useBackHandler('nested', () => {
+    if (cachedApp === 'chords') {
+      const currentPanel = useChordStore.getState().activePanel;
+      if (currentPanel !== 'library') {
+        useChordStore.getState().setActivePanel('library');
+        return true;
+      }
+    }
+    return false;
+  }, [cachedApp]);
 
   useEffect(() => {
     if (cachedApp !== 'chords') {

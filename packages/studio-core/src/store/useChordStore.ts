@@ -116,6 +116,7 @@ export interface AppSettings {
   /** Show the "What's new" changelog sheet on the first launch after an update. */
   otaShowChangelog: boolean;
   autoHideSidebarInApps: boolean;
+  swipeBackBehavior: 'exit-to-hub' | 'manual-only';
   perApp: Record<AppKey, PerAppVisuals>;
   customAccentHue: number;
   dynamicLightStart: number;
@@ -301,6 +302,7 @@ export const useChordStore = create<ChordStore>()(
         otaAutoCheck: true,
         otaShowChangelog: true,
         autoHideSidebarInApps: true,
+        swipeBackBehavior: 'exit-to-hub',
         customAccentHue: 220,
         dynamicLightStart: 7,
         dynamicLightEnd: 20,

@@ -12,6 +12,15 @@ Conventions:
 - Bullets start with `- ` and use plain English a non-technical user
   can parse. Keep each line short — the modal's text area is narrow.
 
+## 3.6.81
+
+### Fixed
+- Optimized startup planets animation and throttled layout queries to prevent freezes.
+- Deferred React mounting and non-critical assets load to ensure smooth initial frames.
+- Implemented double-buffered loading to eliminate sub-app entry transition stutters.
+- Added universal swipe-to-back navigation and root screen exit behavior setting.
+- Fixed bottom nav restoration stutters upon exiting nested panels or practice mode.
+
 ## 3.6.80
 
 ### Fixed

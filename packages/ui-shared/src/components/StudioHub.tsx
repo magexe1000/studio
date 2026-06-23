@@ -3105,6 +3105,22 @@ User Agent: [Automatically Generated]
               accentTo={accent.to}
             />
           </SettingRow>
+
+          <SettingRow
+            label={t.settings.rows.swipeBackBehavior || "Swipe back behavior"}
+            desc={t.settings.rows.swipeBackBehaviorDesc || "Configure swipe back gesture behavior on app root screens."}
+          >
+            <SegmentedControl<'exit-to-hub' | 'manual-only'>
+              value={settings.swipeBackBehavior || 'exit-to-hub'}
+              options={[
+                { value: 'exit-to-hub', label: t.settings.rows.swipeBackExit || "Swipe to Hub" },
+                { value: 'manual-only', label: t.settings.rows.swipeBackManual || "Manual Only" }
+              ]}
+              onChange={v => updateSettings({ swipeBackBehavior: v })}
+              accentFrom={accent.from}
+              accentTo={accent.to}
+            />
+          </SettingRow>
         </div>
 
         <SettingsSectionLabel>{sSets.performance}</SettingsSectionLabel>

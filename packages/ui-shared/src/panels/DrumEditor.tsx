@@ -2822,12 +2822,16 @@ export default function DrumEditor() {
         setInEditor(false); setActiveTab('songs');
         return true;
       }
+      if (activeTab !== 'songs') {
+        setActiveTab('songs');
+        return true;
+      }
       return false;
     };
     setBackHandler(handler);
     return () => setBackHandler(null);
   }, [
-    inEditor, showClearConfirm, showExportModal, showImportDrum, showSaveGroove,
+    inEditor, activeTab, showClearConfirm, showExportModal, showImportDrum, showSaveGroove,
     showCreateForm, showSaveForm, showMixerSheet, showFXSheet, showBpmPanel,
     showLoopPanel, showSoundCharacter, showHamburger
   ]);

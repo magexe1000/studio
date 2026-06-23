@@ -26,7 +26,7 @@ import { useMemo } from 'react';
 import { Capacitor } from '@capacitor/core';
 
 /** Canonical semver string used by the OTA comparator. */
-export const NATIVE_VERSION = '3.6.80';
+export const NATIVE_VERSION = '3.6.81';
 export const WEB_VERSION = '4.0.0';
 export const APP_VERSION = Capacitor.isNativePlatform() ? NATIVE_VERSION : WEB_VERSION;
 
@@ -38,7 +38,7 @@ export const APP_VERSION_LABEL = `${APP_VERSION_TAG} ${APP_VERSION}`;
 
 /** Release date for the CURRENT bundle, shown alongside the version pill
  *  in the changelog sheet. ISO-8601 (`YYYY-MM-DD`). */
-export const APP_VERSION_DATE = '2026-06-22'; // 3.6.80
+export const APP_VERSION_DATE = '2026-06-22'; // 3.6.81
 // Note: keep ISO-8601. Bump together with APP_VERSION on each release.
 
 export const APP_COMMIT_SHA = import.meta.env.VITE_GIT_COMMIT_SHA || 'efd2b1a3';
@@ -61,10 +61,11 @@ export const APP_CHANGELOG_SECTIONS: ChangelogSection[] = [
   {
     heading: "Fixed",
     items: [
-      "Fixed global i18n root causes in settings menus and Vocalex Harmonizer.",
-      "Added authorized lyrics and chords support for public-domain songs in Chordex Practice.",
-      "Implemented user-provided custom lyrics/charts paste, edit, and delete flows.",
-      "Optimized floating chord overlay to make diagrams primary and chord names secondary labels.",
+      "Optimized startup planets animation and throttled layout queries to prevent freezes.",
+      "Deferred React mounting and non-critical assets load to ensure smooth initial frames.",
+      "Implemented double-buffered loading to eliminate sub-app entry transition stutters.",
+      "Added universal swipe-to-back navigation and root screen exit behavior setting.",
+      "Fixed bottom nav restoration stutters upon exiting nested panels or practice mode.",
     ],
   },
 ];
@@ -74,10 +75,11 @@ export const APP_CHANGELOG_SECTIONS_NATIVE: ChangelogSection[] = [
   {
     heading: "Fixed",
     items: [
-      "Fixed global i18n root causes in settings menus and Vocalex Harmonizer.",
-      "Added authorized lyrics and chords support for public-domain songs in Chordex Practice.",
-      "Implemented user-provided custom lyrics/charts paste, edit, and delete flows.",
-      "Optimized floating chord overlay to make diagrams primary and chord names secondary labels.",
+      "Optimized startup planets animation and throttled layout queries to prevent freezes.",
+      "Deferred React mounting and non-critical assets load to ensure smooth initial frames.",
+      "Implemented double-buffered loading to eliminate sub-app entry transition stutters.",
+      "Added universal swipe-to-back navigation and root screen exit behavior setting.",
+      "Fixed bottom nav restoration stutters upon exiting nested panels or practice mode.",
     ],
   },
 ];
@@ -88,10 +90,11 @@ export const APP_CHANGELOG_SECTIONS_ES: ChangelogSection[] = [
   {
     heading: "Corregido",
     items: [
-      "Se corrigió la traducción global incompleta en ajustes y en el Armonizador de Vocalex.",
-      "Añadida letra y acordes autorizados para canciones de dominio público en el modo de práctica.",
-      "Implementado flujo para pegar, editar y eliminar partituras y letras personalizadas.",
-      "Optimizado el panel flotante para priorizar gráficos de acordes sobre nombres de texto.",
+      "Optimizado el rendimiento de la animación inicial y eliminadas las consultas de diseño repetitivas.",
+      "Diferido el montaje de React y cargas secundarias para asegurar fotogramas fluidos al iniciar.",
+      "Doble búfer implementado para transiciones de entrada a sub-apps libres de congelamientos.",
+      "Gesto universal de retroceso y opción para requerir salida manual a la pantalla principal.",
+      "Corregido el retraso en la restauración del menú inferior al salir del modo de práctica.",
     ],
   },
 ];

@@ -1,4 +1,4 @@
-import { getAllChords, searchChords, getChordById, getRelatedChords, type ChordType, useChordStore, ACCENT_COLORS, SONGS, GENRE_META, type Genre, SPANISH_DESCRIPTIONS, useScrollHide, useT, useIsWebDesktop, setBackHandler, playChord, stopChordPlayback, type GuitarChordData, type SongChart } from '@workspace/studio-core';
+import { getAllChords, searchChords, getChordById, getRelatedChords, type ChordType, useChordStore, ACCENT_COLORS, SONGS, GENRE_META, type Genre, SPANISH_DESCRIPTIONS, useScrollHide, useT, useIsWebDesktop, useBackHandler, playChord, stopChordPlayback, type GuitarChordData, type SongChart } from '@workspace/studio-core';
 import React, { useState, useMemo, useRef, useEffect, useCallback } from 'react';
 import { SongPracticeView } from '../components/SongPracticeView';
 import EmptyStateLottie from '../components/lottie/EmptyStateLottie';
@@ -471,21 +471,25 @@ export default function LibraryPanel() {
   useEffect(() => { setDiscoverLimit(DISCOVER_PAGE_SIZE); }, [activeGenre, discoverQuery]);
 
   // ── Back navigation ──────────────────────────────────────────────────────
-  const backHandlerRef = useRef<() => boolean>(() => false);
-  useEffect(() => {
-    backHandlerRef.current = () => {
-      if (query)       { setQuery('');        return true; }
-      if (activeType)  { setActiveType(null); return true; }
-      if (activeGenre) { setActiveGenre(null); return true; }
-      return false;
-    };
-  }, [query, activeType, activeGenre]);
-
-  useEffect(() => {
-    if (activePanel !== 'library') return;
-    setBackHandler(() => backHandlerRef.current());
-    return () => setBackHandler(null);
-  }, [activePanel]);
+  useBackHandler('nested', () => {
+    if (activePanel !== 'library') return false;
+    if (activePracticeSong) {
+      setActivePracticeSong(null);
+      return true;
+    }
+    if (selectedChordId) {
+      selectChord(null as any);
+      return true;
+    }
+    if (query)       { setQuery('');        return true; }
+    if (activeType)  { setActiveType(null); return true; }
+    if (activeGenre) { setActiveGenre(null); return true; }
+    if (mainTab === 'discover') {
+      setMainTab('explore');
+      return true;
+    }
+    return false;
+  }, [activePanel, activePracticeSong, selectedChordId, query, activeType, activeGenre, mainTab]);
 
   const allChords = getAllChords();
   const chord = useMemo(() => selectedChordId ? getChordById(selectedChordId) : null, [selectedChordId]);

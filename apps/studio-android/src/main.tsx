@@ -16,11 +16,14 @@ import EmergencyDebugOverlay from "./EmergencyDebugOverlay";
 // Initialize DevTools
 initDevToolsFramework();
 
-// Ask for notification permission on first launch.
-void ensureNotificationPermission();
+// Defer non-critical background initialization by 2 seconds to keep critical frames clear
+setTimeout(() => {
+  // Ask for notification permission on first launch.
+  void ensureNotificationPermission();
 
-// Kick off the drum-sample seed in the background.
-void seedAudioAssets();
+  // Kick off the drum-sample seed in the background.
+  void seedAudioAssets();
+}, 2000);
 
 const UpdateIndicator = lazy(() => import("@workspace/ui-android").then(m => ({ default: m.UpdateIndicator })));
 
@@ -71,13 +74,16 @@ if (typeof document !== 'undefined') {
   }
 }
 
-createRoot(document.getElementById("root")!).render(
-  <>
-    <RootAppContainer />
-    <GlobalOverlays />
-    <EmergencyDebugOverlay />
-  </>,
-);
+// Defer React mount by 600ms to let startup planets animation run stutter-free initially
+setTimeout(() => {
+  createRoot(document.getElementById("root")!).render(
+    <>
+      <RootAppContainer />
+      <GlobalOverlays />
+      <EmergencyDebugOverlay />
+    </>,
+  );
+}, 600);
 
 // Clean up all service workers since they are not supported in native wrappers.
 if (typeof window !== 'undefined' && 'serviceWorker' in navigator) {

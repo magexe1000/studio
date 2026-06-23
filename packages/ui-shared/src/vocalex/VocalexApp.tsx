@@ -219,8 +219,12 @@ export default function VocalexApp() {
 
   useBackHandler('nested', () => {
     if (headerBack) { headerBack(); return true; }
+    if (activeTab !== 'practice') {
+      setActiveTab('practice');
+      return true;
+    }
     return false;
-  }, [headerBack]);
+  }, [headerBack, activeTab]);
 
 
 

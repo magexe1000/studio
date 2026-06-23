@@ -1356,7 +1356,10 @@ ComposedPath: ${path.slice(0, 3).join(' > ')}`;
         if (isStageExpanded) {
           toggleStageExpanded();
         } else {
-          returnToStudioHub();
+          const behavior = useChordStore.getState().settings.swipeBackBehavior || 'exit-to-hub';
+          if (behavior === 'exit-to-hub') {
+            returnToStudioHub();
+          }
         }
       }
     };

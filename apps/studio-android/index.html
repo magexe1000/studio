@@ -151,7 +151,7 @@
         background: var(--intro-bg);
         overflow: hidden;
         pointer-events: none;
-        opacity: 1; /* Solid by default to prevent visual jump/flash */
+        opacity: 0; /* Changed from 1 to enable fade-in */
         font-family: Manrope, system-ui, -apple-system, sans-serif;
       }
       #intro.dismissed  { display: none; }
@@ -338,6 +338,14 @@
           return;
         }
 
+        // Fade in the intro overlay smoothly
+        requestAnimationFrame(function() {
+          requestAnimationFrame(function() {
+            intro.style.transition = 'opacity 400ms ease-out';
+            intro.style.opacity = '1';
+          });
+        });
+
         // Trigger fade out of the cover overlay on load
         var cover = document.getElementById('intro-cover');
         if (cover) {
@@ -459,6 +467,7 @@
         var targets = null;
         var fadeStarted = false;
         var dismissed = false;
+        var lastMeasureTime = 0;
 
         function omegaAt(t) {
           if (t <= ACCEL_START) return BASE_OMEGA;
@@ -479,15 +488,25 @@
           lastT  = now;
           angle  = (angle + omegaAt(t) * dt) % 360;
 
-          // Decide whether to start settling
+          // Track startup animation freeze points (dt > 50ms)
+          if (dt > 50 && t > 100) {
+            window.__startupAnimationFreezes = window.__startupAnimationFreezes || [];
+            window.__startupAnimationFreezes.push({ t: t.toFixed(0), dt: dt.toFixed(0) });
+            console.warn("[Perf] Startup animation freeze point: t=" + t.toFixed(0) + "ms, duration=" + dt.toFixed(0) + "ms");
+          }
+
+          // Decide whether to start settling (throttling layout queries)
           if (settleStartTime < 0 && t >= MIN_SPIN_TIME) {
-            var measured = measureTargets();
-            if (measured) {
-              targets = measured;
-              settleStartTime = now;
-            } else if (t >= MAX_WAIT_TIME) {
-              targets = fallbackTargets();
-              settleStartTime = now;
+            if (now - lastMeasureTime > 150) {
+              lastMeasureTime = now;
+              var measured = measureTargets();
+              if (measured) {
+                targets = measured;
+                settleStartTime = now;
+              } else if (t >= MAX_WAIT_TIME) {
+                targets = fallbackTargets();
+                settleStartTime = now;
+              }
             }
           }
 

@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { useChordStore, setNavLocked, setNavHidden, getChordByName, useT } from '@workspace/studio-core';
+import { useChordStore, setNavLocked, setNavHidden, getChordByName, useT, useBackHandler } from '@workspace/studio-core';
 import type { SongChart, SongChartSection, ChordMarker } from '@workspace/studio-core';
 import ChordDiagram from './ChordDiagram';
 
@@ -146,6 +146,12 @@ export function SongPracticeView({ song, onClose }: SongPracticeViewProps) {
       setNavHidden(false);
     };
   }, []);
+
+  // Exit practice mode on back button/swipe back gesture
+  useBackHandler('nested', () => {
+    onClose();
+    return true;
+  }, [onClose]);
 
   // Configuration settings (persisted locally)
   const [fontSize, setFontSize] = useState<'sm' | 'md' | 'lg' | 'xl'>(() => {
