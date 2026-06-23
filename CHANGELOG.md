@@ -11,6 +11,12 @@ Conventions:
 - One H2 heading per version: `## X.Y.Z` (no leading `v`).
 - Bullets start with `- ` and use plain English a non-technical user
   can parse. Keep each line short — the modal's text area is narrow.
+## 3.6.90
+
+### Fixed
+- Fixed Cifra Club URL importer failure in production by implementing a resilient, multi-strategy layout parser.
+- Added support for both mobile and desktop Cifra Club web structures using Apollo JSON parsing and wildcard <pre> tag recognition.
+- Integrated inline parser diagnostics list in the chart preview screen to display execution strategies.
 
 ## 3.6.89
 

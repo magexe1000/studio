@@ -1221,7 +1221,8 @@ export function SongPracticeView({ song, onClose }: SongPracticeViewProps) {
                   {importError && (
                     <div style={{
                       padding: 10, background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.2)',
-                      borderRadius: 8, color: '#ef4444', fontSize: '11px', lineHeight: '1.4', fontFamily: 'Inter'
+                      borderRadius: 8, color: '#ef4444', fontSize: '11px', lineHeight: '1.4', fontFamily: 'Inter',
+                      whiteSpace: 'pre-wrap'
                     }}>
                       {importError}
                     </div>
@@ -1296,6 +1297,14 @@ export function SongPracticeView({ song, onClose }: SongPracticeViewProps) {
                 <div><strong>Capo:</strong> {previewChart.capo ? `${previewChart.capo} fret` : 'None'}</div>
                 <div><strong>Source:</strong> {previewChart.source}</div>
                 <div><strong>License:</strong> {previewChart.licenseInfo}</div>
+                {previewChart.importDiagnostics && (
+                  <div style={{ gridColumn: 'span 2', marginTop: 4, padding: 8, background: 'rgba(255,255,255,0.03)', borderRadius: 6 }}>
+                    <strong style={{ color: 'var(--c-accent)' }}>Parser Diagnostic Logs:</strong>
+                    <ul style={{ margin: '4px 0 0 0', paddingLeft: 16, fontSize: '10px', color: 'var(--c-text-muted)', listStyleType: 'disc' }}>
+                      {previewChart.importDiagnostics.map((d, idx) => <li key={idx}>{d}</li>)}
+                    </ul>
+                  </div>
+                )}
               </div>
 
               <div style={{

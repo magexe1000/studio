@@ -35,6 +35,7 @@ export interface NormalizedChordChart {
   licenseInfo?: string;
   confidence: number;      // 0.0 to 1.0
   chartStatus: 'verified' | 'user' | 'provider' | 'unavailable';
+  importDiagnostics?: string[];
 }
 
 export interface ChordChartProvider {
@@ -449,12 +450,74 @@ export class CifraClubImporter implements ChartUrlImporter {
       if (!isNaN(parsed)) capo = parsed;
     }
 
-    const preMatch = html.match(/<pre>([\s\S]+?)<\/pre>/);
-    if (!preMatch) {
-      throw new Error('No preformatted chord chart block found on Cifra Club page.');
+    let preContent = '';
+    const importDiagnostics: string[] = [];
+
+    // Strategy 1: Apollo State JSON
+    try {
+      const contentRegex = /"content"\s*:\s*"([\s\S]+?)"/g;
+      let match;
+      while ((match = contentRegex.exec(html)) !== null) {
+        const escapedVal = match[1];
+        if (escapedVal.includes('[Intro]') || escapedVal.includes('Parte') || escapedVal.includes('\\u003cb\\u003e')) {
+          try {
+            preContent = JSON.parse('"' + escapedVal + '"');
+            importDiagnostics.push('Succeeded using Strategy: Cifra Club Apollo State JSON');
+            break;
+          } catch (_) {
+            preContent = escapedVal
+              .replace(/\\n/g, '\n')
+              .replace(/\\"/g, '"')
+              .replace(/\\\\/g, '\\')
+              .replace(/\\u003c/g, '<')
+              .replace(/\\u003e/g, '>')
+              .replace(/\\u003d/g, '=');
+            importDiagnostics.push('Succeeded using Strategy: Cifra Club Apollo State JSON (Manual Decode)');
+            break;
+          }
+        }
+      }
+      if (!preContent) {
+        importDiagnostics.push('Failed Strategy: Cifra Club Apollo State JSON (Target content not found in state)');
+      }
+    } catch (e: any) {
+      importDiagnostics.push(`Failed Strategy: Cifra Club Apollo State JSON (Error: ${e.message || e})`);
     }
 
-    const preContent = preMatch[1];
+    // Strategy 2: Resilient Pre Tag
+    if (!preContent) {
+      try {
+        const preMatch = html.match(/<pre[^>]*>([\s\S]+?)<\/pre>/i);
+        if (preMatch) {
+          preContent = preMatch[1];
+          importDiagnostics.push('Succeeded using Strategy: Cifra Club Resilient Pre Tag');
+        } else {
+          importDiagnostics.push('Failed Strategy: Cifra Club Resilient Pre Tag (No pre tag matches found)');
+        }
+      } catch (e: any) {
+        importDiagnostics.push(`Failed Strategy: Cifra Club Resilient Pre Tag (Error: ${e.message || e})`);
+      }
+    }
+
+    // Strategy 3: Cifra Container Div fallback
+    if (!preContent) {
+      try {
+        const divMatch = html.match(/class="[^"]*?cifra_cnt[^"]*"[^>]*>([\s\S]+?)<\/div>/i);
+        if (divMatch && divMatch[1].includes('<b>')) {
+          preContent = divMatch[1];
+          importDiagnostics.push('Succeeded using Strategy: Cifra Container Div');
+        } else {
+          importDiagnostics.push('Failed Strategy: Cifra Container Div (No cifra_cnt class containing bold tags found)');
+        }
+      } catch (e: any) {
+        importDiagnostics.push(`Failed Strategy: Cifra Container Div (Error: ${e.message || e})`);
+      }
+    }
+
+    if (!preContent) {
+      const errorMsg = 'Failed to extract chords and lyrics from Cifra Club page. Tried multiple extraction strategies:\n' + importDiagnostics.join('\n');
+      throw new Error(errorMsg);
+    }
     
     let cleanContent = preContent;
     let prevLength;
@@ -538,7 +601,8 @@ export class CifraClubImporter implements ChartUrlImporter {
       source: 'cifraclub',
       licenseInfo: 'User-imported from Cifra Club',
       confidence: 0.95,
-      chartStatus: 'user'
+      chartStatus: 'user',
+      importDiagnostics
     };
   }
 }
