@@ -26,7 +26,7 @@ import { useMemo } from 'react';
 import { Capacitor } from '@capacitor/core';
 
 /** Canonical semver string used by the OTA comparator. */
-export const NATIVE_VERSION = '3.6.92';
+export const NATIVE_VERSION = '3.6.93';
 export const WEB_VERSION = '4.0.0';
 export const APP_VERSION = Capacitor.isNativePlatform() ? NATIVE_VERSION : WEB_VERSION;
 
@@ -38,7 +38,7 @@ export const APP_VERSION_LABEL = `${APP_VERSION_TAG} ${APP_VERSION}`;
 
 /** Release date for the CURRENT bundle, shown alongside the version pill
  *  in the changelog sheet. ISO-8601 (`YYYY-MM-DD`). */
-export const APP_VERSION_DATE = '2026-06-23'; // 3.6.91
+export const APP_VERSION_DATE = '2026-06-23'; // 3.6.93
 // Note: keep ISO-8601. Bump together with APP_VERSION on each release.
 
 export const APP_COMMIT_SHA = import.meta.env.VITE_GIT_COMMIT_SHA || 'efd2b1a3';
@@ -61,10 +61,11 @@ export const APP_CHANGELOG_SECTIONS: ChangelogSection[] = [
   {
     heading: "Added",
     items: [
-      "Expanded guitar chord database by adding the minor 13th (min13) quality and chord shape definitions.",
-      "Enhanced normalization layer to support Latin roots, unicode symbols, and suffix aliases like 7M/M7/menor/maior.",
-      "Upgraded import diagnostics and chord mapping tooltips in the preview modal for better diagram verification.",
-      "Correctly categorized extended and new chord shapes under the right sections in Chordex Library.",
+      "Expanded guitar chord database with new qualities and 14 slash chords.",
+      "Fixed floating chord diagram skipping and auto-scrolling issues in Practice.",
+      "Added active segment/phrase highlighting to sync with playback timeline.",
+      "Fixed horizontal scroll block on Discover genre chips.",
+      "Made app entry transition and launch animations 25% faster.",
     ],
   },
 ];
@@ -74,9 +75,11 @@ export const APP_CHANGELOG_SECTIONS_NATIVE: ChangelogSection[] = [
   {
     heading: "What's New",
     items: [
-      "Added minor 13th (min13) guitar chords and playable shapes to the database.",
-      "Standardized Portuguese and Latin chord naming formats before resolving diagrams.",
-      "Improved slash chord fallback and added warning notifications for missing diagrams.",
+      "Expanded guitar chord database with new qualities and 14 slash chords.",
+      "Fixed floating chord diagram skipping and auto-scrolling issues in Practice.",
+      "Added active segment/phrase highlighting to sync with playback timeline.",
+      "Fixed horizontal scroll block on Discover genre chips.",
+      "Made app entry transition and launch animations 25% faster.",
     ],
   },
 ];
@@ -87,9 +90,11 @@ export const APP_CHANGELOG_SECTIONS_ES: ChangelogSection[] = [
   {
     heading: "Novedades",
     items: [
-      "Se agregaron acordes de menor 13ª (min13) y sus posiciones al diccionario.",
-      "Estandarización de nombres en portugués y latín antes de buscar diagramas.",
-      "Búsqueda mejorada de acordes con bajo (slash) y advertencias para diagramas faltantes.",
+      "Expansión masiva de diagramas de acordes incluyendo 10 cualidades y 14 de tipo slash.",
+      "Se corrigieron los saltos del diagrama flotante y del scroll en modo Práctica.",
+      "Resaltado dinámico por segmentos de acordes/letra sincronizados.",
+      "Se desbloqueó el scroll horizontal de géneros en la pestaña Descubrir.",
+      "Transición y apertura de aplicaciones un 25% más rápida.",
     ],
   },
 ];

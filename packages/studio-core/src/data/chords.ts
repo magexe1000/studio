@@ -1,4 +1,4 @@
-export type ChordType = 'major' | 'minor' | '7th' | 'maj7' | 'min7' | 'sus2' | 'sus4' | 'dim' | 'aug' | '9th' | 'add9' | '11th' | '13th' | 'min9' | 'maj9' | '6th' | 'min6' | 'dom9' | 'halfdim' | 'dim7' | 'min11' | 'maj6' | '7sus4' | '7sus2' | 'power' | 'minmaj7' | 'aug7' | '7b9' | '7s9' | '69' | '9sus4' | 'min13';
+export type ChordType = 'major' | 'minor' | '7th' | 'maj7' | 'min7' | 'sus2' | 'sus4' | 'dim' | 'aug' | '9th' | 'add9' | '11th' | '13th' | 'min9' | 'maj9' | '6th' | 'min6' | 'dom9' | 'halfdim' | 'dim7' | 'min11' | 'maj6' | '7sus4' | '7sus2' | 'power' | 'minmaj7' | 'aug7' | '7b9' | '7s9' | '69' | '9sus4' | 'min13' | 'madd9' | 'maj11' | '7#11' | 'maj7#11' | 'add11' | 'maj13' | '13sus4' | 'sus2add13' | '7b5' | '7alt';
 
 export type Instrument = 'guitar' | 'piano' | 'bass';
 
@@ -439,6 +439,91 @@ const chordDatabase: Chord[] = [
     piano: { keys: [1, 4, 8] },
     relatedChords: ['E', 'A', 'F#m', 'B']
   },
+  // Common Slash Chords (hand-crafted shapes)
+  {
+    id: 'C-major/E', name: 'C/E', root: 'C', type: 'major',
+    notes: ['E', 'C', 'E', 'G', 'C', 'E'], intervals: ['3', '1', '3', '5', '1', '3'],
+    guitar: { frets: [0, 3, 2, 0, 1, 0], fingers: [0, 3, 2, 0, 1, 0], barres: [], baseFret: 1 },
+    piano: { keys: [4, 0, 7] }
+  },
+  {
+    id: 'C-major/G', name: 'C/G', root: 'C', type: 'major',
+    notes: ['G', 'C', 'E', 'G', 'C', 'E'], intervals: ['5', '1', '3', '5', '1', '3'],
+    guitar: { frets: [3, 3, 2, 0, 1, 0], fingers: [3, 4, 2, 0, 1, 0], barres: [], baseFret: 1 },
+    piano: { keys: [7, 0, 4] }
+  },
+  {
+    id: 'D-major/F#', name: 'D/F#', root: 'D', type: 'major',
+    notes: ['F#', 'D', 'A', 'D', 'F#'], intervals: ['3', '1', '5', '1', '3'],
+    guitar: { frets: [2, -1, 0, 2, 3, 2], fingers: [1, 0, 0, 2, 4, 3], barres: [], baseFret: 1 },
+    piano: { keys: [6, 2, 9] }
+  },
+  {
+    id: 'D-major/A', name: 'D/A', root: 'D', type: 'major',
+    notes: ['A', 'D', 'A', 'D', 'F#'], intervals: ['5', '1', '5', '1', '3'],
+    guitar: { frets: [-1, 0, 0, 2, 3, 2], fingers: [0, 0, 0, 1, 3, 2], barres: [], baseFret: 1 },
+    piano: { keys: [9, 2, 6] }
+  },
+  {
+    id: 'E-major/G#', name: 'E/G#', root: 'E', type: 'major',
+    notes: ['G#', 'B', 'E', 'G#', 'B', 'E'], intervals: ['3', '5', '1', '3', '5', '1'],
+    guitar: { frets: [4, 2, 2, 1, 0, 0], fingers: [4, 2, 3, 1, 0, 0], barres: [], baseFret: 1 },
+    piano: { keys: [8, 11, 4] }
+  },
+  {
+    id: 'E-major/B', name: 'E/B', root: 'E', type: 'major',
+    notes: ['B', 'E', 'G#', 'B', 'E'], intervals: ['5', '1', '3', '5', '1'],
+    guitar: { frets: [-1, 2, 2, 1, 0, 0], fingers: [0, 2, 3, 1, 0, 0], barres: [], baseFret: 1 },
+    piano: { keys: [11, 4, 8] }
+  },
+  {
+    id: 'F-major/A', name: 'F/A', root: 'F', type: 'major',
+    notes: ['A', 'F', 'A', 'C', 'F'], intervals: ['3', '1', '3', '5', '1'],
+    guitar: { frets: [-1, 0, 3, 2, 1, 1], fingers: [0, 0, 3, 2, 1, 1], barres: [], baseFret: 1 },
+    piano: { keys: [9, 5, 0] }
+  },
+  {
+    id: 'G-major/B', name: 'G/B', root: 'G', type: 'major',
+    notes: ['B', 'G', 'D', 'G', 'B'], intervals: ['3', '1', '5', '1', '3'],
+    guitar: { frets: [-1, 2, 0, 0, 0, 3], fingers: [0, 1, 0, 0, 0, 2], barres: [], baseFret: 1 },
+    piano: { keys: [11, 7, 2] }
+  },
+  {
+    id: 'A-major/C#', name: 'A/C#', root: 'A', type: 'major',
+    notes: ['C#', 'A', 'C#', 'E', 'A'], intervals: ['3', '1', '3', '5', '1'],
+    guitar: { frets: [-1, 4, 2, 2, 2, 0], fingers: [0, 4, 1, 2, 3, 0], barres: [{ fret: 2, fromString: 4, toString: 2 }], baseFret: 1 },
+    piano: { keys: [1, 9, 4] }
+  },
+  {
+    id: 'A-minor/G', name: 'Am/G', root: 'A', type: 'minor',
+    notes: ['G', 'A', 'E', 'A', 'C', 'E'], intervals: ['b7', '1', '5', '1', 'b3', '5'],
+    guitar: { frets: [3, 0, 2, 2, 1, 0], fingers: [4, 0, 2, 3, 1, 0], barres: [], baseFret: 1 },
+    piano: { keys: [7, 9, 0, 4] }
+  },
+  {
+    id: 'D-minor/F', name: 'Dm/F', root: 'D', type: 'minor',
+    notes: ['F', 'D', 'A', 'D', 'F'], intervals: ['b3', '1', '5', '1', 'b3'],
+    guitar: { frets: [1, -1, 0, 2, 3, 1], fingers: [1, 0, 0, 2, 4, 1], barres: [], baseFret: 1 },
+    piano: { keys: [5, 2, 9] }
+  },
+  {
+    id: 'E-minor/G', name: 'Em/G', root: 'E', type: 'minor',
+    notes: ['G', 'B', 'E', 'G', 'B', 'E'], intervals: ['b3', '5', '1', 'b3', '5', '1'],
+    guitar: { frets: [3, 2, 2, 0, 0, 0], fingers: [3, 1, 2, 0, 0, 0], barres: [], baseFret: 1 },
+    piano: { keys: [7, 11, 4] }
+  },
+  {
+    id: 'F-major/C', name: 'F/C', root: 'F', type: 'major',
+    notes: ['C', 'F', 'A', 'C', 'F'], intervals: ['5', '1', '5', '1', '3'],
+    guitar: { frets: [-1, 3, 3, 2, 1, 1], fingers: [0, 3, 4, 2, 1, 1], barres: [{ fret: 1, fromString: 2, toString: 1 }], baseFret: 1 },
+    piano: { keys: [0, 5, 9] }
+  },
+  {
+    id: 'G-major/D', name: 'G/D', root: 'G', type: 'major',
+    notes: ['D', 'D', 'G', 'B'], intervals: ['5', '5', '1', '3'],
+    guitar: { frets: [-1, -1, 0, 0, 0, 3], fingers: [0, 0, 0, 0, 0, 3], barres: [], baseFret: 1 },
+    piano: { keys: [2, 7, 11] }
+  },
 ];
 
 // ═══════════════════════════════════════════════════════════════
@@ -494,6 +579,16 @@ const CHORD_INTERVALS: Record<ChordType, number[]> = {
   '7s9':   [0,4,7,10,15],
   '69':    [0,4,7,9,14],
   '9sus4': [0,5,7,10,14],
+  madd9:   [0,3,7,14],
+  maj11:   [0,4,7,11,14,17],
+  '7#11':  [0,4,7,10,14,18],
+  'maj7#11': [0,4,7,11,14,18],
+  add11:   [0,4,7,17],
+  maj13:   [0,4,7,11,14,17,21],
+  '13sus4': [0,5,7,10,14,21],
+  sus2add13: [0,2,7,21],
+  '7b5':   [0,4,6,10],
+  '7alt':  [0,4,10,13],
 };
 
 const CHORD_INTERVAL_NAMES: Record<ChordType, string[]> = {
@@ -529,6 +624,16 @@ const CHORD_INTERVAL_NAMES: Record<ChordType, string[]> = {
   '7s9':   ['1','3','5','b7','#9'],
   '69':    ['1','3','5','6','9'],
   '9sus4': ['1','4','5','b7','9'],
+  madd9:   ['1','b3','5','9'],
+  maj11:   ['1','3','5','7','9','11'],
+  '7#11':  ['1','3','5','b7','9','#11'],
+  'maj7#11': ['1','3','5','7','9','#11'],
+  add11:   ['1','3','5','11'],
+  maj13:   ['1','3','5','7','9','11','13'],
+  '13sus4': ['1','4','5','b7','9','13'],
+  sus2add13: ['1','2','5','13'],
+  '7b5':   ['1','3','b5','b7'],
+  '7alt':  ['1','3','b7','b9'],
 };
 
 const CHORD_SUFFIX: Record<ChordType, string> = {
@@ -541,6 +646,16 @@ const CHORD_SUFFIX: Record<ChordType, string> = {
   power:   '5',    minmaj7: 'm/maj7', aug7: 'aug7',
   '7b9':   '7b9',  '7s9':  '7#9',    '69': '6/9',   '9sus4': '9sus4',
   min13:   'm13',
+  madd9:   'm(add9)',
+  maj11:   'maj11',
+  '7#11':  '7#11',
+  'maj7#11': 'maj7#11',
+  add11:   'add11',
+  maj13:   'maj13',
+  '13sus4': '13sus4',
+  sus2add13: 'sus2add13',
+  '7b5':   '7b5',
+  '7alt':  '7alt',
 };
 
 // Guitar shape templates: offsets from root fret; -1 = mute
@@ -656,6 +771,36 @@ const GUITAR_SHAPES: Record<ChordType, GuitarShapeTemplate> = {
   // min13 (1,b3,5,b7,9,11,13): E-shape minor barre + 13th on B string
   // Verified: Am13 = A,G,C,F#,A — index-barre(1)@str6+str4+str3+str1; ring(3)@str2+2
   min13:   { shape:'E', offsets:[0,-1,0,0,2,0],    fingers:[1,0,1,1,3,1], hasBarre:true  },
+
+  // madd9: E-shape root + 5th + 9th + b3
+  madd9:   { shape:'E', offsets:[0,2,4,0,0,0],     fingers:[1,2,4,1,1,1], hasBarre:true  },
+
+  // maj11: A-shape playable voicing
+  maj11:   { shape:'A', offsets:[-1,0,2,1,2,0],    fingers:[0,1,3,2,4,0], hasBarre:false },
+
+  // 7#11: E-shape dominant sharp 11
+  '7#11':  { shape:'E', offsets:[0,-1,0,1,1,0],    fingers:[1,0,2,3,4,1], hasBarre:true  },
+
+  // maj7#11: E-shape maj7 sharp 11
+  'maj7#11': { shape:'E', offsets:[0,-1,1,1,0,-1],   fingers:[2,0,3,4,1,0], hasBarre:false },
+
+  // add11: A-shape flat barre
+  add11:   { shape:'A', offsets:[-1,0,2,2,2,0],    fingers:[0,1,3,3,3,1], hasBarre:true  },
+
+  // maj13: E-shape major 13th
+  maj13:   { shape:'E', offsets:[0,-1,1,1,2,-1],   fingers:[1,0,2,2,4,0], hasBarre:false },
+
+  // 13sus4: E-shape 13th suspended 4th
+  '13sus4': { shape:'E', offsets:[0,-1,0,2,2,-1],   fingers:[1,0,1,3,4,0], hasBarre:false },
+
+  // sus2add13: A-shape suspended 2nd add 13
+  sus2add13: { shape:'A', offsets:[-1,0,2,2,3,-1],  fingers:[0,1,3,3,4,0], hasBarre:false },
+
+  // 7b5: E-shape dominant 7th flat 5
+  '7b5':   { shape:'E', offsets:[0,-1,0,1,1,-1],   fingers:[1,0,2,3,4,0], hasBarre:false },
+
+  // 7alt: E-shape altered 7th
+  '7alt':  { shape:'E', offsets:[0,-1,0,1,2,-1],   fingers:[1,0,2,3,4,0], hasBarre:false },
 };
 
 function buildGuitarChord(root: string, type: ChordType): GuitarChordData {
@@ -699,7 +844,13 @@ function rootLabel(root: string): string {
 }
 
 function buildChordName(root: string, type: ChordType): string {
-  return rootLabel(root) + CHORD_SUFFIX[type];
+  const suffix = CHORD_SUFFIX[type];
+  const display = NOTE_DISPLAY[root];
+  if (display && display.includes('/')) {
+    const parts = display.split('/');
+    return `${parts[0]}${suffix}/${parts[1]}${suffix}`;
+  }
+  return root + suffix;
 }
 
 function generateMissingChords(): Chord[] {
@@ -840,6 +991,16 @@ function normalizeSingleChord(chord: string): string {
     const accidental = match[2] || '';
     root = latinRoots[rootName] + accidental;
     suffix = clean.slice(match[0].length);
+    
+    // Collision guard: If root matched Latin "Fa" but suffix starts with "d" (as in add) or "u" (as in aug),
+    // it was actually English root "F" with an "add" or "aug" suffix.
+    if ((rootName === 'fa' || rootName === 'fá') && !accidental) {
+      const lowerSuffix = suffix.toLowerCase();
+      if (lowerSuffix.startsWith('d') || lowerSuffix.startsWith('u')) {
+        root = 'F';
+        suffix = 'a' + suffix;
+      }
+    }
   } else {
     match = clean.match(englishPattern);
     if (match) {
@@ -896,10 +1057,38 @@ function normalizeSingleChord(chord: string): string {
     }
   } else if (cleanLower === 'm/maj7' || cleanLower === 'm(maj7)' || cleanLower === 'mmaj7' || cleanLower === 'minmaj7') {
     normSuffix = 'm/maj7';
+  } else if (cleanLower === 'm7b5' || cleanLower === 'min7b5' || cleanLower === 'halfdim' || cleanLower === 'half-diminished') {
+    normSuffix = 'ø7';
+  } else if (cleanLower === '7#5' || cleanLower === '7+5') {
+    normSuffix = 'aug7';
   } else if (cleanLower === 'm' || cleanLower === 'min' || cleanLower === 'menor') {
     normSuffix = 'm';
   } else if (cleanLower === 'maj' || cleanLower === 'maior' || cleanLower === 'major') {
     normSuffix = '';
+  } else if (cleanLower === 'madd9' || cleanLower === 'm(add9)') {
+    normSuffix = 'm(add9)';
+  } else if (cleanLower === 'maj11' || cleanLower === 'maj7(11)') {
+    normSuffix = 'maj11';
+  } else if (cleanLower === '7#11' || cleanLower === '7(#11)') {
+    normSuffix = '7#11';
+  } else if (cleanLower === 'maj7#11' || cleanLower === 'maj7(#11)') {
+    normSuffix = 'maj7#11';
+  } else if (cleanLower === 'add11' || cleanLower === 'add(11)') {
+    normSuffix = 'add11';
+  } else if (cleanLower === 'maj13' || cleanLower === 'maj7(13)') {
+    normSuffix = 'maj13';
+  } else if (cleanLower === '13sus4' || cleanLower === '13sus') {
+    normSuffix = '13sus4';
+  } else if (cleanLower === 'sus2add13' || cleanLower === 'sus2(add13)') {
+    normSuffix = 'sus2add13';
+  } else if (cleanLower === '7b5' || cleanLower === '7(-5)') {
+    normSuffix = '7b5';
+  } else if (cleanLower === '7alt' || cleanLower === 'alt7' || cleanLower === 'alt') {
+    normSuffix = '7alt';
+  } else if (cleanLower === '7s9' || cleanLower === '7#9') {
+    normSuffix = '7#9';
+  } else if (cleanLower === '69' || cleanLower === '6/9') {
+    normSuffix = '6/9';
   } else {
     // General character replacements for common aliases
     normSuffix = normSuffix
@@ -918,6 +1107,14 @@ function normalizeSingleChord(chord: string): string {
   }
   
   return root + normSuffix;
+}
+
+function toCanonicalRoot(root: string): string {
+  const mapping: Record<string, string> = {
+    'Db': 'C#', 'Eb': 'D#', 'Gb': 'F#', 'Ab': 'G#', 'Bb': 'A#',
+    'db': 'c#', 'eb': 'd#', 'gb': 'f#', 'ab': 'g#', 'bb': 'a#'
+  };
+  return mapping[root] || root;
 }
 
 export function getChordByName(name: string): Chord | undefined {
@@ -942,6 +1139,25 @@ export function getChordByName(name: string): Chord | undefined {
     return false;
   });
   if (found) return found;
+
+  // 4. Enharmonic fallback
+  const match = normalized.match(/^([a-g][#b]?)(.*)$/);
+  if (match) {
+    const queryRoot = toCanonicalRoot(match[1].charAt(0).toUpperCase() + match[1].slice(1));
+    const querySuffix = match[2];
+
+    found = chordDatabase.find(c => {
+      const baseName = c.name.split('/')[0].trim();
+      const cMatch = baseName.toLowerCase().match(/^([a-g][#b]?)(.*)$/);
+      if (cMatch) {
+        const cRoot = toCanonicalRoot(cMatch[1].charAt(0).toUpperCase() + cMatch[1].slice(1));
+        const cSuffix = cMatch[2];
+        return cRoot === queryRoot && cSuffix === querySuffix;
+      }
+      return false;
+    });
+    if (found) return found;
+  }
 
   return undefined;
 }

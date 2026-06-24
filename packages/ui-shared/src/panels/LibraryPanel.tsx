@@ -535,14 +535,16 @@ export default function LibraryPanel() {
     return allChords.filter(c => {
       let match = c.type === activeType;
       if (!match) {
-        if (activeType === '11th' && c.type === 'min11') match = true;
-        else if (activeType === '13th' && c.type === 'min13') match = true;
+        if (activeType === '11th' && ['min11', 'maj11', '7#11', 'maj7#11', 'add11'].includes(c.type)) match = true;
+        else if (activeType === '13th' && ['min13', 'maj13', '13sus4'].includes(c.type)) match = true;
         else if (activeType === '9th' && ['dom9', 'maj9', 'min9', '7b9', '7s9'].includes(c.type)) match = true;
         else if (activeType === '6th' && ['maj6', 'min6', '69'].includes(c.type)) match = true;
         else if (activeType === 'dim' && ['dim7', 'halfdim'].includes(c.type)) match = true;
         else if (activeType === 'aug' && c.type === 'aug7') match = true;
         else if (activeType === 'sus4' && ['7sus4', '9sus4'].includes(c.type)) match = true;
-        else if (activeType === 'sus2' && c.type === '7sus2') match = true;
+        else if (activeType === 'sus2' && ['7sus2', 'sus2add13'].includes(c.type)) match = true;
+        else if (activeType === 'add9' && c.type === 'madd9') match = true;
+        else if (activeType === '7th' && ['7b5', '7alt'].includes(c.type)) match = true;
       }
       if (!match) return false;
       const key = c.guitar.frets.join(',');

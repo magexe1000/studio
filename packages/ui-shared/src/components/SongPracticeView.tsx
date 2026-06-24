@@ -27,37 +27,60 @@ interface SongPracticeViewProps {
 interface ChordSegment {
   chord?: string;
   text: string;
+  startTime?: number;
+  endTime?: number;
 }
 
 // Partition a lyrics line into chord-text segments for inline-flex rendering
-function getLineSegments(lyrics: string, chords: NormalizedChordMarker[]): ChordSegment[] {
+function getLineSegments(
+  lyrics: string,
+  chords: NormalizedChordMarker[],
+  lineTimestamp: number,
+  lineDuration: number
+): ChordSegment[] {
   if (!chords || chords.length === 0) {
-    return [{ text: lyrics || ' ' }];
+    return [{
+      text: lyrics || ' ',
+      startTime: lineTimestamp,
+      endTime: lineTimestamp + lineDuration
+    }];
   }
+
   const sortedChords = [...chords].sort((a, b) => a.offset - b.offset);
   const segments: ChordSegment[] = [];
-  
-  let lastOffset = 0;
+  const maxOffset = Math.max(...chords.map(c => c.offset), lyrics.length, 1);
+
+  const getChordTime = (c: NormalizedChordMarker) => {
+    if (c.timestamp !== undefined) return c.timestamp;
+    const ratio = c.offset / maxOffset;
+    return lineTimestamp + ratio * lineDuration;
+  };
+
+  const times = sortedChords.map(getChordTime);
+
+  // Text before the first chord
+  if (sortedChords[0].offset > 0) {
+    segments.push({
+      text: lyrics.substring(0, sortedChords[0].offset),
+      startTime: lineTimestamp,
+      endTime: times[0]
+    });
+  }
+
   for (let i = 0; i < sortedChords.length; i++) {
     const chord = sortedChords[i];
     const nextOffset = i + 1 < sortedChords.length ? sortedChords[i + 1].offset : lyrics.length;
-    
-    // Text before the first chord
-    if (i === 0 && chord.offset > 0) {
-      segments.push({ text: lyrics.substring(0, chord.offset) });
-    }
-    
+    const startTime = times[i];
+    const endTime = i + 1 < sortedChords.length ? times[i + 1] : (lineTimestamp + lineDuration);
+
     segments.push({
       chord: normalizeChordName(chord.chord),
-      text: lyrics.substring(chord.offset, nextOffset) || ' '
+      text: lyrics.substring(chord.offset, nextOffset) || ' ',
+      startTime,
+      endTime
     });
-    lastOffset = nextOffset;
   }
-  
-  if (lastOffset < lyrics.length) {
-    segments.push({ text: lyrics.substring(lastOffset) });
-  }
-  
+
   return segments;
 }
 
@@ -515,8 +538,9 @@ export function SongPracticeView({ song, onClose }: SongPracticeViewProps) {
     parsedLines.forEach((line) => {
       if (line.chords.length > 0) {
         const sorted = [...line.chords].sort((a, b) => a.offset - b.offset);
+        const maxOffset = Math.max(...line.chords.map(c => c.offset), line.lyrics.length, 1);
         sorted.forEach((marker) => {
-          const relativeRatio = marker.offset / Math.max(1, line.lyrics.length);
+          const relativeRatio = marker.offset / maxOffset;
           const chordTime = marker.timestamp !== undefined 
             ? marker.timestamp 
             : (line.timestamp + relativeRatio * line.duration);
@@ -777,6 +801,19 @@ export function SongPracticeView({ song, onClose }: SongPracticeViewProps) {
             }} title={statusInfo.desc}>
               {statusInfo.text}
             </span>
+            {chartDiagnostics?.type === 'plain' && (
+              <span style={{
+                fontSize: '8px',
+                fontWeight: 800,
+                padding: '2px 6px',
+                borderRadius: 4,
+                background: 'rgba(239, 143, 8, 0.15)',
+                color: 'rgb(239, 143, 8)',
+                border: '1px solid rgba(239, 143, 8, 0.3)'
+              }}>
+                {isSpanish ? 'Tiempo Estimado (BPM)' : 'Estimated Timing Mode'}
+              </span>
+            )}
           </div>
           <p style={{ fontSize: '11px', color: 'var(--c-text-secondary)', margin: '2px 0 0', fontWeight: 500 }}>
             {song.artist} {song.capo ? `· Capo ${song.capo}` : ''}
@@ -871,11 +908,22 @@ export function SongPracticeView({ song, onClose }: SongPracticeViewProps) {
                 {/* Lines Rendering */}
                 <div className="space-y-1" style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
                   {section.lines.map((line, lIdx) => {
-                    const parsed = parsedLines.find(p => p.sectionName === section.name && p.lyrics === line.lyrics);
+                    let globalLineIndex = 0;
+                    for (let i = 0; i < sIdx; i++) {
+                      globalLineIndex += activeSections[i].lines.length;
+                    }
+                    globalLineIndex += lIdx;
+
+                    const parsed = parsedLines[globalLineIndex];
                     const isLineActive = activeLine && parsed && activeLine.lineIndex === parsed.lineIndex;
                     const showHighlight = isLineActive;
 
-                    const segments = getLineSegments(line.lyrics, line.chords);
+                    const segments = getLineSegments(
+                      line.lyrics,
+                      line.chords,
+                      parsed ? parsed.timestamp : 0,
+                      parsed ? parsed.duration : 0
+                    );
 
                     return (
                       <div
@@ -889,39 +937,45 @@ export function SongPracticeView({ song, onClose }: SongPracticeViewProps) {
                         }}
                       >
                         <div className="flex flex-wrap items-end" style={{ rowGap: '16px' }}>
-                          {segments.map((seg, segIdx) => (
-                            <div
-                              key={segIdx}
-                              style={{
-                                display: 'inline-flex', flexDirection: 'column',
-                                alignItems: 'flex-start', minWidth: seg.chord ? '18px' : 'auto'
-                              }}
-                            >
-                              {/* Chord Label (only visible if chords actually exist) */}
-                              {hasRealChords && (
-                                <span
-                                  className={`font-black ${chordFontClass}`}
-                                  style={{
-                                    color: 'var(--c-accent)', height: '14px', lineHeight: '14px',
-                                    display: 'block', marginBottom: '2px', pointerEvents: 'none',
-                                    opacity: seg.chord ? 1 : 0
-                                  }}
-                                >
-                                  {seg.chord || ''}
-                                </span>
-                              )}
-                              {/* Lyric Text */}
-                              <span
-                                className={`${fontClass} font-medium`}
+                          {segments.map((seg, segIdx) => {
+                            const isSegActive = isLineActive && seg.startTime !== undefined && seg.endTime !== undefined &&
+                              elapsedTime >= seg.startTime && elapsedTime < seg.endTime;
+                            return (
+                              <div
+                                key={segIdx}
                                 style={{
-                                  color: 'var(--c-text-primary)', whiteSpace: 'pre',
-                                  lineHeight: '1.2'
+                                  display: 'inline-flex', flexDirection: 'column',
+                                  alignItems: 'flex-start', minWidth: seg.chord ? '18px' : 'auto'
                                 }}
                               >
-                                {seg.text}
-                              </span>
-                            </div>
-                          ))}
+                                {/* Chord Label (only visible if chords actually exist) */}
+                                {hasRealChords && (
+                                  <span
+                                    className={`font-black ${chordFontClass}`}
+                                    style={{
+                                      color: 'var(--c-accent)', height: '14px', lineHeight: '14px',
+                                      display: 'block', marginBottom: '2px', pointerEvents: 'none',
+                                      opacity: seg.chord ? 1 : 0
+                                    }}
+                                  >
+                                    {seg.chord || ''}
+                                  </span>
+                                )}
+                                {/* Lyric Text */}
+                                <span
+                                  className={`${fontClass} font-medium`}
+                                  style={{
+                                    color: isSegActive ? 'var(--c-accent)' : 'var(--c-text-primary)',
+                                    whiteSpace: 'pre',
+                                    lineHeight: '1.2',
+                                    transition: 'color 0.20s ease'
+                                  }}
+                                >
+                                  {seg.text}
+                                </span>
+                              </div>
+                            );
+                          })}
                         </div>
                       </div>
                     );

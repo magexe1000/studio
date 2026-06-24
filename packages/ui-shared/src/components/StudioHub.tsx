@@ -438,7 +438,7 @@ export default function StudioHub() {
         activeAppAfterTransition: appMode,
         fallbackRendered: false
       });
-    }, 450);
+    }, 340);
     launchTimers.current.push(t2);
   // updateSettings is stable (Zustand action), setZooming is React setState
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -584,8 +584,8 @@ export default function StudioHub() {
         transform: zooming ? 'scale(1.10)' : 'scale(1)',
         opacity: zooming ? 0 : 1,
         transition: zooming
-          ? 'transform 380ms cubic-bezier(0.4,0,1,1), opacity 280ms ease-in, background-color 700ms cubic-bezier(0.4,0,0.2,1)'
-          : 'transform 380ms cubic-bezier(0.16, 1, 0.3, 1), opacity 380ms ease-out, background-color 700ms cubic-bezier(0.4,0,0.2,1)',
+          ? 'transform 285ms cubic-bezier(0.4,0,1,1), opacity 210ms ease-in, background-color 700ms cubic-bezier(0.4,0,0.2,1)'
+          : 'transform 285ms cubic-bezier(0.16, 1, 0.3, 1), opacity 285ms ease-out, background-color 700ms cubic-bezier(0.4,0,0.2,1)',
       }}
     >
 

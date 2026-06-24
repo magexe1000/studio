@@ -720,7 +720,7 @@ html.theme-transitioning *:not([data-theme-exempt] *):not([data-theme-exempt])::
     -ms-overflow-style: none;
     scrollbar-width: none;
     /* Let the compositor handle touch scrolling without waiting for JS */
-    touch-action: pan-y;
+    touch-action: auto;
     -webkit-overflow-scrolling: touch;
     /* Scope layout/style calculations to this element and its subtree */
     contain: layout style;

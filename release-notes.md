@@ -1,5 +1,6 @@
 ### Added
-- Expanded guitar chord database by adding the minor 13th (min13) quality and chord shape definitions.
-- Enhanced normalization layer to support Latin roots, unicode symbols, and suffix aliases like 7M/M7/menor/maior.
-- Upgraded import diagnostics and chord mapping tooltips in the preview modal for better diagram verification.
-- Correctly categorized extended and new chord shapes under the right sections in Chordex Library.
+- Expanded guitar chord database with new qualities and 14 slash chords.
+- Fixed floating chord diagram skipping and auto-scrolling issues in Practice.
+- Added active segment/phrase highlighting to sync with playback timeline.
+- Fixed horizontal scroll block on Discover genre chips.
+- Made app entry transition and launch animations 25% faster.

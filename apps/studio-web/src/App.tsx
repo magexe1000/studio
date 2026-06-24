@@ -112,7 +112,7 @@ export default function App() {
 
     setTimeout(() => {
       (window as any).studioTransitionActive = false;
-    }, 370);
+    }, 280);
   }, [updateSettings, preferences.rememberLastAppSection]);
 
   const returnToStudioHubRef = useRef(returnToStudioHub);

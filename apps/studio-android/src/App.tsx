@@ -1531,7 +1531,7 @@ export default function App() {
         activeAppAfterTransition: 'hub',
         fallbackRendered: false
       });
-    }, 370);
+    }, 280);
   }, [updateSettings, preferences.rememberLastAppSection]);
 
   const returnToStudioHubRef = useRef(returnToStudioHub);
@@ -1739,7 +1739,7 @@ export default function App() {
         fromApp: from,
         toApp: to,
         timestamp: Date.now(),
-        transitionDuration: (window as any).studioTransitionActive ? 450 : 0,
+        transitionDuration: (window as any).studioTransitionActive ? 340 : 0,
         lockState: (window as any).studioTransitionActive || false,
         recoveredViaFailsafe: false
       });
