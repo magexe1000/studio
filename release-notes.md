@@ -1,4 +1,6 @@
 ### Added
-- Resolved Android 14+ background activity start block by configuring explicit ActivityOptions in InstallReceiver.
-- Prevented double-download and progress thrashes with strict state-transition guards in the update manager.
-- Fully validated system update end-to-end and successfully launched native confirmation dialog.
+- Consolidated all system updater improvements into a new stable baseline.
+- Prevented Background Activity Launch (BAL) blocks on Android 14+ by instantiating explicit ActivityOptions.
+- Eliminated state-overwrite race conditions and duplicate download loops via strict state transition guards.
+- Streamlined PackageInstaller session commit and lifecycle callback handling.
+- Enhanced updater diagnostics sheet with detailed session validation matrices, certificate signatures, and execution traces.
