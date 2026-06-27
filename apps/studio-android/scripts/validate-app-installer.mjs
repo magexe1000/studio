@@ -329,6 +329,9 @@ if (fs.existsSync(paths.apkPath)) {
 }
 
 if (fs.existsSync(paths.apkPath)) {
+  const appVersionPath = path.join(repoRoot, 'packages/studio-core/src/lib/appVersion.ts');
+  const appVersionSrc = fs.readFileSync(appVersionPath, 'utf8');
+
   // A. Verify non-debuggable and package manifest attributes
   try {
     const aapt2 = getAndroidTool('aapt2');
@@ -370,9 +373,6 @@ if (fs.existsSync(paths.apkPath)) {
     assert(nameMatch, 'Could not parse versionName from APK manifest!', EXIT_CODES.RELEASE_VALIDATION);
     const versionNameVal = nameMatch[1];
     
-    // Get expected versionName from NATIVE_VERSION in appVersion.ts
-    const appVersionPath = path.join(repoRoot, 'packages/studio-core/src/lib/appVersion.ts');
-    const appVersionSrc = fs.readFileSync(appVersionPath, 'utf8');
     const nativeVersionMatches = [...appVersionSrc.matchAll(/export\s+const\s+NATIVE_VERSION\s*=\s*['"]([^'"]+)['"]/g)];
     if (nativeVersionMatches.length !== 1) {
       assert(false, 'Unable to resolve NATIVE_VERSION from appVersion.ts', EXIT_CODES.RELEASE_VALIDATION);
