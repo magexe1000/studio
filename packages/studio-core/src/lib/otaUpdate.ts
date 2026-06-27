@@ -101,6 +101,8 @@ export let otaDebugLogs: {
   magicHeaderCheck: string | null;
   downloadSourcesConfigured: string | null;
   currentDownloadSource: string | null;
+  recoveryAttemptsPerformed: string[];
+  signatureMismatchDetectedCause: string | null;
 } = {
   appVersion: APP_VERSION,
   nativeApkVersion: null,
@@ -173,6 +175,8 @@ export let otaDebugLogs: {
   magicHeaderCheck: null,
   downloadSourcesConfigured: null,
   currentDownloadSource: null,
+  recoveryAttemptsPerformed: [],
+  signatureMismatchDetectedCause: null,
 };
 
 export interface OtaDiagnostics {
@@ -1927,6 +1931,10 @@ export function downloadUpdate(trigger?: string, isDowngrade?: boolean): Promise
       updateGlobalState({ statusText: 'Checking eligibility...' });
       const isEligible = await runEligibilityCheck(filePath, isDowngrade);
       if (!isEligible) {
+        if (otaDebugLogs.eligibilityReason === 'signature_mismatch' && !isRecovering) {
+          const recovered = await runSignatureMismatchRecovery();
+          if (recovered) return;
+        }
         throw new Error('Eligibility validation failed: ' + (otaDebugLogs.eligibilityReason || 'unknown'));
       }
       void logProgressStage('Eligibility check passed', 'APK is eligible for installation');
@@ -1951,11 +1959,18 @@ export function downloadUpdate(trigger?: string, isDowngrade?: boolean): Promise
       otaDebugLogs.lastExceptionStackTrace = errStack;
       otaDebugLogs.installerLaunchStatus = 'FAILED';
       await populateDiagnostics(err, 'APK download or verification failed');
-      transitionToState('failed', 'Download/Verify exception');
-      updateGlobalState({ 
-        error: errMsg,
-        statusText: null
-      });
+      if (globalOtaState.updateState !== 'signature_mismatch' && globalOtaState.updateState !== 'versionCode_low') {
+        transitionToState('failed', 'Download/Verify exception');
+        updateGlobalState({ 
+          error: errMsg,
+          statusText: null
+        });
+      } else {
+        updateGlobalState({
+          loading: false,
+          statusText: null
+        });
+      }
       throw err;
     } finally {
       activeDownloadPromise = null;
@@ -2031,17 +2046,20 @@ export function applyUpdate(trigger?: string): Promise<void> {
       }
 
       const { AppInstaller, checkApkEligibility } = await import('./apkDownloader');
-      otaDebugLogs.installError = (otaDebugLogs.installError || '') + `\nChecking APK eligibility for: ${filePath}`;
       updateGlobalState({ statusText: 'Verifying update eligibility' });
 
       const isEligible = await runEligibilityCheck(filePath);
       if (!isEligible) {
+        if (otaDebugLogs.eligibilityReason === 'signature_mismatch' && !isRecovering) {
+          const recovered = await runSignatureMismatchRecovery();
+          if (recovered) return;
+        }
         throw new Error('Eligibility validation failed: ' + (otaDebugLogs.eligibilityReason || 'unknown'));
       }
-
+ 
       otaDebugLogs.installError += `\nAPK is eligible. Launching APK installer intent for file: ${filePath}`;
       updateGlobalState({ statusText: 'Launching APK installer' });
-
+ 
       void logProgressStage('Session committed', 'Handing over to PackageInstaller');
       await AppInstaller.installApk({ filePath });
       void logProgressStage('Waiting for Android confirmation', 'Waiting for system confirmation dialog to overlay');
@@ -2079,13 +2097,21 @@ export function applyUpdate(trigger?: string): Promise<void> {
       
       // Fallback: Enter Recovery Mode if consecutive failures are 3 or more
       const recovery = currentFailures >= 3;
-      transitionToState('failed', `APK install failed. Failures: ${currentFailures}`);
-      updateGlobalState({ 
-        error: errMsg,
-        statusText: 'Installation failed',
-        recoveryMode: recovery,
-        activeFallback: recovery ? 'Enter Recovery Mode' : null
-      });
+      
+      if (globalOtaState.updateState !== 'signature_mismatch' && globalOtaState.updateState !== 'versionCode_low') {
+        transitionToState('failed', `APK install failed. Failures: ${currentFailures}`);
+        updateGlobalState({ 
+          error: errMsg,
+          statusText: 'Installation failed',
+          recoveryMode: recovery,
+          activeFallback: recovery ? 'Enter Recovery Mode' : null
+        });
+      } else {
+        updateGlobalState({
+          loading: false,
+          statusText: null
+        });
+      }
       throw err;
     } finally {
       activeApplyPromise = null;
@@ -2122,6 +2148,8 @@ export interface UseOtaUpdateResult extends CentralizedOtaState {
   applyUpdate: (trigger?: string) => Promise<void>;
   dismissUpdate: () => void;
   markUpdateSeen: () => void;
+  downloadAndInstallGitHubApk: () => Promise<void>;
+  runSignatureMismatchRecovery: () => Promise<boolean>;
 }
 
 let otaListenerInitialized = false;
@@ -2186,6 +2214,156 @@ export function initializeOtaListener() {
   void nativeSet(NATIVE_PREFS.OTA_INSTALLED, APP_VERSION);
 }
 
+export let isRecovering = false;
+
+export async function downloadAndInstallGitHubApk(): Promise<void> {
+  const callId = nextJsCallId();
+  console.log(`[INSTRUMENTATION] downloadAndInstallGitHubApk ENTER Call #${callId}`);
+  void logProgressStage('[INSTRUMENTATION] downloadAndInstallGitHubApk ENTER', `Call #${callId}`);
+
+  updateGlobalState({ loading: true, progress: 0, statusText: 'Resolving latest GitHub Release...' });
+  try {
+    const { resolveApkUrl, AppInstaller } = await import('./apkDownloader');
+    const gitHubApkUrl = await resolveApkUrl(globalOtaState.remoteVersion ?? undefined);
+    
+    otaDebugLogs.currentDownloadSource = gitHubApkUrl;
+    otaDebugLogs.downloadStatus = `Downloading GitHub package: ${gitHubApkUrl}`;
+    updateGlobalState({ statusText: 'Downloading from GitHub...' });
+    
+    const { filePath } = await AppInstaller.downloadApk({ url: gitHubApkUrl, fileName: `studio-github-${globalOtaState.remoteVersion || 'latest'}.apk` });
+    
+    otaDebugLogs.downloadStatus += `\nDownload finished. Path: ${filePath}`;
+    updateGlobalState({ progress: 1.0, statusText: 'Verifying package signatures...' });
+    
+    if (globalOtaState.apkSha256) {
+      updateGlobalState({ statusText: 'Verifying SHA-256...' });
+      const shaMatches = (await AppInstaller.verifyApkSha256({ filePath, expectedHash: globalOtaState.apkSha256 })).matches;
+      otaDebugLogs.shaVerification = shaMatches ? 'SUCCESS' : 'FAILED';
+      if (!shaMatches) {
+        throw new Error('SHA-256 checksum verification failed.');
+      }
+    }
+    
+    const info = await AppInstaller.inspectApk({ filePath });
+    otaDebugLogs.downloadedIsValidApk = info.isValidApk;
+    otaDebugLogs.downloadedSigningSha256 = info.signingSha256;
+    if (!info.isValidApk) {
+      throw new Error('The downloaded package is not a valid APK.');
+    }
+    
+    updateGlobalState({ statusText: 'Launching package installer...' });
+    await AppInstaller.installApk({ filePath });
+    
+    updateGlobalState({ updateState: 'idle', loading: false });
+    console.log(`[INSTRUMENTATION] downloadAndInstallGitHubApk EXIT Call #${callId} Success`);
+  } catch (err: any) {
+    console.error(`[INSTRUMENTATION] downloadAndInstallGitHubApk EXIT Call #${callId} error:`, err);
+    updateGlobalState({ 
+      loading: false,
+      error: `GitHub installation failed: ${err.message || String(err)}`
+    });
+    alert(`GitHub installation failed: ${err.message || String(err)}`);
+  }
+}
+
+export async function runSignatureMismatchRecovery(): Promise<boolean> {
+  const callId = nextJsCallId();
+  console.log(`[INSTRUMENTATION] runSignatureMismatchRecovery ENTER Call #${callId}`);
+  void logProgressStage('[INSTRUMENTATION] runSignatureMismatchRecovery ENTER', `Call #${callId}`);
+
+  isRecovering = true;
+  const steps: string[] = [];
+  otaDebugLogs.recoveryAttemptsPerformed = steps;
+  updateGlobalState({ statusText: 'Running signature recovery...' });
+
+  const filePath = localStorage.getItem('studio:downloadedApkPath');
+  if (!filePath) {
+    steps.push('Revalidate APK: Failed (No downloaded APK path found)');
+    isRecovering = false;
+    updateGlobalState({ updateState: 'signature_mismatch' });
+    return false;
+  }
+
+  // Stage 1: Revalidate APK
+  steps.push('Revalidating cached APK...');
+  updateGlobalState({ statusText: 'Revalidating APK...' });
+  const isEligible = await runEligibilityCheck(filePath);
+  if (isEligible) {
+    steps.push('Revalidate APK: Passed! Retrying installation.');
+    updateGlobalState({ statusText: 'Retrying installation...' });
+    try {
+      await applyUpdate('Recovery: Stage 1');
+      steps.push('Retry Installation: Success');
+      isRecovering = false;
+      return true;
+    } catch (e: any) {
+      steps.push(`Retry Installation: Failed (${e.message || String(e)})`);
+    }
+  } else {
+    steps.push(`Revalidate APK: Failed (Reason: ${otaDebugLogs.eligibilityReason || 'unknown'})`);
+  }
+
+  // Stage 2: Recreate PackageInstaller session
+  steps.push('Clearing installer session caches...');
+  updateGlobalState({ statusText: 'Recreating session...' });
+  try {
+    const { AppInstaller } = await import('./apkDownloader');
+    await AppInstaller.clearInstallerLogHistory();
+    steps.push('PackageInstaller Session: Cleared and recreated');
+  } catch (e: any) {
+    steps.push(`PackageInstaller Session Reset: Failed (${e.message || String(e)})`);
+  }
+
+  // Stage 3: Retry installation after recreation
+  steps.push('Retrying installation with fresh session...');
+  updateGlobalState({ statusText: 'Retrying install (fresh session)...' });
+  try {
+    await applyUpdate('Recovery: Stage 2');
+    steps.push('Fresh Session Install: Success');
+    isRecovering = false;
+    return true;
+  } catch (e: any) {
+    steps.push(`Fresh Session Install: Failed (${e.message || String(e)})`);
+  }
+
+  // Stage 4: Re-download APK
+  steps.push('Re-downloading APK package...');
+  updateGlobalState({ statusText: 'Re-downloading APK...' });
+  try {
+    const { Filesystem } = await import('@capacitor/filesystem');
+    await Filesystem.deleteFile({
+      path: filePath
+    }).catch(() => {});
+    steps.push('Old APK cache cleared');
+
+    await downloadUpdate('Recovery: Stage 4');
+    steps.push('APK download completed successfully');
+
+    const newFilePath = localStorage.getItem('studio:downloadedApkPath');
+    if (newFilePath) {
+      const newEligible = await runEligibilityCheck(newFilePath);
+      if (newEligible) {
+        steps.push('Post-download validation: Passed! Installing...');
+        updateGlobalState({ statusText: 'Installing new download...' });
+        await applyUpdate('Recovery: Stage 4 post-download');
+        steps.push('Post-download Install: Success');
+        isRecovering = false;
+        return true;
+      } else {
+        steps.push(`Post-download validation: Failed (Reason: ${otaDebugLogs.eligibilityReason || 'unknown'})`);
+      }
+    } else {
+      steps.push('Post-download validation: Failed (No new file path)');
+    }
+  } catch (e: any) {
+    steps.push(`Re-download Flow: Failed (${e.message || String(e)})`);
+  }
+
+  isRecovering = false;
+  updateGlobalState({ updateState: 'signature_mismatch' });
+  return false;
+}
+
 export function useOtaUpdate(): UseOtaUpdateResult {
   if (typeof window !== 'undefined') {
     initializeOtaListener();
@@ -2224,6 +2402,12 @@ export function useOtaUpdate(): UseOtaUpdateResult {
     },
     markUpdateSeen: () => {
       markUpdateSeen();
+    },
+    downloadAndInstallGitHubApk: async () => {
+      await downloadAndInstallGitHubApk();
+    },
+    runSignatureMismatchRecovery: async () => {
+      return await runSignatureMismatchRecovery();
     },
   };
 }

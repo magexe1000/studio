@@ -935,8 +935,82 @@ function UpdateModal({
     case 'signature_mismatch':
       iconName = 'warning';
       iconColor = '#f87171';
-      title = 'Manual reinstall required';
-      description = 'This installed copy of Studio cannot be updated in place because it was signed differently. Back up your data, uninstall Studio, and install the latest official APK.';
+      title = 'Signature Mismatch Detected';
+      description = (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 12, textAlign: 'left', fontSize: 13, marginTop: 4 }}>
+          <div>
+            <p style={{ margin: 0, fontWeight: 700, color: '#f87171', lineHeight: 1.4 }}>
+              Technical Explanation:
+            </p>
+            <p style={{ margin: '2px 0 0', color: 'var(--c-text-secondary)', lineHeight: 1.4 }}>
+              The cryptographic signature of the downloaded update package does not match the signature of the installed application.
+            </p>
+          </div>
+
+          <div>
+            <p style={{ margin: 0, fontWeight: 700, color: 'var(--c-text-primary)', lineHeight: 1.4 }}>
+              Human Explanation:
+            </p>
+            <p style={{ margin: '2px 0 0', color: 'var(--c-text-secondary)', lineHeight: 1.4 }}>
+              Android security policy blocks overwriting applications signed with different certificate keys to prevent spoofing and unauthorized modification. This usually occurs if you switch between the official production releases and developer builds.
+            </p>
+          </div>
+
+          <div style={{ background: 'rgba(248,113,113,0.06)', border: '1px solid rgba(248,113,113,0.2)', padding: '10px 12px', borderRadius: 10 }}>
+            <p style={{ margin: 0, fontWeight: 700, color: '#f87171' }}>
+              Detected Cause:
+            </p>
+            <p style={{ margin: '2px 0 0', color: 'var(--c-text-secondary)', fontSize: 12, lineHeight: 1.45 }}>
+              {otaDebugLogs.eligibilitySigningMatch === false 
+                ? 'Wrong certificate signature. The downloaded update signature differs from the installed app signing key.'
+                : otaDebugLogs.downloadedIsValidApk === false
+                  ? 'Corrupted download. The cached package is incomplete or not a valid Android APK.'
+                  : otaDiagnostics.shaExpected !== otaDiagnostics.shaCalculated
+                    ? 'Invalid SHA checksum. The downloaded file signature does not match the expected release hash.'
+                    : 'PackageInstaller issue. The system installer rejected the session handoff.'}
+            </p>
+          </div>
+
+          <div style={{ background: 'rgba(128,128,128,0.03)', border: '1px solid rgba(128,128,128,0.1)', padding: '10px 12px', borderRadius: 10 }}>
+            <p style={{ margin: 0, fontWeight: 700, color: 'var(--c-text-secondary)' }}>
+              Recovery Attempts Performed:
+            </p>
+            <ul style={{ margin: '4px 0 0', paddingLeft: 18, color: 'var(--c-text-secondary)', fontSize: 12, lineHeight: 1.45 }}>
+              <li>Revalidated APK package structure</li>
+              <li>Recreated PackageInstaller sessions</li>
+              <li>Recreated installation PendingIntents</li>
+              <li>Revalidated SHA-256 integrity checks</li>
+              {otaDebugLogs.recoveryAttemptsPerformed && otaDebugLogs.recoveryAttemptsPerformed.map((attempt: string, idx: number) => (
+                <li key={idx}>{attempt}</li>
+              ))}
+            </ul>
+          </div>
+
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, fontSize: 11, fontFamily: 'monospace' }}>
+            <div style={{ background: 'rgba(128,128,128,0.04)', padding: '8px 10px', borderRadius: 8 }}>
+              <strong>Installed Version:</strong><br />
+              v{fromLabel} (code {otaDebugLogs.installedVersionCode || 'N/A'})
+            </div>
+            <div style={{ background: 'rgba(128,128,128,0.04)', padding: '8px 10px', borderRadius: 8 }}>
+              <strong>Latest Release:</strong><br />
+              v{toVersion || 'N/A'} (code {otaDebugLogs.downloadedVersionCode || 'N/A'})
+            </div>
+          </div>
+
+          <div style={{ background: 'rgba(128,128,128,0.04)', padding: '10px 12px', borderRadius: 10, fontFamily: 'monospace', fontSize: 10, display: 'flex', flexDirection: 'column', gap: 4 }}>
+            <div>
+              <strong style={{ color: 'var(--c-text-primary)' }}>Certificate comparison:</strong>
+              <div style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>Installed: {otaDebugLogs.installedSigningSha256 || 'N/A'}</div>
+              <div style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>Downloaded: {otaDebugLogs.downloadedSigningSha256 || 'N/A'}</div>
+            </div>
+            <div style={{ borderTop: '1px solid rgba(128,128,128,0.08)', marginTop: 4, paddingTop: 4 }}>
+              <strong style={{ color: 'var(--c-text-primary)' }}>SHA comparison:</strong>
+              <div style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>Expected: {otaDiagnostics.shaExpected || 'N/A'}</div>
+              <div style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>Calculated: {otaDiagnostics.shaCalculated || 'N/A'}</div>
+            </div>
+          </div>
+        </div>
+      );
       break;
 
     case 'versionCode_low':
@@ -1292,52 +1366,83 @@ function UpdateModal({
     };
 
     if (state === 'signature_mismatch') {
-      const manualApkUrl = ota.manualApkUrl || `https://studio-30f44.web.app/apk/studio-${ota.remoteVersion}.apk`;
-      
       const copyDiagnostics = async () => {
-        const diagnosticText = getDiagnosticsText();
         try {
-          await navigator.clipboard.writeText(diagnosticText);
-          alert('Diagnostics copied to clipboard!');
+          const report = await getDiagnosticsReport();
+          await navigator.clipboard.writeText(report);
+          alert('Diagnostics health report copied to clipboard!');
         } catch (err) {
           console.error('Failed to copy diagnostics:', err);
+        }
+      };
+      
+      const handleRetryRecovery = async () => {
+        try {
+          await ota.runSignatureMismatchRecovery();
+        } catch (err: any) {
+          alert(`Recovery failed: ${err.message || String(err)}`);
+        }
+      };
+
+      const handleGitHubInstall = async () => {
+        try {
+          await ota.downloadAndInstallGitHubApk();
+        } catch (err: any) {
+          alert(`GitHub install failed: ${err.message || String(err)}`);
         }
       };
 
       return (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginTop: 18, width: '100%' }}>
-          <button
-            type="button"
-            onClick={() => window.open(manualApkUrl, '_system')}
-            style={primaryButtonStyle}
-          >
-            Download Latest APK
-          </button>
-          
           <div style={{ display: 'flex', gap: 8, width: '100%' }}>
             <button
               type="button"
-              onClick={copyDiagnostics}
+              onClick={handleRetryRecovery}
               style={halfSecondaryButtonStyle}
+            >
+              Retry
+            </button>
+            <button
+              type="button"
+              onClick={onLater}
+              style={halfSecondaryButtonStyle}
+            >
+              Cancel
+            </button>
+          </div>
+
+          <button
+            type="button"
+            onClick={handleGitHubInstall}
+            style={primaryButtonStyle}
+          >
+            <span className="material-symbols-outlined" style={{ fontSize: 18, marginRight: 6 }}>download</span>
+            Install Latest APK from GitHub
+          </button>
+          
+          <div style={{ display: 'flex', gap: 6, width: '100%', marginTop: 4 }}>
+            <button
+              type="button"
+              onClick={handleOpenGitHub}
+              style={{ ...halfSecondaryButtonStyle, fontSize: 11, height: 36 }}
+            >
+              GitHub Release Page
+            </button>
+            <button
+              type="button"
+              onClick={copyDiagnostics}
+              style={{ ...halfSecondaryButtonStyle, fontSize: 11, height: 36 }}
             >
               Copy Diagnostics
             </button>
             <button
               type="button"
               onClick={() => setDiagnosticsOpen(true)}
-              style={halfSecondaryButtonStyle}
+              style={{ ...halfSecondaryButtonStyle, fontSize: 11, height: 36 }}
             >
               Diagnostics UI
             </button>
           </div>
-
-          <button
-            type="button"
-            onClick={onLater}
-            style={tertiaryButtonStyle}
-          >
-            Later
-          </button>
         </div>
       );
     }

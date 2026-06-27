@@ -1,22 +1,21 @@
 {
   "platform": "web",
   "version": "4.0.0",
-  "commit": "b29cff84",
-  "releasedAt": "6/27/2026, 6:05:00 PM CST",
-  "buildTimestamp": "6/27/2026, 6:05:00 PM CST",
+  "commit": "efd2b1a3",
+  "releasedAt": "6/27/2026, 6:10:00 PM CST",
+  "buildTimestamp": "6/27/2026, 6:10:00 PM CST",
   "updateMode": "refresh",
-  "description": "• Added a premium Version Manager UI with a visual upgrade path timeline.\n• Added a secure, native-styled React downgrade warning confirmation modal.\n• Expanded Update Diagnostics with search, category filtering, and item expansion.\n• Eliminated logo splashes and background flashes during Android launch.",
-  "whatsNew": "• Added a premium Version Manager UI with a visual upgrade path timeline.\n• Added a secure, native-styled React downgrade warning confirmation modal.\n• Expanded Update Diagnostics with search, category filtering, and item expansion.\n• Eliminated logo splashes and background flashes during Android launch.",
-  "changelog": "• Added a premium Version Manager UI with a visual upgrade path timeline.\n• Added a secure, native-styled React downgrade warning confirmation modal.\n• Expanded Update Diagnostics with search, category filtering, and item expansion.\n• Eliminated logo splashes and background flashes during Android launch.",
+  "description": "• Added multi-stage signature mismatch recovery featuring automated cache clearing, session recreation, and PendingIntent resets.\n• Added direct GitHub Release package installation with SHA-256 integrity checks and signing certificate verification.\n• Added detailed error dialogs containing technical/human explanations, detected cause, and current/latest version comparison.\n• Fixed updater state machine overwrite issues to ensure signature mismatch and version checks are preserved.",
+  "whatsNew": "• Added multi-stage signature mismatch recovery featuring automated cache clearing, session recreation, and PendingIntent resets.\n• Added direct GitHub Release package installation with SHA-256 integrity checks and signing certificate verification.\n• Added detailed error dialogs containing technical/human explanations, detected cause, and current/latest version comparison.\n• Fixed updater state machine overwrite issues to ensure signature mismatch and version checks are preserved.",
+  "changelog": "• Added multi-stage signature mismatch recovery featuring automated cache clearing, session recreation, and PendingIntent resets.\n• Added direct GitHub Release package installation with SHA-256 integrity checks and signing certificate verification.\n• Added detailed error dialogs containing technical/human explanations, detected cause, and current/latest version comparison.\n• Fixed updater state machine overwrite issues to ensure signature mismatch and version checks are preserved.",
   "releaseNotes": {
     "added": [
-      "Added a premium Version Manager UI with a visual upgrade path timeline, current version highlighting, and detailed release date badges.",
-      "Added a secure, native-styled React downgrade warning and confirmation modal explaining risks, compatibility, and reversibility.",
-      "Significantly expanded Update Diagnostics with search, category filtering, and item expansion for performance, network, storage, and installer logs.",
-      "Integrated animation and boot timing telemetry tracking JS engine load, native bootstrap latency, and frame rendering."
+      "Added multi-stage signature mismatch recovery featuring automated cache clearing, session recreation, and PendingIntent resets.",
+      "Added direct GitHub Release package installation with SHA-256 integrity checks and signing certificate verification.",
+      "Added detailed error dialogs containing technical/human explanations, detected cause, and current/latest version comparison."
     ],
     "fixed": [
-      "Eliminated logo splashes and background flashes during Android launch for a seamless planet-intro fade-in transition."
+      "Fixed updater state machine overwrite issues to ensure signature mismatch and version checks are preserved."
     ]
   },
   "mandatory": false

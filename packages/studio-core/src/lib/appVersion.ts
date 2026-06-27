@@ -26,7 +26,7 @@ import { useMemo } from 'react';
 import { Capacitor } from '@capacitor/core';
 
 /** Canonical semver string used by the OTA comparator. */
-export const NATIVE_VERSION = '3.7.4';
+export const NATIVE_VERSION = '3.7.5';
 export const WEB_VERSION = '4.0.0';
 export const APP_VERSION = Capacitor.isNativePlatform() ? NATIVE_VERSION : WEB_VERSION;
 
@@ -38,11 +38,11 @@ export const APP_VERSION_LABEL = `${APP_VERSION_TAG} ${APP_VERSION}`;
 
 /** Release date for the CURRENT bundle, shown alongside the version pill
  *  in the changelog sheet. ISO-8601 (`YYYY-MM-DD`). */
-export const APP_VERSION_DATE = '2026-06-27'; // 3.7.3
+export const APP_VERSION_DATE = '2026-06-27'; // 3.7.5
 // Note: keep ISO-8601. Bump together with APP_VERSION on each release.
 
 export const APP_COMMIT_SHA = import.meta.env.VITE_GIT_COMMIT_SHA || 'efd2b1a3';
-export const APP_BUILD_TIMESTAMP = import.meta.env.VITE_BUILD_TIMESTAMP || '6/22/2026, 6:00:00 PM CST';
+export const APP_BUILD_TIMESTAMP = import.meta.env.VITE_BUILD_TIMESTAMP || '6/27/2026, 6:00:00 PM CST';
 
 /**
  * Changelog for the CURRENT release — shown to the user the first
@@ -51,7 +51,7 @@ export const APP_BUILD_TIMESTAMP = import.meta.env.VITE_BUILD_TIMESTAMP || '6/22
  * heading + bullet list rendered Metrolist-style in `ChangelogSheet`.
  */
 export interface ChangelogSection {
-  /** Short uppercase header (e.g. "What's new", "Fixes"). */
+  /** Short uppercase header (e.g. "Short uppercase header (e.g. Added, Fixed)"). */
   heading: string;
   /** Plain user-facing bullets. Keep each line short. */
   items: string[];
@@ -61,16 +61,15 @@ export const APP_CHANGELOG_SECTIONS: ChangelogSection[] = [
   {
     heading: "Added",
     items: [
-      "Added a premium Version Manager UI with a visual upgrade path timeline, current version highlighting, and detailed release date badges.",
-      "Added a secure, native-styled React downgrade warning and confirmation modal explaining risks, compatibility, and reversibility.",
-      "Significantly expanded Update Diagnostics with search, category filtering, and item expansion for performance, network, storage, and installer logs.",
-      "Integrated animation and boot timing telemetry tracking JS engine load, native bootstrap latency, and frame rendering.",
+      "Added multi-stage signature mismatch recovery featuring automated cache clearing, session recreation, and PendingIntent resets.",
+      "Added direct GitHub Release package installation with SHA-256 integrity checks and signing certificate verification.",
+      "Added detailed error dialogs containing technical/human explanations, detected cause, and current/latest version comparison.",
     ],
   },
   {
     heading: "Fixed",
     items: [
-      "Eliminated logo splashes and background flashes during Android launch for a seamless planet-intro fade-in transition.",
+      "Fixed updater state machine overwrite issues to ensure signature mismatch and version checks are preserved.",
     ],
   },
 ];
@@ -80,11 +79,9 @@ export const APP_CHANGELOG_SECTIONS_NATIVE: ChangelogSection[] = [
   {
     heading: "What's New",
     items: [
-      "Expanded guitar chord database with new qualities and 14 slash chords.",
-      "Fixed floating chord diagram skipping and auto-scrolling issues in Practice.",
-      "Added active segment/phrase highlighting to sync with playback timeline.",
-      "Fixed horizontal scroll block on Discover genre chips.",
-      "Made app entry transition and launch animations 25% faster.",
+      "Added advanced update stability and failsafe multi-stage recovery flow.",
+      "Added direct installer package downloads and verification from official GitHub mirrors.",
+      "Improved updater error reporting with helpful human-readable troubleshooting guidance.",
     ],
   },
 ];
