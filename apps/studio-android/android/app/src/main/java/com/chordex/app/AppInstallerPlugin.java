@@ -696,7 +696,16 @@ public class AppInstallerPlugin extends Plugin {
                     PackageInstaller.SessionParams.MODE_FULL_INSTALL);
             
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                params.setRequestDowngrade(true);
+                // setRequestDowngrade(true) was added in API level 34.
+                // Call via reflection to support compiling against older SDK platforms.
+                try {
+                    java.lang.reflect.Method setRequestDowngradeMethod = 
+                        params.getClass().getMethod("setRequestDowngrade", boolean.class);
+                    setRequestDowngradeMethod.invoke(params, true);
+                    InstallReceiver.appendLog(context, "PackageInstaller Session Setup", 0, "Successfully setRequestDowngrade(true) via reflection", null, null);
+                } catch (Exception e) {
+                    InstallReceiver.appendLog(context, "PackageInstaller Session Setup", -1, "Failed to setRequestDowngrade(true) via reflection: " + e.getMessage(), null, null);
+                }
             }
             
             // Re-use file size if available

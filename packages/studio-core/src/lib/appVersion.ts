@@ -61,11 +61,16 @@ export const APP_CHANGELOG_SECTIONS: ChangelogSection[] = [
   {
     heading: "Added",
     items: [
-      "Consolidated all system updater improvements into a new stable baseline.",
-      "Prevented Background Activity Launch (BAL) blocks on Android 14+ by instantiating explicit ActivityOptions.",
-      "Eliminated state-overwrite race conditions and duplicate download loops via strict state transition guards.",
-      "Streamlined PackageInstaller session commit and lifecycle callback handling.",
-      "Enhanced updater diagnostics sheet with detailed session validation matrices, certificate signatures, and execution traces.",
+      "Implemented Version Manager UI under settings, allowing users to downgrade to the previous stable release (v3.7.0) or one version prior (v3.6.99).",
+      "Added Update History tracking, recording all transition states locally in a persistent log.",
+      "Upgraded the PackageInstaller to call setRequestDowngrade(true) to support downgrades with matching signing signatures.",
+    ],
+  },
+  {
+    heading: "Fixed",
+    items: [
+      "Resolved the \"Check for updates\" regression that opened the updater dialog prematurely and showed a stuck 0% progress screen.",
+      "Restored the theme-aware, animated top-right update indicator pill/badge z-index so it doesn't render behind other elements.",
     ],
   },
 ];
