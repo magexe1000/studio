@@ -1,6 +1,9 @@
 import { useChordStore, ACCENT_COLORS, type ActivePanel, type AppKey, useNavHidden, useNavCollapsed, useT, useLiquidGlassNav, useIsWebDesktop } from '@workspace/studio-core';
 import { useEffect, useRef, useState } from 'react';
 
+import { SHARED_NAV_TRANSITION, getSharedNavTransform, getSharedNavOpacity } from './navStyles';
+
+
 /* ── Crisp inline SVG icons ──────────────────────────────────── */
 export function IconSongs({ active }: { active: boolean }) {
   const sw = active ? 2.1 : 1.7;
@@ -247,10 +250,10 @@ export default function BottomNav() {
         zIndex: 50,
         overflow: 'hidden',
         pointerEvents: (navHidden || navCollapsed) ? 'none' : 'auto',
-        transform: `translateX(-50%) translateY(${(navHidden || navCollapsed) ? 'calc(100% + 32px)' : '0px'})`,
-        opacity: (navHidden || navCollapsed) ? 0 : 1,
+        transform: getSharedNavTransform(navHidden, navCollapsed),
+        opacity: getSharedNavOpacity(navHidden, navCollapsed),
         willChange: 'transform, opacity',
-        transition: 'transform 200ms cubic-bezier(0.25, 1, 0.5, 1), opacity 200ms cubic-bezier(0.25, 1, 0.5, 1), background-color 300ms ease, border-color 300ms ease, box-shadow 300ms ease',
+        transition: SHARED_NAV_TRANSITION,
       }}
     >
       <div style={{

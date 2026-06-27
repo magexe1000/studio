@@ -1,8 +1,9 @@
-### Fixed
-- Resolved the "Check for updates" regression that opened the updater dialog prematurely and showed a stuck 0% progress screen.
-- Restored the theme-aware, animated top-right update indicator pill/badge z-index so it doesn't render behind other elements.
-
 ### Added
-- Implemented Version Manager UI under settings, allowing users to downgrade to the previous stable release (v3.7.0) or one version prior (v3.6.99).
-- Added Update History tracking, recording all transition states locally in a persistent log.
-- Upgraded the PackageInstaller to call setRequestDowngrade(true) to support downgrades with matching signing signatures.
+- Implemented smart HTTP resume and partial downloadRange writing for interrupted updates.
+- Added prioritized mirror failovers (GitHub Release -> Firebase Hosting -> Official Mirror).
+- Created Failsafe Direct intent installer bypass using FileProvider URIs to override PackageInstaller session blocks.
+- Added Recovery Mode overlay displaying version details, diagnostics log compile, and manual copy/share actions.
+
+### Fixed
+- Resolved checking for updates regression where modal would show stuck 0% download progress.
+- Aligned Hub bottom navigation auto-hide animation with the rest of Studio.

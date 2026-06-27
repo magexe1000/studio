@@ -26,7 +26,7 @@ import { useMemo } from 'react';
 import { Capacitor } from '@capacitor/core';
 
 /** Canonical semver string used by the OTA comparator. */
-export const NATIVE_VERSION = '3.7.1';
+export const NATIVE_VERSION = '3.7.2';
 export const WEB_VERSION = '4.0.0';
 export const APP_VERSION = Capacitor.isNativePlatform() ? NATIVE_VERSION : WEB_VERSION;
 
@@ -38,7 +38,7 @@ export const APP_VERSION_LABEL = `${APP_VERSION_TAG} ${APP_VERSION}`;
 
 /** Release date for the CURRENT bundle, shown alongside the version pill
  *  in the changelog sheet. ISO-8601 (`YYYY-MM-DD`). */
-export const APP_VERSION_DATE = '2026-06-27'; // 3.7.1
+export const APP_VERSION_DATE = '2026-06-27'; // 3.7.2
 // Note: keep ISO-8601. Bump together with APP_VERSION on each release.
 
 export const APP_COMMIT_SHA = import.meta.env.VITE_GIT_COMMIT_SHA || 'efd2b1a3';
@@ -61,16 +61,17 @@ export const APP_CHANGELOG_SECTIONS: ChangelogSection[] = [
   {
     heading: "Added",
     items: [
-      "Implemented Version Manager UI under settings, allowing users to downgrade to the previous stable release (v3.7.0) or one version prior (v3.6.99).",
-      "Added Update History tracking, recording all transition states locally in a persistent log.",
-      "Upgraded the PackageInstaller to call setRequestDowngrade(true) to support downgrades with matching signing signatures.",
+      "Implemented smart HTTP resume and partial downloadRange writing for interrupted updates.",
+      "Added prioritized mirror failovers (GitHub Release -> Firebase Hosting -> Official Mirror).",
+      "Created Failsafe Direct intent installer bypass using FileProvider URIs to override PackageInstaller session blocks.",
+      "Added Recovery Mode overlay displaying version details, diagnostics log compile, and manual copy/share actions.",
     ],
   },
   {
     heading: "Fixed",
     items: [
-      "Resolved the \"Check for updates\" regression that opened the updater dialog prematurely and showed a stuck 0% progress screen.",
-      "Restored the theme-aware, animated top-right update indicator pill/badge z-index so it doesn't render behind other elements.",
+      "Resolved checking for updates regression where modal would show stuck 0% download progress.",
+      "Aligned Hub bottom navigation auto-hide animation with the rest of Studio.",
     ],
   },
 ];

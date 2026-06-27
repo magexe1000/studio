@@ -402,6 +402,118 @@ public class AppInstallerPlugin extends Plugin {
         }
     }
 
+    private File downloadFileWithResume(String urlString, String fileName, int callId, String methodTag) throws Exception {
+        java.io.InputStream input = null;
+        java.io.RandomAccessFile output = null;
+        java.net.HttpURLConnection connection = null;
+        try {
+            File cacheDir = getContext().getExternalCacheDir();
+            if (cacheDir == null) {
+                cacheDir = getContext().getCacheDir();
+            }
+            if (fileName == null || fileName.isEmpty()) {
+                fileName = "update.apk";
+            }
+            File apkFile = new File(cacheDir, fileName);
+            
+            long existingLength = 0;
+            if (apkFile.exists()) {
+                existingLength = apkFile.length();
+                logNativeInstrumentation(getContext(), methodTag, callId, "STEP", "Found existing file of size: " + existingLength + " bytes");
+            }
+            
+            java.net.URL url = new java.net.URL(urlString);
+            connection = (java.net.HttpURLConnection) url.openConnection();
+            connection.setInstanceFollowRedirects(true);
+            
+            // Set range header if we want to resume
+            if (existingLength > 0) {
+                connection.setRequestProperty("Range", "bytes=" + existingLength + "-");
+            }
+            
+            int redirectCount = 0;
+            int status = connection.getResponseCode();
+            while ((status == java.net.HttpURLConnection.HTTP_MOVED_TEMP
+                    || status == java.net.HttpURLConnection.HTTP_MOVED_PERM
+                    || status == 301 || status == 302 || status == 307 || status == 308)
+                    && redirectCount < 8) {
+                String newUrl = connection.getHeaderField("Location");
+                if (newUrl == null) break;
+                
+                url = new java.net.URL(newUrl);
+                connection = (java.net.HttpURLConnection) url.openConnection();
+                connection.setInstanceFollowRedirects(true);
+                if (existingLength > 0) {
+                    connection.setRequestProperty("Range", "bytes=" + existingLength + "-");
+                }
+                status = connection.getResponseCode();
+                redirectCount++;
+            }
+
+            boolean isResume = (status == 206); // HTTP_PARTIAL
+            if (status != java.net.HttpURLConnection.HTTP_OK && !isResume) {
+                // If resume request failed (e.g. 416 Range Not Satisfiable), clear the file and restart from 0
+                if (existingLength > 0) {
+                    logNativeInstrumentation(getContext(), methodTag, callId, "STEP", "Range request failed (status " + status + "). Restarting from scratch.");
+                    apkFile.delete();
+                    existingLength = 0;
+                    connection = (java.net.HttpURLConnection) url.openConnection();
+                    connection.setInstanceFollowRedirects(true);
+                    status = connection.getResponseCode();
+                    if (status != java.net.HttpURLConnection.HTTP_OK) {
+                        throw new Exception("Server returned non-OK status: " + status);
+                    }
+                } else {
+                    throw new Exception("Server returned non-OK status: " + status);
+                }
+            }
+
+            long totalBytesRead = isResume ? existingLength : 0;
+            long fileLength = connection.getContentLength();
+            if (fileLength > 0) {
+                fileLength += totalBytesRead; // Total size is content length + existing
+            }
+            
+            logNativeInstrumentation(getContext(), methodTag, callId, "STEP", "Connected. Status: " + status + ", Total file size: " + fileLength + " bytes");
+            input = new java.io.BufferedInputStream(connection.getInputStream());
+            
+            output = new java.io.RandomAccessFile(apkFile, "rw");
+            if (isResume) {
+                output.seek(existingLength);
+            } else {
+                output.setLength(0); // Truncate existing file if starting new download
+            }
+
+            byte[] data = new byte[8192];
+            int count;
+            int lastProgress = 0;
+            
+            while ((count = input.read(data)) != -1) {
+                totalBytesRead += count;
+                output.write(data, 0, count);
+                
+                if (fileLength > 0) {
+                    int progress = (int) (totalBytesRead * 100 / fileLength);
+                    if (progress > lastProgress) {
+                        lastProgress = progress;
+                        JSObject progressObj = new JSObject();
+                        progressObj.put("progress", progress);
+                        notifyListeners("apkDownloadProgress", progressObj);
+                    }
+                }
+            }
+
+            output.close();
+            input.close();
+            return apkFile;
+        } finally {
+            try {
+                if (output != null) output.close();
+                if (input != null) input.close();
+            } catch (Exception ignored) {}
+        }
+    }
+
     @PluginMethod
     public void downloadAndInstallApk(PluginCall call) {
         downloadAndInstallApkCallCount++;
@@ -419,94 +531,12 @@ public class AppInstallerPlugin extends Plugin {
             public void run() {
                 int threadCallId = callId;
                 logNativeInstrumentation(getContext(), "downloadAndInstallApk", threadCallId, "STEP", "Download/Install thread started");
-                java.io.InputStream input = null;
-                java.io.OutputStream output = null;
-                java.net.HttpURLConnection connection = null;
                 try {
-                    java.net.URL url = new java.net.URL(urlString);
-                    connection = (java.net.HttpURLConnection) url.openConnection();
-                    connection.setInstanceFollowRedirects(true);
-                    
-                    int redirectCount = 0;
-                    int status = connection.getResponseCode();
-                    while ((status == java.net.HttpURLConnection.HTTP_MOVED_TEMP
-                            || status == java.net.HttpURLConnection.HTTP_MOVED_PERM
-                            || status == 301 || status == 302 || status == 307 || status == 308)
-                            && redirectCount < 8) {
-                        String newUrl = connection.getHeaderField("Location");
-                        if (newUrl == null) break;
-                        
-                        url = new java.net.URL(newUrl);
-                        connection = (java.net.HttpURLConnection) url.openConnection();
-                        connection.setInstanceFollowRedirects(true);
-                        status = connection.getResponseCode();
-                        redirectCount++;
-                    }
-
-                    if (status != java.net.HttpURLConnection.HTTP_OK) {
-                        throw new Exception("Server returned non-OK status: " + status);
-                    }
-
-                    int fileLength = connection.getContentLength();
-                    logNativeInstrumentation(getContext(), "downloadAndInstallApk", threadCallId, "STEP", "Connected. File size: " + fileLength + " bytes");
-                    input = new java.io.BufferedInputStream(connection.getInputStream());
-                    
-                    File cacheDir = getContext().getExternalCacheDir();
-                    if (cacheDir == null) {
-                        cacheDir = getContext().getCacheDir();
-                    }
-                    // Clean stale cached files
-                    File[] files = cacheDir.listFiles();
-                    if (files != null) {
-                        for (File f : files) {
-                            String name = f.getName();
-                            if (name.equals("update.apk") || (name.startsWith("studio-update-") && name.endsWith(".apk"))) {
-                                try {
-                                    f.delete();
-                                } catch (Exception ignored) {}
-                            }
-                        }
-                    }
                     String fileName = call.getString("fileName");
-                    if (fileName == null || fileName.isEmpty()) {
-                        fileName = "update.apk";
-                    }
-                    File apkFile = new File(cacheDir, fileName);
-                    
-                    output = new java.io.FileOutputStream(apkFile);
-
-                    byte[] data = new byte[4096];
-                    long total = 0;
-                    int count;
-                    int lastProgress = 0;
-                    
-                    while ((count = input.read(data)) != -1) {
-                        total += count;
-                        output.write(data, 0, count);
-                        
-                        if (fileLength > 0) {
-                            int progress = (int) (total * 100 / fileLength);
-                            if (progress > lastProgress) {
-                                lastProgress = progress;
-                                JSObject progressObj = new JSObject();
-                                progressObj.put("progress", progress);
-                                notifyListeners("apkDownloadProgress", progressObj);
-                            }
-                        }
-                    }
-
-                    output.flush();
-                    output.close();
-                    input.close();
-
+                    File apkFile = downloadFileWithResume(urlString, fileName, threadCallId, "downloadAndInstallApk");
                     logNativeInstrumentation(getContext(), "downloadAndInstallApk", threadCallId, "EXIT", "Success. Triggering installation for: " + apkFile.getAbsolutePath());
                     triggerInstallation(apkFile, call);
-
                 } catch (Exception e) {
-                    try {
-                        if (output != null) output.close();
-                        if (input != null) input.close();
-                    } catch (Exception ignored) {}
                     logNativeInstrumentation(getContext(), "downloadAndInstallApk", threadCallId, "EXIT", "Exception: " + e.getMessage());
                     call.reject("Download failed: " + e.getMessage(), e);
                 }
@@ -531,101 +561,72 @@ public class AppInstallerPlugin extends Plugin {
             public void run() {
                 int threadCallId = callId;
                 logNativeInstrumentation(getContext(), "downloadApk", threadCallId, "STEP", "Download thread started");
-                java.io.InputStream input = null;
-                java.io.OutputStream output = null;
-                java.net.HttpURLConnection connection = null;
                 try {
-                    java.net.URL url = new java.net.URL(urlString);
-                    connection = (java.net.HttpURLConnection) url.openConnection();
-                    connection.setInstanceFollowRedirects(true);
-                    
-                    int redirectCount = 0;
-                    int status = connection.getResponseCode();
-                    while ((status == java.net.HttpURLConnection.HTTP_MOVED_TEMP
-                            || status == java.net.HttpURLConnection.HTTP_MOVED_PERM
-                            || status == 301 || status == 302 || status == 307 || status == 308)
-                            && redirectCount < 8) {
-                        String newUrl = connection.getHeaderField("Location");
-                        if (newUrl == null) break;
-                        
-                        url = new java.net.URL(newUrl);
-                        connection = (java.net.HttpURLConnection) url.openConnection();
-                        connection.setInstanceFollowRedirects(true);
-                        status = connection.getResponseCode();
-                        redirectCount++;
-                    }
-
-                    if (status != java.net.HttpURLConnection.HTTP_OK) {
-                        throw new Exception("Server returned non-OK status: " + status);
-                    }
-
-                    int fileLength = connection.getContentLength();
-                    logNativeInstrumentation(getContext(), "downloadApk", threadCallId, "STEP", "Connected. File size: " + fileLength + " bytes");
-                    input = new java.io.BufferedInputStream(connection.getInputStream());
-                    
-                    File cacheDir = getContext().getExternalCacheDir();
-                    if (cacheDir == null) {
-                        cacheDir = getContext().getCacheDir();
-                    }
-                    // Clean stale cached files
-                    File[] files = cacheDir.listFiles();
-                    if (files != null) {
-                        for (File f : files) {
-                            String name = f.getName();
-                            if (name.equals("update.apk") || (name.startsWith("studio-update-") && name.endsWith(".apk"))) {
-                                try {
-                                    f.delete();
-                                } catch (Exception ignored) {}
-                            }
-                        }
-                    }
                     String fileName = call.getString("fileName");
-                    if (fileName == null || fileName.isEmpty()) {
-                        fileName = "update.apk";
-                    }
-                    File apkFile = new File(cacheDir, fileName);
-                    
-                    output = new java.io.FileOutputStream(apkFile);
-
-                    byte[] data = new byte[4096];
-                    long total = 0;
-                    int count;
-                    int lastProgress = 0;
-                    
-                    while ((count = input.read(data)) != -1) {
-                        total += count;
-                        output.write(data, 0, count);
-                        
-                        if (fileLength > 0) {
-                            int progress = (int) (total * 100 / fileLength);
-                            if (progress > lastProgress) {
-                                lastProgress = progress;
-                                JSObject progressObj = new JSObject();
-                                progressObj.put("progress", progress);
-                                notifyListeners("apkDownloadProgress", progressObj);
-                            }
-                        }
-                    }
-
-                    output.flush();
-                    output.close();
-                    input.close();
-
-                    JSObject result = new JSObject();
-                    result.put("filePath", apkFile.getAbsolutePath());
-                    logNativeInstrumentation(getContext(), "downloadApk", threadCallId, "EXIT", "Success. File path: " + apkFile.getAbsolutePath());
-                    call.resolve(result);
-
+                    File apkFile = downloadFileWithResume(urlString, fileName, threadCallId, "downloadApk");
+                    logNativeInstrumentation(getContext(), "downloadApk", threadCallId, "EXIT", "Success. filePath=" + apkFile.getAbsolutePath());
+                    JSObject ret = new JSObject();
+                    ret.put("filePath", apkFile.getAbsolutePath());
+                    call.resolve(ret);
                 } catch (Exception e) {
-                    try {
-                        if (output != null) output.close();
-                        if (input != null) input.close();
-                    } catch (Exception ignored) {}
                     logNativeInstrumentation(getContext(), "downloadApk", threadCallId, "EXIT", "Exception: " + e.getMessage());
                     call.reject("Download failed: " + e.getMessage(), e);
                 }
             }
         }).start();
+    }
+
+    @PluginMethod
+    public void installApkDirect(PluginCall call) {
+        int callId = nextCallId();
+        String filePath = call.getString("filePath");
+        logNativeInstrumentation(getContext(), "installApkDirect", callId, "ENTER", "filePath=" + filePath);
+        if (filePath == null) {
+            logNativeInstrumentation(getContext(), "installApkDirect", callId, "EXIT", "Rejected: missing filePath");
+            call.reject("filePath is required");
+            return;
+        }
+
+        try {
+            File file = new File(filePath);
+            if (!file.exists()) {
+                throw new Exception("APK file not found at path: " + filePath);
+            }
+
+            Context context = getContext();
+            Uri apkUri;
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+                String authority = context.getPackageName() + ".fileprovider";
+                apkUri = androidx.core.content.FileProvider.getUriForFile(context, authority, file);
+            } else {
+                apkUri = Uri.fromFile(file);
+            }
+
+            Intent intent = new Intent(Intent.ACTION_VIEW);
+            intent.setDataAndType(apkUri, "application/vnd.android.package-archive");
+            intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+            intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
+            
+            // On Android 8.0+ request unknown sources if we don't have it
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                if (!context.getPackageManager().canRequestPackageInstalls()) {
+                    Intent settingsIntent = new Intent(android.provider.Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES);
+                    settingsIntent.setData(Uri.parse("package:" + context.getPackageName()));
+                    settingsIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                    context.startActivity(settingsIntent);
+                    logNativeInstrumentation(context, "installApkDirect", callId, "EXIT", "Redirected to unknown sources settings");
+                    call.reject("Please enable install permission for this app and try again.");
+                    return;
+                }
+            }
+
+            context.startActivity(intent);
+            logNativeInstrumentation(context, "installApkDirect", callId, "EXIT", "Direct install activity launched");
+            call.resolve();
+        } catch (Exception e) {
+            logNativeInstrumentation(getContext(), "installApkDirect", callId, "EXIT", "Exception: " + e.getMessage());
+            call.reject("Direct install failed: " + e.getMessage(), e);
+        }
     }
 
     @PluginMethod

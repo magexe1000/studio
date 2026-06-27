@@ -99,6 +99,8 @@ export let otaDebugLogs: {
   releaseChannel: string | null;
   rolloutEligibility: string | null;
   magicHeaderCheck: string | null;
+  downloadSourcesConfigured: string | null;
+  currentDownloadSource: string | null;
 } = {
   appVersion: APP_VERSION,
   nativeApkVersion: null,
@@ -169,6 +171,8 @@ export let otaDebugLogs: {
   releaseChannel: null,
   rolloutEligibility: null,
   magicHeaderCheck: null,
+  downloadSourcesConfigured: null,
+  currentDownloadSource: null,
 };
 
 export interface OtaDiagnostics {
@@ -755,6 +759,10 @@ export interface CentralizedOtaState {
   newSignatureSha256: string | null;
   installMode: 'reinstall-required' | null;
   packageName: string | null;
+  consecutiveFailures: number;
+  activeFallback: string | null;
+  recoveryMode: boolean;
+  diagnosticsReport: string | null;
 }
 
 let globalOtaState: CentralizedOtaState = {
@@ -791,6 +799,10 @@ let globalOtaState: CentralizedOtaState = {
   newSignatureSha256: null,
   installMode: null,
   packageName: null,
+  consecutiveFailures: 0,
+  activeFallback: null,
+  recoveryMode: false,
+  diagnosticsReport: null,
 };
 
 const stateListeners = new Set<(state: CentralizedOtaState) => void>();
@@ -827,6 +839,10 @@ export function resetOtaUpdateState() {
     capgoSetBlocked: false,
     triggerComponent: null,
     finalPathExecuted: 'N/A',
+    consecutiveFailures: 0,
+    activeFallback: null,
+    recoveryMode: false,
+    diagnosticsReport: null,
   });
 }
 
@@ -900,19 +916,21 @@ export function checkForUpdate(isManual = false): Promise<CentralizedOtaState> {
   }
 
   // 2. Synchronous early return if check is unnecessary
-  if (globalOtaState.updateState === 'preparing' ||
+  const cannotCheck = globalOtaState.updateState === 'preparing' ||
       globalOtaState.updateState === 'enteringProgressScreen' ||
       globalOtaState.updateState === 'downloading' ||
       globalOtaState.updateState === 'verifying' ||
-      globalOtaState.updateState === 'readyForInstallPrompt' ||
-      globalOtaState.updateState === 'waitingForUserInstallConfirmation' ||
       globalOtaState.updateState === 'installing' ||
-      globalOtaState.updateState === 'installedOrReady' ||
       globalOtaState.updateState === 'downloading_ota' || 
       globalOtaState.updateState === 'downloading_apk' || 
-      globalOtaState.updateState === 'verifying_apk' || 
+      globalOtaState.updateState === 'verifying_apk';
+  
+  if (cannotCheck || (!isManual && (
+      globalOtaState.updateState === 'readyForInstallPrompt' ||
+      globalOtaState.updateState === 'waitingForUserInstallConfirmation' ||
+      globalOtaState.updateState === 'installedOrReady' ||
       globalOtaState.updateState === 'ready_to_install' || 
-      globalOtaState.updateState === 'completed') {
+      globalOtaState.updateState === 'completed'))) {
     console.log(`[INSTRUMENTATION] checkForUpdate EXIT Call #${callId} (Early return: already in state "${globalOtaState.updateState}")`);
     void logProgressStage('[INSTRUMENTATION] checkForUpdate EXIT', `Call #${callId} early exit (state is ${globalOtaState.updateState})`);
     return Promise.resolve(globalOtaState);
@@ -1599,19 +1617,63 @@ export function downloadUpdate(trigger?: string, isDowngrade?: boolean): Promise
     
     try {
       const { downloadApk } = await import('./apkDownloader');
-      
-      otaDebugLogs.downloadStatus += `\nAPK download started...`;
       const fileName = `studio-update-${ver}.apk`;
       
-      updateGlobalState({ updateState: 'downloading', progress: 0.01, statusText: 'Downloading update' });
+      const sources = [
+        apkUrl,
+        globalOtaState.manualApkUrl,
+        globalOtaState.fallbackApkUrl
+      ].filter(Boolean) as string[];
       
-      void logProgressStage('Download started', 'URL: ' + apkUrl);
-      const filePath = await downloadApk(apkUrl, fileName, (percent) => {
-        updateGlobalState({ 
-          progress: Math.max(0, Math.min(1, percent / 100)),
-          statusText: 'Downloading update'
-        });
-      });
+      const uniqueSources = Array.from(new Set(sources));
+      let downloadSuccess = false;
+      let lastDownloadError: Error | null = null;
+      let filePath = '';
+      
+      otaDebugLogs.downloadSourcesConfigured = uniqueSources.join(' | ');
+      
+      for (let sIdx = 0; sIdx < uniqueSources.length; sIdx++) {
+        const sourceUrl = uniqueSources[sIdx];
+        otaDebugLogs.currentDownloadSource = sourceUrl;
+        otaDebugLogs.downloadStatus += `\nTrying Source [${sIdx + 1}/${uniqueSources.length}]: ${sourceUrl}`;
+        
+        let retryCount = 0;
+        const maxRetries = 3;
+        
+        while (retryCount < maxRetries) {
+          try {
+            console.log(`[OTA] Trying download from ${sourceUrl} (Attempt ${retryCount + 1}/${maxRetries})`);
+            void logProgressStage('Download started', `Source: ${sourceUrl} (Attempt ${retryCount + 1})`);
+            
+            filePath = await downloadApk(sourceUrl, fileName, (percent) => {
+              updateGlobalState({ 
+                updateState: 'downloading',
+                progress: Math.max(0, Math.min(1, percent / 100)),
+                statusText: `Downloading update (${Math.round(percent)}%)`
+              });
+            });
+            
+            downloadSuccess = true;
+            break;
+          } catch (err: any) {
+            retryCount++;
+            lastDownloadError = err instanceof Error ? err : new Error(String(err));
+            const delay = Math.pow(2, retryCount) * 1000;
+            console.warn(`[OTA] Download attempt ${retryCount} failed. Retrying in ${delay}ms...`, err);
+            updateGlobalState({ statusText: `Retry ${retryCount}/${maxRetries} in ${delay / 1000}s...` });
+            await new Promise(r => setTimeout(r, delay));
+          }
+        }
+        
+        if (downloadSuccess) {
+          break;
+        }
+      }
+      
+      if (!downloadSuccess) {
+        throw lastDownloadError || new Error('All download sources failed.');
+      }
+      
       otaDebugLogs.downloadStatus += `\nAPK download completed. Path: ${filePath}`;
       void logProgressStage('Download completed', 'Path: ' + filePath);
 
@@ -1785,18 +1847,64 @@ export function applyUpdate(trigger?: string): Promise<void> {
       console.error(`[INSTRUMENTATION] applyUpdate EXIT Call #${callId} error:`, err);
       void logProgressStage('[INSTRUMENTATION] applyUpdate EXIT', `Call #${callId} failed err=${err instanceof Error ? err.message : String(err)}`);
       console.error('[OTA] APK install failed:', err);
+      
       const errMsg = err instanceof Error ? err.message : String(err);
       const errStack = (err instanceof Error && err.stack ? err.stack : null);
       otaDebugLogs.installError = (otaDebugLogs.installError || '') + `\nAPK Install Exception: ${errMsg}\nStack: ${errStack || ''}`;
       otaDebugLogs.installerLaunchStatus = 'FAILED';
       otaDebugLogs.lastExceptionStackTrace = errStack;
       await populateDiagnostics(err, 'APK installation failed');
+      
+      // Increment consecutive failures
+      const currentFailures = Number(localStorage.getItem('studio:consecutiveInstallFailures') || 0) + 1;
+      localStorage.setItem('studio:consecutiveInstallFailures', String(currentFailures));
+      updateGlobalState({ consecutiveFailures: currentFailures });
+      
+      localStorage.removeItem('studio:appliedUpdateVersion');
+      
+      if (currentFailures === 1) {
+        // Fallback 1: Automatic Retry of PackageInstaller after a brief pause
+        console.log(`[OTA] Auto-recovery: consecutiveFailures=1. Retrying installer session...`);
+        updateGlobalState({ activeFallback: 'Auto-Retry PackageInstaller' });
+        
+        await new Promise(r => setTimeout(r, 1500));
+        activeApplyPromise = null;
+        try {
+          await applyUpdate('Auto-Retry');
+          return;
+        } catch (retryErr) {
+          // Retry failed, will enter catch block again and transition to Fallback 2
+          return;
+        }
+      } else if (currentFailures === 2) {
+        // Fallback 2: Recreate Session & Re-verify APK from scratch
+        console.log(`[OTA] Auto-recovery: consecutiveFailures=2. Recreating installer session & metadata...`);
+        updateGlobalState({ activeFallback: 'Recreate Session' });
+        
+        await new Promise(r => setTimeout(r, 1500));
+        activeApplyPromise = null;
+        try {
+          const filePath = localStorage.getItem('studio:downloadedApkPath');
+          if (filePath) {
+            const isEligible = await runEligibilityCheck(filePath);
+            if (isEligible) {
+              await applyUpdate('Auto-Recreate-Session');
+              return;
+            }
+          }
+        } catch (recreateErr) {
+          return;
+        }
+      }
+      
+      // Fallback 3+: Enter Recovery Mode
       updateGlobalState({ 
         updateState: 'failed', 
         error: errMsg,
-        statusText: 'Installation failed'
+        statusText: 'Installation failed',
+        recoveryMode: true,
+        activeFallback: 'Enter Recovery Mode'
       });
-      localStorage.removeItem('studio:appliedUpdateVersion');
       throw err;
     } finally {
       activeApplyPromise = null;
@@ -1828,7 +1936,7 @@ export function markUpdateSeen(): void {
 }
 
 export interface UseOtaUpdateResult extends CentralizedOtaState {
-  checkNow: () => Promise<void>;
+  checkNow: () => Promise<CentralizedOtaState>;
   downloadUpdate: (trigger?: string) => Promise<void>;
   applyUpdate: (trigger?: string) => Promise<void>;
   dismissUpdate: () => void;
@@ -1922,8 +2030,76 @@ export function useOtaUpdate(): UseOtaUpdateResult {
     };
   }, []);
 
+  // Stalled update detector
+  useEffect(() => {
+    let timer: ReturnType<typeof setTimeout> | null = null;
+    const transientStates: OtaUpdateState[] = ['checking', 'downloading', 'verifying', 'installing'];
+    
+    if (transientStates.includes(state.updateState)) {
+      let timeoutMs = 15000; // default 15s for checking/verifying
+      if (state.updateState === 'downloading') {
+        timeoutMs = 20000; // 20s for downloading
+      } else if (state.updateState === 'installing') {
+        timeoutMs = 60000; // 60s for installing
+      }
+      
+      const lastProgress = state.progress;
+      
+      timer = setTimeout(async () => {
+        if (state.updateState === 'downloading' && globalOtaState.progress > lastProgress) {
+          return;
+        }
+        
+        console.warn(`[OTA STALL DETECT] Update stalled in state "${state.updateState}".`);
+        void logProgressStage('[OTA STALL DETECT]', `Stall detected in state ${state.updateState} (Timeout: ${timeoutMs}ms). Triggering auto-recovery.`);
+        
+        const currentFailures = Number(localStorage.getItem('studio:consecutiveInstallFailures') || 0) + 1;
+        localStorage.setItem('studio:consecutiveInstallFailures', String(currentFailures));
+        updateGlobalState({ consecutiveFailures: currentFailures });
+        
+        if (state.updateState === 'checking') {
+          updateGlobalState({
+            updateState: 'failed',
+            error: 'Connection timed out while checking for updates. Release server is unreachable.',
+            loading: false
+          });
+        } else if (state.updateState === 'downloading') {
+          updateGlobalState({
+            updateState: 'failed',
+            error: 'Download stalled. Mirror connection was dropped or timed out.',
+            loading: false
+          });
+        } else if (state.updateState === 'verifying') {
+          updateGlobalState({
+            updateState: 'failed',
+            error: 'Verification timed out. Check filesystem permissions or try manual download.',
+            loading: false
+          });
+        } else if (state.updateState === 'installing') {
+          updateGlobalState({
+            updateState: 'failed',
+            error: 'Installation timed out. Android PackageInstaller failed to commit session.',
+            loading: false
+          });
+        }
+        
+        if (currentFailures >= 3) {
+          updateGlobalState({ recoveryMode: true });
+        }
+        
+      }, timeoutMs);
+    }
+    
+    return () => {
+      if (timer) clearTimeout(timer);
+    };
+  }, [state.updateState, state.progress]);
+
   const checkNow = async () => {
-    await checkForUpdate(true);
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('studio:open-update-dialog'));
+    }
+    return await checkForUpdate(true);
   };
 
   return {
@@ -2091,6 +2267,10 @@ export function usePostUpdateChangelog(): {
         const type = cmp > 0 ? 'upgrade' : 'downgrade';
         logUpdateTransition(from, APP_VERSION, type, 'user', 'success');
         
+        // Reset failures on update success
+        localStorage.setItem('studio:consecutiveInstallFailures', '0');
+        updateGlobalState({ consecutiveFailures: 0, recoveryMode: false, activeFallback: null });
+
         if (type === 'upgrade' && showChangelog) {
           setFromVersion(from);
           setShow(true);
@@ -2109,4 +2289,156 @@ export function usePostUpdateChangelog(): {
   };
 
   return { show, fromVersion, toVersion: APP_VERSION, dismiss };
+}
+
+export async function applyUpdateDirect(): Promise<void> {
+  const filePath = localStorage.getItem('studio:downloadedApkPath');
+  if (!filePath) {
+    throw new Error('No downloaded APK path found.');
+  }
+  const { openApkInstallerDirect } = await import('./apkDownloader');
+  await openApkInstallerDirect(filePath);
+}
+
+export async function shareDownloadedApk(): Promise<void> {
+  const filePath = localStorage.getItem('studio:downloadedApkPath');
+  if (!filePath) {
+    throw new Error('No downloaded APK found to share.');
+  }
+  try {
+    const { Share } = await import('@capacitor/share');
+    await Share.share({
+      title: 'Studio Update APK',
+      text: 'Here is the latest update APK for Studio.',
+      url: filePath,
+      dialogTitle: 'Share Studio Update'
+    });
+  } catch (err: any) {
+    console.error('Failed to share APK:', err);
+    throw err;
+  }
+}
+
+export interface HealthStatus {
+  status: 'healthy' | 'warning' | 'unhealthy';
+  metadataReachable: boolean;
+  githubReachable: boolean;
+  firebaseReachable: boolean;
+  installerAvailable: boolean;
+  packageInstallerAvailable: boolean;
+  certificateValid: boolean;
+  details: string[];
+}
+
+export async function runUpdaterHealthCheck(): Promise<HealthStatus> {
+  const details: string[] = [];
+  let metadataReachable = false;
+  let githubReachable = false;
+  let firebaseReachable = false;
+  let installerAvailable = false;
+  let packageInstallerAvailable = false;
+  let certificateValid = false;
+
+  try {
+    const res = await fetch('https://studio-30f44.web.app/app-release.json', { method: 'HEAD', timeout: 5000 } as any);
+    metadataReachable = res.ok;
+    firebaseReachable = res.ok;
+    details.push(res.ok ? 'Firebase metadata server reachable.' : `Firebase metadata unreachable (HTTP ${res.status}).`);
+  } catch (err: any) {
+    details.push(`Firebase metadata unreachable: ${err.message || String(err)}`);
+  }
+
+  try {
+    const res = await fetch('https://api.github.com/repos/MAGEXE1000/Studio/releases', { method: 'HEAD', timeout: 5000 } as any);
+    githubReachable = res.ok;
+    details.push(res.ok ? 'GitHub API reachable.' : `GitHub API unreachable (HTTP ${res.status}).`);
+  } catch (err: any) {
+    details.push(`GitHub API unreachable: ${err.message || String(err)}`);
+  }
+
+  if (isNative()) {
+    try {
+      const { AppInstaller } = await import('./apkDownloader');
+      installerAvailable = typeof AppInstaller.installApk === 'function';
+      packageInstallerAvailable = true;
+      details.push('AppInstaller native plugin loaded.');
+      
+      const appInfo = await AppInstaller.getInstalledAppInfo();
+      const expectedFingerprint = '900cf259185c81100cda8bb08571fa23552e9789131cf07a8f4056e4d4129206';
+      const cleanFingerprint = appInfo.signingSha256.replace(/:/g, '').toLowerCase();
+      certificateValid = (cleanFingerprint === expectedFingerprint);
+      if (certificateValid) {
+        details.push('App signing certificate matches official production key.');
+      } else {
+        details.push(`Warning: App certificate mismatch! Current: ${cleanFingerprint}, Expected: ${expectedFingerprint}`);
+      }
+    } catch (err: any) {
+      details.push(`Native installer check failed: ${err.message || String(err)}`);
+    }
+  } else {
+    details.push('Running on Web platform. Native installer not required.');
+    installerAvailable = true;
+    packageInstallerAvailable = true;
+    certificateValid = true;
+  }
+
+  const isHealthy = metadataReachable && githubReachable && installerAvailable && certificateValid;
+  const status = isHealthy ? 'healthy' : (installerAvailable && certificateValid ? 'warning' : 'unhealthy');
+
+  return {
+    status,
+    metadataReachable,
+    githubReachable,
+    firebaseReachable,
+    installerAvailable,
+    packageInstallerAvailable,
+    certificateValid,
+    details
+  };
+}
+
+export async function getDiagnosticsReport(): Promise<string> {
+  const health = await runUpdaterHealthCheck();
+  let info: any = null;
+  let dev: any = null;
+  if (isNative()) {
+    try {
+      const { AppInstaller } = await import('./apkDownloader');
+      info = await AppInstaller.getInstalledAppInfo();
+      dev = await AppInstaller.getDeviceInfo();
+    } catch {}
+  }
+  
+  return `=== STUDIO UPDATER HEALTH & DIAGNOSTICS REPORT ===
+Timestamp: ${new Date().toISOString()}
+Current State: ${globalOtaState.updateState}
+Update Available: ${globalOtaState.updateAvailable}
+Remote Version: ${globalOtaState.remoteVersion}
+Download Source: ${otaDebugLogs.currentDownloadSource || 'None'}
+SHA Status: ${otaDebugLogs.shaVerification || 'N/A'}
+Consecutive Failures: ${globalOtaState.consecutiveFailures}
+Active Fallback: ${globalOtaState.activeFallback || 'None'}
+Recovery Mode Active: ${globalOtaState.recoveryMode}
+
+--- Platform Health ---
+Overall Status: ${health.status.toUpperCase()}
+Metadata Reachable: ${health.metadataReachable}
+GitHub Reachable: ${health.githubReachable}
+Firebase Reachable: ${health.firebaseReachable}
+Installer Available: ${health.installerAvailable}
+PackageInstaller Available: ${health.packageInstallerAvailable}
+Signing Certificate Valid: ${health.certificateValid}
+
+--- Device & Package Info ---
+App Version: ${APP_VERSION}
+Package Name: ${info?.packageName || 'com.chordex.app'}
+Installed Version Code: ${info?.versionCode || 'N/A'}
+Installed Sign SHA256: ${info?.signingSha256 || 'N/A'}
+Android Version: ${dev?.androidVersion || 'N/A'}
+Device Model: ${dev?.model || 'N/A'}
+Storage Available: ${dev?.storageAvailable || 'N/A'}
+
+--- Health Check Logs ---
+${health.details.join('\n')}
+==================================================`;
 }

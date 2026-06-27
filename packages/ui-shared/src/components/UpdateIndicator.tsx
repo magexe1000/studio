@@ -1,4 +1,5 @@
 import { useOtaUpdate, type StructuredReleaseNotes, otaDiagnostics, otaDebugLogs, APP_VERSION_LABEL, compareSemver, normalizeSemver, applyUpdate, isNative, fadeToBlackAndReload, useChordStore } from '@workspace/studio-core';
+import { applyUpdateDirect, shareDownloadedApk, getDiagnosticsReport } from '@workspace/studio-core';
 /**
  * Floating "update available" indicator — top of the Hub.
  *
@@ -946,28 +947,44 @@ function UpdateModal({
       break;
 
     case 'failed':
-      iconName = 'error';
-      iconColor = '#f87171';
-      title = 'Update download failed';
-      if (ota.error && (ota.error.includes('404') || ota.error.includes('non-OK status: 404'))) {
+      if (ota.recoveryMode) {
+        iconName = 'healing';
+        iconColor = '#eab308';
+        title = 'Update Recovery Mode';
         description = (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 10, textAlign: 'left', fontSize: 13, marginTop: 4 }}>
-            <p style={{ margin: 0, fontWeight: 700, color: '#f87171', lineHeight: 1.4 }}>
-              Studio update package was not found on the release server.
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8, textAlign: 'left', fontSize: 13, marginTop: 4 }}>
+            <p style={{ margin: 0, fontWeight: 700, color: '#eab308', lineHeight: 1.4 }}>
+              Studio failed to update automatically multiple times.
             </p>
-            <div style={{ background: 'rgba(128,128,128,0.05)', padding: '10px 12px', borderRadius: 10, fontFamily: 'monospace', fontSize: 11, border: '1px solid rgba(128,128,128,0.1)', display: 'flex', flexDirection: 'column', gap: 4 }}>
-              <div>Target Version: {ota.remoteVersion || 'N/A'}</div>
-              <div style={{ wordBreak: 'break-all' }}>APK URL: {ota.apkUrl || 'N/A'}</div>
-              <div>HTTP Status: 404 (Not Found)</div>
-              <div>Metadata (app-release.json) fetched: Yes</div>
-            </div>
-            <p style={{ margin: 0, color: 'var(--c-text-secondary)', fontSize: 12, lineHeight: 1.4 }}>
-              <strong>Suggested action:</strong> Try again later. This usually means the release metadata was published before the APK upload completed.
+            <p style={{ margin: 0, color: 'var(--c-text-secondary)', lineHeight: 1.45 }}>
+              Use the fail-safe recovery options below to install the update directly, share the update package, or download from alternative mirror sites.
             </p>
           </div>
         );
       } else {
-        description = ota.error || 'Studio could not complete the update. You can try again or copy diagnostics.';
+        iconName = 'error';
+        iconColor = '#f87171';
+        title = 'Update download failed';
+        if (ota.error && (ota.error.includes('404') || ota.error.includes('non-OK status: 404'))) {
+          description = (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 10, textAlign: 'left', fontSize: 13, marginTop: 4 }}>
+              <p style={{ margin: 0, fontWeight: 700, color: '#f87171', lineHeight: 1.4 }}>
+                Studio update package was not found on the release server.
+              </p>
+              <div style={{ background: 'rgba(128,128,128,0.05)', padding: '10px 12px', borderRadius: 10, fontFamily: 'monospace', fontSize: 11, border: '1px solid rgba(128,128,128,0.1)', display: 'flex', flexDirection: 'column', gap: 4 }}>
+                <div>Target Version: {ota.remoteVersion || 'N/A'}</div>
+                <div style={{ wordBreak: 'break-all' }}>APK URL: {ota.apkUrl || 'N/A'}</div>
+                <div>HTTP Status: 404 (Not Found)</div>
+                <div>Metadata (app-release.json) fetched: Yes</div>
+              </div>
+              <p style={{ margin: 0, color: 'var(--c-text-secondary)', fontSize: 12, lineHeight: 1.4 }}>
+                <strong>Suggested action:</strong> Try again later. This usually means the release metadata was published before the APK upload completed.
+              </p>
+            </div>
+          );
+        } else {
+          description = ota.error || 'Studio could not complete the update. You can try again or copy diagnostics.';
+        }
       }
       break;
   }
@@ -1368,17 +1385,132 @@ function UpdateModal({
 
     if (state === 'failed') {
       const manualApkUrl = ota.manualApkUrl || `https://studio-30f44.web.app/apk/studio-${ota.remoteVersion}.apk`;
+      
       const copyDiagnostics = async () => {
-        const diagnosticText = getDiagnosticsText();
-
         try {
-          await navigator.clipboard.writeText(diagnosticText);
-          alert('Diagnostics copied to clipboard!');
+          const report = await getDiagnosticsReport();
+          await navigator.clipboard.writeText(report);
+          alert('Diagnostics health report copied to clipboard!');
         } catch (err) {
           console.error('Failed to copy diagnostics:', err);
         }
       };
 
+      if (ota.recoveryMode) {
+        return (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginTop: 14, width: '100%' }}>
+            
+            {/* Fallback 5: Try direct intent installation */}
+            <button
+              type="button"
+              onClick={async () => {
+                try {
+                  await applyUpdateDirect();
+                } catch (err: any) {
+                  alert(`Direct install failed: ${err.message || String(err)}`);
+                }
+              }}
+              style={primaryButtonStyle}
+            >
+              <span className="material-symbols-outlined" style={{ fontSize: 18 }}>install_mobile</span>
+              Install Directly (Failsafe)
+            </button>
+
+            <div style={{ display: 'flex', gap: 8, width: '100%' }}>
+              {/* Fallback 6: Open GitHub release */}
+              <button
+                type="button"
+                onClick={() => window.open(ota.apkUrl || 'https://github.com/MAGEXE1000/Studio/releases', '_system')}
+                style={halfSecondaryButtonStyle}
+              >
+                GitHub Release
+              </button>
+              {/* Fallback 7: Open Firebase APK mirror */}
+              <button
+                type="button"
+                onClick={async () => {
+                  try {
+                    const { runUpdaterHealthCheck } = await import('@workspace/studio-core');
+                    const health = await runUpdaterHealthCheck();
+                    if (!health.firebaseReachable) {
+                      alert("Firebase mirror is currently unavailable. Reason: The Firebase metadata server could not be resolved or returned a network timeout.");
+                    } else {
+                      window.open(manualApkUrl, '_system');
+                    }
+                  } catch (e) {
+                    window.open(manualApkUrl, '_system');
+                  }
+                }}
+                style={halfSecondaryButtonStyle}
+              >
+                Firebase Mirror
+              </button>
+            </div>
+
+            <div style={{ display: 'flex', gap: 8, width: '100%' }}>
+              {/* Fallback 9: Share APK file */}
+              <button
+                type="button"
+                onClick={async () => {
+                  try {
+                    await shareDownloadedApk();
+                  } catch (err: any) {
+                    alert(`Sharing failed: ${err.message || String(err)}`);
+                  }
+                }}
+                style={halfSecondaryButtonStyle}
+              >
+                Share APK File
+              </button>
+              {/* Fallback 8: Copy download URL */}
+              <button
+                type="button"
+                onClick={async () => {
+                  try {
+                    await navigator.clipboard.writeText(manualApkUrl);
+                    alert('Download link copied to clipboard!');
+                  } catch (err) {
+                    console.error('Failed to copy link:', err);
+                  }
+                }}
+                style={halfSecondaryButtonStyle}
+              >
+                Copy Link
+              </button>
+            </div>
+
+            <div style={{ display: 'flex', gap: 8, width: '100%' }}>
+              {/* Fallback 10: Copy diagnostics health report */}
+              <button
+                type="button"
+                onClick={copyDiagnostics}
+                style={halfSecondaryButtonStyle}
+              >
+                Health Report
+              </button>
+              {/* Diagnostics details UI */}
+              <button
+                type="button"
+                onClick={() => setDiagnosticsOpen(true)}
+                style={halfSecondaryButtonStyle}
+              >
+                Diagnostics UI
+              </button>
+            </div>
+
+            {/* Exit/Dismiss */}
+            <button
+              type="button"
+              onClick={onLater}
+              style={tertiaryButtonStyle}
+            >
+              Later
+            </button>
+          </div>
+        );
+      }
+
+      // Normal Failed State Buttons
       return (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginTop: 18, width: '100%' }}>
           <button
@@ -1391,6 +1523,7 @@ function UpdateModal({
               color: 'var(--c-text-primary)',
               fontFamily: 'Manrope', fontWeight: 700, fontSize: 13,
               cursor: 'pointer',
+              display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6
             }}
           >
             Download APK Manually

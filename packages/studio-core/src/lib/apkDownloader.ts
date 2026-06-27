@@ -11,6 +11,7 @@ import { Filesystem, Directory } from '@capacitor/filesystem';
 // Do NOT rename the plugin name, the methods, or remove them.
 export interface AppInstallerPlugin {
   installApk(options: { filePath: string }): Promise<void>;
+  installApkDirect(options: { filePath: string }): Promise<void>;
   downloadAndInstallApk(options: { url: string; fileName?: string }): Promise<void>;
   downloadApk(options: { url: string; fileName?: string }): Promise<{ filePath: string }>;
   getLastInstallResult(): Promise<{ statusCode: number; statusMessage: string; packageName: string; timestamp: number }>;
@@ -348,6 +349,14 @@ export async function verifyApkSha256(filePath: string, expectedHash: string): P
 export async function openApkInstaller(filePath: string): Promise<void> {
   console.log(`[apkDownloader] Requesting native APK installation for path: ${filePath}`);
   await AppInstaller.installApk({ filePath });
+}
+
+/**
+ * Triggers the legacy/direct Android intent-based package installer for the given APK.
+ */
+export async function openApkInstallerDirect(filePath: string): Promise<void> {
+  console.log(`[apkDownloader] Requesting direct APK installation for path: ${filePath}`);
+  await AppInstaller.installApkDirect({ filePath });
 }
 
 /**

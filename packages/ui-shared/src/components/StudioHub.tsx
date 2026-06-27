@@ -13,6 +13,7 @@ import UpdateDiagnosticsSheet from './UpdateDiagnosticsSheet';
 import StudioUpdateScreen from './StudioUpdateScreen';
 import StudioTitleReveal from './StudioTitleReveal';
 import { EncryptedText } from './ui/encrypted-text';
+import { SHARED_NAV_TRANSITION, getSharedNavTransform, getSharedNavOpacity } from './navStyles';
 import ProfileDropdown from './kokonutui/profile-dropdown';
 import SmartLoading from './SmartLoading';
 import { StudioSkeletonProfile, StudioSkeletonList } from './StudioSkeleton';
@@ -2075,16 +2076,48 @@ function HubUpdaterPage({ className, style, cardStyle, accent, onBack }: {
             {lang === 'es' ? 'Gestor de Versiones' : 'Version Manager'}
           </p>
           <div className="spring-in" style={{ ...cardStyle, margin: 0, padding: '16px 20px', display: 'flex', flexDirection: 'column', gap: 14, animationDelay: '120ms' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <div>
-                <p style={{ margin: 0, fontFamily: 'Manrope', fontWeight: 700, fontSize: 13.5, color: 'var(--c-text-primary)' }}>
-                  {lang === 'es' ? 'Versión Instalada' : 'Installed Version'}
-                </p>
-                <p style={{ margin: '2px 0 0', fontFamily: 'Inter', fontSize: 11.5, color: 'var(--c-text-secondary)' }}>
-                  v{APP_VERSION} (code {otaDebugLogs.installedVersionCode || '127'})
-                </p>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                <div>
+                  <p style={{ margin: 0, fontFamily: 'Manrope', fontWeight: 700, fontSize: 13.5, color: 'var(--c-text-primary)' }}>
+                    {lang === 'es' ? 'Versión Instalada' : 'Installed Version'}
+                  </p>
+                  <p style={{ margin: '2px 0 0', fontFamily: 'Inter', fontSize: 11.5, color: 'var(--c-text-secondary)' }}>
+                    v{APP_VERSION} (code {otaDebugLogs.installedVersionCode || '128'})
+                  </p>
+                </div>
+                <div>
+                  <p style={{ margin: 0, fontFamily: 'Manrope', fontWeight: 700, fontSize: 13.5, color: 'var(--c-text-primary)' }}>
+                    {lang === 'es' ? 'Última Versión' : 'Latest Version'}
+                  </p>
+                  <p style={{ margin: '2px 0 0', fontFamily: 'Inter', fontSize: 11.5, color: 'var(--accent-from, #7c3aed)' }}>
+                    v{ota.remoteVersion || APP_VERSION}
+                  </p>
+                </div>
+                <div>
+                  <p style={{ margin: 0, fontFamily: 'Manrope', fontWeight: 700, fontSize: 13.5, color: 'var(--c-text-primary)' }}>
+                    {lang === 'es' ? 'Fecha de Lanzamiento' : 'Release Date'}
+                  </p>
+                  <p style={{ margin: '2px 0 0', fontFamily: 'Inter', fontSize: 11.5, color: 'var(--c-text-secondary)' }}>
+                    {APP_VERSION_DATE}
+                  </p>
+                </div>
+                {ota.releaseNotes && (
+                  <div>
+                    <p style={{ margin: 0, fontFamily: 'Manrope', fontWeight: 700, fontSize: 13.5, color: 'var(--c-text-primary)' }}>
+                      {lang === 'es' ? 'Notas de Lanzamiento' : 'Release Notes'}
+                    </p>
+                    <p style={{ margin: '2px 0 0', fontFamily: 'Inter', fontSize: 11, color: 'var(--c-text-secondary)', lineHeight: 1.4 }}>
+                      {Array.isArray(ota.releaseNotes) 
+                        ? ota.releaseNotes.join(', ')
+                        : typeof ota.releaseNotes === 'object' && ota.releaseNotes !== null
+                          ? Object.values(ota.releaseNotes).flat().join(', ')
+                          : String(ota.releaseNotes)}
+                    </p>
+                  </div>
+                )}
               </div>
-              <span className="material-symbols-outlined" style={{ fontSize: 20, color: '#4ade80' }}>check_circle</span>
+              <span className="material-symbols-outlined" style={{ fontSize: 20, color: '#4ade80', alignSelf: 'flex-start', marginTop: 2 }}>check_circle</span>
             </div>
             
             <div style={{ borderTop: '1px solid rgba(128, 128, 128, 0.08)', paddingTop: 14 }}>
@@ -2093,9 +2126,15 @@ function HubUpdaterPage({ className, style, cardStyle, accent, onBack }: {
               </p>
               
               {(() => {
-                const currentCode = otaDebugLogs.installedVersionCode || 127;
+                const currentCode = otaDebugLogs.installedVersionCode || 129;
                 
                 const OFFICIAL_RELEASES = [
+                  {
+                    version: '3.7.2',
+                    versionCode: 129,
+                    apkUrl: 'https://github.com/MAGEXE1000/Studio/releases/download/v3.7.2/studio-3.7.2.apk',
+                    sha256: 'e86e7a2b972e90f6797cb3fd6b9cfde14376c24be8a98b76dfb28e67a73fcd0a'
+                  },
                   {
                     version: '3.7.1',
                     versionCode: 128,
@@ -2113,12 +2152,6 @@ function HubUpdaterPage({ className, style, cardStyle, accent, onBack }: {
                     versionCode: 126,
                     apkUrl: 'https://github.com/MAGEXE1000/Studio/releases/download/v3.6.99/studio-3.6.99.apk',
                     sha256: 'e560ed7b16d0bd27bb5e3174e837f7017aed2901754c2c2ea9ebc39e29824ce9'
-                  },
-                  {
-                    version: '3.6.98',
-                    versionCode: 125,
-                    apkUrl: 'https://github.com/MAGEXE1000/Studio/releases/download/v3.6.98/studio-3.6.98.apk',
-                    sha256: 'e60d6ae8c885d0bbaa65368a943d76546b7055d59323cc4aa236e5405a2717e3'
                   }
                 ];
                 
@@ -5076,18 +5109,10 @@ function HubNav({ tab, setTab, accent }: {
         zIndex: 50,
         overflow: 'hidden',
         pointerEvents: (navHidden || navCollapsed) ? 'none' : 'auto',
-        transform: !entered
-          ? 'translateX(-50%) translateY(24px)'
-          : (navHidden || navCollapsed)
-            ? 'translateX(-50%) translateY(calc(100% + 32px))'
-            : 'translateX(-50%) translateY(0px)',
-        opacity: !entered
-          ? 0
-          : (navHidden || navCollapsed)
-            ? 0
-            : 1,
+        transform: getSharedNavTransform(navHidden, navCollapsed, entered),
+        opacity: getSharedNavOpacity(navHidden, navCollapsed, entered),
         willChange: 'transform, opacity',
-        transition: 'transform 200ms cubic-bezier(0.25, 1, 0.5, 1), opacity 200ms cubic-bezier(0.25, 1, 0.5, 1), background-color 300ms ease, border-color 300ms ease, box-shadow 300ms ease',
+        transition: SHARED_NAV_TRANSITION,
         backdropFilter: 'blur(20px)',
         WebkitBackdropFilter: 'blur(20px)',
       }}
