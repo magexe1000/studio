@@ -26,7 +26,7 @@ import { useMemo } from 'react';
 import { Capacitor } from '@capacitor/core';
 
 /** Canonical semver string used by the OTA comparator. */
-export const NATIVE_VERSION = '3.7.8';
+export const NATIVE_VERSION = '3.7.9';
 export const WEB_VERSION = '4.0.0';
 export const APP_VERSION = Capacitor.isNativePlatform() ? NATIVE_VERSION : WEB_VERSION;
 
@@ -61,10 +61,10 @@ export const APP_CHANGELOG_SECTIONS: ChangelogSection[] = [
   {
     heading: "Fixed",
     items: [
-      "Fixed update check hangs by implementing a strict timeout race in version metadata queries.",
-      "Enhanced updater diagnostics by prefixing error messages with the exact failing stage (e.g., Download, SHA Verification, Eligibility, PackageInstaller).",
-      "Replaced JS alert popups with native themed modal states for up-to-date and failure outcomes.",
-      "Upgraded the failed state retry button to dynamically retry update checks or downloads.",
+      "Completed modular refactoring of the updater subsystem into decoupled components under the new architecture.",
+      "Integrated a single authoritative state machine with strict validation guards and transient state watchdogs.",
+      "Added a priority check queue to ensure manual update checks obsolete background checks automatically.",
+      "Created and validated a permanent 10-point automated regression test suite covering Android 14, 15, and 16.",
     ],
   },
 ];

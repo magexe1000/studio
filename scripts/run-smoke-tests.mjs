@@ -69,6 +69,11 @@ try {
   execSync('node scripts/test-gradle-signing.mjs', { stdio: 'inherit', cwd: repoRoot });
   console.log('✓ Gradle Signing Regression Tests passed.');
 
+  // 7b. Run Updater Regression Tests
+  console.log('Running Updater Regression Tests...');
+  execSync('node --import ./scripts/esm-resolver.js scripts/run-updater-regression-tests.mjs', { stdio: 'inherit', cwd: repoRoot });
+  console.log('✓ Updater Regression Tests passed.');
+
   // 8. Run Chord Normalization & Resolution Tests
   console.log('Running Chord Normalization & Resolution Tests...');
   const chordsModulePath = path.join(repoRoot, 'packages/studio-core/dist/src/data/chords.js');
