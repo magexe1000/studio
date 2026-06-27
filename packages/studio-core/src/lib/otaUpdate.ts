@@ -940,6 +940,15 @@ export function checkForUpdate(isManual = false): Promise<CentralizedOtaState> {
   if (isManual) {
     removeSessionItem('studio:laterUpdateVersion');
     removeSessionItem('studio:autoOpenedUpdateVersion');
+    localStorage.removeItem('studio:consecutiveInstallFailures');
+    updateGlobalState({
+      consecutiveFailures: 0,
+      recoveryMode: false,
+      error: null,
+      progress: 0,
+      updateState: 'checking',
+      loading: true,
+    });
   }
 
   activeCheckPromise = (async () => {
@@ -950,12 +959,6 @@ export function checkForUpdate(isManual = false): Promise<CentralizedOtaState> {
         const result = await AppInstaller.getLastInstallResult();
         console.log('[OTA DEBUG] Last install result status:', result);
         
-        if (result && result.statusCode === -1) {
-          updateGlobalState({ updateState: 'waitingForUserInstallConfirmation', loading: false });
-          activeCheckPromise = null;
-          return globalOtaState;
-        }
-
         if (result && result.statusCode !== -999 && result.statusCode !== 0) {
           let errMsg = result.statusMessage || `PackageInstaller error: status ${result.statusCode}`;
           let category: 'signature_mismatch' | 'versionCode_low' | 'cancelled' | 'failed' = 'failed';
@@ -1271,6 +1274,12 @@ export function checkForUpdate(isManual = false): Promise<CentralizedOtaState> {
           updateType
         });
         otaDebugLogs.finalDecision = `Skip: updateType is 'none' (remote.version=${remote.version} <= APP_VERSION=${APP_VERSION})`;
+        if (isNative() && isAppInstallerAvailable()) {
+          try {
+            const { AppInstaller } = await import('./apkDownloader');
+            await AppInstaller.clearInstallerLogHistory();
+          } catch (_) {}
+        }
         updateGlobalState({
           updateState: 'idle',
           updateAvailable: false,
@@ -1315,6 +1324,12 @@ export function checkForUpdate(isManual = false): Promise<CentralizedOtaState> {
           isUpgrade
         });
         otaDebugLogs.finalDecision = `Skip: No upgrade required (isUpgrade=false)`;
+        if (isNative() && isAppInstallerAvailable()) {
+          try {
+            const { AppInstaller } = await import('./apkDownloader');
+            await AppInstaller.clearInstallerLogHistory();
+          } catch (_) {}
+        }
         updateGlobalState({
           updateState: 'idle',
           updateAvailable: false,
@@ -1364,6 +1379,64 @@ export function checkForUpdate(isManual = false): Promise<CentralizedOtaState> {
         nextState,
         apkUpdateRequired
       });
+
+      // Check for interrupted installation
+      if (isNative() && isAppInstallerAvailable()) {
+        try {
+          const { AppInstaller } = await import('./apkDownloader');
+          const result = await AppInstaller.getLastInstallResult();
+          if (result && result.statusCode === -1) {
+            const lang = useChordStore.getState().settings.language || 'en';
+            const confirmMsg = lang === 'es'
+              ? `Se detectó una instalación interrumpida de la versión ${remote.version}. ¿Deseas reanudar la instalación?`
+              : `An interrupted installation of version ${remote.version} was detected. Do you want to resume the installation?`;
+            const resume = typeof window !== 'undefined' && window.confirm(confirmMsg);
+            if (resume) {
+              updateGlobalState({
+                updateState: 'waitingForUserInstallConfirmation',
+                remoteVersion: remote.version,
+                changelog: remote.changelog ?? null,
+                mandatory: remote.mandatory === true,
+                updateType,
+                apkUrl,
+                apkSha256: remote.apkSha256 ?? null,
+                manualApkUrl,
+                fallbackApkUrl,
+                releaseNotes: remote.releaseNotes ?? null,
+                loading: false,
+                requiredApkVersion: remote.requiredApkVersion ?? null,
+                requiredVersionCode: remote.requiredVersionCode ?? null,
+                nativeApkBehind,
+                apkUpdateRequired,
+                reinstallRequired: remote.reinstallRequired || remote.installMode === 'reinstall-required',
+                signatureChanged: remote.signatureChanged === true,
+                previousSignatureSha256: remote.previousSignatureSha256 ?? null,
+                newSignatureSha256: remote.newSignatureSha256 ?? null,
+                installMode: remote.installMode ?? null,
+                packageName: remote.packageName ?? null,
+              });
+              activeCheckPromise = null;
+              void applyUpdate('Interrupted Resume');
+              return globalOtaState;
+            } else {
+              console.log('[OTA DEBUG] User discarded interrupted installation. Clearing status.');
+              await AppInstaller.clearInstallerLogHistory();
+              try {
+                const downloadedPath = localStorage.getItem('studio:downloadedApkPath');
+                if (downloadedPath) {
+                  const { Filesystem } = await import('@capacitor/filesystem');
+                  await Filesystem.deleteFile({
+                    path: downloadedPath
+                  });
+                  localStorage.removeItem('studio:downloadedApkPath');
+                }
+              } catch (_) {}
+            }
+          }
+        } catch (err) {
+          console.warn('[OTA] Failed to check last install result during upgrade check:', err);
+        }
+      }
 
       let clientReinstallRequired = false;
       if (remote.reinstallRequired || remote.installMode === 'reinstall-required') {

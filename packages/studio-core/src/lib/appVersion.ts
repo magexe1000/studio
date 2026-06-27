@@ -26,7 +26,7 @@ import { useMemo } from 'react';
 import { Capacitor } from '@capacitor/core';
 
 /** Canonical semver string used by the OTA comparator. */
-export const NATIVE_VERSION = '3.7.2';
+export const NATIVE_VERSION = '3.7.3';
 export const WEB_VERSION = '4.0.0';
 export const APP_VERSION = Capacitor.isNativePlatform() ? NATIVE_VERSION : WEB_VERSION;
 
@@ -38,7 +38,7 @@ export const APP_VERSION_LABEL = `${APP_VERSION_TAG} ${APP_VERSION}`;
 
 /** Release date for the CURRENT bundle, shown alongside the version pill
  *  in the changelog sheet. ISO-8601 (`YYYY-MM-DD`). */
-export const APP_VERSION_DATE = '2026-06-27'; // 3.7.2
+export const APP_VERSION_DATE = '2026-06-27'; // 3.7.3
 // Note: keep ISO-8601. Bump together with APP_VERSION on each release.
 
 export const APP_COMMIT_SHA = import.meta.env.VITE_GIT_COMMIT_SHA || 'efd2b1a3';
@@ -61,17 +61,14 @@ export const APP_CHANGELOG_SECTIONS: ChangelogSection[] = [
   {
     heading: "Added",
     items: [
-      "Implemented smart HTTP resume and partial downloadRange writing for interrupted updates.",
-      "Added prioritized mirror failovers (GitHub Release -> Firebase Hosting -> Official Mirror).",
-      "Created Failsafe Direct intent installer bypass using FileProvider URIs to override PackageInstaller session blocks.",
-      "Added Recovery Mode overlay displaying version details, diagnostics log compile, and manual copy/share actions.",
+      "Added interactive Resume/Discard confirmation prompts for interrupted updater package installations.",
+      "Added automatic cleanup of stale PackageInstaller history and cache files on up-to-date checks.",
     ],
   },
   {
     heading: "Fixed",
     items: [
-      "Resolved checking for updates regression where modal would show stuck 0% download progress.",
-      "Aligned Hub bottom navigation auto-hide animation with the rest of Studio.",
+      "Resolved checking for updates regression where manual clicks skipped checking and went directly to pending install progress.",
     ],
   },
 ];

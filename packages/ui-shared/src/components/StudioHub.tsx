@@ -2126,9 +2126,15 @@ function HubUpdaterPage({ className, style, cardStyle, accent, onBack }: {
               </p>
               
               {(() => {
-                const currentCode = otaDebugLogs.installedVersionCode || 129;
+                const currentCode = otaDebugLogs.installedVersionCode || 130;
                 
                 const OFFICIAL_RELEASES = [
+                  {
+                    version: '3.7.3',
+                    versionCode: 130,
+                    apkUrl: 'https://github.com/MAGEXE1000/Studio/releases/download/v3.7.3/studio-3.7.3.apk',
+                    sha256: '0000000000000000000000000000000000000000000000000000000000000000'
+                  },
                   {
                     version: '3.7.2',
                     versionCode: 129,
@@ -2146,12 +2152,6 @@ function HubUpdaterPage({ className, style, cardStyle, accent, onBack }: {
                     versionCode: 127,
                     apkUrl: 'https://github.com/MAGEXE1000/Studio/releases/download/v3.7.0/studio-3.7.0.apk',
                     sha256: '058a5167ff727c93e4361b4bc5d9d3845bf03757ccc43cac7ab202f682b91bbe'
-                  },
-                  {
-                    version: '3.6.99',
-                    versionCode: 126,
-                    apkUrl: 'https://github.com/MAGEXE1000/Studio/releases/download/v3.6.99/studio-3.6.99.apk',
-                    sha256: 'e560ed7b16d0bd27bb5e3174e837f7017aed2901754c2c2ea9ebc39e29824ce9'
                   }
                 ];
                 
