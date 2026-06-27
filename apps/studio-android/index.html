@@ -267,9 +267,6 @@
     <div id="intro" aria-hidden="true">
       <div id="intro-stars"></div>
       <div id="intro-glow"></div>
-      <!-- Cover overlay to fade in from black/previous state -->
-      <div id="intro-cover" style="position: absolute; inset: 0; background: #000000; z-index: 100; pointer-events: none; opacity: 1; transition: opacity 1000ms cubic-bezier(0.25, 1, 0.5, 1);"></div>
-
       <div id="intro-center" data-intro-id="studio">
         <div class="logo">
           <!-- Studio sine wave (matches StudioLogo component) -->
@@ -376,15 +373,7 @@
 
         // Fade in is no-op because opacity starts at 1
 
-        // Trigger fade out of the cover overlay on load
-        var cover = document.getElementById('intro-cover');
-        if (cover) {
-          requestAnimationFrame(function() {
-            requestAnimationFrame(function() {
-              cover.style.opacity = '0';
-            });
-          });
-        }
+
 
         var orbiterEls = intro.querySelectorAll('.orbiter');
         if (orbiterEls.length === 0) return;

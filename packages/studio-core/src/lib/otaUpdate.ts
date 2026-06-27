@@ -877,6 +877,13 @@ export function checkForUpdate(isManual = false): Promise<CentralizedOtaState> {
         const { AppInstaller } = await import('./apkDownloader');
         const result = await AppInstaller.getLastInstallResult();
         console.log('[OTA DEBUG] Last install result status:', result);
+        
+        if (result && result.statusCode === -1) {
+          updateGlobalState({ updateState: 'waitingForUserInstallConfirmation', loading: false });
+          activeCheckPromise = null;
+          return globalOtaState;
+        }
+
         if (result && result.statusCode !== -999 && result.statusCode !== 0) {
           let errMsg = result.statusMessage || `PackageInstaller error: status ${result.statusCode}`;
           let category: 'signature_mismatch' | 'versionCode_low' | 'cancelled' | 'failed' = 'failed';

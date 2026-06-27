@@ -1,6 +1,5 @@
 ### Added
-- Implemented deep pre-release APK certificate validation via keytool and apksigner checks.
-- Deployed automated self-test utility test-updater-flow.mjs for update system pipeline verification.
-- Optimized app startup time by disabling heavy stack trace captures inside production console loggers.
-- Deferred active watchdog recovery to T+1000ms to eliminate false positive startup thrashes.
-- Expanded Update Diagnostics Sheet with validation status matrices, certificate hashes comparison, and logs controls.
+- Resolved PackageInstaller update handoff bug by actively launching system confirmation intent from InstallReceiver.
+- Optimized native launch splash screen to use DayNight color systems to eliminate light/dark flashes.
+- Made startup experience premium by transitioning directly into planets animation on WebView mount.
+- Expanded Update Diagnostics Sheet to render complete PackageInstaller session logs, timestamps, elapsed times, and stack traces.

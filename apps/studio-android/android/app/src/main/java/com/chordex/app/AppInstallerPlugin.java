@@ -582,9 +582,18 @@ public class AppInstallerPlugin extends Plugin {
     }
 
     private void triggerInstallation(File file, PluginCall call) {
+        Context context = getContext();
         try {
-            Context context = getContext();
-            
+            // Reset previous results and store session start time in prefs
+            SharedPreferences prefs = context.getSharedPreferences(InstallReceiver.PREFS_NAME, Context.MODE_PRIVATE);
+            prefs.edit()
+                .putLong("session_start_time", System.currentTimeMillis())
+                .putInt("last_status_code", -999)
+                .putString("last_status_message", "installation_in_progress")
+                .putString("last_other_package", "")
+                .putLong("last_status_timestamp", System.currentTimeMillis())
+                .apply();
+
             // Check for INSTALL_PACKAGES permission on Android 8.0+
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
                 if (!context.getPackageManager().canRequestPackageInstalls()) {
@@ -593,6 +602,7 @@ public class AppInstallerPlugin extends Plugin {
                     settingsIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
                     context.startActivity(settingsIntent);
                     call.reject("Please enable install permission for this app and try again.");
+                    InstallReceiver.appendLog(context, "Install Failure", -2, "Missing unknown sources permission", null, null);
                     return;
                 }
             }
@@ -608,6 +618,8 @@ public class AppInstallerPlugin extends Plugin {
             }
 
             int sessionId = packageInstaller.createSession(params);
+            InstallReceiver.appendLog(context, "PackageInstaller Session Created", 0, "Session ID: " + sessionId, null, null);
+
             PackageInstaller.Session session = packageInstaller.openSession(sessionId);
             
             java.io.OutputStream out = session.openWrite("studio_install", 0, -1);
@@ -617,9 +629,13 @@ public class AppInstallerPlugin extends Plugin {
             while ((count = fis.read(buffer)) != -1) {
                 out.write(buffer, 0, count);
             }
-            session.fsync(out);
             fis.close();
+            out.flush();
+            InstallReceiver.appendLog(context, "Package Written", 0, "Bytes written: " + file.length(), null, null);
+
+            session.fsync(out);
             out.close();
+            InstallReceiver.appendLog(context, "Package Synced", 0, "fsync completed", null, null);
             
             Intent intent = new Intent(context, InstallReceiver.class);
             intent.setAction("com.chordex.app.SESSION_API_PACKAGE_INSTALLED");
@@ -635,17 +651,10 @@ public class AppInstallerPlugin extends Plugin {
                     pendingFlags
             );
             
-            // Reset previous results in prefs
-            SharedPreferences prefs = context.getSharedPreferences(InstallReceiver.PREFS_NAME, Context.MODE_PRIVATE);
-            prefs.edit()
-                .putInt("last_status_code", -999)
-                .putString("last_status_message", "installation_in_progress")
-                .putString("last_other_package", "")
-                .putLong("last_status_timestamp", System.currentTimeMillis())
-                .apply();
-
+            InstallReceiver.appendLog(context, "Session Commit Started", 0, "Calling session.commit()", null, null);
             session.commit(pendingIntent.getIntentSender());
             session.close();
+            InstallReceiver.appendLog(context, "Session Commit Finished", 0, "Session committed and closed", null, null);
             
             Log.d("AppInstallerPlugin", "Installation session committed: sessionId=" + sessionId);
             JSObject result = new JSObject();
@@ -653,6 +662,7 @@ public class AppInstallerPlugin extends Plugin {
             call.resolve(result);
         } catch (Exception e) {
             Log.e("AppInstallerPlugin", "Failed to trigger installation via PackageInstaller", e);
+            InstallReceiver.appendLog(context, "Install Failure", -3, "Exception: " + e.getMessage(), null, Log.getStackTraceString(e));
             call.reject("Failed to trigger installation: " + e.getMessage(), e);
         }
     }

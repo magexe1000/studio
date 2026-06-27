@@ -898,10 +898,19 @@ export default function UpdateDiagnosticsSheet({ open, onClose }: Props) {
                 ) : (
                   nativeLogs.map((log, index) => (
                     <div key={index} style={{ marginBottom: 12, borderBottom: '1px solid rgba(128,128,128,0.1)', paddingBottom: 8 }}>
-                      <div>[#{nativeLogs.length - index}] {new Date(log.timestamp).toLocaleString()}</div>
-                      <div>Status Code: <span style={{ color: log.status === 0 ? '#22c55e' : '#f87171', fontWeight: 'bold' }}>{log.status}</span></div>
-                      <div>Package: {log.packageName || 'N/A'}</div>
-                      <div style={{ whiteSpace: 'pre-wrap', wordBreak: 'break-all' }}>Message: {log.message || 'None'}</div>
+                      <div style={{ fontWeight: 'bold', color: 'var(--c-text-primary)' }}>
+                        [#{nativeLogs.length - index}] {log.stage || 'Log'} ({typeof log.elapsedTimeMs === 'number' ? `${(log.elapsedTimeMs / 1000).toFixed(2)}s` : '0.00s'} elapsed)
+                      </div>
+                      <div style={{ fontSize: 10, color: 'var(--c-text-muted)', marginTop: 2 }}>
+                        {new Date(log.timestamp).toLocaleString()}
+                      </div>
+                      <div style={{ marginTop: 4 }}>
+                        Status Code: <span style={{ color: log.status === 0 ? '#22c55e' : (log.status === -1 ? '#fbbf24' : '#f87171'), fontWeight: 'bold' }}>{log.status}</span>
+                      </div>
+                      {log.packageName && <div>Package: {log.packageName}</div>}
+                      {log.explanation && <div style={{ color: 'var(--c-text-primary)', marginTop: 4, fontWeight: 500 }}>{log.explanation}</div>}
+                      {log.message && <div style={{ whiteSpace: 'pre-wrap', wordBreak: 'break-all', fontSize: 10, color: 'var(--c-text-muted)', marginTop: 2 }}>Detail: {log.message}</div>}
+                      {log.exceptionStack && <div style={{ whiteSpace: 'pre-wrap', wordBreak: 'break-all', fontSize: 9, color: '#f87171', background: 'rgba(239,68,68,0.04)', padding: 6, borderRadius: 4, marginTop: 4, fontFamily: 'monospace', maxHeight: 100, overflowY: 'auto' }}>Stack: {log.exceptionStack}</div>}
                     </div>
                   ))
                 )}

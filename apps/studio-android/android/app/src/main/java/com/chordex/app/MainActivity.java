@@ -66,7 +66,7 @@ public class MainActivity extends BridgeActivity {
         // This bypasses any site-level permission blocks inside WebView once OS permission is granted.
         if (this.bridge != null && this.bridge.getWebView() != null) {
             android.util.Log.i("LivexBoot", "WebView initialized at " + android.os.SystemClock.elapsedRealtime() + "ms since boot");
-            this.bridge.getWebView().setBackgroundColor(android.graphics.Color.BLACK);
+            this.bridge.getWebView().setBackgroundColor(android.graphics.Color.TRANSPARENT);
             
             // Pass native boot timings to WebView
             final long webViewInitTime = android.os.SystemClock.elapsedRealtime();
