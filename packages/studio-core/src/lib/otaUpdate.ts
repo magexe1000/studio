@@ -707,20 +707,23 @@ export type OtaUpdateState =
   | 'idle'
   | 'checking'
   | 'available'
+  | 'waiting_for_user'
+  | 'downloading'
+  | 'verifying'
+  | 'ready_to_install'
+  | 'installing'
+  | 'installed'
+  | 'completed'
+  | 'failed'
   | 'manual_apk_required'
+  | 'signature_mismatch'
+  | 'versionCode_low'
+  | 'reinstall_warning'
+  | 'preparing'
+  | 'enteringProgressScreen'
   | 'downloading_ota'
   | 'downloading_apk'
   | 'verifying_apk'
-  | 'ready_to_install'
-  | 'installing'
-  | 'completed'
-  | 'failed'
-  | 'signature_mismatch'
-  | 'versionCode_low'
-  | 'preparing'
-  | 'enteringProgressScreen'
-  | 'downloading'
-  | 'verifying'
   | 'readyForInstallPrompt'
   | 'waitingForUserInstallConfirmation'
   | 'installedOrReady';
@@ -807,8 +810,144 @@ let globalOtaState: CentralizedOtaState = {
 
 const stateListeners = new Set<(state: CentralizedOtaState) => void>();
 
+const VALID_TRANSITIONS: Record<OtaUpdateState, OtaUpdateState[]> = {
+  idle: ['checking', 'preparing'],
+  checking: ['available', 'idle', 'failed', 'manual_apk_required'],
+  available: ['waiting_for_user', 'failed', 'idle'],
+  waiting_for_user: ['downloading', 'failed', 'idle', 'preparing'],
+  downloading: ['verifying', 'failed', 'idle'],
+  verifying: ['ready_to_install', 'failed', 'signature_mismatch', 'versionCode_low', 'reinstall_warning', 'idle'],
+  ready_to_install: ['installing', 'failed', 'idle'],
+  installing: ['installed', 'failed', 'idle'],
+  installed: ['completed', 'failed', 'idle'],
+  completed: ['idle'],
+  
+  failed: ['checking', 'idle'],
+  manual_apk_required: ['checking', 'idle'],
+  signature_mismatch: ['checking', 'idle'],
+  versionCode_low: ['checking', 'idle'],
+  reinstall_warning: ['checking', 'idle'],
+
+  preparing: ['checking', 'idle', 'downloading_ota', 'downloading_apk', 'failed', 'enteringProgressScreen'],
+  enteringProgressScreen: ['downloading_ota', 'downloading_apk', 'failed', 'idle'],
+  downloading_ota: ['verifying_apk', 'ready_to_install', 'failed', 'idle'],
+  downloading_apk: ['verifying_apk', 'ready_to_install', 'failed', 'idle'],
+  verifying_apk: ['ready_to_install', 'failed', 'idle'],
+  readyForInstallPrompt: ['waitingForUserInstallConfirmation', 'installing', 'failed', 'idle', 'installedOrReady'],
+  waitingForUserInstallConfirmation: ['installing', 'failed', 'idle'],
+  installedOrReady: ['completed', 'failed', 'idle'],
+};
+
+let stalledTimer: ReturnType<typeof setTimeout> | null = null;
+
+function manageStalledTimer(nextState: OtaUpdateState, progress: number) {
+  if (stalledTimer) {
+    clearTimeout(stalledTimer);
+    stalledTimer = null;
+  }
+
+  const transientStates: OtaUpdateState[] = ['checking', 'downloading', 'verifying', 'installing'];
+  if (transientStates.includes(nextState)) {
+    let timeoutMs = 15000; // 15s default
+    if (nextState === 'downloading') {
+      timeoutMs = 20000; // 20s
+    } else if (nextState === 'installing') {
+      timeoutMs = 60000; // 60s
+    }
+
+    const lastProgress = progress;
+    stalledTimer = setTimeout(async () => {
+      // If we are downloading and progress has advanced, do not count as stalled
+      if (nextState === 'downloading' && globalOtaState.progress > lastProgress) {
+        // Re-schedule the timer since progress is active
+        manageStalledTimer(nextState, globalOtaState.progress);
+        return;
+      }
+
+      console.warn(`[OTA STALL DETECT] Update stalled in state "${nextState}".`);
+      void logProgressStage('[OTA STALL DETECT]', `Stall detected in state ${nextState} (Timeout: ${timeoutMs}ms). Triggering auto-recovery.`);
+
+      const currentFailures = Number(localStorage.getItem('studio:consecutiveInstallFailures') || 0) + 1;
+      localStorage.setItem('studio:consecutiveInstallFailures', String(currentFailures));
+      updateGlobalState({ consecutiveFailures: currentFailures });
+
+      let errorMsg = 'Operation timed out.';
+      if (nextState === 'checking') {
+        errorMsg = 'Connection timed out while checking for updates. Release server is unreachable.';
+      } else if (nextState === 'downloading') {
+        errorMsg = 'Download stalled. Mirror connection was dropped or timed out.';
+      } else if (nextState === 'verifying') {
+        errorMsg = 'Verification timed out. Check filesystem permissions or try manual download.';
+      } else if (nextState === 'installing') {
+        errorMsg = 'Installation timed out. Android PackageInstaller failed to commit session.';
+      }
+
+      const recovery = currentFailures >= 3;
+      // Trigger transition to failed
+      transitionToState('failed', `Stalled timer expired in state ${nextState}`);
+      updateGlobalState({
+        error: errorMsg,
+        loading: false,
+        recoveryMode: recovery
+      });
+    }, timeoutMs);
+  }
+}
+
+let transitionIdCounter = 0;
+let executionId = Math.random().toString(36).substring(2, 10);
+
+export function transitionToState(nextState: OtaUpdateState, reason: string): boolean {
+  const currentState = globalOtaState.updateState;
+  if (currentState === nextState) {
+    return true; // No-op, allow redundant state sets without violation
+  }
+
+  const allowed = VALID_TRANSITIONS[currentState] || [];
+  const isValid = allowed.includes(nextState);
+
+  const transitionId = ++transitionIdCounter;
+  const stack = new Error().stack || '';
+  const callerLine = stack.split('\n')[2] || 'unknown';
+
+  console.log(
+    `[STATE_TRANSITION] ID: ${transitionId} | ExecID: ${executionId} | ` +
+    `Current: ${currentState} -> Next: ${nextState} | ` +
+    `Caller: ${callerLine.trim()} | Reason: ${reason} | Timestamp: ${Date.now()}`
+  );
+
+  if (!isValid) {
+    console.error(
+      `[STATE_TRANSITION_VIOLATION] Blocked invalid transition: ` +
+      `${currentState} -> ${nextState}. Reason: ${reason}. Caller: ${callerLine.trim()}`
+    );
+    void logProgressStage(
+      'State transition violation',
+      `Blocked transition: ${currentState} -> ${nextState}. Reason: ${reason}. Caller: ${callerLine.trim()}`
+    );
+    return false;
+  }
+
+  // Update state variable bypass
+  globalOtaState = { ...globalOtaState, updateState: nextState };
+  
+  // Manage stalled timer for transient states
+  manageStalledTimer(nextState, globalOtaState.progress);
+
+  // Notify listeners
+  stateListeners.forEach((l) => l(globalOtaState));
+  return true;
+}
+
 function updateGlobalState(updates: Partial<CentralizedOtaState>) {
-  globalOtaState = { ...globalOtaState, ...updates };
+  if ('updateState' in updates && updates.updateState !== globalOtaState.updateState) {
+    console.warn(`[WARNING] Direct updateState change attempted in updateGlobalState: ${updates.updateState}. Use transitionToState instead.`);
+    // Omit updateState from direct mutations to enforce transitionToState
+    const { updateState, ...rest } = updates;
+    globalOtaState = { ...globalOtaState, ...rest };
+  } else {
+    globalOtaState = { ...globalOtaState, ...updates };
+  }
   stateListeners.forEach((l) => l(globalOtaState));
 }
 
@@ -987,13 +1126,17 @@ export function checkForUpdate(isManual = false): Promise<CentralizedOtaState> {
 
           // Store diagnostics and update state
           if (category === 'signature_mismatch') {
-            updateGlobalState({ updateState: 'signature_mismatch', error: errMsg, loading: false });
+            transitionToState('signature_mismatch', 'Last install result: signature_mismatch');
+            updateGlobalState({ error: errMsg, loading: false });
           } else if (category === 'versionCode_low') {
-            updateGlobalState({ updateState: 'versionCode_low', error: errMsg, loading: false });
+            transitionToState('versionCode_low', 'Last install result: versionCode_low');
+            updateGlobalState({ error: errMsg, loading: false });
           } else if (category === 'cancelled') {
-            updateGlobalState({ updateState: 'available', loading: false });
+            transitionToState('available', 'Last install result: cancelled');
+            updateGlobalState({ loading: false });
           } else {
-            updateGlobalState({ updateState: 'failed', error: errMsg, loading: false });
+            transitionToState('failed', 'Last install result: failed');
+            updateGlobalState({ error: errMsg, loading: false });
           }
           
           // Clear last result so we don't repeat the error notification
@@ -1007,7 +1150,7 @@ export function checkForUpdate(isManual = false): Promise<CentralizedOtaState> {
       }
     }
 
-    updateGlobalState({ updateState: 'checking', loading: true });
+    transitionToState('checking', 'checkForUpdate start');
     try {
       let remote = await fetchRemoteVersion();
       const mockOta = getSessionItem('studio:mockOtaResponse');
@@ -1676,7 +1819,8 @@ export function downloadUpdate(trigger?: string, isDowngrade?: boolean): Promise
   }
 
   // Set initial preparation state immediately to trigger progress screens instantly
-  updateGlobalState({ updateState: 'preparing', progress: 0, statusText: 'Preparing update...', error: null });
+  transitionToState('downloading', 'downloadUpdate start');
+  updateGlobalState({ progress: 0, statusText: 'Preparing update...', error: null });
 
   activeDownloadPromise = (async () => {
     // Clear stale path for different versions before starting the download
@@ -1686,7 +1830,7 @@ export function downloadUpdate(trigger?: string, isDowngrade?: boolean): Promise
     }
     
     otaDebugLogs.downloadStatus = `Update started: apk\nAPK URL: ${apkUrl}`;
-    updateGlobalState({ updateState: 'enteringProgressScreen', progress: 0.0, statusText: 'Entering progress screen...' });
+    updateGlobalState({ progress: 0.0, statusText: 'Entering progress screen...' });
     
     try {
       const { downloadApk } = await import('./apkDownloader');
@@ -1720,7 +1864,6 @@ export function downloadUpdate(trigger?: string, isDowngrade?: boolean): Promise
             
             filePath = await downloadApk(sourceUrl, fileName, (percent) => {
               updateGlobalState({ 
-                updateState: 'downloading',
                 progress: Math.max(0, Math.min(1, percent / 100)),
                 statusText: `Downloading update (${Math.round(percent)}%)`
               });
@@ -1754,7 +1897,8 @@ export function downloadUpdate(trigger?: string, isDowngrade?: boolean): Promise
       const expectedHash = globalOtaState.apkSha256;
       if (expectedHash) {
         otaDebugLogs.downloadStatus += `\nStarting SHA verification (Expected: ${expectedHash})...`;
-        updateGlobalState({ updateState: 'verifying', statusText: 'Verifying package' });
+        transitionToState('verifying', 'Starting SHA verification');
+        updateGlobalState({ statusText: 'Verifying package' });
         const { verifyApkSha256 } = await import('./apkDownloader');
         const isValid = await verifyApkSha256(filePath, expectedHash);
         void logProgressStage('SHA verified', isValid ? 'SHA validation successful' : 'SHA validation failed');
@@ -1779,7 +1923,8 @@ export function downloadUpdate(trigger?: string, isDowngrade?: boolean): Promise
       await new Promise((resolve) => setTimeout(resolve, 300));
 
       otaDebugLogs.downloadStatus += `\nRunning pre-install eligibility check...`;
-      updateGlobalState({ updateState: 'verifying', statusText: 'Checking eligibility...' });
+      transitionToState('verifying', 'Checking eligibility');
+      updateGlobalState({ statusText: 'Checking eligibility...' });
       const isEligible = await runEligibilityCheck(filePath, isDowngrade);
       if (!isEligible) {
         throw new Error('Eligibility validation failed: ' + (otaDebugLogs.eligibilityReason || 'unknown'));
@@ -1787,18 +1932,15 @@ export function downloadUpdate(trigger?: string, isDowngrade?: boolean): Promise
       void logProgressStage('Eligibility check passed', 'APK is eligible for installation');
       void logProgressStage('Installer prepared', 'Installer prepared and files verified');
 
-      updateGlobalState({ statusText: 'Ready to install', updateState: 'readyForInstallPrompt' });
+      transitionToState('ready_to_install', 'APK download & verify complete');
+      updateGlobalState({ statusText: 'Ready to install' });
       localStorage.setItem('studio:downloadedApkPath', filePath);
       localStorage.removeItem('studio:downloadedBundleId');
       addToStoredList('studio:downloadedVersions', ver);
 
-      console.log(`[INSTRUMENTATION] downloadUpdate EXIT Call #${callId} Resolved successfully (Triggering auto-install in 1000ms)`);
-      void logProgressStage('[INSTRUMENTATION] downloadUpdate EXIT', `Call #${callId} resolved (Triggering auto-install in 1000ms)`);
+      console.log(`[INSTRUMENTATION] downloadUpdate EXIT Call #${callId} Resolved successfully (Paused at ready_to_install, waiting for user click)`);
+      void logProgressStage('[INSTRUMENTATION] downloadUpdate EXIT', `Call #${callId} resolved (Paused at ready_to_install, waiting for user click)`);
 
-      // Automatically trigger native installation once verified
-      setTimeout(() => {
-        applyUpdate('AutoInstall: downloadUpdate');
-      }, 1000);
     } catch (err) {
       console.error(`[INSTRUMENTATION] downloadUpdate EXIT Call #${callId} error:`, err);
       void logProgressStage('[INSTRUMENTATION] downloadUpdate EXIT', `Call #${callId} failed err=${err instanceof Error ? err.message : String(err)}`);
@@ -1809,8 +1951,8 @@ export function downloadUpdate(trigger?: string, isDowngrade?: boolean): Promise
       otaDebugLogs.lastExceptionStackTrace = errStack;
       otaDebugLogs.installerLaunchStatus = 'FAILED';
       await populateDiagnostics(err, 'APK download or verification failed');
+      transitionToState('failed', 'Download/Verify exception');
       updateGlobalState({ 
-        updateState: 'failed', 
         error: errMsg,
         statusText: null
       });
@@ -1877,7 +2019,7 @@ export function applyUpdate(trigger?: string): Promise<void> {
       return;
     }
 
-    updateGlobalState({ updateState: 'installing' });
+    transitionToState('installing', 'applyUpdate start');
     localStorage.setItem('studio:appliedUpdateVersion', remoteVersion);
     addToStoredList('studio:installedVersions', remoteVersion);
     addToStoredList('studio:appliedVersions', remoteVersion);
@@ -1908,8 +2050,8 @@ export function applyUpdate(trigger?: string): Promise<void> {
       otaDebugLogs.installerLaunchStatus = 'SUCCESS';
       otaDebugLogs.lastExceptionStackTrace = 'None';
       otaDebugLogs.finalPathExecuted = 'APK installer launched';
+      transitionToState('installed', 'APK installer launched');
       updateGlobalState({ 
-        updateState: 'installedOrReady', 
         updateAvailable: false,
         statusText: 'APK installer launched',
         finalPathExecuted: 'APK installer launched'
@@ -1935,48 +2077,14 @@ export function applyUpdate(trigger?: string): Promise<void> {
       
       localStorage.removeItem('studio:appliedUpdateVersion');
       
-      if (currentFailures === 1) {
-        // Fallback 1: Automatic Retry of PackageInstaller after a brief pause
-        console.log(`[OTA] Auto-recovery: consecutiveFailures=1. Retrying installer session...`);
-        updateGlobalState({ activeFallback: 'Auto-Retry PackageInstaller' });
-        
-        await new Promise(r => setTimeout(r, 1500));
-        activeApplyPromise = null;
-        try {
-          await applyUpdate('Auto-Retry');
-          return;
-        } catch (retryErr) {
-          // Retry failed, will enter catch block again and transition to Fallback 2
-          return;
-        }
-      } else if (currentFailures === 2) {
-        // Fallback 2: Recreate Session & Re-verify APK from scratch
-        console.log(`[OTA] Auto-recovery: consecutiveFailures=2. Recreating installer session & metadata...`);
-        updateGlobalState({ activeFallback: 'Recreate Session' });
-        
-        await new Promise(r => setTimeout(r, 1500));
-        activeApplyPromise = null;
-        try {
-          const filePath = localStorage.getItem('studio:downloadedApkPath');
-          if (filePath) {
-            const isEligible = await runEligibilityCheck(filePath);
-            if (isEligible) {
-              await applyUpdate('Auto-Recreate-Session');
-              return;
-            }
-          }
-        } catch (recreateErr) {
-          return;
-        }
-      }
-      
-      // Fallback 3+: Enter Recovery Mode
+      // Fallback: Enter Recovery Mode if consecutive failures are 3 or more
+      const recovery = currentFailures >= 3;
+      transitionToState('failed', `APK install failed. Failures: ${currentFailures}`);
       updateGlobalState({ 
-        updateState: 'failed', 
         error: errMsg,
         statusText: 'Installation failed',
-        recoveryMode: true,
-        activeFallback: 'Enter Recovery Mode'
+        recoveryMode: recovery,
+        activeFallback: recovery ? 'Enter Recovery Mode' : null
       });
       throw err;
     } finally {
@@ -1995,7 +2103,7 @@ export function dismissUpdate(): void {
   setSessionItem('studio:laterUpdateVersion', remoteVersion);
   const isApkFlow = updateType === 'apk' || updateType === 'both';
   const nextState = (isNative() && isApkFlow && !isAppInstallerAvailable()) ? 'manual_apk_required' : 'available';
-  updateGlobalState({ updateState: nextState });
+  transitionToState(nextState, 'dismissUpdate');
 }
 
 /**
@@ -2016,157 +2124,84 @@ export interface UseOtaUpdateResult extends CentralizedOtaState {
   markUpdateSeen: () => void;
 }
 
-export function useOtaUpdate(): UseOtaUpdateResult {
-  const [state, setState] = useState<CentralizedOtaState>(globalOtaState);
-  const autoCheck = useChordStore((s) => s.settings.otaAutoCheck ?? true);
-  const autoCheckRef = useRef(autoCheck);
+let otaListenerInitialized = false;
 
-  useEffect(() => {
-    autoCheckRef.current = autoCheck;
-  }, [autoCheck]);
+export function initializeOtaListener() {
+  if (otaListenerInitialized) return;
+  otaListenerInitialized = true;
+
+  console.log('[OTA DEBUG] Centralized module-level OTA listeners initializing...');
+
+  const runCheck = () => {
+    // Check if autoCheck is enabled in preferences store
+    const autoCheck = useChordStore.getState().settings.otaAutoCheck ?? true;
+    if (!autoCheck) return;
+    void checkForUpdate();
+  };
+
+  // 1. Initial check on load
+  if (globalOtaState.updateState === 'idle') {
+    void checkForUpdate();
+  }
+
+  // 2. Window/Document listeners
+  const onVisibility = () => {
+    if (typeof document !== 'undefined' && document.visibilityState === 'visible') {
+      runCheck();
+    }
+  };
+  const onFocus = () => { runCheck(); };
+
+  if (typeof document !== 'undefined') {
+    document.addEventListener('visibilitychange', onVisibility);
+  }
+  if (typeof window !== 'undefined') {
+    window.addEventListener('focus', onFocus);
+    window.addEventListener('pageshow', onFocus);
+    window.addEventListener('online', onFocus);
+  }
+
+  // 3. Capacitor Native focus listener
+  if (isNative()) {
+    void (async () => {
+      try {
+        const { App } = await import('@capacitor/app');
+        await App.addListener('appStateChange', (s) => {
+          if (s.isActive) runCheck();
+        });
+      } catch {
+        /* plugin unavailable */
+      }
+    })();
+  }
+
+  // 4. Periodic polling
+  setInterval(() => {
+    if (typeof document === 'undefined' || document.visibilityState === 'visible') {
+      runCheck();
+    }
+  }, FOREGROUND_POLL_MS);
+
+  // Mirror installed version
+  void nativeSet(NATIVE_PREFS.OTA_INSTALLED, APP_VERSION);
+}
+
+export function useOtaUpdate(): UseOtaUpdateResult {
+  if (typeof window !== 'undefined') {
+    initializeOtaListener();
+  }
+
+  const [state, setState] = useState<CentralizedOtaState>(globalOtaState);
 
   useEffect(() => {
     const listener = (newState: CentralizedOtaState) => {
       setState(newState);
     };
     stateListeners.add(listener);
-
-    // Initial check on mount
-    if (globalOtaState.updateState === 'idle') {
-      void checkForUpdate();
-    }
-
-    const runCheck = () => {
-      if (!autoCheckRef.current) return;
-      void checkForUpdate();
-    };
-
-    // 2a. Web visibility, focus, pageshow, online listeners
-    const onVisibility = () => {
-      if (typeof document !== 'undefined' && document.visibilityState === 'visible') {
-        runCheck();
-      }
-    };
-    const onFocus = () => { runCheck(); };
-
-    if (typeof document !== 'undefined') {
-      document.addEventListener('visibilitychange', onVisibility);
-    }
-    if (typeof window !== 'undefined') {
-      window.addEventListener('focus', onFocus);
-      window.addEventListener('pageshow', onFocus);
-      window.addEventListener('online', onFocus);
-    }
-
-    // 2b. Native (Capacitor) State change listeners
-    let nativeListener: { remove: () => Promise<void> } | undefined;
-    if (isNative()) {
-      void (async () => {
-        try {
-          const { App } = await import('@capacitor/app');
-          nativeListener = await App.addListener('appStateChange', (s) => {
-            if (s.isActive) runCheck();
-          });
-        } catch {
-          /* plugin unavailable */
-        }
-      })();
-    }
-
-    // 3. Periodic foreground poll
-    let pollTimer: ReturnType<typeof setTimeout> | null = null;
-    const schedulePoll = () => {
-      pollTimer = setTimeout(async () => {
-        if (typeof document === 'undefined' || document.visibilityState === 'visible') {
-          runCheck();
-        }
-        if (stateListeners.has(listener)) schedulePoll();
-      }, FOREGROUND_POLL_MS);
-    };
-    schedulePoll();
-
-    // Mirror current installed bundle version as baseline
-    void nativeSet(NATIVE_PREFS.OTA_INSTALLED, APP_VERSION);
-
     return () => {
       stateListeners.delete(listener);
-      if (typeof document !== 'undefined') {
-        document.removeEventListener('visibilitychange', onVisibility);
-      }
-      if (typeof window !== 'undefined') {
-        window.removeEventListener('focus', onFocus);
-        window.removeEventListener('pageshow', onFocus);
-        window.removeEventListener('online', onFocus);
-      }
-      if (pollTimer) clearTimeout(pollTimer);
-      if (nativeListener) void nativeListener.remove().catch(() => {});
     };
   }, []);
-
-  // Stalled update detector
-  useEffect(() => {
-    let timer: ReturnType<typeof setTimeout> | null = null;
-    const transientStates: OtaUpdateState[] = ['checking', 'downloading', 'verifying', 'installing'];
-    
-    if (transientStates.includes(state.updateState)) {
-      let timeoutMs = 15000; // default 15s for checking/verifying
-      if (state.updateState === 'downloading') {
-        timeoutMs = 20000; // 20s for downloading
-      } else if (state.updateState === 'installing') {
-        timeoutMs = 60000; // 60s for installing
-      }
-      
-      const lastProgress = state.progress;
-      
-      timer = setTimeout(async () => {
-        if (state.updateState === 'downloading' && globalOtaState.progress > lastProgress) {
-          return;
-        }
-        
-        console.warn(`[OTA STALL DETECT] Update stalled in state "${state.updateState}".`);
-        void logProgressStage('[OTA STALL DETECT]', `Stall detected in state ${state.updateState} (Timeout: ${timeoutMs}ms). Triggering auto-recovery.`);
-        
-        const currentFailures = Number(localStorage.getItem('studio:consecutiveInstallFailures') || 0) + 1;
-        localStorage.setItem('studio:consecutiveInstallFailures', String(currentFailures));
-        updateGlobalState({ consecutiveFailures: currentFailures });
-        
-        if (state.updateState === 'checking') {
-          updateGlobalState({
-            updateState: 'failed',
-            error: 'Connection timed out while checking for updates. Release server is unreachable.',
-            loading: false
-          });
-        } else if (state.updateState === 'downloading') {
-          updateGlobalState({
-            updateState: 'failed',
-            error: 'Download stalled. Mirror connection was dropped or timed out.',
-            loading: false
-          });
-        } else if (state.updateState === 'verifying') {
-          updateGlobalState({
-            updateState: 'failed',
-            error: 'Verification timed out. Check filesystem permissions or try manual download.',
-            loading: false
-          });
-        } else if (state.updateState === 'installing') {
-          updateGlobalState({
-            updateState: 'failed',
-            error: 'Installation timed out. Android PackageInstaller failed to commit session.',
-            loading: false
-          });
-        }
-        
-        if (currentFailures >= 3) {
-          updateGlobalState({ recoveryMode: true });
-        }
-        
-      }, timeoutMs);
-    }
-    
-    return () => {
-      if (timer) clearTimeout(timer);
-    };
-  }, [state.updateState, state.progress]);
 
   const checkNow = async () => {
     if (typeof window !== 'undefined') {
@@ -2178,10 +2213,18 @@ export function useOtaUpdate(): UseOtaUpdateResult {
   return {
     ...state,
     checkNow,
-    downloadUpdate,
-    applyUpdate,
-    dismissUpdate,
-    markUpdateSeen,
+    downloadUpdate: async (trigger?: string) => {
+      await downloadUpdate(trigger);
+    },
+    applyUpdate: async (trigger?: string) => {
+      await applyUpdate(trigger);
+    },
+    dismissUpdate: () => {
+      dismissUpdate();
+    },
+    markUpdateSeen: () => {
+      markUpdateSeen();
+    },
   };
 }
 

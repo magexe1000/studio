@@ -96,6 +96,11 @@
             document.documentElement.classList.add('landing-route');
             document.documentElement.classList.remove('app-route');
             window.__introReturnedEarly = true;
+            try {
+              if (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.AppInstaller) {
+                window.Capacitor.Plugins.AppInstaller.notifyAppReady();
+              }
+            } catch (e) {}
           }
 
           var raw = localStorage.getItem('chord-explorer-storage-v3');
@@ -359,6 +364,11 @@
         var center   = document.getElementById('intro-center');
         if (window.__introReturnedEarly || !intro || !center || window.getComputedStyle(intro).display === 'none') {
           window.__introReturnedEarly = true;
+          try {
+            if (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.AppInstaller) {
+              window.Capacitor.Plugins.AppInstaller.notifyAppReady();
+            }
+          } catch (e) {}
           return;
         }
 

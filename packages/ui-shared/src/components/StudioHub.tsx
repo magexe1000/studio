@@ -1558,6 +1558,8 @@ function HubUpdaterPage({ className, style, cardStyle, accent, onBack }: {
   const lang = settings.language ?? 'en';
   const changelogSections = getChangelogSections(lang);
   const [changelogExpanded, setChangelogExpanded] = useState(false);
+  const [downgradeTarget, setDowngradeTarget] = useState<{version: string, versionCode: number, apkUrl: string, sha256: string} | null>(null);
+  const [showDowngradeConfirm, setShowDowngradeConfirm] = useState(false);
   const isChangelogTooLong = changelogSections.length > 2 || changelogSections.some(s => s.items.length > 3);
 
   const isApkFlow = ota.updateType === 'apk' || ota.updateType === 'both';
@@ -2075,60 +2077,87 @@ function HubUpdaterPage({ className, style, cardStyle, accent, onBack }: {
           <p className="updater-section-title spring-in" style={{ animationDelay: '110ms' }}>
             {lang === 'es' ? 'Gestor de Versiones' : 'Version Manager'}
           </p>
-          <div className="spring-in" style={{ ...cardStyle, margin: 0, padding: '16px 20px', display: 'flex', flexDirection: 'column', gap: 14, animationDelay: '120ms' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                <div>
-                  <p style={{ margin: 0, fontFamily: 'Manrope', fontWeight: 700, fontSize: 13.5, color: 'var(--c-text-primary)' }}>
-                    {lang === 'es' ? 'Versión Instalada' : 'Installed Version'}
-                  </p>
-                  <p style={{ margin: '2px 0 0', fontFamily: 'Inter', fontSize: 11.5, color: 'var(--c-text-secondary)' }}>
-                    v{APP_VERSION} (code {otaDebugLogs.installedVersionCode || '128'})
-                  </p>
+          
+          <div className="spring-in" style={{ ...cardStyle, margin: 0, padding: '20px', display: 'flex', flexDirection: 'column', gap: 20, animationDelay: '120ms' }}>
+            {/* Visual Timeline Path */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+              <p style={{ margin: 0, fontFamily: 'Manrope', fontWeight: 700, fontSize: 12, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--c-text-tertiary)' }}>
+                {lang === 'es' ? 'Ruta de Actualización' : 'Upgrade Path'}
+              </p>
+              
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, background: 'rgba(128,128,128,0.03)', padding: '12px 14px', borderRadius: 16, border: '1px solid rgba(128,128,128,0.06)' }}>
+                {/* Installed node */}
+                <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center', gap: 4 }}>
+                  <span style={{ fontSize: 10, fontWeight: 700, padding: '2px 6px', borderRadius: 6, background: '#22c55e20', color: '#22c55e', textTransform: 'uppercase' }}>
+                    {lang === 'es' ? 'Instalado' : 'Installed'}
+                  </span>
+                  <strong style={{ fontSize: 12, fontFamily: 'monospace' }}>v{APP_VERSION}</strong>
+                  <span style={{ fontSize: 9, color: 'var(--c-text-tertiary)' }}>code {otaDebugLogs.installedVersionCode || '131'}</span>
                 </div>
-                <div>
-                  <p style={{ margin: 0, fontFamily: 'Manrope', fontWeight: 700, fontSize: 13.5, color: 'var(--c-text-primary)' }}>
-                    {lang === 'es' ? 'Última Versión' : 'Latest Version'}
-                  </p>
-                  <p style={{ margin: '2px 0 0', fontFamily: 'Inter', fontSize: 11.5, color: 'var(--accent-from, #7c3aed)' }}>
-                    v{ota.remoteVersion || APP_VERSION}
-                  </p>
+                
+                {/* Connector arrow */}
+                <span className="material-symbols-outlined" style={{ fontSize: 16, color: 'var(--c-text-tertiary)' }}>chevron_left</span>
+                
+                {/* Previous stable versions node */}
+                <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center', gap: 4 }}>
+                  <span style={{ fontSize: 10, fontWeight: 700, padding: '2px 6px', borderRadius: 6, background: 'rgba(128,128,128,0.15)', color: 'var(--c-text-secondary)', textTransform: 'uppercase' }}>
+                    {lang === 'es' ? 'Anteriores' : 'Previous'}
+                  </span>
+                  <strong style={{ fontSize: 12, fontFamily: 'monospace' }}>v3.7.3 - v3.7.0</strong>
+                  <span style={{ fontSize: 9, color: 'var(--c-text-tertiary)' }}>{lang === 'es' ? 'Estables' : 'Stable'}</span>
                 </div>
-                <div>
-                  <p style={{ margin: 0, fontFamily: 'Manrope', fontWeight: 700, fontSize: 13.5, color: 'var(--c-text-primary)' }}>
-                    {lang === 'es' ? 'Fecha de Lanzamiento' : 'Release Date'}
-                  </p>
-                  <p style={{ margin: '2px 0 0', fontFamily: 'Inter', fontSize: 11.5, color: 'var(--c-text-secondary)' }}>
-                    {APP_VERSION_DATE}
-                  </p>
+                
+                {/* Connector arrow */}
+                <span className="material-symbols-outlined" style={{ fontSize: 16, color: 'var(--c-text-tertiary)' }}>chevron_left</span>
+                
+                {/* Latest node */}
+                <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center', gap: 4 }}>
+                  <span style={{ fontSize: 10, fontWeight: 700, padding: '2px 6px', borderRadius: 6, background: 'var(--accent-from, #7c3aed)20', color: 'var(--accent-from, #7c3aed)', textTransform: 'uppercase' }}>
+                    {lang === 'es' ? 'Última' : 'Latest'}
+                  </span>
+                  <strong style={{ fontSize: 12, fontFamily: 'monospace' }}>v{ota.remoteVersion || '3.7.4'}</strong>
+                  <span style={{ fontSize: 9, color: 'var(--c-text-tertiary)' }}>{lang === 'es' ? 'Lanzamiento' : 'Release'}</span>
                 </div>
-                {ota.releaseNotes && (
-                  <div>
-                    <p style={{ margin: 0, fontFamily: 'Manrope', fontWeight: 700, fontSize: 13.5, color: 'var(--c-text-primary)' }}>
-                      {lang === 'es' ? 'Notas de Lanzamiento' : 'Release Notes'}
-                    </p>
-                    <p style={{ margin: '2px 0 0', fontFamily: 'Inter', fontSize: 11, color: 'var(--c-text-secondary)', lineHeight: 1.4 }}>
-                      {Array.isArray(ota.releaseNotes) 
-                        ? ota.releaseNotes.join(', ')
-                        : typeof ota.releaseNotes === 'object' && ota.releaseNotes !== null
-                          ? Object.values(ota.releaseNotes).flat().join(', ')
-                          : String(ota.releaseNotes)}
-                    </p>
-                  </div>
-                )}
               </div>
-              <span className="material-symbols-outlined" style={{ fontSize: 20, color: '#4ade80', alignSelf: 'flex-start', marginTop: 2 }}>check_circle</span>
             </div>
-            
+
+            {/* Version details card */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 10, borderTop: '1px solid rgba(128, 128, 128, 0.08)', paddingTop: 14 }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <span style={{ fontFamily: 'Manrope', fontWeight: 700, fontSize: 13, color: 'var(--c-text-secondary)' }}>
+                  {lang === 'es' ? 'Detalles de la versión' : 'Version Information'}
+                </span>
+                <span style={{ fontSize: 10, color: 'var(--c-text-tertiary)', fontFamily: 'Inter' }}>
+                  {lang === 'es' ? 'Fecha:' : 'Date:'} {APP_VERSION_DATE}
+                </span>
+              </div>
+              
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                <span style={{ fontSize: 11, padding: '3px 8px', borderRadius: 8, background: 'rgba(128,128,128,0.06)', border: '1px solid rgba(128,128,128,0.1)', color: 'var(--c-text-secondary)' }}>
+                  {lang === 'es' ? 'Firma: Oficial' : 'Signature: Official'}
+                </span>
+                <span style={{ fontSize: 11, padding: '3px 8px', borderRadius: 8, background: 'rgba(128,128,128,0.06)', border: '1px solid rgba(128,128,128,0.1)', color: 'var(--c-text-secondary)' }}>
+                  {lang === 'es' ? 'Canal: Producción' : 'Channel: Production'}
+                </span>
+              </div>
+            </div>
+
+            {/* Downgrade selection list */}
             <div style={{ borderTop: '1px solid rgba(128, 128, 128, 0.08)', paddingTop: 14 }}>
               <p style={{ margin: '0 0 10px', fontFamily: 'Manrope', fontWeight: 700, fontSize: 13, color: 'var(--c-text-secondary)' }}>
-                {lang === 'es' ? 'Opciones de Downgrade' : 'Downgrade Options'}
+                {lang === 'es' ? 'Seleccionar Versión de Downgrade' : 'Select Downgrade Version'}
               </p>
               
               {(() => {
-                const currentCode = otaDebugLogs.installedVersionCode || 130;
+                const currentCode = otaDebugLogs.installedVersionCode || 131;
                 
                 const OFFICIAL_RELEASES = [
+                  {
+                    version: '3.7.4',
+                    versionCode: 131,
+                    apkUrl: 'https://github.com/MAGEXE1000/Studio/releases/download/v3.7.4/studio-3.7.4.apk',
+                    sha256: '0000000000000000000000000000000000000000000000000000000000000000'
+                  },
                   {
                     version: '3.7.3',
                     versionCode: 130,
@@ -2157,7 +2186,7 @@ function HubUpdaterPage({ className, style, cardStyle, accent, onBack }: {
                 
                 const downgradeTargets = OFFICIAL_RELEASES.filter(r => r.versionCode < currentCode)
                   .sort((a, b) => b.versionCode - a.versionCode)
-                  .slice(0, 2);
+                  .slice(0, 3); // show top 3 downgrade targets
                   
                 if (downgradeTargets.length === 0) {
                   return (
@@ -2172,38 +2201,35 @@ function HubUpdaterPage({ className, style, cardStyle, accent, onBack }: {
                     {downgradeTargets.map((target) => (
                       <button
                         key={target.version}
-                        onClick={async () => {
-                          const confirmMsg = lang === 'es'
-                            ? `¿Estás seguro de que deseas hacer un downgrade de Studio a la versión ${target.version}?\n\nADVERTENCIA: Se conservarán los datos locales, pero realizar downgrades de Android puede causar fallos de compatibilidad si las bases de datos locales cambiaron.`
-                            : `Are you sure you want to downgrade Studio to version ${target.version}?\n\nWARNING: Local data is preserved, but running Android downgrades can cause database compatibility issues if data schemas changed.`;
-                          if (window.confirm(confirmMsg)) {
-                            try {
-                              await triggerDowngrade(target.version, target.apkUrl, target.sha256);
-                            } catch (err: any) {
-                              alert(`Downgrade failed: ${err.message || String(err)}`);
-                            }
-                          }
+                        onClick={() => {
+                          setDowngradeTarget(target);
+                          setShowDowngradeConfirm(true);
                         }}
                         style={{
                           display: 'flex',
                           alignItems: 'center',
                           justifyContent: 'space-between',
-                          padding: '10px 14px',
-                          borderRadius: 10,
+                          padding: '12px 14px',
+                          borderRadius: 12,
                           background: 'rgba(128, 128, 128, 0.05)',
                           border: '1px solid rgba(128, 128, 128, 0.1)',
                           color: 'var(--c-text-primary)',
                           cursor: 'pointer',
                           fontFamily: 'inherit',
                           textAlign: 'left',
-                          transition: 'background 200ms ease'
+                          transition: 'all 200ms ease'
                         }}
                       >
                         <div>
-                          <p style={{ margin: 0, fontFamily: 'Manrope', fontWeight: 700, fontSize: 13, color: 'var(--accent-from, #7c3aed)' }}>
-                            v{target.version}
-                          </p>
-                          <p style={{ margin: '2px 0 0', fontFamily: 'Inter', fontSize: 11, color: 'var(--c-text-tertiary)' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                            <p style={{ margin: 0, fontFamily: 'Manrope', fontWeight: 800, fontSize: 14, color: 'var(--accent-from, #7c3aed)' }}>
+                              v{target.version}
+                            </p>
+                            <span style={{ fontSize: 9, fontWeight: 700, padding: '1px 5px', borderRadius: 4, background: '#ef444415', color: '#ef4444', textTransform: 'uppercase' }}>
+                              Downgrade Target
+                            </span>
+                          </div>
+                          <p style={{ margin: '3px 0 0', fontFamily: 'Inter', fontSize: 11, color: 'var(--c-text-tertiary)' }}>
                             {lang === 'es' ? `Código: ${target.versionCode} • Firma oficial` : `Code: ${target.versionCode} • Official signed`}
                           </p>
                         </div>
@@ -2284,6 +2310,114 @@ function HubUpdaterPage({ className, style, cardStyle, accent, onBack }: {
           </p>
         </div>
       </div>
+
+      {showDowngradeConfirm && downgradeTarget && (
+        <div style={{
+          position: 'fixed',
+          inset: 0,
+          zIndex: 9999,
+          background: 'rgba(0,0,0,0.7)',
+          backdropFilter: 'blur(8px)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          padding: 20
+        }}>
+          <div style={{
+            background: 'var(--app-surface)',
+            borderRadius: 24,
+            border: '1px solid rgba(128,128,128,0.15)',
+            width: '100%',
+            maxWidth: 380,
+            padding: '24px 20px',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: 16,
+            boxShadow: '0 12px 36px rgba(0,0,0,0.4)',
+            animation: 'slide-up 300ms cubic-bezier(0.34, 1.56, 0.64, 1)'
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, color: '#f87171' }}>
+              <span className="material-symbols-outlined" style={{ fontSize: 28 }}>warning</span>
+              <h3 style={{ margin: 0, fontFamily: 'Manrope', fontWeight: 800, fontSize: 18, color: 'var(--c-text-primary)' }}>
+                {lang === 'es' ? 'Confirmar Downgrade' : 'Confirm Downgrade'}
+              </h3>
+            </div>
+            
+            <p style={{ margin: 0, fontSize: 13, color: 'var(--c-text-secondary)', lineHeight: 1.5 }}>
+              {lang === 'es' 
+                ? `¿Estás seguro de que deseas instalar la versión anterior v${downgradeTarget.version}?`
+                : `Are you sure you want to install the older version v${downgradeTarget.version}?`}
+            </p>
+
+            <div style={{
+              background: 'rgba(248,113,113,0.06)',
+              border: '1px solid rgba(248,113,113,0.2)',
+              borderRadius: 14,
+              padding: '12px 14px',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: 8,
+              fontSize: 12,
+              color: 'var(--c-text-secondary)',
+              lineHeight: 1.45
+            }}>
+              <div style={{ display: 'flex', gap: 6 }}>
+                <strong style={{ color: '#f87171' }}>• {lang === 'es' ? 'Riesgos:' : 'Risks:'}</strong>
+                <span>{lang === 'es' ? 'Pueden ocurrir errores de base de datos debido a incompatibilidades de esquemas.' : 'Database errors may occur due to schema incompatibilities.'}</span>
+              </div>
+              <div style={{ display: 'flex', gap: 6 }}>
+                <strong style={{ color: '#f87171' }}>• {lang === 'es' ? 'Compatibilidad:' : 'Compatibility:'}</strong>
+                <span>{lang === 'es' ? 'La versión instalada es más nueva que la seleccionada.' : 'The currently installed version is newer than the selected version.'}</span>
+              </div>
+              <div style={{ display: 'flex', gap: 6 }}>
+                <strong style={{ color: '#4ade80' }}>• {lang === 'es' ? 'Reversibilidad:' : 'Reversibility:'}</strong>
+                <span>{lang === 'es' ? 'Puedes volver a actualizar a la versión más reciente en cualquier momento.' : 'You can upgrade back to the latest version at any time.'}</span>
+              </div>
+            </div>
+
+            <div style={{ display: 'flex', gap: 10, marginTop: 8 }}>
+              <button
+                onClick={() => {
+                  setShowDowngradeConfirm(false);
+                  setDowngradeTarget(null);
+                }}
+                style={{
+                  flex: 1, height: 44, borderRadius: 12,
+                  background: 'rgba(128,128,128,0.08)',
+                  border: '1px solid rgba(128,128,128,0.15)',
+                  color: 'var(--c-text-secondary)',
+                  fontFamily: 'Manrope', fontWeight: 700, fontSize: 13,
+                  cursor: 'pointer'
+                }}
+              >
+                {lang === 'es' ? 'Cancelar' : 'Cancel'}
+              </button>
+              <button
+                onClick={async () => {
+                  setShowDowngradeConfirm(false);
+                  try {
+                    const { triggerDowngrade } = await import('@workspace/studio-core');
+                    await triggerDowngrade(downgradeTarget.version, downgradeTarget.apkUrl, downgradeTarget.sha256);
+                  } catch (err: any) {
+                    alert(`Downgrade failed: ${err.message || String(err)}`);
+                  }
+                  setDowngradeTarget(null);
+                }}
+                style={{
+                  flex: 1, height: 44, borderRadius: 12,
+                  background: 'linear-gradient(135deg, #ef4444, #b91c1c)',
+                  border: 'none', color: 'white',
+                  fontFamily: 'Manrope', fontWeight: 800, fontSize: 13,
+                  cursor: 'pointer',
+                  boxShadow: '0 4px 12px rgba(239,68,68,0.2)'
+                }}
+              >
+                {lang === 'es' ? 'Downgrade' : 'Downgrade'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

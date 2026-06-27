@@ -1,4 +1,4 @@
-import { useChordStore, ACCENT_COLORS, otaDiagnostics, otaDebugLogs, useBackHandler, isNative } from '@workspace/studio-core';
+import { useChordStore, ACCENT_COLORS, otaDiagnostics, otaDebugLogs, useBackHandler, isNative, APP_VERSION } from '@workspace/studio-core';
 import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 
@@ -9,6 +9,236 @@ type Props = {
 
 const SWIPE_DISMISS_PX = 110;
 const SWIPE_DISMISS_VELOCITY = 0.55;
+
+export interface DiagnosticEntry {
+  category: 'Performance' | 'Updater' | 'Downloads' | 'Installation' | 'Version Manager' | 'Android' | 'Storage' | 'Network' | 'Firebase' | 'GitHub' | 'PackageInstaller';
+  timestamp: string;
+  severity: 'Info' | 'Warning' | 'Error';
+  subsystem: string;
+  summary: string;
+  technicalExplanation: string;
+  humanExplanation: string;
+  suggestedSolution: string;
+  stack?: string;
+}
+
+export function getStructuredDiagnostics(developerMode: boolean): DiagnosticEntry[] {
+  const list: DiagnosticEntry[] = [];
+  const nowStr = new Date().toISOString();
+
+  // 1. PERFORMANCE CATEGORY
+  const boot = (typeof window !== 'undefined' ? (window as any).__bootTimings : null) || { introStart: 0, hubVisible: 0 };
+  const natBoot = (typeof window !== 'undefined' ? (window as any).__nativeBootTimings : null) || { processStart: 0, onCreate: 0, webViewInit: 0 };
+  
+  const toSec = (ms: number) => ms > 0 ? `${(ms / 1000).toFixed(2)}s` : 'N/A';
+
+  // JS Initialization
+  const jsInitMs = (natBoot.webViewInit && natBoot.onCreate) ? (natBoot.webViewInit - natBoot.onCreate) : 0;
+  list.push({
+    category: 'Performance',
+    timestamp: nowStr,
+    severity: 'Info',
+    subsystem: 'JS Engine',
+    summary: 'JavaScript engine initialization time',
+    technicalExplanation: `JS bundle load & execution: ${jsInitMs}ms.`,
+    humanExplanation: 'The time taken for the app\'s JavaScript code to load and run.',
+    suggestedSolution: 'Keep JS bundle sizes small and avoid heavy startup execution.'
+  });
+
+  // Native Initialization
+  const nativeInitMs = (natBoot.onCreate && natBoot.processStart) ? (natBoot.onCreate - natBoot.processStart) : 0;
+  list.push({
+    category: 'Performance',
+    timestamp: nowStr,
+    severity: 'Info',
+    subsystem: 'Android Native',
+    summary: 'Native application bootstrap time',
+    technicalExplanation: `Process launch to onCreate: ${nativeInitMs}ms.`,
+    humanExplanation: 'The time taken by the Android operating system to initialize the app process.',
+    suggestedSolution: 'Optimize native application onCreate and plugin registration.'
+  });
+
+  // First Frame
+  list.push({
+    category: 'Performance',
+    timestamp: nowStr,
+    severity: 'Info',
+    subsystem: 'Renderer',
+    summary: 'Time to first frame (planets intro)',
+    technicalExplanation: `First paint frame timing: ${toSec(boot.introStart)}.`,
+    humanExplanation: 'How quickly the application renders its first visual pixel (the planets intro).',
+    suggestedSolution: 'Keep CSS and HTML footprint minimal before first mount.'
+  });
+
+  // First Interaction / Hub Visible
+  list.push({
+    category: 'Performance',
+    timestamp: nowStr,
+    severity: 'Info',
+    subsystem: 'Application Hub',
+    summary: 'Time to first interaction (Hub visible)',
+    technicalExplanation: `Hub visibility latency: ${toSec(boot.hubVisible)}.`,
+    humanExplanation: 'The total time from launch until the user can interact with the app Hub.',
+    suggestedSolution: 'Settle animations smoothly and defer non-critical assets.'
+  });
+
+  // Heavy profiling (only if Developer Mode is enabled)
+  if (developerMode) {
+    // Memory
+    let memText = 'N/A';
+    if (typeof performance !== 'undefined' && (performance as any).memory) {
+      const mem = (performance as any).memory;
+      memText = `${(mem.usedJSHeapSize / 1024 / 1024).toFixed(1)}MB / ${(mem.jsHeapSizeLimit / 1024 / 1024).toFixed(1)}MB`;
+    }
+    list.push({
+      category: 'Performance',
+      timestamp: nowStr,
+      severity: 'Info',
+      subsystem: 'Memory Profile',
+      summary: 'Heap memory usage profiling',
+      technicalExplanation: `JS Heap: ${memText}.`,
+      humanExplanation: 'Current memory footprint used by the app\'s Javascript runtime.',
+      suggestedSolution: 'Perform garbage collection checks and profiling if leaks occur.'
+    });
+
+    // Dropped frames / Freezes
+    const freezes = (typeof window !== 'undefined' ? (window as any).__startupAnimationFreezes : null) || [];
+    const frozenCount = freezes.length;
+    list.push({
+      category: 'Performance',
+      timestamp: nowStr,
+      severity: frozenCount > 0 ? 'Warning' : 'Info',
+      subsystem: 'Frame Scheduler',
+      summary: 'Startup animation dropped frames detection',
+      technicalExplanation: `Detected ${frozenCount} frame lag points (>50ms). Details: ${JSON.stringify(freezes)}`,
+      humanExplanation: 'Number of frames skipped during the planets animation.',
+      suggestedSolution: 'Ensure main thread is not blocked by heavy React mounting tasks.',
+      stack: Error().stack
+    });
+  }
+
+  // 2. UPDATER CATEGORY
+  list.push({
+    category: 'Updater',
+    timestamp: otaDiagnostics.timestamp || nowStr,
+    severity: otaDiagnostics.exceptionMessage ? 'Error' : 'Info',
+    subsystem: 'Update Manager',
+    summary: 'Update engine status',
+    technicalExplanation: `Current state: ${otaDebugLogs.updateDecisionReason || 'idle'}.`,
+    humanExplanation: 'The status of the background update checker engine.',
+    suggestedSolution: 'Verify internet connection and server status if updates fail.'
+  });
+
+  // 3. DOWNLOADS CATEGORY
+  list.push({
+    category: 'Downloads',
+    timestamp: nowStr,
+    severity: 'Info',
+    subsystem: 'Network Fetcher',
+    summary: 'APK size and path configuration',
+    technicalExplanation: `File size: ${otaDiagnostics.fileSize || 'N/A'}. Path: ${otaDiagnostics.apkPath || 'N/A'}.`,
+    humanExplanation: 'Information about the downloaded installation package details.',
+    suggestedSolution: 'Ensure local storage has enough space to hold the package.'
+  });
+
+  // 4. INSTALLATION CATEGORY
+  list.push({
+    category: 'Installation',
+    timestamp: nowStr,
+    severity: otaDebugLogs.eligibilityReason ? 'Error' : 'Info',
+    subsystem: 'Verify Manager',
+    summary: 'Signature and packageName verification status',
+    technicalExplanation: `Package: ${otaDebugLogs.downloadedPackageName || 'N/A'}. Signature Match: ${otaDebugLogs.eligibilitySigningMatch !== null ? otaDebugLogs.eligibilitySigningMatch : 'N/A'}.`,
+    humanExplanation: 'Results of the pre-installation security checks.',
+    suggestedSolution: 'Uninstall any conflicting builds if signature mismatches are reported.'
+  });
+
+  // 5. VERSION MANAGER CATEGORY
+  list.push({
+    category: 'Version Manager',
+    timestamp: nowStr,
+    severity: 'Info',
+    subsystem: 'Version Comparer',
+    summary: 'Version comparison check',
+    technicalExplanation: `Installed: ${APP_VERSION} (code ${otaDebugLogs.installedVersionCode || '131'}). Target: ${otaDebugLogs.remoteVersionCode || 'N/A'}.`,
+    humanExplanation: 'How the installed version compares to the target version.',
+    suggestedSolution: 'Ensure the versionCode is newer for successful installation.'
+  });
+
+  // 6. ANDROID CATEGORY
+  list.push({
+    category: 'Android',
+    timestamp: nowStr,
+    severity: 'Info',
+    subsystem: 'Device OS',
+    summary: 'Android system details',
+    technicalExplanation: `Model: ${otaDiagnostics.deviceModel || 'N/A'}. OS Version: Android ${otaDiagnostics.androidVersion || 'N/A'}.`,
+    humanExplanation: 'Basic hardware and operating system details reported by the device.',
+    suggestedSolution: 'Check for any Android system updates.'
+  });
+
+  // 7. STORAGE CATEGORY
+  list.push({
+    category: 'Storage',
+    timestamp: nowStr,
+    severity: 'Info',
+    subsystem: 'Filesystem',
+    summary: 'Device storage space details',
+    technicalExplanation: `Available: ${otaDiagnostics.storageAvailable || 'N/A'}.`,
+    humanExplanation: 'Remaining disk space available for downloading and installing updates.',
+    suggestedSolution: 'Free up storage if space falls below 150MB.'
+  });
+
+  // 8. NETWORK CATEGORY
+  list.push({
+    category: 'Network',
+    timestamp: nowStr,
+    severity: otaDiagnostics.networkState === 'disconnected' ? 'Warning' : 'Info',
+    subsystem: 'Connectivity',
+    summary: 'Device network state details',
+    technicalExplanation: `State: ${otaDiagnostics.networkState || 'N/A'}.`,
+    humanExplanation: 'Status of the device\'s internet connection.',
+    suggestedSolution: 'Connect to Wi-Fi or enable cellular data.'
+  });
+
+  // 9. FIREBASE CATEGORY
+  list.push({
+    category: 'Firebase',
+    timestamp: nowStr,
+    severity: otaDebugLogs.fetchedAppReleaseJson ? 'Info' : 'Warning',
+    subsystem: 'Hosting Metadata',
+    summary: 'Firebase release metadata fetch status',
+    technicalExplanation: `version.json status: ${otaDebugLogs.fetchedVersionJson ? 'SUCCESS' : 'FAILED'}.`,
+    humanExplanation: 'Connection state with the secondary update metadata server.',
+    suggestedSolution: 'Verify Firebase hosting deployment is active.'
+  });
+
+  // 10. GITHUB CATEGORY
+  list.push({
+    category: 'GitHub',
+    timestamp: nowStr,
+    severity: 'Info',
+    subsystem: 'Releases API',
+    summary: 'GitHub releases source status',
+    technicalExplanation: `Download URL: ${otaDiagnostics.downloadUrl || 'N/A'}.`,
+    humanExplanation: 'Status of the primary release storage hosted on GitHub.',
+    suggestedSolution: 'Check if the repository releases are public and accessible.'
+  });
+
+  // 11. PACKAGEINSTALLER CATEGORY
+  list.push({
+    category: 'PackageInstaller',
+    timestamp: nowStr,
+    severity: otaDiagnostics.statusCode && otaDiagnostics.statusCode > 1 ? 'Error' : 'Info',
+    subsystem: 'Android PackageInstaller',
+    summary: 'Android system installer response log',
+    technicalExplanation: `Status: ${otaDiagnostics.statusCode || 'N/A'}. Detail: ${otaDiagnostics.installerResult || 'N/A'}.`,
+    humanExplanation: 'The response returned by the Android system package installer.',
+    suggestedSolution: 'Check settings permissions and clear conflicting packages.'
+  });
+
+  return list;
+}
 
 export default function UpdateDiagnosticsSheet({ open, onClose }: Props) {
   const { settings } = useChordStore();
@@ -26,6 +256,23 @@ export default function UpdateDiagnosticsSheet({ open, onClose }: Props) {
   const [drag, setDrag] = useState(0);
   const [copied, setCopied] = useState(false);
   const [nativeLogs, setNativeLogs] = useState<any[]>([]);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [selectedCategory, setSelectedCategory] = useState<string>('All');
+  const [expandedEntryIdx, setExpandedEntryIdx] = useState<number | null>(null);
+
+  const categories = ['All', 'Performance', 'Updater', 'Downloads', 'Installation', 'Version Manager', 'Android', 'Storage', 'Network', 'Firebase', 'GitHub', 'PackageInstaller'];
+
+  const diagnosticsList = getStructuredDiagnostics(settings.developerMode ?? false);
+
+  const filteredEntries = diagnosticsList.filter(entry => {
+    const matchesCategory = selectedCategory === 'All' || entry.category === selectedCategory;
+    const matchesSearch = searchTerm === '' || 
+      entry.subsystem.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      entry.summary.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      entry.technicalExplanation.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      entry.humanExplanation.toLowerCase().includes(searchTerm.toLowerCase());
+    return matchesCategory && matchesSearch;
+  });
 
   useEffect(() => {
     if (open) {
@@ -664,171 +911,189 @@ export default function UpdateDiagnosticsSheet({ open, onClose }: Props) {
             </div>
           )}
 
-          {/* Section: Update Pipeline Validation */}
-          <div style={{
-            fontFamily: 'Manrope',
-            fontWeight: 800,
-            fontSize: 11,
-            color: 'var(--c-text-primary)',
-            marginTop: 4,
-            marginBottom: 12,
-            borderBottom: '1px solid rgba(128,128,128,0.16)',
-            paddingBottom: 6,
-            textTransform: 'uppercase',
-            letterSpacing: '0.05em'
-          }}>
-            Update Pipeline Validation
+          {/* Search and Category Filters */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 12, marginBottom: 18 }}>
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              background: 'rgba(128,128,128,0.06)',
+              border: '1px solid rgba(128,128,128,0.12)',
+              borderRadius: 10,
+              padding: '6px 12px',
+              gap: 8
+            }}>
+              <span className="material-symbols-outlined" style={{ fontSize: 18, color: 'var(--c-text-muted)' }}>search</span>
+              <input
+                type="text"
+                placeholder="Search diagnostics..."
+                value={searchTerm}
+                onChange={e => setSearchTerm(e.target.value)}
+                style={{
+                  background: 'transparent',
+                  border: 'none',
+                  outline: 'none',
+                  color: 'var(--c-text-primary)',
+                  fontSize: 13,
+                  width: '100%',
+                  fontFamily: 'inherit'
+                }}
+              />
+              {searchTerm && (
+                <button
+                  onClick={() => setSearchTerm('')}
+                  style={{ background: 'transparent', border: 'none', color: 'var(--c-text-muted)', cursor: 'pointer', display: 'flex' }}
+                >
+                  <span className="material-symbols-outlined" style={{ fontSize: 16 }}>close</span>
+                </button>
+              )}
+            </div>
+
+            {/* Horizontal scrollable categories */}
+            <div className="no-scrollbar" style={{
+              display: 'flex',
+              gap: 6,
+              overflowX: 'auto',
+              paddingBottom: 2,
+              WebkitOverflowScrolling: 'touch'
+            }}>
+              {categories.map(cat => {
+                const active = selectedCategory === cat;
+                return (
+                  <button
+                    key={cat}
+                    onClick={() => {
+                      setSelectedCategory(cat);
+                      setExpandedEntryIdx(null);
+                    }}
+                    style={{
+                      padding: '5px 12px',
+                      borderRadius: 20,
+                      background: active ? accent.from : 'rgba(128,128,128,0.06)',
+                      color: active ? 'white' : 'var(--c-text-secondary)',
+                      border: active ? 'none' : '1px solid rgba(128,128,128,0.1)',
+                      fontSize: 11,
+                      fontWeight: 700,
+                      fontFamily: 'Manrope',
+                      cursor: 'pointer',
+                      whiteSpace: 'nowrap',
+                      transition: 'all 150ms ease'
+                    }}
+                  >
+                    {cat}
+                  </button>
+                );
+              })}
+            </div>
           </div>
 
-          <div style={{
-            background: 'rgba(128,128,128,0.04)',
-            borderRadius: 12,
-            padding: '10px 14px',
-            marginBottom: 20,
-            border: '1px solid rgba(128,128,128,0.1)'
-          }}>
-            {getValidationPhases().map((phase, idx) => {
-              const badgeColor = phase.status === 'PASS' ? '#22c55e' : (phase.status === 'FAIL' ? '#ef4444' : '#fbbf24');
-              const badgeBg = phase.status === 'PASS' ? 'rgba(34,197,94,0.15)' : (phase.status === 'FAIL' ? 'rgba(239,68,68,0.15)' : 'rgba(251,191,36,0.15)');
-              return (
-                <div key={idx} style={{
-                  display: 'flex',
-                  justifyContent: 'space-between',
-                  alignItems: 'center',
-                  padding: '8px 0',
-                  borderBottom: idx < 7 ? '1px solid rgba(128,128,128,0.08)' : 'none',
-                  gap: 12
-                }}>
-                  <div style={{ flex: 1 }}>
-                    <div style={{ fontFamily: 'Manrope', fontWeight: 700, fontSize: 13, color: 'var(--c-text-primary)' }}>
-                      {phase.name}
+          {/* Diagnostic Cards List */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginBottom: 20 }}>
+            {filteredEntries.length === 0 ? (
+              <div style={{ textAlign: 'center', padding: '30px 10px', color: 'var(--c-text-muted)', fontSize: 13, fontStyle: 'italic' }}>
+                No diagnostic entries match your filters.
+              </div>
+            ) : (
+              filteredEntries.map((entry, idx) => {
+                const expanded = expandedEntryIdx === idx;
+                const severityColors = {
+                  Info: { text: '#3b82f6', bg: 'rgba(59,130,246,0.1)' },
+                  Warning: { text: '#fbbf24', bg: 'rgba(251,191,36,0.1)' },
+                  Error: { text: '#ef4444', bg: 'rgba(239,68,68,0.1)' }
+                }[entry.severity];
+
+                return (
+                  <div
+                    key={idx}
+                    onClick={() => setExpandedEntryIdx(expanded ? null : idx)}
+                    style={{
+                      background: 'rgba(128,128,128,0.03)',
+                      border: expanded ? `1px solid ${accent.from}` : '1px solid rgba(128,128,128,0.08)',
+                      borderRadius: 14,
+                      padding: '14px 16px',
+                      cursor: 'pointer',
+                      transition: 'all 200ms ease',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      gap: 8
+                    }}
+                  >
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 8 }}>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                        <span style={{ fontSize: 9.5, fontWeight: 800, textTransform: 'uppercase', color: accent.from, letterSpacing: '0.04em' }}>
+                          {entry.category} • {entry.subsystem}
+                        </span>
+                        <strong style={{ fontSize: 13, color: 'var(--c-text-primary)', fontFamily: 'Manrope', fontWeight: 700 }}>
+                          {entry.summary}
+                        </strong>
+                      </div>
+                      <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+                        <span style={{
+                          fontSize: 9,
+                          fontWeight: 800,
+                          padding: '2px 6px',
+                          borderRadius: 4,
+                          color: severityColors.text,
+                          background: severityColors.bg
+                        }}>
+                          {entry.severity}
+                        </span>
+                        <span className="material-symbols-outlined" style={{ fontSize: 16, color: 'var(--c-text-muted)', transform: expanded ? 'rotate(180deg)' : 'none', transition: 'transform 200ms ease' }}>
+                          expand_more
+                        </span>
+                      </div>
                     </div>
-                    <div style={{ fontFamily: 'Inter', fontSize: 11.5, color: 'var(--c-text-muted)', marginTop: 2 }}>
-                      {phase.desc}
-                    </div>
+
+                    {expanded && (
+                      <div style={{
+                        display: 'flex',
+                        flexDirection: 'column',
+                        gap: 12,
+                        marginTop: 6,
+                        borderTop: '1px solid rgba(128,128,128,0.08)',
+                        paddingTop: 12,
+                        fontSize: 12,
+                        lineHeight: 1.45
+                      }}>
+                        {/* Human explanation */}
+                        <div>
+                          <label style={{ display: 'block', fontSize: 9.5, fontWeight: 700, textTransform: 'uppercase', color: 'var(--c-text-muted)', marginBottom: 2 }}>Explanation</label>
+                          <p style={{ margin: 0, color: 'var(--c-text-secondary)' }}>{entry.humanExplanation}</p>
+                        </div>
+                        
+                        {/* Technical explanation */}
+                        <div>
+                          <label style={{ display: 'block', fontSize: 9.5, fontWeight: 700, textTransform: 'uppercase', color: 'var(--c-text-muted)', marginBottom: 2 }}>Technical Details</label>
+                          <code style={{ display: 'block', padding: '6px 10px', background: 'rgba(128,128,128,0.06)', borderRadius: 6, fontFamily: 'monospace', color: 'var(--c-text-primary)', overflowX: 'auto', whiteSpace: 'pre' }}>
+                            {entry.technicalExplanation}
+                          </code>
+                        </div>
+
+                        {/* Suggested solution */}
+                        <div>
+                          <label style={{ display: 'block', fontSize: 9.5, fontWeight: 700, textTransform: 'uppercase', color: 'var(--c-text-muted)', marginBottom: 2 }}>Suggested Solution</label>
+                          <p style={{ margin: 0, color: '#22c55e', fontWeight: 600 }}>{entry.suggestedSolution}</p>
+                        </div>
+
+                        {/* Stack info (Developer mode only) */}
+                        {settings.developerMode && entry.stack && (
+                          <div>
+                            <label style={{ display: 'block', fontSize: 9.5, fontWeight: 700, textTransform: 'uppercase', color: 'var(--c-text-muted)', marginBottom: 2 }}>Stack Information</label>
+                            <pre style={{ margin: 0, padding: 8, background: 'rgba(239,68,68,0.04)', color: '#f87171', fontSize: 9.5, borderRadius: 6, fontFamily: 'monospace', overflowX: 'auto', maxHeight: 120 }}>
+                              {entry.stack}
+                            </pre>
+                          </div>
+                        )}
+
+                        <div style={{ fontSize: 10, color: 'var(--c-text-tertiary)', textAlign: 'right' }}>
+                          Logged: {new Date(entry.timestamp).toLocaleString()}
+                        </div>
+                      </div>
+                    )}
                   </div>
-                  <span style={{
-                    fontFamily: 'Manrope',
-                    fontWeight: 800,
-                    fontSize: 9.5,
-                    padding: '3px 8px',
-                    borderRadius: 6,
-                    color: badgeColor,
-                    background: badgeBg,
-                    letterSpacing: '0.04em'
-                  }}>
-                    {phase.status}
-                  </span>
-                </div>
-              );
-            })}
+                );
+              })
+            )}
           </div>
-
-          {/* Section: General Device Info */}
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px 24px', marginBottom: 6 }}>
-            <div style={{ minWidth: 120, flex: 1 }}>
-              <DiagnosticField label="Device Model" value={otaDiagnostics.deviceModel} />
-            </div>
-            <div style={{ minWidth: 120, flex: 1 }}>
-              <DiagnosticField label="Android Version" value={otaDiagnostics.androidVersion} />
-            </div>
-          </div>
-
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px 24px', marginBottom: 6 }}>
-            <div style={{ minWidth: 120, flex: 1 }}>
-              <DiagnosticField label="Architecture" value={otaDiagnostics.architecture || 'N/A'} />
-            </div>
-            <div style={{ minWidth: 120, flex: 1 }}>
-              <DiagnosticField label="Device Locale" value={otaDiagnostics.deviceLocale || 'N/A'} />
-            </div>
-          </div>
-
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px 24px', marginBottom: 6 }}>
-            <div style={{ minWidth: 120, flex: 1 }}>
-              <DiagnosticField label="Storage Space" value={otaDiagnostics.storageAvailable || 'N/A'} />
-            </div>
-            <div style={{ minWidth: 120, flex: 1 }}>
-              <DiagnosticField label="Network Status" value={otaDiagnostics.networkState || 'N/A'} />
-            </div>
-          </div>
-
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px 24px', marginBottom: 6 }}>
-            <div style={{ minWidth: 120, flex: 1 }}>
-              <DiagnosticField label="Permission State" value={otaDiagnostics.permissionState} />
-            </div>
-            <div style={{ minWidth: 120, flex: 1 }}>
-              <DiagnosticField label="Timestamp" value={otaDiagnostics.timestamp} />
-            </div>
-          </div>
-
-          {/* Section: Technical Details */}
-          <div style={{
-            fontFamily: 'Manrope',
-            fontWeight: 800,
-            fontSize: 11,
-            color: 'var(--c-text-primary)',
-            marginTop: 18,
-            marginBottom: 12,
-            borderBottom: '1px solid rgba(128,128,128,0.16)',
-            paddingBottom: 6,
-            textTransform: 'uppercase',
-            letterSpacing: '0.05em'
-          }}>
-            Technical Details
-          </div>
-
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px 24px', marginBottom: 6 }}>
-            <div style={{ minWidth: 120, flex: 1 }}>
-              <DiagnosticField label="Installed Version" value={otaDebugLogs.installedVersionName ? `${otaDebugLogs.installedVersionName} (code ${otaDebugLogs.installedVersionCode})` : 'N/A'} />
-            </div>
-            <div style={{ minWidth: 120, flex: 1 }}>
-              <DiagnosticField label="Target Version" value={otaDebugLogs.remoteVersionCode ? `v${otaDebugLogs.remoteVersionCode}` : 'N/A'} />
-            </div>
-          </div>
-
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px 24px', marginBottom: 6 }}>
-            <div style={{ minWidth: 120, flex: 1 }}>
-              <DiagnosticField label="Installed Package" value={otaDebugLogs.installedPackageName} />
-            </div>
-            <div style={{ minWidth: 120, flex: 1 }}>
-              <DiagnosticField label="Downloaded Package" value={otaDebugLogs.downloadedPackageName} />
-            </div>
-          </div>
-
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px 24px', marginBottom: 6 }}>
-            <div style={{ minWidth: 120, flex: 1 }}>
-              <DiagnosticField label="Signature Match" value={otaDebugLogs.eligibilitySigningMatch !== null ? (otaDebugLogs.eligibilitySigningMatch ? 'MATCH' : 'MISMATCH') : 'N/A'} />
-            </div>
-            <div style={{ minWidth: 120, flex: 1 }}>
-              <DiagnosticField label="Package Match" value={otaDebugLogs.eligibilityPackageNameMatch !== null ? (otaDebugLogs.eligibilityPackageNameMatch ? 'MATCH' : 'MISMATCH') : 'N/A'} />
-            </div>
-          </div>
-
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px 24px', marginBottom: 6 }}>
-            <div style={{ minWidth: 120, flex: 1 }}>
-              <DiagnosticField label="Expected SHA-256" value={otaDiagnostics.shaExpected} />
-            </div>
-            <div style={{ minWidth: 120, flex: 1 }}>
-              <DiagnosticField label="Calculated SHA-256" value={otaDiagnostics.shaCalculated} />
-            </div>
-          </div>
-
-          <DiagnosticField label="APK Download Path" value={otaDiagnostics.apkPath} />
-          
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px 24px', marginBottom: 6 }}>
-            <div style={{ minWidth: 120, flex: 1 }}>
-              <DiagnosticField label="APK Package Size" value={otaDiagnostics.fileSize} />
-            </div>
-            <div style={{ minWidth: 120, flex: 1 }}>
-              <DiagnosticField label="Installer Status Code" value={otaDiagnostics.statusCode !== null ? String(otaDiagnostics.statusCode) : 'N/A'} />
-            </div>
-          </div>
-
-          <DiagnosticField label="Download URL" value={otaDiagnostics.downloadUrl} />
-
-          <DiagnosticField label="Last Native Intent Log" value={otaDiagnostics.installerResult} isCode />
-
-          <DiagnosticField label="Exception Stack Trace" value={otaDiagnostics.failureReason} isCode />
 
           {/* Section: Developer Mode Collapsible */}
           {settings.developerMode && (

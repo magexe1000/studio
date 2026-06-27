@@ -26,7 +26,7 @@ import { useMemo } from 'react';
 import { Capacitor } from '@capacitor/core';
 
 /** Canonical semver string used by the OTA comparator. */
-export const NATIVE_VERSION = '3.7.3';
+export const NATIVE_VERSION = '3.7.4';
 export const WEB_VERSION = '4.0.0';
 export const APP_VERSION = Capacitor.isNativePlatform() ? NATIVE_VERSION : WEB_VERSION;
 
@@ -61,14 +61,16 @@ export const APP_CHANGELOG_SECTIONS: ChangelogSection[] = [
   {
     heading: "Added",
     items: [
-      "Added interactive Resume/Discard confirmation prompts for interrupted updater package installations.",
-      "Added automatic cleanup of stale PackageInstaller history and cache files on up-to-date checks.",
+      "Added a premium Version Manager UI with a visual upgrade path timeline, current version highlighting, and detailed release date badges.",
+      "Added a secure, native-styled React downgrade warning and confirmation modal explaining risks, compatibility, and reversibility.",
+      "Significantly expanded Update Diagnostics with search, category filtering, and item expansion for performance, network, storage, and installer logs.",
+      "Integrated animation and boot timing telemetry tracking JS engine load, native bootstrap latency, and frame rendering.",
     ],
   },
   {
     heading: "Fixed",
     items: [
-      "Resolved checking for updates regression where manual clicks skipped checking and went directly to pending install progress.",
+      "Eliminated logo splashes and background flashes during Android launch for a seamless planet-intro fade-in transition.",
     ],
   },
 ];

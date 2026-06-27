@@ -6,21 +6,21 @@
         <item name="android:windowDrawsSystemBarBackgrounds">true</item>
         <item name="android:windowLayoutInDisplayCutoutMode" tools:ignore="NewApi">default</item>
         <item name="android:windowSplashScreenAnimationDuration" tools:ignore="NewApi">0</item>
-        <item name="android:windowSplashScreenBackground" tools:ignore="NewApi">#000000</item>
+        <item name="android:windowSplashScreenBackground" tools:ignore="NewApi">#0a0a0c</item>
         <item name="android:windowLightStatusBar">false</item>
-        <item name="android:windowBackground">#000000</item>
+        <item name="android:windowBackground">#0a0a0c</item>
     </style>
 
     <style name="AppTheme.NoActionBar" parent="Theme.AppCompat.DayNight.NoActionBar">
         <item name="windowActionBar">false</item>
         <item name="windowNoTitle">true</item>
         <item name="android:background">@null</item>
-        <item name="android:windowBackground">#000000</item>
+        <item name="android:windowBackground">#0a0a0c</item>
     </style>
 
     <style name="AppTheme.NoActionBarLaunch" parent="Theme.SplashScreen">
-        <item name="windowSplashScreenBackground">#000000</item>
-        <item name="windowSplashScreenAnimatedIcon">@drawable/splash</item>
+        <item name="windowSplashScreenBackground">#0a0a0c</item>
+        <item name="windowSplashScreenAnimatedIcon">@android:color/transparent</item>
         <item name="postSplashScreenTheme">@style/AppTheme.NoActionBar</item>
         <item name="android:windowIsTranslucent">false</item>
     </style>

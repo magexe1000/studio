@@ -12,6 +12,81 @@ Conventions:
 - Bullets start with `- ` and use plain English a non-technical user
   can parse. Keep each line short — the modal's text area is narrow.
 
+## 3.7.4
+
+### Added
+- Added a premium Version Manager UI with a visual upgrade path timeline, current version highlighting, and detailed release date badges.
+- Added a secure, native-styled React downgrade warning and confirmation modal explaining risks, compatibility, and reversibility.
+- Significantly expanded Update Diagnostics with search, category filtering, and item expansion for performance, network, storage, and installer logs.
+- Integrated animation and boot timing telemetry tracking JS engine load, native bootstrap latency, and frame rendering.
+
+### Fixed
+- Eliminated logo splashes and background flashes during Android launch for a seamless planet-intro fade-in transition.
+
+## 3.7.3
+
+### Added
+- Added interactive Resume/Discard confirmation prompts for interrupted updater package installations.
+- Added automatic cleanup of stale PackageInstaller history and cache files on up-to-date checks.
+
+### Fixed
+- Resolved checking for updates regression where manual clicks skipped checking and went directly to pending install progress.
+
+## 3.7.2
+
+### Added
+- Implemented smart HTTP resume and partial downloadRange writing for interrupted updates.
+- Added prioritized mirror failovers (GitHub Release -> Firebase Hosting -> Official Mirror).
+- Created Failsafe Direct intent installer bypass using FileProvider URIs to override PackageInstaller session blocks.
+- Added Recovery Mode overlay displaying version details, diagnostics log compile, and manual copy/share actions.
+
+### Fixed
+- Resolved checking for updates regression where modal would show stuck 0% download progress.
+- Aligned Hub bottom navigation auto-hide animation with the rest of Studio.
+
+## 3.7.1
+
+### Fixed
+- Resolved the "Check for updates" regression that opened the updater dialog prematurely and showed a stuck 0% progress screen.
+- Restored the theme-aware, animated top-right update indicator pill/badge z-index so it doesn't render behind other elements.
+
+### Added
+- Implemented Version Manager UI under settings, allowing users to downgrade to the previous stable release (v3.7.0) or one version prior (v3.6.99).
+- Added Update History tracking, recording all transition states locally in a persistent log.
+- Upgraded the PackageInstaller to call setRequestDowngrade(true) to support downgrades with matching signing signatures.
+
+## 3.7.0
+
+### Added
+- Consolidated all system updater improvements into a new stable baseline.
+- Prevented Background Activity Launch (BAL) blocks on Android 14+ by instantiating explicit ActivityOptions.
+- Eliminated state-overwrite race conditions and duplicate download loops via strict state transition guards.
+- Streamlined PackageInstaller session commit and lifecycle callback handling.
+- Enhanced updater diagnostics sheet with detailed session validation matrices, certificate signatures, and execution traces.
+
+## 3.6.99
+
+### Added
+- Resolved Android 14+ background activity start block by configuring explicit ActivityOptions in InstallReceiver.
+- Prevented double-download and progress thrashes with strict state-transition guards in the update manager.
+- Fully validated system update end-to-end and successfully launched native confirmation dialog.
+
+## 3.6.98
+
+### Added
+- Resolved PackageInstaller update handoff bug by actively launching system confirmation intent from InstallReceiver.
+- Optimized native launch splash screen to use DayNight color systems to eliminate light/dark flashes.
+- Made startup experience premium by transitioning directly into planets animation on WebView mount.
+- Expanded Update Diagnostics Sheet to render complete PackageInstaller session logs, timestamps, elapsed times, and stack traces.
+
+## 3.6.97
+
+### Added
+- Resolved PackageInstaller update handoff bug by actively launching system confirmation intent from InstallReceiver.
+- Optimized native launch splash screen to use DayNight color systems to eliminate light/dark flashes.
+- Made startup experience premium by transitioning directly into planets animation on WebView mount.
+- Expanded Update Diagnostics Sheet to render complete PackageInstaller session logs, timestamps, elapsed times, and stack traces.
+
 ## 3.6.96
 
 ### Added
