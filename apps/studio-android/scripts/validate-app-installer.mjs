@@ -507,19 +507,24 @@ if (fs.existsSync(paths.apkPath)) {
     const appReleasePath = path.join(repoRoot, 'firebase-public/app-release.json');
     if (fs.existsSync(appReleasePath)) {
       try {
-        console.log('Verifying local app-release.json matches the APK SHA-256...');
         const metadata = JSON.parse(fs.readFileSync(appReleasePath, 'utf8'));
         
-        const crypto = await import('node:crypto');
-        const fileBuffer = fs.readFileSync(paths.apkPath);
-        const hashSum = crypto.createHash('sha256');
-        hashSum.update(fileBuffer);
-        const localApkSha = hashSum.digest('hex');
-        
-        if (metadata.sha256 && metadata.sha256 !== localApkSha) {
-          assert(false, `Local metadata SHA-256 (${metadata.sha256}) does not match APK SHA-256 (${localApkSha})!`, EXIT_CODES.RELEASE_VALIDATION);
+        if (metadata.version === expectedVersionName) {
+          console.log('Verifying local app-release.json matches the APK SHA-256...');
+          
+          const crypto = await import('node:crypto');
+          const fileBuffer = fs.readFileSync(paths.apkPath);
+          const hashSum = crypto.createHash('sha256');
+          hashSum.update(fileBuffer);
+          const localApkSha = hashSum.digest('hex');
+          
+          if (metadata.sha256 && metadata.sha256 !== localApkSha) {
+            assert(false, `Local metadata SHA-256 (${metadata.sha256}) does not match APK SHA-256 (${localApkSha})!`, EXIT_CODES.RELEASE_VALIDATION);
+          }
+          console.log('✓ Local app-release.json SHA-256 matches APK hash.');
+        } else {
+          console.log(`Skipping local app-release.json SHA check because metadata version (${metadata.version}) differs from APK version (${expectedVersionName}). It will be updated later in the pipeline.`);
         }
-        console.log('✓ Local app-release.json SHA-256 matches APK hash.');
       } catch (e) {
         console.warn(`⚠ Could not verify app-release.json match: ${e.message}`);
       }
