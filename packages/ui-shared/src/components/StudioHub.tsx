@@ -1,4 +1,5 @@
 import { useBackHandler, subscribeAuth, signOut, type AuthUser, subscribeSyncStatus, syncNow, type SyncStatus, deviceId, getConflictLogs, clearConflictLogs, createCloudBackup, getSyncDiagnostics, pushLocalSettingsToCloud, pullCloudSettingsFromCloud, registerDevice, registerCurrentDevice, reconnectDevices, useChordStore, ACCENT_COLORS, type Theme, type AnimationSpeed, type DisplayDensity, type AppKey, type PerAppVisuals, useNavHidden, useNavCollapsed, useScrollHide, useT, APP_VERSION_LABEL, APP_VERSION_TAG, APP_VERSION_DATE, compareSemver, APP_VERSION, getChangelogSections, useOtaUpdate, otaDebugLogs, otaDiagnostics, checkForUpdate, resetOtaUpdateState, isAppInstallerAvailable, applyUpdate, isNative, fadeToBlackAndReload, notifyOtaAvailable, resolveApkUrl, downloadAndInstallApk, resolveReleasePageUrl, useLiquidGlassNav, useIsWebDesktop, useStudioPreferences, registerDebugProvider, unregisterDebugProvider, recordNavigation, getFirestoreDiagnostics, getNavigationEntries } from '@workspace/studio-core';
+import { getUpdateHistory, triggerDowngrade } from '@workspace/studio-core';
 import React, { useState, useRef, useEffect, useLayoutEffect, lazy, Suspense, useMemo, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import { motion } from 'motion/react';
@@ -1941,9 +1942,6 @@ function HubUpdaterPage({ className, style, cardStyle, accent, onBack }: {
             <button
               className="updater-cta-btn"
               onClick={async () => {
-                if (isNative()) {
-                  window.dispatchEvent(new CustomEvent('studio:open-update-dialog'));
-                }
                 await ota.checkNow();
               }}
               disabled={isChecking}
@@ -2070,8 +2068,177 @@ function HubUpdaterPage({ className, style, cardStyle, accent, onBack }: {
         </>
       )}
 
+      {/* ── VERSION MANAGER SECTION (native-only) ── */}
+      {isNative() && (
+        <>
+          <p className="updater-section-title spring-in" style={{ animationDelay: '110ms' }}>
+            {lang === 'es' ? 'Gestor de Versiones' : 'Version Manager'}
+          </p>
+          <div className="spring-in" style={{ ...cardStyle, margin: 0, padding: '16px 20px', display: 'flex', flexDirection: 'column', gap: 14, animationDelay: '120ms' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <div>
+                <p style={{ margin: 0, fontFamily: 'Manrope', fontWeight: 700, fontSize: 13.5, color: 'var(--c-text-primary)' }}>
+                  {lang === 'es' ? 'Versión Instalada' : 'Installed Version'}
+                </p>
+                <p style={{ margin: '2px 0 0', fontFamily: 'Inter', fontSize: 11.5, color: 'var(--c-text-secondary)' }}>
+                  v{APP_VERSION} (code {otaDebugLogs.installedVersionCode || '127'})
+                </p>
+              </div>
+              <span className="material-symbols-outlined" style={{ fontSize: 20, color: '#4ade80' }}>check_circle</span>
+            </div>
+            
+            <div style={{ borderTop: '1px solid rgba(128, 128, 128, 0.08)', paddingTop: 14 }}>
+              <p style={{ margin: '0 0 10px', fontFamily: 'Manrope', fontWeight: 700, fontSize: 13, color: 'var(--c-text-secondary)' }}>
+                {lang === 'es' ? 'Opciones de Downgrade' : 'Downgrade Options'}
+              </p>
+              
+              {(() => {
+                const currentCode = otaDebugLogs.installedVersionCode || 127;
+                
+                const OFFICIAL_RELEASES = [
+                  {
+                    version: '3.7.1',
+                    versionCode: 128,
+                    apkUrl: 'https://github.com/MAGEXE1000/Studio/releases/download/v3.7.1/studio-3.7.1.apk',
+                    sha256: '9211c4c81a539fe63b0fd828236d6546e7f86f91f3c3cbdf9ebc39e29824ce1a'
+                  },
+                  {
+                    version: '3.7.0',
+                    versionCode: 127,
+                    apkUrl: 'https://github.com/MAGEXE1000/Studio/releases/download/v3.7.0/studio-3.7.0.apk',
+                    sha256: '058a5167ff727c93e4361b4bc5d9d3845bf03757ccc43cac7ab202f682b91bbe'
+                  },
+                  {
+                    version: '3.6.99',
+                    versionCode: 126,
+                    apkUrl: 'https://github.com/MAGEXE1000/Studio/releases/download/v3.6.99/studio-3.6.99.apk',
+                    sha256: 'e560ed7b16d0bd27bb5e3174e837f7017aed2901754c2c2ea9ebc39e29824ce9'
+                  },
+                  {
+                    version: '3.6.98',
+                    versionCode: 125,
+                    apkUrl: 'https://github.com/MAGEXE1000/Studio/releases/download/v3.6.98/studio-3.6.98.apk',
+                    sha256: 'e60d6ae8c885d0bbaa65368a943d76546b7055d59323cc4aa236e5405a2717e3'
+                  }
+                ];
+                
+                const downgradeTargets = OFFICIAL_RELEASES.filter(r => r.versionCode < currentCode)
+                  .sort((a, b) => b.versionCode - a.versionCode)
+                  .slice(0, 2);
+                  
+                if (downgradeTargets.length === 0) {
+                  return (
+                    <p style={{ margin: 0, fontFamily: 'Inter', fontSize: 12, color: 'var(--c-text-tertiary)', fontStyle: 'italic' }}>
+                      {lang === 'es' ? 'No hay versiones anteriores disponibles para downgrade.' : 'No older stable versions available for downgrade.'}
+                    </p>
+                  );
+                }
+                
+                return (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                    {downgradeTargets.map((target) => (
+                      <button
+                        key={target.version}
+                        onClick={async () => {
+                          const confirmMsg = lang === 'es'
+                            ? `¿Estás seguro de que deseas hacer un downgrade de Studio a la versión ${target.version}?\n\nADVERTENCIA: Se conservarán los datos locales, pero realizar downgrades de Android puede causar fallos de compatibilidad si las bases de datos locales cambiaron.`
+                            : `Are you sure you want to downgrade Studio to version ${target.version}?\n\nWARNING: Local data is preserved, but running Android downgrades can cause database compatibility issues if data schemas changed.`;
+                          if (window.confirm(confirmMsg)) {
+                            try {
+                              await triggerDowngrade(target.version, target.apkUrl, target.sha256);
+                            } catch (err: any) {
+                              alert(`Downgrade failed: ${err.message || String(err)}`);
+                            }
+                          }
+                        }}
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'space-between',
+                          padding: '10px 14px',
+                          borderRadius: 10,
+                          background: 'rgba(128, 128, 128, 0.05)',
+                          border: '1px solid rgba(128, 128, 128, 0.1)',
+                          color: 'var(--c-text-primary)',
+                          cursor: 'pointer',
+                          fontFamily: 'inherit',
+                          textAlign: 'left',
+                          transition: 'background 200ms ease'
+                        }}
+                      >
+                        <div>
+                          <p style={{ margin: 0, fontFamily: 'Manrope', fontWeight: 700, fontSize: 13, color: 'var(--accent-from, #7c3aed)' }}>
+                            v{target.version}
+                          </p>
+                          <p style={{ margin: '2px 0 0', fontFamily: 'Inter', fontSize: 11, color: 'var(--c-text-tertiary)' }}>
+                            {lang === 'es' ? `Código: ${target.versionCode} • Firma oficial` : `Code: ${target.versionCode} • Official signed`}
+                          </p>
+                        </div>
+                        <span className="material-symbols-outlined" style={{ fontSize: 18, color: 'var(--c-text-secondary)' }}>arrow_downward</span>
+                      </button>
+                    ))}
+                  </div>
+                );
+              })()}
+            </div>
+          </div>
+        </>
+      )}
+
+      {/* ── UPDATE HISTORY LOG (native-only) ── */}
+      {isNative() && (
+        <>
+          {(() => {
+            const history = getUpdateHistory();
+            if (history.length === 0) return null;
+            return (
+              <>
+                <p className="updater-section-title spring-in" style={{ animationDelay: '130ms' }}>
+                  {lang === 'es' ? 'Historial de Transiciones' : 'Transition History'}
+                </p>
+                <div className="spring-in" style={{ ...cardStyle, margin: 0, padding: '12px 18px', display: 'flex', flexDirection: 'column', gap: 10, animationDelay: '140ms', maxHeight: 200, overflowY: 'auto' }}>
+                  {history.map((entry, idx) => {
+                    const dateStr = new Date(entry.timestamp).toLocaleDateString(lang === 'es' ? 'es-MX' : 'en-US', { hour: '2-digit', minute: '2-digit' } as any);
+                    const isSuccess = entry.status === 'success';
+                    return (
+                      <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', fontSize: 12, paddingBottom: idx < history.length - 1 ? 8 : 0, borderBottom: idx < history.length - 1 ? '1px solid rgba(128,128,128,0.05)' : 'none' }}>
+                        <div>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                            <span style={{ fontFamily: 'Manrope', fontWeight: 700, color: 'var(--c-text-primary)' }}>
+                              {entry.fromVersion} → {entry.toVersion}
+                            </span>
+                            <span style={{
+                              fontSize: 9.5,
+                              padding: '2px 6px',
+                              borderRadius: 4,
+                              background: entry.type === 'upgrade' ? 'rgba(74,222,128,0.1)' : 'rgba(234,179,8,0.1)',
+                              color: entry.type === 'upgrade' ? '#4ade80' : '#eab308',
+                              fontWeight: 700,
+                              textTransform: 'uppercase'
+                            }}>
+                              {entry.type}
+                            </span>
+                          </div>
+                          <p style={{ margin: '2px 0 0', color: 'var(--c-text-tertiary)', fontSize: 11 }}>
+                            {dateStr} • {entry.trigger === 'auto' ? 'Auto' : 'User'}
+                            {entry.error && ` • ${entry.error}`}
+                          </p>
+                        </div>
+                        <span className="material-symbols-outlined" style={{ fontSize: 16, color: isSuccess ? '#4ade80' : '#f87171' }}>
+                          {isSuccess ? 'check_circle' : 'error'}
+                        </span>
+                      </div>
+                    );
+                  })}
+                </div>
+              </>
+            );
+          })()}
+        </>
+      )}
+
       {/* ── TIP CARD ── */}
-      <div className="updater-tip-card spring-in" style={{ animationDelay: '120ms' }}>
+      <div className="updater-tip-card spring-in" style={{ animationDelay: '150ms' }}>
         <span className="material-symbols-outlined" style={{ fontSize: 16, color: accent.from, flexShrink: 0, marginTop: 1, fontVariationSettings: "'FILL' 1", opacity: 0.8 }}>info</span>
         <div>
           <p style={{ margin: 0, fontFamily: 'Manrope', fontWeight: 700, fontSize: 12.5, color: 'var(--c-text-primary)' }}>{L.howItWorks}</p>

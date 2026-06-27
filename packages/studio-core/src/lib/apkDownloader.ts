@@ -382,7 +382,7 @@ export interface InstallEligibility {
   };
 }
 
-export async function checkApkEligibility(filePath: string): Promise<InstallEligibility> {
+export async function checkApkEligibility(filePath: string, allowDowngrade?: boolean): Promise<InstallEligibility> {
   const { Capacitor } = await import('@capacitor/core');
   if (!Capacitor.isNativePlatform()) {
     return { eligible: true, reason: 'not_native' };
@@ -436,7 +436,7 @@ export async function checkApkEligibility(filePath: string): Promise<InstallElig
       };
     }
 
-    if (downloaded.versionCode <= installed.versionCode) {
+    if (!allowDowngrade && downloaded.versionCode <= installed.versionCode) {
       return {
         eligible: false,
         reason: 'versionCode_low',

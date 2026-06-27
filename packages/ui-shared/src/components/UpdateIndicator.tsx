@@ -479,7 +479,7 @@ export default function UpdateIndicator({
           position: 'fixed',
           top: isBanner ? 'calc(env(safe-area-inset-top) + 14px)' : 'calc(env(safe-area-inset-top) + 28px)',
           right: isBanner ? '50%' : '20px',
-          zIndex: 60,
+          zIndex: 8900,
           width: isBanner ? 'min(360px, calc(100vw - 28px))' : 36,
           height: isBanner ? 52 : 36,
           padding: isBanner ? '0 12px 0 14px' : 0,

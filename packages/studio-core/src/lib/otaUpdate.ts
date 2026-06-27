@@ -1415,14 +1415,14 @@ export function checkForUpdate(isManual = false): Promise<CentralizedOtaState> {
   return activeCheckPromise;
 }
 
-export async function runEligibilityCheck(filePath: string): Promise<boolean> {
+export async function runEligibilityCheck(filePath: string, allowDowngrade?: boolean): Promise<boolean> {
   eligibilityCheckCallCount++;
   const callId = nextJsCallId();
   console.log(`[INSTRUMENTATION] runEligibilityCheck ENTER Call #${callId} (filePath=${filePath}, total calls: ${eligibilityCheckCallCount})`);
   void logProgressStage('[INSTRUMENTATION] runEligibilityCheck ENTER', `Call #${callId} filePath=${filePath}`);
   try {
     const { checkApkEligibility } = await import('./apkDownloader');
-    const el = await checkApkEligibility(filePath);
+    const el = await checkApkEligibility(filePath, allowDowngrade);
     
     // Populate installed app info
     otaDebugLogs.installedPackageName = el.installed?.packageName ?? null;
@@ -1507,7 +1507,7 @@ export async function runEligibilityCheck(filePath: string): Promise<boolean> {
 /**
  * Centralized downloadUpdate: locks the download process and mirrors progress globally.
  */
-export function downloadUpdate(trigger?: string): Promise<void> {
+export function downloadUpdate(trigger?: string, isDowngrade?: boolean): Promise<void> {
   downloadUpdateCallCount++;
   const callId = nextJsCallId();
   console.log(`[INSTRUMENTATION] downloadUpdate ENTER Call #${callId} (trigger=${trigger}, total calls: ${downloadUpdateCallCount})`);
@@ -1527,7 +1527,7 @@ export function downloadUpdate(trigger?: string): Promise<void> {
   const { apkUrl, remoteVersion } = globalOtaState;
   const ver = remoteVersion || '';
 
-  if (globalOtaState.updateState === 'readyForInstallPrompt' || globalOtaState.updateState === 'installedOrReady') {
+  if (!isDowngrade && (globalOtaState.updateState === 'readyForInstallPrompt' || globalOtaState.updateState === 'installedOrReady')) {
     const downloadedPath = localStorage.getItem('studio:downloadedApkPath');
     if (downloadedPath) {
       console.log(`[INSTRUMENTATION] downloadUpdate EXIT Call #${callId} (Resolved: cached APK exists)`);
@@ -1645,7 +1645,7 @@ export function downloadUpdate(trigger?: string): Promise<void> {
 
       otaDebugLogs.downloadStatus += `\nRunning pre-install eligibility check...`;
       updateGlobalState({ updateState: 'verifying', statusText: 'Checking eligibility...' });
-      const isEligible = await runEligibilityCheck(filePath);
+      const isEligible = await runEligibilityCheck(filePath, isDowngrade);
       if (!isEligible) {
         throw new Error('Eligibility validation failed: ' + (otaDebugLogs.eligibilityReason || 'unknown'));
       }
@@ -1969,30 +1969,110 @@ function writeLastSeen(version: string): void {
 export function detectJustUpdated(): { justUpdated: boolean; from: string | null } {
   const last = readLastSeen();
   if (last === null) return { justUpdated: false, from: null };
-  // Defensive: if some past write corrupted the entry (foreign code,
-  // a manual edit, schema change), treat it as a fresh baseline so
-  // change detection can't get permanently wedged returning 0/equal.
   if (normalizeSemver(last) === null) {
     writeLastSeen(APP_VERSION);
     return { justUpdated: false, from: null };
   }
   return {
-    justUpdated: compareSemver(APP_VERSION, last) > 0,
+    justUpdated: compareSemver(APP_VERSION, last) !== 0,
     from: last,
   };
 }
 
-/**
- * React hook for the post-update changelog modal.
- *
- *  - On first ever launch: silently records APP_VERSION and shows nothing.
- *  - On a launch where the bundle has advanced: returns `show: true`
- *    so the modal renders. Caller must invoke `dismiss()` to close it
- *    AND write the new version to localStorage so it doesn't re-show.
- *  - Calling `dismiss()` is what persists the new version. If the
- *    user reloads before dismissing, the modal will appear again —
- *    that's intentional, we want them to see it at least once.
- */
+export interface UpdateHistoryEntry {
+  timestamp: number;
+  fromVersion: string;
+  toVersion: string;
+  type: 'upgrade' | 'downgrade';
+  trigger: 'user' | 'auto';
+  status: 'success' | 'failed';
+  error?: string;
+}
+
+export function getUpdateHistory(): UpdateHistoryEntry[] {
+  try {
+    const raw = localStorage.getItem('studio:updaterHistory');
+    if (!raw) return [];
+    return JSON.parse(raw);
+  } catch {
+    return [];
+  }
+}
+
+export function logUpdateTransition(
+  fromVersion: string,
+  toVersion: string,
+  type: 'upgrade' | 'downgrade',
+  trigger: 'user' | 'auto',
+  status: 'success' | 'failed',
+  error?: string
+): void {
+  try {
+    const history = getUpdateHistory();
+    // Prevent duplicate logs for the same transition within 5 seconds
+    if (history.length > 0) {
+      const lastEntry = history[0];
+      if (
+        lastEntry.fromVersion === fromVersion &&
+        lastEntry.toVersion === toVersion &&
+        lastEntry.status === status &&
+        lastEntry.type === type &&
+        Date.now() - lastEntry.timestamp < 5000
+      ) {
+        return;
+      }
+    }
+    const entry: UpdateHistoryEntry = {
+      timestamp: Date.now(),
+      fromVersion,
+      toVersion,
+      type,
+      trigger,
+      status,
+      error
+    };
+    history.unshift(entry);
+    localStorage.setItem('studio:updaterHistory', JSON.stringify(history.slice(0, 50)));
+  } catch (err) {
+    console.warn('[OTA] Failed to write update history:', err);
+  }
+}
+
+export async function triggerDowngrade(targetVersion: string, apkUrl: string, sha256: string): Promise<void> {
+  logUpdateTransition(APP_VERSION, targetVersion, 'downgrade', 'user', 'failed', 'Initiated downgrade download');
+  
+  updateGlobalState({
+    remoteVersion: targetVersion,
+    apkUrl,
+    apkSha256: sha256,
+    updateType: 'apk',
+    updateAvailable: false,
+    updateState: 'preparing',
+    progress: 0,
+    error: null,
+    statusText: 'Preparing downgrade...'
+  });
+  
+  if (isNative()) {
+    window.dispatchEvent(new CustomEvent('studio:open-update-dialog'));
+  }
+  
+  try {
+    await downloadUpdate('user_downgrade', true);
+  } catch (err) {
+    console.error('[Downgrade] Downgrade download failed:', err);
+    logUpdateTransition(
+      APP_VERSION,
+      targetVersion,
+      'downgrade',
+      'user',
+      'failed',
+      err instanceof Error ? err.message : String(err)
+    );
+    throw err;
+  }
+}
+
 export function usePostUpdateChangelog(): {
   show: boolean;
   fromVersion: string | null;
@@ -2005,22 +2085,22 @@ export function usePostUpdateChangelog(): {
 
   useEffect(() => {
     const { justUpdated, from } = detectJustUpdated();
-    if (justUpdated) {
-      // Even when the user has opted out of the auto-shown sheet, we
-      // still want to advance lastSeen so the modal doesn't "build up"
-      // and surface the next time they re-enable the toggle.
-      if (showChangelog) {
-        setFromVersion(from);
-        setShow(true);
-      } else {
-        writeLastSeen(APP_VERSION);
+    if (justUpdated && from) {
+      const cmp = compareSemver(APP_VERSION, from);
+      if (cmp !== 0) {
+        const type = cmp > 0 ? 'upgrade' : 'downgrade';
+        logUpdateTransition(from, APP_VERSION, type, 'user', 'success');
+        
+        if (type === 'upgrade' && showChangelog) {
+          setFromVersion(from);
+          setShow(true);
+        } else {
+          writeLastSeen(APP_VERSION);
+        }
       }
     } else if (from === null) {
-      // First install — record current version so future updates
-      // produce a clean diff against this baseline.
       writeLastSeen(APP_VERSION);
     }
-    // If `from >= APP_VERSION`, do nothing — already up to date.
   }, [showChangelog]);
 
   const dismiss = () => {

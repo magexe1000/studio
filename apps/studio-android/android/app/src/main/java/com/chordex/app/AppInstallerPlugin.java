@@ -695,6 +695,10 @@ public class AppInstallerPlugin extends Plugin {
             PackageInstaller.SessionParams params = new PackageInstaller.SessionParams(
                     PackageInstaller.SessionParams.MODE_FULL_INSTALL);
             
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                params.setRequestDowngrade(true);
+            }
+            
             // Re-use file size if available
             if (file.length() > 0) {
                 params.setSize(file.length());
