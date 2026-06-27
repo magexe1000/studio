@@ -184,6 +184,12 @@ export interface OtaDiagnostics {
   androidVersion: string | null;
   deviceModel: string | null;
   timestamp: string | null;
+  architecture?: string | null;
+  deviceLocale?: string | null;
+  storageAvailable?: string | null;
+  networkState?: string | null;
+  statusCode?: number | null;
+  statusText?: string | null;
 }
 
 export let otaDiagnostics: OtaDiagnostics = {
@@ -199,6 +205,12 @@ export let otaDiagnostics: OtaDiagnostics = {
   androidVersion: null,
   deviceModel: null,
   timestamp: null,
+  architecture: null,
+  deviceLocale: null,
+  storageAvailable: null,
+  networkState: null,
+  statusCode: null,
+  statusText: null,
 };
 
 export function isAppInstallerAvailable(): boolean {
@@ -236,6 +248,11 @@ export async function populateDiagnostics(err: any, reason: string) {
         model = deviceInfo.model;
         androidVersion = `${deviceInfo.androidVersion} (API ${deviceInfo.sdkInt})`;
         permissionState = `canRequestPackageInstalls: ${deviceInfo.canRequestPackageInstalls}`;
+        
+        otaDiagnostics.architecture = deviceInfo.architecture || 'N/A';
+        otaDiagnostics.deviceLocale = deviceInfo.deviceLocale || 'N/A';
+        otaDiagnostics.storageAvailable = deviceInfo.storageAvailable || 'N/A';
+        otaDiagnostics.networkState = deviceInfo.networkState || 'N/A';
       } catch (e) {
         console.warn('[OTA] Failed to get native device info for diagnostics:', e);
         permissionState = 'Error querying permission';
@@ -854,6 +871,60 @@ export function checkForUpdate(isManual = false): Promise<CentralizedOtaState> {
   }
 
   activeCheckPromise = (async () => {
+    // Check last native install result
+    if (isNative() && isAppInstallerAvailable()) {
+      try {
+        const { AppInstaller } = await import('./apkDownloader');
+        const result = await AppInstaller.getLastInstallResult();
+        console.log('[OTA DEBUG] Last install result status:', result);
+        if (result && result.statusCode !== -999 && result.statusCode !== 0) {
+          let errMsg = result.statusMessage || `PackageInstaller error: status ${result.statusCode}`;
+          let category: 'signature_mismatch' | 'versionCode_low' | 'cancelled' | 'failed' = 'failed';
+          
+          if (result.statusCode === 3) {
+            category = 'cancelled';
+            errMsg = 'User cancelled the installation';
+          } else if (result.statusCode === 5) {
+            category = 'signature_mismatch';
+            errMsg = 'Signature mismatch or conflicting package name. Uninstalling the old app and installing the new one might be required.';
+          } else if (result.statusCode === 7) {
+            category = 'versionCode_low';
+            errMsg = 'Version downgrade is not allowed by the system.';
+          }
+
+          // Populate diagnostics
+          otaDiagnostics.statusCode = result.statusCode;
+          otaDiagnostics.statusText = errMsg;
+          otaDiagnostics.exceptionMessage = errMsg;
+          otaDiagnostics.failureReason = `PackageInstaller code ${result.statusCode}\nMessage: ${result.statusMessage}\nPackage: ${result.packageName}`;
+          otaDiagnostics.installerResult = `Code: ${result.statusCode}\nMessage: ${result.statusMessage}\nPackage: ${result.packageName}\nTimestamp: ${new Date(result.timestamp).toISOString()}`;
+          otaDiagnostics.timestamp = new Date(result.timestamp).toISOString();
+
+          // Populate rest of device diagnostics
+          await populateDiagnostics(null, 'PackageInstaller failure detected');
+
+          // Store diagnostics and update state
+          if (category === 'signature_mismatch') {
+            updateGlobalState({ updateState: 'signature_mismatch', error: errMsg, loading: false });
+          } else if (category === 'versionCode_low') {
+            updateGlobalState({ updateState: 'versionCode_low', error: errMsg, loading: false });
+          } else if (category === 'cancelled') {
+            updateGlobalState({ updateState: 'available', loading: false });
+          } else {
+            updateGlobalState({ updateState: 'failed', error: errMsg, loading: false });
+          }
+          
+          // Clear last result so we don't repeat the error notification
+          await AppInstaller.clearInstallerLogHistory();
+          
+          activeCheckPromise = null;
+          return globalOtaState;
+        }
+      } catch (diagErr) {
+        console.warn('[OTA] Failed to check last install result:', diagErr);
+      }
+    }
+
     updateGlobalState({ updateState: 'checking', loading: true });
     try {
       let remote = await fetchRemoteVersion();

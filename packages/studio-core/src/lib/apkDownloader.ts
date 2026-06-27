@@ -13,6 +13,9 @@ export interface AppInstallerPlugin {
   installApk(options: { filePath: string }): Promise<void>;
   downloadAndInstallApk(options: { url: string; fileName?: string }): Promise<void>;
   downloadApk(options: { url: string; fileName?: string }): Promise<{ filePath: string }>;
+  getLastInstallResult(): Promise<{ statusCode: number; statusMessage: string; packageName: string; timestamp: number }>;
+  getInstallerLogHistory(): Promise<{ logs: string }>;
+  clearInstallerLogHistory(): Promise<void>;
   checkPermissions(): Promise<any>;
   requestPermissions(options?: { aliases?: string[] }): Promise<any>;
   getSharedFile(): Promise<{ none?: boolean; type?: 'json' | 'audio'; data?: string; fileName?: string }>;
@@ -24,7 +27,17 @@ export interface AppInstallerPlugin {
   openInstallPermissionSettings(): Promise<void>;
   verifySha256(options: { filePath: string; expectedHash: string }): Promise<{ matches: boolean; computedHash: string }>;
   verifyApkSha256(options: { filePath: string; expectedHash: string }): Promise<{ matches: boolean; computedHash: string }>;
-  getDeviceInfo(): Promise<{ manufacturer: string; model: string; androidVersion: string; sdkInt: number; canRequestPackageInstalls: boolean }>;
+  getDeviceInfo(): Promise<{
+    manufacturer: string;
+    model: string;
+    androidVersion: string;
+    sdkInt: number;
+    canRequestPackageInstalls: boolean;
+    architecture?: string;
+    deviceLocale?: string;
+    storageAvailable?: string;
+    networkState?: string;
+  }>;
   getApkDetails(options: { filePath: string }): Promise<{ packageName: string; versionName: string; versionCode: number; signatures: string }>;
   getInstalledAppDetails(): Promise<{ packageName: string; versionName: string; versionCode: number; signatures: string }>;
   getInstalledAppInfo(): Promise<{ packageName: string; versionName: string; versionCode: number; signingSha256: string; debuggable: boolean }>;

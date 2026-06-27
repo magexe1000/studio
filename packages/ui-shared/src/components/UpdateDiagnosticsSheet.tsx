@@ -1,4 +1,4 @@
-import { useChordStore, ACCENT_COLORS, otaDiagnostics, otaDebugLogs, useBackHandler } from '@workspace/studio-core';
+import { useChordStore, ACCENT_COLORS, otaDiagnostics, otaDebugLogs, useBackHandler, isNative } from '@workspace/studio-core';
 import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 
@@ -25,6 +25,7 @@ export default function UpdateDiagnosticsSheet({ open, onClose }: Props) {
   const [closing, setClosing] = useState(false);
   const [drag, setDrag] = useState(0);
   const [copied, setCopied] = useState(false);
+  const [nativeLogs, setNativeLogs] = useState<any[]>([]);
 
   useEffect(() => {
     if (open) {
@@ -54,6 +55,23 @@ export default function UpdateDiagnosticsSheet({ open, onClose }: Props) {
       document.body.style.overflow = prev;
     };
   }, [mounted]);
+
+  // Load native log history if in Developer Mode
+  useEffect(() => {
+    if (open && settings.developerMode) {
+      void (async () => {
+        try {
+          const { AppInstaller } = await import('@workspace/studio-core');
+          const result = await AppInstaller.getInstallerLogHistory();
+          if (result && result.logs) {
+            setNativeLogs(JSON.parse(result.logs));
+          }
+        } catch (e) {
+          console.warn('[OTA] Failed to fetch native installer logs:', e);
+        }
+      })();
+    }
+  }, [open, settings.developerMode]);
 
   useBackHandler('sheet', () => {
     if (open) {
@@ -91,12 +109,16 @@ export default function UpdateDiagnosticsSheet({ open, onClose }: Props) {
     }
   };
 
-  const handleCopyLogs = () => {
-    const diagnosticText = [
+  const getDiagnosticsText = () => {
+    return [
       '=== STUDIO UPDATE DIAGNOSTICS ===',
       `Failure Timestamp: ${otaDiagnostics.timestamp || 'N/A'}`,
       `Device Model/Manufacturer: ${otaDiagnostics.deviceModel || 'N/A'}`,
       `Android Version: ${otaDiagnostics.androidVersion || 'N/A'}`,
+      `Architecture: ${otaDiagnostics.architecture || 'N/A'}`,
+      `Device Locale: ${otaDiagnostics.deviceLocale || 'N/A'}`,
+      `Storage Available: ${otaDiagnostics.storageAvailable || 'N/A'}`,
+      `Network State: ${otaDiagnostics.networkState || 'N/A'}`,
       `Permission State: ${otaDiagnostics.permissionState || 'N/A'}`,
       `Exception Message: ${otaDiagnostics.exceptionMessage || 'N/A'}`,
       `Failure Reason & Stack Trace:`,
@@ -166,14 +188,153 @@ export default function UpdateDiagnosticsSheet({ open, onClose }: Props) {
       `Eligibility release build: ${otaDebugLogs.eligibilityReleaseBuild !== null ? otaDebugLogs.eligibilityReleaseBuild : 'N/A'}`,
       `Eligibility valid APK: ${otaDebugLogs.eligibilityValidApk !== null ? otaDebugLogs.eligibilityValidApk : 'N/A'}`,
       `Eligibility final install: ${otaDebugLogs.eligibilityFinalInstall || 'N/A'}`,
-      `Eligibility reason: ${otaDebugLogs.eligibilityReason || 'N/A'}`
+      `Eligibility reason: ${otaDebugLogs.eligibilityReason || 'N/A'}`,
+      '',
+      `=== HISTORICAL CALLBACK LOGS ===`,
+      JSON.stringify(nativeLogs, null, 2)
     ].join('\n');
+  };
 
-    navigator.clipboard.writeText(diagnosticText).then(() => {
+  const handleCopyLogs = () => {
+    const text = getDiagnosticsText();
+    navigator.clipboard.writeText(text).then(() => {
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     });
   };
+
+  const handleShareLogs = async () => {
+    const text = getDiagnosticsText();
+    try {
+      if (isNative()) {
+        const { Share } = await import('@capacitor/share');
+        await Share.share({
+          title: 'Studio Update Diagnostics',
+          text: text,
+          dialogTitle: 'Share Update Diagnostics'
+        });
+      } else if (navigator.share) {
+        await navigator.share({
+          title: 'Studio Update Diagnostics',
+          text: text
+        });
+      } else {
+        handleCopyLogs();
+        alert('Sharing not supported on this device. Diagnostics copied to clipboard!');
+      }
+    } catch (err) {
+      console.error('Failed to share diagnostics:', err);
+    }
+  };
+
+  const handleExportLogs = () => {
+    const text = getDiagnosticsText();
+    try {
+      const blob = new Blob([text], { type: 'text/plain;charset=utf-8' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `studio-update-diagnostics-${Date.now()}.txt`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+      alert('Diagnostics exported to downloads directory!');
+    } catch (err) {
+      console.error('Failed to export diagnostics:', err);
+    }
+  };
+
+  const handleRetryUpdate = async () => {
+    onClose();
+    try {
+      const { downloadUpdate } = await import('@workspace/studio-core');
+      await downloadUpdate('Diagnostics Retry');
+    } catch (err) {
+      console.error('[OTA] Retry failed:', err);
+    }
+  };
+
+  const handleClearHistoryLogs = async () => {
+    if (window.confirm('Clear all local native PackageInstaller logs?')) {
+      try {
+        const { AppInstaller } = await import('@workspace/studio-core');
+        await AppInstaller.clearInstallerLogHistory();
+        setNativeLogs([]);
+        alert('Logs cleared!');
+      } catch (err) {
+        console.error('Failed to clear logs:', err);
+      }
+    }
+  };
+
+  const getExplanation = () => {
+    const code = otaDiagnostics.statusCode;
+    const text = otaDiagnostics.statusText || '';
+    const failureReason = otaDiagnostics.failureReason || '';
+    const exceptionMessage = otaDiagnostics.exceptionMessage || '';
+
+    if (code === 5 || failureReason.includes('signature_mismatch') || text.includes('Signature mismatch') || otaDebugLogs.eligibilityReason === 'signature_mismatch') {
+      return {
+        title: 'Signing Signature Mismatch',
+        desc: 'The downloaded update package was signed with a different certificate key than the installed app. To safeguard your data, Android blocks updating in-place. You must manually back up your data, uninstall Studio, and install the new APK.',
+        color: '#f87171',
+        bg: 'rgba(248, 113, 113, 0.08)',
+        border: 'rgba(248, 113, 113, 0.25)',
+        icon: 'security_update_warning'
+      };
+    }
+    if (code === 7 || text.includes('versionCode_low') || failureReason.includes('versionCode_low') || otaDebugLogs.eligibilityReason === 'versionCode_low') {
+      return {
+        title: 'Version Downgrade Blocked',
+        desc: 'Android does not support installing an older version over a newer one. If you want to downgrade, you must first uninstall the current version of the application.',
+        color: '#fbbf24',
+        bg: 'rgba(251, 191, 36, 0.08)',
+        border: 'rgba(251, 191, 36, 0.25)',
+        icon: 'published_with_changes'
+      };
+    }
+    if (code === 3 || text.includes('cancelled') || text.includes('canceled')) {
+      return {
+        title: 'Installation Cancelled',
+        desc: 'The update installation was cancelled by the user. You can retry the update whenever you are ready.',
+        color: '#60a5fa',
+        bg: 'rgba(96, 165, 250, 0.08)',
+        border: 'rgba(96, 165, 250, 0.25)',
+        icon: 'cancel'
+      };
+    }
+    if (code === 6 || text.includes('storage') || failureReason.includes('storage')) {
+      return {
+        title: 'Out of Storage Space',
+        desc: 'The installation failed due to insufficient storage space. Please clean up files on your device and try again.',
+        color: '#fbbf24',
+        bg: 'rgba(251, 191, 36, 0.08)',
+        border: 'rgba(251, 191, 36, 0.25)',
+        icon: 'disc_full'
+      };
+    }
+    if (text.includes('corrupted') || text.includes('hash') || failureReason.includes('hash')) {
+      return {
+        title: 'Corrupted Package File',
+        desc: 'The downloaded update package failed security checksum verification. It might have been corrupted during transmission. Retrying should fix this.',
+        color: '#f87171',
+        bg: 'rgba(248, 113, 113, 0.08)',
+        border: 'rgba(248, 113, 113, 0.25)',
+        icon: 'running_with_errors'
+      };
+    }
+    return {
+      title: 'Update Installation Failed',
+      desc: exceptionMessage || 'An unexpected Android system error occurred during package installation.',
+      color: '#f87171',
+      bg: 'rgba(248, 113, 113, 0.08)',
+      border: 'rgba(248, 113, 113, 0.25)',
+      icon: 'error'
+    };
+  };
+
+  const exp = getExplanation();
 
   const overlayOpacity = closing ? 0 : Math.max(0, 1 - drag / 380);
 
@@ -188,21 +349,21 @@ export default function UpdateDiagnosticsSheet({ open, onClose }: Props) {
     : 'transform 400ms cubic-bezier(0.16, 1, 0.3, 1)';
 
   const DiagnosticField = ({ label, value, isCode }: { label: string; value: string | null; isCode?: boolean }) => (
-    <div style={{ marginBottom: 16 }}>
+    <div style={{ marginBottom: 14 }}>
       <label style={{
         display: 'block',
         fontFamily: 'Manrope',
         fontWeight: 700,
-        fontSize: 11,
+        fontSize: 10.5,
         color: 'var(--c-text-muted)',
         letterSpacing: '0.08em',
         textTransform: 'uppercase',
-        marginBottom: 4
+        marginBottom: 3
       }}>{label}</label>
       <div style={{
         fontFamily: isCode ? 'monospace' : 'Inter',
-        fontSize: isCode ? 11 : 13.5,
-        lineHeight: 1.45,
+        fontSize: isCode ? 10.5 : 13,
+        lineHeight: 1.4,
         color: 'var(--c-text-primary)',
         wordBreak: 'break-word',
         whiteSpace: 'pre-wrap',
@@ -266,7 +427,7 @@ export default function UpdateDiagnosticsSheet({ open, onClose }: Props) {
           animation: closing
             ? undefined
             : drag > 0 ? undefined : 'diag-sheet-up 400ms cubic-bezier(0.16, 1, 0.3, 1) both',
-          paddingBottom: 'max(20px, env(safe-area-inset-bottom))',
+          paddingBottom: 'max(16px, env(safe-area-inset-bottom))',
           touchAction: 'pan-y',
         }}
       >
@@ -342,6 +503,47 @@ export default function UpdateDiagnosticsSheet({ open, onClose }: Props) {
             WebkitOverflowScrolling: 'touch',
           }}
         >
+          {/* Human Readable Explanation Card */}
+          <div style={{
+            background: exp.bg,
+            border: `1px solid ${exp.border}`,
+            borderRadius: 14,
+            padding: '14px 18px',
+            marginBottom: 20,
+            display: 'flex',
+            gap: 14,
+            alignItems: 'flex-start'
+          }}>
+            <span className="material-symbols-outlined" style={{
+              fontSize: 24,
+              color: exp.color,
+              marginTop: 2
+            }}>
+              {exp.icon}
+            </span>
+            <div style={{ flex: 1 }}>
+              <h3 style={{
+                margin: 0,
+                fontFamily: 'Manrope',
+                fontWeight: 800,
+                fontSize: 15,
+                color: exp.color,
+                marginBottom: 6
+              }}>
+                {exp.title}
+              </h3>
+              <p style={{
+                margin: 0,
+                fontFamily: 'Inter',
+                fontSize: 12.5,
+                lineHeight: 1.45,
+                color: 'var(--c-text-secondary)'
+              }}>
+                {exp.desc}
+              </p>
+            </div>
+          </div>
+
           {otaDebugLogs.nativePlatformDetected && otaDebugLogs.nativeApkVersion && otaDebugLogs.nativeApkVersion !== 'N/A' && otaDebugLogs.appVersion !== otaDebugLogs.nativeApkVersion && (
             <div style={{
               background: 'rgba(239, 68, 68, 0.1)',
@@ -360,7 +562,8 @@ export default function UpdateDiagnosticsSheet({ open, onClose }: Props) {
             </div>
           )}
 
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px 24px', marginBottom: 12 }}>
+          {/* Section: General Device Info */}
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px 24px', marginBottom: 6 }}>
             <div style={{ minWidth: 120, flex: 1 }}>
               <DiagnosticField label="Device Model" value={otaDiagnostics.deviceModel} />
             </div>
@@ -369,7 +572,25 @@ export default function UpdateDiagnosticsSheet({ open, onClose }: Props) {
             </div>
           </div>
 
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px 24px', marginBottom: 12 }}>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px 24px', marginBottom: 6 }}>
+            <div style={{ minWidth: 120, flex: 1 }}>
+              <DiagnosticField label="Architecture" value={otaDiagnostics.architecture || 'N/A'} />
+            </div>
+            <div style={{ minWidth: 120, flex: 1 }}>
+              <DiagnosticField label="Device Locale" value={otaDiagnostics.deviceLocale || 'N/A'} />
+            </div>
+          </div>
+
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px 24px', marginBottom: 6 }}>
+            <div style={{ minWidth: 120, flex: 1 }}>
+              <DiagnosticField label="Storage Space" value={otaDiagnostics.storageAvailable || 'N/A'} />
+            </div>
+            <div style={{ minWidth: 120, flex: 1 }}>
+              <DiagnosticField label="Network Status" value={otaDiagnostics.networkState || 'N/A'} />
+            </div>
+          </div>
+
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px 24px', marginBottom: 6 }}>
             <div style={{ minWidth: 120, flex: 1 }}>
               <DiagnosticField label="Permission State" value={otaDiagnostics.permissionState} />
             </div>
@@ -378,10 +599,11 @@ export default function UpdateDiagnosticsSheet({ open, onClose }: Props) {
             </div>
           </div>
 
+          {/* Section: Technical Details */}
           <div style={{
             fontFamily: 'Manrope',
             fontWeight: 800,
-            fontSize: 12,
+            fontSize: 11,
             color: 'var(--c-text-primary)',
             marginTop: 18,
             marginBottom: 12,
@@ -390,92 +612,226 @@ export default function UpdateDiagnosticsSheet({ open, onClose }: Props) {
             textTransform: 'uppercase',
             letterSpacing: '0.05em'
           }}>
-            Updater Debug Info
+            Technical Details
           </div>
+
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px 24px', marginBottom: 6 }}>
+            <div style={{ minWidth: 120, flex: 1 }}>
+              <DiagnosticField label="Installed Version" value={otaDebugLogs.installedVersionName ? `${otaDebugLogs.installedVersionName} (code ${otaDebugLogs.installedVersionCode})` : 'N/A'} />
+            </div>
+            <div style={{ minWidth: 120, flex: 1 }}>
+              <DiagnosticField label="Target Version" value={otaDebugLogs.remoteVersionCode ? `v${otaDebugLogs.remoteVersionCode}` : 'N/A'} />
+            </div>
+          </div>
+
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px 24px', marginBottom: 6 }}>
+            <div style={{ minWidth: 120, flex: 1 }}>
+              <DiagnosticField label="Installed Package" value={otaDebugLogs.installedPackageName} />
+            </div>
+            <div style={{ minWidth: 120, flex: 1 }}>
+              <DiagnosticField label="Downloaded Package" value={otaDebugLogs.downloadedPackageName} />
+            </div>
+          </div>
+
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px 24px', marginBottom: 6 }}>
+            <div style={{ minWidth: 120, flex: 1 }}>
+              <DiagnosticField label="Signature Match" value={otaDebugLogs.eligibilitySigningMatch !== null ? (otaDebugLogs.eligibilitySigningMatch ? 'MATCH' : 'MISMATCH') : 'N/A'} />
+            </div>
+            <div style={{ minWidth: 120, flex: 1 }}>
+              <DiagnosticField label="Package Match" value={otaDebugLogs.eligibilityPackageNameMatch !== null ? (otaDebugLogs.eligibilityPackageNameMatch ? 'MATCH' : 'MISMATCH') : 'N/A'} />
+            </div>
+          </div>
+
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px 24px', marginBottom: 6 }}>
+            <div style={{ minWidth: 120, flex: 1 }}>
+              <DiagnosticField label="Expected SHA-256" value={otaDiagnostics.shaExpected} />
+            </div>
+            <div style={{ minWidth: 120, flex: 1 }}>
+              <DiagnosticField label="Calculated SHA-256" value={otaDiagnostics.shaCalculated} />
+            </div>
+          </div>
+
+          <DiagnosticField label="APK Download Path" value={otaDiagnostics.apkPath} />
           
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px 24px', marginBottom: 12 }}>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px 24px', marginBottom: 6 }}>
             <div style={{ minWidth: 120, flex: 1 }}>
-              <DiagnosticField label="Update Decision" value={otaDebugLogs.updateDecision || 'N/A'} />
+              <DiagnosticField label="APK Package Size" value={otaDiagnostics.fileSize} />
             </div>
             <div style={{ minWidth: 120, flex: 1 }}>
-              <DiagnosticField label="Update Decision Reason" value={otaDebugLogs.updateDecisionReason || 'N/A'} />
-            </div>
-          </div>
-
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px 24px', marginBottom: 12 }}>
-            <div style={{ minWidth: 120, flex: 1 }}>
-              <DiagnosticField label="Installed versionCode" value={otaDebugLogs.installedVersionCode !== null ? String(otaDebugLogs.installedVersionCode) : 'N/A'} />
-            </div>
-            <div style={{ minWidth: 120, flex: 1 }}>
-              <DiagnosticField label="Remote versionCode" value={otaDebugLogs.remoteVersionCode !== null ? String(otaDebugLogs.remoteVersionCode) : 'N/A'} />
+              <DiagnosticField label="Installer Status Code" value={otaDiagnostics.statusCode !== null ? String(otaDiagnostics.statusCode) : 'N/A'} />
             </div>
           </div>
-
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px 24px', marginBottom: 12 }}>
-            <div style={{ minWidth: 120, flex: 1 }}>
-              <DiagnosticField label="Version Comparison Result" value={otaDebugLogs.versionComparisonResult || 'N/A'} />
-            </div>
-            <div style={{ minWidth: 120, flex: 1 }}>
-              <DiagnosticField label="Native Platform Detected" value={otaDebugLogs.nativePlatformDetected !== null ? String(otaDebugLogs.nativePlatformDetected) : 'N/A'} />
-            </div>
-          </div>
-
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px 24px', marginBottom: 12 }}>
-            <div style={{ minWidth: 120, flex: 1 }}>
-              <DiagnosticField label="Platform Detected" value={otaDebugLogs.platformDetected || 'N/A'} />
-            </div>
-            <div style={{ minWidth: 120, flex: 1 }}>
-              <DiagnosticField label="APK Metadata Valid" value={otaDebugLogs.apkMetadataValid !== null ? String(otaDebugLogs.apkMetadataValid) : 'N/A'} />
-            </div>
-          </div>
-
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px 24px', marginBottom: 12 }}>
-            <div style={{ minWidth: 120, flex: 1 }}>
-              <DiagnosticField label="APK URL Present" value={otaDebugLogs.apkUrlPresent !== null ? String(otaDebugLogs.apkUrlPresent) : 'N/A'} />
-            </div>
-            <div style={{ minWidth: 120, flex: 1 }}>
-              <DiagnosticField label="APK SHA Present" value={otaDebugLogs.apkShaPresent !== null ? String(otaDebugLogs.apkShaPresent) : 'N/A'} />
-            </div>
-          </div>
-
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px 24px', marginBottom: 12 }}>
-            <div style={{ minWidth: 120, flex: 1 }}>
-              <DiagnosticField label="Skipped/Dismissed State" value={otaDebugLogs.skippedDismissedState || 'N/A'} />
-            </div>
-            <div style={{ minWidth: 120, flex: 1 }}>
-              <DiagnosticField label="Release Channel" value={otaDebugLogs.releaseChannel || 'N/A'} />
-            </div>
-          </div>
-
-          <div style={{ marginBottom: 16 }}>
-            <DiagnosticField label="Rollout Eligibility" value={otaDebugLogs.rolloutEligibility || 'N/A'} />
-          </div>
-
-          <DiagnosticField label="Exception Message" value={otaDiagnostics.exceptionMessage} />
-          
-          <DiagnosticField label="Failure Reason & Stack Trace" value={otaDiagnostics.failureReason} isCode />
 
           <DiagnosticField label="Download URL" value={otaDiagnostics.downloadUrl} />
 
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px 24px', marginBottom: 12 }}>
-            <div style={{ minWidth: 120, flex: 1 }}>
-              <DiagnosticField label="APK Path" value={otaDiagnostics.apkPath} />
-            </div>
-            <div style={{ minWidth: 120, flex: 1 }}>
-              <DiagnosticField label="File Size" value={otaDiagnostics.fileSize} />
-            </div>
-          </div>
+          <DiagnosticField label="Last Native Intent Log" value={otaDiagnostics.installerResult} isCode />
 
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px 24px', marginBottom: 12 }}>
-            <div style={{ minWidth: 120, flex: 1 }}>
-              <DiagnosticField label="SHA-256 Expected" value={otaDiagnostics.shaExpected} />
-            </div>
-            <div style={{ minWidth: 120, flex: 1 }}>
-              <DiagnosticField label="SHA-256 Calculated" value={otaDiagnostics.shaCalculated} />
-            </div>
-          </div>
+          <DiagnosticField label="Exception Stack Trace" value={otaDiagnostics.failureReason} isCode />
 
-          <DiagnosticField label="Installer intent result (Native Logs)" value={otaDiagnostics.installerResult} isCode />
+          {/* Section: Developer Mode Collapsible */}
+          {settings.developerMode && (
+            <div style={{ marginTop: 24 }}>
+              <div style={{
+                fontFamily: 'Manrope',
+                fontWeight: 800,
+                fontSize: 11,
+                color: 'var(--c-text-primary)',
+                marginBottom: 12,
+                borderBottom: '1px solid rgba(128,128,128,0.16)',
+                paddingBottom: 6,
+                textTransform: 'uppercase',
+                letterSpacing: '0.05em',
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center'
+              }}>
+                <span>Developer Console</span>
+                <button
+                  onClick={handleClearHistoryLogs}
+                  style={{
+                    background: 'transparent',
+                    border: 'none',
+                    color: '#f87171',
+                    fontFamily: 'Manrope',
+                    fontWeight: 700,
+                    fontSize: 10,
+                    textTransform: 'uppercase',
+                    cursor: 'pointer'
+                  }}
+                >
+                  Clear History Logs
+                </button>
+              </div>
+
+              <DiagnosticField label="Installed Certificate Signature Hash" value={otaDebugLogs.installedSigningSha256} isCode />
+              <DiagnosticField label="Downloaded Certificate Signature Hash" value={otaDebugLogs.downloadedSigningSha256} isCode />
+              <DiagnosticField label="Release Channel" value={otaDebugLogs.releaseChannel} />
+              <DiagnosticField label="Internal Decision Reason" value={otaDebugLogs.updateDecisionReason} />
+
+              <label style={{
+                display: 'block',
+                fontFamily: 'Manrope',
+                fontWeight: 700,
+                fontSize: 10.5,
+                color: 'var(--c-text-muted)',
+                letterSpacing: '0.08em',
+                textTransform: 'uppercase',
+                marginBottom: 4
+              }}>PackageInstaller Session History (Last 20 Runs)</label>
+              
+              <div style={{
+                background: 'rgba(128,128,128,0.06)',
+                borderRadius: 8,
+                padding: '12px 14px',
+                fontFamily: 'monospace',
+                fontSize: 11,
+                maxHeight: 220,
+                overflowY: 'auto',
+                color: 'var(--c-text-secondary)',
+                lineHeight: 1.55
+              }}>
+                {nativeLogs.length === 0 ? (
+                  <div style={{ color: 'var(--c-text-muted)', fontStyle: 'italic' }}>No native package installer history logged.</div>
+                ) : (
+                  nativeLogs.map((log, index) => (
+                    <div key={index} style={{ marginBottom: 12, borderBottom: '1px solid rgba(128,128,128,0.1)', paddingBottom: 8 }}>
+                      <div>[#{nativeLogs.length - index}] {new Date(log.timestamp).toLocaleString()}</div>
+                      <div>Status Code: <span style={{ color: log.status === 0 ? '#22c55e' : '#f87171', fontWeight: 'bold' }}>{log.status}</span></div>
+                      <div>Package: {log.packageName || 'N/A'}</div>
+                      <div style={{ whiteSpace: 'pre-wrap', wordBreak: 'break-all' }}>Message: {log.message || 'None'}</div>
+                    </div>
+                  ))
+                )}
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Premium Action Row Footer */}
+        <div style={{
+          padding: '16px 22px',
+          borderTop: '1px solid rgba(128,128,128,0.16)',
+          display: 'flex',
+          gap: 10,
+          flexShrink: 0,
+          background: 'var(--app-surface)'
+        }}>
+          <button
+            onClick={handleRetryUpdate}
+            style={{
+              flex: 1,
+              padding: '12px 16px',
+              borderRadius: 10,
+              background: `linear-gradient(135deg, ${accent.from}, ${accent.to})`,
+              color: 'white',
+              border: 'none',
+              fontFamily: 'Manrope',
+              fontWeight: 800,
+              fontSize: 14,
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: 8,
+              boxShadow: '0 4px 12px rgba(0,0,0,0.15)'
+            }}
+          >
+            <span className="material-symbols-outlined" style={{ fontSize: 18 }}>refresh</span>
+            Retry Update
+          </button>
+
+          <button
+            onClick={handleShareLogs}
+            style={{
+              padding: '12px',
+              borderRadius: 10,
+              background: 'rgba(128,128,128,0.08)',
+              color: 'var(--c-text-primary)',
+              border: '1px solid rgba(128,128,128,0.12)',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center'
+            }}
+            title="Share Diagnostics"
+          >
+            <span className="material-symbols-outlined" style={{ fontSize: 18 }}>share</span>
+          </button>
+
+          <button
+            onClick={handleExportLogs}
+            style={{
+              padding: '12px',
+              borderRadius: 10,
+              background: 'rgba(128,128,128,0.08)',
+              color: 'var(--c-text-primary)',
+              border: '1px solid rgba(128,128,128,0.12)',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center'
+            }}
+            title="Export Diagnostics"
+          >
+            <span className="material-symbols-outlined" style={{ fontSize: 18 }}>download</span>
+          </button>
+
+          <button
+            onClick={onClose}
+            style={{
+              padding: '12px 16px',
+              borderRadius: 10,
+              background: 'rgba(128,128,128,0.08)',
+              color: 'var(--c-text-primary)',
+              border: 'none',
+              fontFamily: 'Manrope',
+              fontWeight: 700,
+              fontSize: 14,
+              cursor: 'pointer'
+            }}
+          >
+            Dismiss
+          </button>
         </div>
       </div>
 

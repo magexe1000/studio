@@ -1,21 +1,19 @@
 {
   "platform": "web",
   "version": "4.0.0",
-  "commit": "7ef6c971",
-  "releasedAt": "6/22/2026, 10:29:00 PM CST",
-  "buildTimestamp": "6/22/2026, 10:29:00 PM CST",
+  "commit": "a4b4c5fc",
+  "releasedAt": "6/22/2026, 6:00:00 PM CST",
+  "buildTimestamp": "6/22/2026, 6:00:00 PM CST",
   "updateMode": "refresh",
-  "description": "• Centralized localization (i18n) architecture using a unified JSON source of truth.\n• Implemented Chordex practice screen with interactive chords-above-lyrics formatting.\n• Added draggable floating chord overlay with screen boundary protection and local persistence.\n• Added karaoke mode with auto-scroll settings, custom text sizes, and AMOLED contrast themes.\n• Expanded Discover song library with 30 detailed song charts by Enjambre.\n• Polished app entry transitions with cross-fade overlays and responsive grid/flex layout scaling.",
-  "whatsNew": "• Centralized localization (i18n) architecture using a unified JSON source of truth.\n• Implemented Chordex practice screen with interactive chords-above-lyrics formatting.\n• Added draggable floating chord overlay with screen boundary protection and local persistence.\n• Added karaoke mode with auto-scroll settings, custom text sizes, and AMOLED contrast themes.\n• Expanded Discover song library with 30 detailed song charts by Enjambre.\n• Polished app entry transitions with cross-fade overlays and responsive grid/flex layout scaling.",
-  "changelog": "• Centralized localization (i18n) architecture using a unified JSON source of truth.\n• Implemented Chordex practice screen with interactive chords-above-lyrics formatting.\n• Added draggable floating chord overlay with screen boundary protection and local persistence.\n• Added karaoke mode with auto-scroll settings, custom text sizes, and AMOLED contrast themes.\n• Expanded Discover song library with 30 detailed song charts by Enjambre.\n• Polished app entry transitions with cross-fade overlays and responsive grid/flex layout scaling.",
+  "description": "• Fixed Android cold launch delay before app appears.\n• Improved launch surface / first visible frame.\n• Improved startup timing diagnostics.\n• Restored Hub bottom nav auto-hide/show.",
+  "whatsNew": "• Fixed Android cold launch delay before app appears.\n• Improved launch surface / first visible frame.\n• Improved startup timing diagnostics.\n• Restored Hub bottom nav auto-hide/show.",
+  "changelog": "• Fixed Android cold launch delay before app appears.\n• Improved launch surface / first visible frame.\n• Improved startup timing diagnostics.\n• Restored Hub bottom nav auto-hide/show.",
   "releaseNotes": {
-    "added": [
-      "Centralized localization (i18n) architecture using a unified JSON source of truth.",
-      "Implemented Chordex practice screen with interactive chords-above-lyrics formatting.",
-      "Added draggable floating chord overlay with screen boundary protection and local persistence.",
-      "Added karaoke mode with auto-scroll settings, custom text sizes, and AMOLED contrast themes.",
-      "Expanded Discover song library with 30 detailed song charts by Enjambre.",
-      "Polished app entry transitions with cross-fade overlays and responsive grid/flex layout scaling."
+    "fixed": [
+      "Fixed Android cold launch delay before app appears.",
+      "Improved launch surface / first visible frame.",
+      "Improved startup timing diagnostics.",
+      "Restored Hub bottom nav auto-hide/show."
     ]
   },
   "mandatory": false

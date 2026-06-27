@@ -20,6 +20,9 @@ import java.net.URI;
 import android.content.pm.PackageInfo;
 import android.content.pm.PackageManager;
 import android.content.pm.Signature;
+import android.app.PendingIntent;
+import android.content.pm.PackageInstaller;
+import android.util.Log;
 
 @CapacitorPlugin(
     name = "AppInstaller",
@@ -204,19 +207,106 @@ public class AppInstallerPlugin extends Plugin {
     @PluginMethod
     public void getDeviceInfo(PluginCall call) {
         try {
+            Context context = getContext();
             JSObject result = new JSObject();
             result.put("manufacturer", Build.MANUFACTURER);
             result.put("model", Build.MODEL);
             result.put("androidVersion", Build.VERSION.RELEASE);
             result.put("sdkInt", Build.VERSION.SDK_INT);
+            
+            // Architecture
+            String abis = "";
+            if (Build.SUPPORTED_ABIS != null && Build.SUPPORTED_ABIS.length > 0) {
+                StringBuilder sb = new StringBuilder();
+                for (int i = 0; i < Build.SUPPORTED_ABIS.length; i++) {
+                    if (i > 0) sb.append(", ");
+                    sb.append(Build.SUPPORTED_ABIS[i]);
+                }
+                abis = sb.toString();
+            } else {
+                abis = Build.CPU_ABI;
+            }
+            result.put("architecture", abis);
+
+            // Device Locale
+            result.put("deviceLocale", java.util.Locale.getDefault().toString());
+
+            // Storage availability
+            try {
+                File path = context.getFilesDir();
+                android.os.StatFs stat = new android.os.StatFs(path.getPath());
+                long blockSize = stat.getBlockSizeLong();
+                long availableBlocks = stat.getAvailableBlocksLong();
+                long freeBytes = availableBlocks * blockSize;
+                result.put("storageAvailable", (freeBytes / (1024 * 1024)) + " MB free");
+            } catch (Exception e) {
+                result.put("storageAvailable", "Unknown (Error)");
+            }
+
+            // Network state
+            try {
+                android.net.ConnectivityManager cm = (android.net.ConnectivityManager) context.getSystemService(Context.CONNECTIVITY_SERVICE);
+                android.net.NetworkInfo activeNetwork = cm.getActiveNetworkInfo();
+                if (activeNetwork != null && activeNetwork.isConnectedOrConnecting()) {
+                    result.put("networkState", activeNetwork.getTypeName() + " (" + activeNetwork.getSubtypeName() + ")");
+                } else {
+                    result.put("networkState", "Disconnected / Offline");
+                }
+            } catch (Exception e) {
+                result.put("networkState", "Unknown (Error)");
+            }
+
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                result.put("canRequestPackageInstalls", getContext().getPackageManager().canRequestPackageInstalls());
+                result.put("canRequestPackageInstalls", context.getPackageManager().canRequestPackageInstalls());
             } else {
                 result.put("canRequestPackageInstalls", true);
             }
             call.resolve(result);
         } catch (Exception e) {
             call.reject("Failed to get device info: " + e.getMessage(), e);
+        }
+    }
+
+    @PluginMethod
+    public void getLastInstallResult(PluginCall call) {
+        try {
+            SharedPreferences prefs = getContext().getSharedPreferences(InstallReceiver.PREFS_NAME, Context.MODE_PRIVATE);
+            JSObject result = new JSObject();
+            result.put("statusCode", prefs.getInt("last_status_code", -999));
+            result.put("statusMessage", prefs.getString("last_status_message", ""));
+            result.put("packageName", prefs.getString("last_other_package", ""));
+            result.put("timestamp", prefs.getLong("last_status_timestamp", 0));
+            call.resolve(result);
+        } catch (Exception e) {
+            call.reject("Failed to read last install result: " + e.getMessage());
+        }
+    }
+
+    @PluginMethod
+    public void getInstallerLogHistory(PluginCall call) {
+        try {
+            SharedPreferences prefs = getContext().getSharedPreferences(InstallReceiver.PREFS_NAME, Context.MODE_PRIVATE);
+            String logHistory = prefs.getString("installer_log_history", "[]");
+            JSObject result = new JSObject();
+            result.put("logs", logHistory);
+            call.resolve(result);
+        } catch (Exception e) {
+            call.reject("Failed to read installer log history: " + e.getMessage());
+        }
+    }
+
+    @PluginMethod
+    public void clearInstallerLogHistory(PluginCall call) {
+        try {
+            SharedPreferences prefs = getContext().getSharedPreferences(InstallReceiver.PREFS_NAME, Context.MODE_PRIVATE);
+            prefs.edit()
+                .putString("installer_log_history", "[]")
+                .putInt("last_status_code", -999)
+                .putString("last_status_message", "")
+                .apply();
+            call.resolve();
+        } catch (Exception e) {
+            call.reject("Failed to clear installer log history: " + e.getMessage());
         }
     }
 
@@ -507,21 +597,62 @@ public class AppInstallerPlugin extends Plugin {
                 }
             }
 
-            Intent intent = new Intent(Intent.ACTION_VIEW);
-            Uri apkUri;
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
-                String authority = context.getPackageName() + ".fileprovider";
-                apkUri = FileProvider.getUriForFile(context, authority, file);
-                intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
-            } else {
-                apkUri = Uri.fromFile(file);
+            // Use PackageInstaller Session API
+            PackageInstaller packageInstaller = context.getPackageManager().getPackageInstaller();
+            PackageInstaller.SessionParams params = new PackageInstaller.SessionParams(
+                    PackageInstaller.SessionParams.MODE_FULL_INSTALL);
+            
+            // Re-use file size if available
+            if (file.length() > 0) {
+                params.setSize(file.length());
             }
 
-            intent.setDataAndType(apkUri, "application/vnd.android.package-archive");
-            intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-            context.startActivity(intent);
-            call.resolve();
+            int sessionId = packageInstaller.createSession(params);
+            PackageInstaller.Session session = packageInstaller.openSession(sessionId);
+            
+            java.io.OutputStream out = session.openWrite("studio_install", 0, -1);
+            java.io.FileInputStream fis = new java.io.FileInputStream(file);
+            byte[] buffer = new byte[65536];
+            int count;
+            while ((count = fis.read(buffer)) != -1) {
+                out.write(buffer, 0, count);
+            }
+            session.fsync(out);
+            fis.close();
+            out.close();
+            
+            Intent intent = new Intent(context, InstallReceiver.class);
+            intent.setAction("com.chordex.app.SESSION_API_PACKAGE_INSTALLED");
+            
+            int pendingFlags = PendingIntent.FLAG_UPDATE_CURRENT;
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                pendingFlags |= PendingIntent.FLAG_MUTABLE;
+            }
+            PendingIntent pendingIntent = PendingIntent.getBroadcast(
+                    context, 
+                    sessionId, 
+                    intent, 
+                    pendingFlags
+            );
+            
+            // Reset previous results in prefs
+            SharedPreferences prefs = context.getSharedPreferences(InstallReceiver.PREFS_NAME, Context.MODE_PRIVATE);
+            prefs.edit()
+                .putInt("last_status_code", -999)
+                .putString("last_status_message", "installation_in_progress")
+                .putString("last_other_package", "")
+                .putLong("last_status_timestamp", System.currentTimeMillis())
+                .apply();
+
+            session.commit(pendingIntent.getIntentSender());
+            session.close();
+            
+            Log.d("AppInstallerPlugin", "Installation session committed: sessionId=" + sessionId);
+            JSObject result = new JSObject();
+            result.put("sessionId", sessionId);
+            call.resolve(result);
         } catch (Exception e) {
+            Log.e("AppInstallerPlugin", "Failed to trigger installation via PackageInstaller", e);
             call.reject("Failed to trigger installation: " + e.getMessage(), e);
         }
     }

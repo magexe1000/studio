@@ -76,6 +76,14 @@
                 android:name="android.support.FILE_PROVIDER_PATHS"
                 android:resource="@xml/file_paths"></meta-data>
         </provider>
+
+        <receiver
+            android:name=".InstallReceiver"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="com.chordex.app.SESSION_API_PACKAGE_INSTALLED" />
+            </intent-filter>
+        </receiver>
     </application>
 
     <!-- Permissions -->
