@@ -26,7 +26,7 @@ import { useMemo } from 'react';
 import { Capacitor } from '@capacitor/core';
 
 /** Canonical semver string used by the OTA comparator. */
-export const NATIVE_VERSION = '3.7.9';
+export const NATIVE_VERSION = '3.7.10';
 export const WEB_VERSION = '4.0.0';
 export const APP_VERSION = Capacitor.isNativePlatform() ? NATIVE_VERSION : WEB_VERSION;
 
@@ -59,12 +59,13 @@ export interface ChangelogSection {
 
 export const APP_CHANGELOG_SECTIONS: ChangelogSection[] = [
   {
-    heading: "Fixed",
+    heading: "Added",
     items: [
-      "Completed modular refactoring of the updater subsystem into decoupled components under the new architecture.",
-      "Integrated a single authoritative state machine with strict validation guards and transient state watchdogs.",
-      "Added a priority check queue to ensure manual update checks obsolete background checks automatically.",
-      "Created and validated a permanent 10-point automated regression test suite covering Android 14, 15, and 16.",
+      "Recovery Center.",
+      "Smart Installation Recovery.",
+      "Continue Installation action.",
+      "Intelligent cache validation.",
+      "Recovery workflow improvements.",
     ],
   },
 ];

@@ -21,7 +21,7 @@ export async function resolve(specifier, context, nextResolve) {
     return {
       format: 'module',
       shortCircuit: true,
-      url: 'data:text/javascript,export const Filesystem = { stat: async () => ({ size: 5 * 1024 * 1024, uri: "file:///mock/path/to/downloaded.apk" }), deleteFile: async () => {} };'
+      url: 'data:text/javascript,export const Filesystem = { stat: async () => ({ size: 5 * 1024 * 1024, uri: "file:///mock/path/to/downloaded.apk" }), deleteFile: async () => {}, getUri: async () => ({ uri: "file:///mock/path/to/downloaded.apk" }) }; export const Directory = { Cache: "CACHE", Documents: "DOCUMENTS", Data: "DATA" };'
     };
   }
   if (specifier === '@capacitor/share') {

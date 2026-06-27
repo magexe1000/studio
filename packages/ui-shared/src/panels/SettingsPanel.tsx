@@ -335,25 +335,76 @@ export default function SettingsPanel() {
                     Official Production
                   </span>
                 </div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', gridColumn: 'span 2', borderTop: '1px solid rgba(128,128,128,0.08)', paddingTop: '8px', marginTop: '4px' }}>
+                  <span style={{ fontSize: '10px', color: 'var(--c-text-tertiary)', textTransform: 'uppercase', fontWeight: 700, fontFamily: 'Inter' }}>Recovery Status</span>
+                  <span style={{ fontSize: '13px', color: ota.validApkExists ? '#eab308' : '#22c55e', fontWeight: 600, fontFamily: 'Inter', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: ota.validApkExists ? '#eab308' : '#22c55e' }}></span>
+                    {ota.validApkExists ? 'Pending installation detected.' : 'Everything is healthy.'}
+                  </span>
+                </div>
               </div>
 
-              <button
-                type="button"
-                onClick={() => setShowGitHubConfirm(true)}
-                style={{
-                  width: '100%', height: '42px', borderRadius: '12px',
-                  background: `linear-gradient(135deg, ${acc.from}, ${acc.to})`,
-                  border: 'none', color: 'white',
-                  fontFamily: 'Manrope', fontWeight: 800, fontSize: '13px',
-                  cursor: 'pointer',
-                  boxShadow: `0 4px 14px color-mix(in srgb, ${acc.to} 25%, transparent)`,
-                  display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px',
-                  transition: 'opacity 200ms ease, transform 150ms ease',
-                }}
-              >
-                <GithubIcon size={18} color="white" />
-                Open Official GitHub Release
-              </button>
+              {ota.validApkExists ? (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (typeof window !== 'undefined') {
+                        window.dispatchEvent(new CustomEvent('studio:open-update-dialog'));
+                      }
+                      ota.applyUpdate('Settings: Continue Installation');
+                    }}
+                    style={{
+                      width: '100%', height: '44px', borderRadius: '12px',
+                      background: `linear-gradient(135deg, ${acc.from}, ${acc.to})`,
+                      border: 'none', color: 'white',
+                      fontFamily: 'Manrope', fontWeight: 800, fontSize: '13px',
+                      cursor: 'pointer',
+                      boxShadow: `0 4px 14px color-mix(in srgb, ${acc.to} 25%, transparent)`,
+                      display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px',
+                      transition: 'opacity 200ms ease, transform 150ms ease',
+                    }}
+                  >
+                    <span className="material-symbols-outlined" style={{ fontSize: 18 }}>play_circle</span>
+                    Continue Installation
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setShowGitHubConfirm(true)}
+                    style={{
+                      width: '100%', height: '40px', borderRadius: '12px',
+                      background: 'transparent',
+                      border: '1px solid rgba(128, 128, 128, 0.25)',
+                      color: 'var(--c-text-secondary)',
+                      fontFamily: 'Manrope', fontWeight: 700, fontSize: '13px',
+                      cursor: 'pointer',
+                      display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px',
+                      transition: 'background-color 200ms ease',
+                    }}
+                  >
+                    <GithubIcon size={18} color="var(--c-text-secondary)" />
+                    Open Official GitHub Release
+                  </button>
+                </div>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => setShowGitHubConfirm(true)}
+                  style={{
+                    width: '100%', height: '42px', borderRadius: '12px',
+                    background: `linear-gradient(135deg, ${acc.from}, ${acc.to})`,
+                    border: 'none', color: 'white',
+                    fontFamily: 'Manrope', fontWeight: 800, fontSize: '13px',
+                    cursor: 'pointer',
+                    boxShadow: `0 4px 14px color-mix(in srgb, ${acc.to} 25%, transparent)`,
+                    display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px',
+                    transition: 'opacity 200ms ease, transform 150ms ease',
+                  }}
+                >
+                  <GithubIcon size={18} color="white" />
+                  Open Official GitHub Release
+                </button>
+              )}
             </div>
           </div>
         )}

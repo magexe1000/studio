@@ -47,6 +47,7 @@ export interface CentralizedOtaState {
   reinstallRequired: boolean;
   requiredVersionCode: number;
   apkUpdateRequired: boolean;
+  validApkExists: boolean;
 }
 
 export let globalOtaState: CentralizedOtaState = {
@@ -73,6 +74,7 @@ export let globalOtaState: CentralizedOtaState = {
   reinstallRequired: false,
   requiredVersionCode: 0,
   apkUpdateRequired: false,
+  validApkExists: false,
 };
 
 export const stateListeners = new Set<(state: CentralizedOtaState) => void>();

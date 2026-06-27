@@ -204,6 +204,13 @@ export default function UpdateIndicator({
   }, []);
 
   useEffect(() => {
+    if (ota.validApkExists) {
+      console.log('[Smart Recovery] Valid APK exists on startup. Opening recovery modal.');
+      setOpen(true);
+    }
+  }, [ota.validApkExists]);
+
+  useEffect(() => {
     console.log('[INSTRUMENTATION] [REACT] Add open-update-dialog event listener');
     const id = requestAnimationFrame(() => setEntered(true));
     const handleOpen = () => {
@@ -1251,24 +1258,48 @@ function UpdateModal({
 
     if (state === 'available') {
       return (
-        <div style={{ display: 'flex', gap: 8, marginTop: 18, width: '100%' }}>
-          <button
-            type="button"
-            onClick={onLater}
-            style={secondaryButtonStyle}
-          >
-            Later
-          </button>
-          <AnimatedActionButton
-            type="button"
-            onClick={handleStartUpdate}
-            wrapStyle={{ flex: 1, height: 44 }}
-            borderRadius={12}
-            trailColor={purpleTo}
-            style={animatedPrimaryButtonStyle}
-          >
-            Update Now
-          </AnimatedActionButton>
+        <div style={{ width: '100%' }}>
+          {ota.validApkExists ? (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginTop: 18, width: '100%' }}>
+              <button
+                type="button"
+                onClick={async () => {
+                  await ota.applyUpdate('Modal: Continue Installation');
+                }}
+                style={primaryButtonStyle}
+              >
+                <span className="material-symbols-outlined" style={{ fontSize: 18, marginRight: 6 }}>play_circle</span>
+                Continue Installation
+              </button>
+              <button
+                type="button"
+                onClick={onLater}
+                style={secondaryButtonStyle}
+              >
+                Later
+              </button>
+            </div>
+          ) : (
+            <div style={{ display: 'flex', gap: 8, marginTop: 18, width: '100%' }}>
+              <button
+                type="button"
+                onClick={onLater}
+                style={secondaryButtonStyle}
+              >
+                Later
+              </button>
+              <AnimatedActionButton
+                type="button"
+                onClick={handleStartUpdate}
+                wrapStyle={{ flex: 1, height: 44 }}
+                borderRadius={12}
+                trailColor={purpleTo}
+                style={animatedPrimaryButtonStyle}
+              >
+                Update Now
+              </AnimatedActionButton>
+            </div>
+          )}
         </div>
       );
     }

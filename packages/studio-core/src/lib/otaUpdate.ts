@@ -28,6 +28,7 @@ import { verifyFileIntegrity } from './updater/integrityVerification';
 import { runEligibilityCheck } from './updater/eligibilityVerification';
 import { triggerNativeInstall, processLastInstallResult } from './updater/installer';
 import { runSignatureMismatchRecovery, isRecovering, setIsRecovering } from './updater/recovery';
+import { validateLocalApk, deleteLocalApk, getLocalApkPath } from './updater/cacheManager';
 import {
   otaDebugLogs,
   otaDiagnostics,
@@ -370,6 +371,7 @@ export function checkForUpdate(isManual = false): Promise<CentralizedOtaState> {
             manualApkUrl: remote.manualApkUrl ?? null,
             fallbackApkUrl: remote.fallbackApkUrl ?? null,
           });
+          await checkAndCleanCache();
           transitionToState('idle', 'User dismissed/later');
           return globalOtaState;
         }
@@ -386,6 +388,7 @@ export function checkForUpdate(isManual = false): Promise<CentralizedOtaState> {
           fallbackApkUrl: remote.fallbackApkUrl ?? null,
         });
 
+        await checkAndCleanCache();
         transitionToState('update_available', 'New update found');
         void logProgressStage('Update detected', `Version: ${remote.version}`);
       } else {
@@ -415,6 +418,25 @@ export function checkForUpdate(isManual = false): Promise<CentralizedOtaState> {
   })();
 
   return activeCheckPromise;
+}
+
+export async function checkAndCleanCache(): Promise<boolean> {
+  const ver = globalOtaState.remoteVersion;
+  if (!ver) {
+    updateGlobalState({ validApkExists: false });
+    return false;
+  }
+  
+  const expectedHash = globalOtaState.apkSha256 ?? undefined;
+  const { valid, filePath } = await validateLocalApk(ver, expectedHash);
+  
+  updateGlobalState({ validApkExists: valid });
+  
+  if (!valid && filePath) {
+    await deleteLocalApk(ver);
+  }
+  
+  return valid;
 }
 
 export function downloadUpdate(trigger?: string): Promise<void> {
@@ -477,6 +499,25 @@ export function downloadUpdate(trigger?: string): Promise<void> {
       localStorage.removeItem('studio:downloadedApkPath');
     }
     
+    const hasValid = await checkAndCleanCache();
+    if (hasValid) {
+      console.log('[Smart Recovery] Valid APK already exists. Skipping download.');
+      updateGlobalState({ progress: 1.0, statusText: 'Verifying update...' });
+      const filePath = await getLocalApkPath(ver);
+      
+      const isEligible = await runEligibilityCheck(filePath, isDowngrade);
+      if (!isEligible) {
+        if (otaDebugLogs.eligibilityReason === 'signature_mismatch' && !isRecovering) {
+          const recovered = await runSignatureMismatchRecovery(applyUpdate, downloadUpdate);
+          if (recovered) return;
+        }
+        throw new Error(`[Eligibility Check] Validation failed: ${otaDebugLogs.eligibilityReason || 'unknown'}`);
+      }
+      
+      transitionToState('ready_to_install', 'Valid cached APK verified');
+      return;
+    }
+
     otaDebugLogs.downloadStatus = `Update started: apk\nAPK URL: ${apkUrl}`;
     updateGlobalState({ progress: 0.0, statusText: 'Entering progress screen...' });
     
@@ -687,6 +728,8 @@ export function useOtaUpdate() {
     };
     stateListeners.add(listener);
 
+    void checkAndCleanCache();
+
     if (globalOtaState.updateState === 'idle') {
       void checkForUpdate();
     }
@@ -783,6 +826,8 @@ export function useOtaUpdate() {
     shareDownloadedApk,
     getUpdateHistory,
     triggerDowngrade,
+    checkAndCleanCache,
+    deleteLocalApk,
   };
 }
 

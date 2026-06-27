@@ -12,6 +12,15 @@ Conventions:
 - Bullets start with `- ` and use plain English a non-technical user
   can parse. Keep each line short — the modal's text area is narrow.
 
+## 3.7.10
+
+### Added
+- Recovery Center.
+- Smart Installation Recovery.
+- Continue Installation action.
+- Intelligent cache validation.
+- Recovery workflow improvements.
+
 ## 3.7.9
 
 ### Added
