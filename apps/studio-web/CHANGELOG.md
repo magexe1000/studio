@@ -11,8 +11,469 @@ Conventions:
 - One H2 heading per version: `## X.Y.Z` (no leading `v`).
 - Bullets start with `- ` and use plain English a non-technical user
   can parse. Keep each line short — the modal's text area is narrow.
-- List the user-visible changes only. Internal refactors, tooling,
-  and CI tweaks do not need a bullet.
+
+## 3.6.94
+
+### Fixed
+- Fixed Android cold launch delay before app appears.
+- Improved launch surface / first visible frame.
+- Improved startup timing diagnostics.
+- Restored Hub bottom nav auto-hide/show.
+
+## 3.6.93
+
+### Added
+- Expanded guitar chord database with new qualities and 14 slash chords.
+- Fixed floating chord diagram skipping and auto-scrolling issues in Practice.
+- Added active segment/phrase highlighting to sync with playback timeline.
+- Fixed horizontal scroll block on Discover genre chips.
+- Made app entry transition and launch animations 25% faster.
+
+## 3.6.92
+
+### Added
+- Expanded guitar chord database by adding the minor 13th (min13) quality and chord shape definitions.
+- Enhanced normalization layer to support Latin roots, unicode symbols, and suffix aliases like 7M/M7/menor/maior.
+- Upgraded import diagnostics and chord mapping tooltips in the preview modal for better diagram verification.
+- Correctly categorized extended and new chord shapes under the right sections in Chordex Library.
+
+## 3.6.91
+
+### Added
+- Expanded chord diagram coverage in Practice mode by auto-generating complete guitar shapes for all standard roots and extensions.
+- Implemented a robust chord normalization layer converting Latin roots, unicode accidentals, and suffix aliases before resolution.
+- Added slash chord fallback rendering: shows the base chord shape and details the bass note on missing slash definitions.
+- Integrated a Supported Sites status checklist inside the URL Import modal showing Supported, Limited, and Blocked hosts.
+- Implemented dedicated import adapters with detailed error diagnostics for E-Chords and 7 other chord search sites.
+
+## 3.6.90
+
+### Fixed
+- Fixed Cifra Club URL importer failure in production by implementing a resilient, multi-strategy layout parser.
+- Added support for both mobile and desktop Cifra Club web structures using Apollo JSON parsing and wildcard <pre> tag recognition.
+- Integrated inline parser diagnostics list in the chart preview screen to display execution strategies.
+
+## 3.6.89
+
+### Added
+- Added user-initiated Import from URL workflow for Cifra Club and generic preformatted chord charts.
+- Implemented interactive Preview-Before-Save layout to inspect parsed chords and lyrics.
+- Integrated imported chords directly into the Practice view and floating diagram overlays.
+- Saved imported charts privately in local storage as User Imported charts.
+
+## 3.6.88
+
+### Removed
+- Removed suggested/generated fallback chord progressions.
+- Purged hand-aligned chord charts for copyrighted songs in compliance with licensing guidelines.
+
+### Added
+- Integrated custom user import and edit chord sheet fallback actions.
+- Implemented premium badge indicators for Verified, User, Provider, and Unavailable states.
+
+### Improved
+- Polished Practice UI and layout when chords are unavailable (showing lyrics only).
+- Disabled floating chord diagrams overlay when no verified or user chords are present.
+
+## 3.6.87
+
+### Added
+- Implemented hand-aligned verified chord charts database for curated song lists.
+- Integrated new ChordChartProvider search hierarchy prioritising user and verified charts.
+- Added premium status indicators indicating chord authenticity (Verified, User, Suggested, Lyrics).
+
+### Improved
+- Aligned chord placement to lyrics with accurate timestamp interpolation.
+- Refactored manual chord editor modal to easily customize, paste, or reset chord sheets.
+- Polished Practice UI layout, typography, line highlights, and viewport spacing.
+
+## 3.6.86
+
+### Added
+- Added suggested practice chords mapped to lyrics when verified chord charts are missing.
+- Redesigned Chords Home with Chord of the Day, quick categories, and practice tips.
+
+### Fixed
+- Fixed Library back button navigation and improved return-to-hub transition logging.
+
+## 3.6.85
+
+### Added
+- Implemented MetroList-style lyrics provider integration with LRCLIB auto-fetching.
+
+## 3.6.84
+
+### Fixed
+- Matched Stagex History panel design and transitions to Layouts UI.
+- Resolved Android native swipe-back gestures for PDF Export and History panel.
+
+## 3.6.83
+
+### Improved
+- Added performance diagnostics for sub-app transitions.
+- Optimized startup sequence and deferred heavy bundle compilation.
+- Polished Stagex touch targets and back button navigation.
+- Enhanced native OTA update installer progress tracking.
+
+## 3.6.82
+
+### Fixed
+- Optimized startup planets animation with cached dimensions and pre-computed logo offsets.
+- Expanded Stagex plot object selection hitboxes by 16px and suppressed tap highlight overlays.
+- Redesigned Stagex history menu into a responsive bottom sheet and disabled undo/redo on open.
+- Resolved Stagex back-gesture coverage, including presets panel and history overlay detection.
+- Refactored native update progress flows with support for all 10 states and automated install.
+
+## 3.6.81
+
+### Fixed
+- Optimized startup planets animation and throttled layout queries to prevent freezes.
+- Deferred React mounting and non-critical assets load to ensure smooth initial frames.
+- Implemented double-buffered loading to eliminate sub-app entry transition stutters.
+- Added universal swipe-to-back navigation and root screen exit behavior setting.
+- Fixed bottom nav restoration stutters upon exiting nested panels or practice mode.
+
+## 3.6.80
+
+### Fixed
+- Fixed global i18n root causes in settings menus and Vocalex Harmonizer.
+- Added authorized lyrics and chords support for public-domain songs in Chordex Practice.
+- Implemented user-provided custom lyrics/charts paste, edit, and delete flows.
+- Optimized floating chord overlay to make diagrams primary and chord names secondary labels.
+
+## 3.6.79
+
+### Fixed
+- Fixed incomplete global language switching across the entire app suite.
+- Removed entry animation glow and bloom effects from app entries.
+- Redesigned Chordex Discover Practice UI to feel polished and native.
+- Added clean empty chart placeholder with support for custom chart importing.
+- Simplified Practice Settings, keeping size, spacing, and BPM controls.
+- Upgraded floating chord widget to display real guitar chord diagrams.
+- Scoped bottom navigation bar hiding strictly to the Chordex practice view.
+
+## 3.6.78
+
+### Added
+- Centralized localization (i18n) architecture using a unified JSON source of truth.
+- Implemented Chordex practice screen with interactive chords-above-lyrics formatting.
+- Added draggable floating chord overlay with screen boundary protection and local persistence.
+- Added karaoke mode with auto-scroll settings, custom text sizes, and AMOLED contrast themes.
+- Expanded Discover song library with 30 detailed song charts by Enjambre.
+- Polished app entry transitions with cross-fade overlays and responsive grid/flex layout scaling.
+
+## 3.6.77
+
+### Added
+- Increased splash duration (950ms delay with 300ms fadeout) to guarantee visual presence.
+- Added fully opaque, theme-adaptive splash backgrounds preventing layout bleed-through.
+- Configured dynamic theme adaptation for splash logos and app name titles.
+- Eliminated off-screen CPU/GPU rendering overhead of loading animations in background boundaries.
+- Synced fade-out with double requestAnimationFrame to ensure browser paints first.
+
+## 3.6.76
+
+### Added
+- Implemented dedicated per-app launch screen animations with centered logos and names when opening sub-apps from the Hub.
+- Preloaded and initialized sub-app rendering in the background behind the splash screen to eliminate visually jarring entry flickers.
+- Enforced a premium minimum launch screen duration (850ms) to ensure smooth transitions.
+
+## 3.6.75
+
+### Added
+- Modified navigation forensic snapshot sequence to capture unconditionally at T+0ms, T+50ms, T+100ms, T+250ms, T+500ms, T+1000ms, and T+2000ms.
+- Rendered live paint verification screenshots inside the Navigation Forensics panel of the debug overlay.
+- Optimized offscreen paint capture image quality to reduce local storage footprints.
+
+## 3.6.74
+
+### Added
+- Integrated early orbit intro dismissal bypass when returning from sub-apps via path check and sessionStorage tracking.
+- Accelerated launchApp zooming timing to execute setZooming(true) immediately, aligning transition states.
+- Re-aligned sub-app transition behavior with the web platform to prevent double-scaling effects.
+
+## 3.6.73
+
+### Added
+- Restored centered app-specific loading screens showing animated logos, app names, and customized loading indicators for all sub-apps.
+- Smoothed sub-app entry and exit transitions, eliminating any temporary black or blank frames during bundle loading and heavy initialization.
+- Integrated persistent sub-app loading screens with Stagex iframe onload/bridge-ready hooks to prevent gray backgrounds.
+- Streamlined sub-app mount performance and eliminated rendering delays on Android devices.
+
+## 3.6.72
+
+### Added
+- Restored original smooth transition animations for sub-app entries and exits.
+- Optimized navigation performance and transition frame-rates on physical Android devices.
+- Memoized SubAppWrapper component to prevent unnecessary React re-renders.
+- Hidden emergency debug UI, panic menu, and watchdog telemetry from production, keeping diagnostics accessible behind a debug flag.
+
+## 3.6.71
+
+### Fixed
+- Mitigated React Error #300 hook order violation in BottomNav by hoisting hooks above conditional return statements.
+- Integrated runtime React stack trace symbolicator with VLQ sourcemap decoding and online/offline mapping.
+- Added COPY SYMBOLICATED REACT ERROR REPORT action to crashed boundaries and debug overlay timelines.
+- Resolved WebView black screen and compositing freezes on sub-app exits with enhanced telemetry and paint validation.
+
+## 3.6.70
+
+### Fixed
+- Prevented the visible RootApp ErrorBoundary crash panel from flashing during recoverable Chordex to Hub return transitions.
+- Configured RootApp ErrorBoundary to render a neutral dark layout during return sequences, recovering silently.
+- Added detailed telemetry logging for RootApp ErrorBoundary catches, recorded under local storage logs.
+- Added COPY ROOTAPP ERROR LOG and COPY LAST RECOVERABLE ERROR buttons to Failed Timeline tab.
+- Integrated RootApp Error counts, suppression status, and recovery duration diagnostics in Emergency Debug Overlay.
+
+## 3.6.69
+
+### Added
+- Upgraded the root React app tree structure to render EmergencyDebugOverlay at root level.
+- Refactored App.tsx layout to keep the outer app-container permanently mounted, preventing root-level unmounts.
+- Integrated LifecycleTracker logging to record component mount/unmount stack traces and Suspense fallback states.
+- Implemented ROOT_APP_TREE_MISSING and HUB_DOM_NOT_MOUNTED diagnostics to isolate rendering failures.
+- Added COPY ROOT LIFECYCLE LOG and COPY MOUNT/UNMOUNT STACKS buttons to Failed Timeline tab.
+- Fixed React Error #300 hook order violation in BottomNav by hoisting hooks above conditional return statements.
+- Integrated runtime React stack trace symbolicator with VLQ sourcemap decoding and online/offline mapping.
+- Added COPY SYMBOLICATED REACT ERROR REPORT action to crashed boundaries and debug overlay timelines.
+
+## 3.6.68
+
+### Added
+- Upgraded StudioHub to mount synchronously and permanently, eliminating Suspense-induced unmounts.
+- Improved the failsafe watchdog to run active DOM restoration at T+50ms, T+100ms, T+250ms, and T+500ms checkpoints.
+- Added comprehensive report export options to Failed Timeline (Full Report, Timeline JSON, Summary, Checkpoints, and Recovery Log).
+- Fixed the header version display to dynamically show both the current runtime and captured timeline versions.
+
+## 3.6.67
+
+### Added
+- Upgraded StudioHub to a synchronous static import to prevent Suspense fallback unmounts.
+- Added a failsafe T+50ms watchdog to force-mount StudioHub and clear transition locks if the DOM is missing.
+- Updated watchdog return validation to enforce pass/fail criteria on chronological checkpoints.
+
+## 3.6.66
+
+### Added
+- Added automated forensic snapshots at T+0ms, T+50ms, T+100ms, T+250ms, T+500ms, T+1000ms, and T+2000ms.
+- Enhanced snapshot data model with topmost stack, computed CSS styles, bounding rects, and WebView metrics.
+- Added visual thumbnail capture with html2canvas at every checkpoint.
+- Added Last Failed Navigation Timeline panel showing chronological checkpoints.
+- Added auto-open behavior of emergency overlay on startup following force-closes.
+
+## 3.6.65
+
+### Added
+- Added Paint Verification using html2canvas to Navigation Forensics.
+- Added Force WebView Repaint recovery action with multiple visual repaint cycles.
+- Added Force Full Hub Rebuild recovery action to remount the Hub subtree with a new React key.
+- Added Force WebView Refresh Layer compositor invalidation recovery action.
+- Added automated timing forensic snapshots at LEAVING_CHORDEX, ENTERING_HUB, T+500ms, and T+2000ms.
+- Integrated paint validation into the 1200ms return watchdog to detect and record compositor freeze errors automatically.
+
+## 3.6.64
+
+### Added
+- Added pixel-level visibility probes to detect screen rendering freezes.
+- Added WebView computed layout, compositing, and layer count diagnostics.
+- Added Visual Repaint Recovery and React Nuclear Remount actions.
+- Upgraded Navigation Forensics with timing snapshot comparison dropdowns.
+
+## 3.6.63
+
+### Added
+- Added auto-capture forensic telemetry for returns from Chordex to Hub.
+- Added side-by-side transition state comparison audits (Previous vs Current snapshot).
+- Added Force Hub Repaint recovery failsafe tool to clear black screen states.
+
+## 3.6.62
+
+### Fixed
+- Upgraded Black Screen Forensics telemetry with elementsFromPoint stacks, fullscreen overlay scanning, and React component fiber audits.
+- Added one-click copy forensics report and filtered DOM snapshot buttons to the debug overlay.
+- Added force fullscreen overlay removal and force hub visibility recovery controls.
+- Fixed Stagex landscape viewport squashing layout mapping offsets.
+- Expanded Stagex scene selection, add, and delete touch targets to a minimum of 48dp x 48dp.
+
+## 3.6.61
+
+### Fixed
+- Hardened Hub root diagnostics using multi-fallback element selectors.
+- Resolved false-positive watchdog failsafes during slow Suspense paints.
+- Ensured emergency DBG button is always mounted and auto-recreated if removed.
+- Expanded panic context menu with 8 one-click debug data copy actions.
+- Added computed style detail printouts in DOM tree snapshots.
+
+## 3.6.60
+
+### Fixed
+- Mounted emergency debug overlay outside the main React root via React Portal.
+- Added always-visible DBG button and failsafe quick recovery panel.
+- Implemented window.__emergencyOverlayHealthCheck() layout stacking audits.
+- Added simulated black screen layer tool to verify diagnostic recovery.
+
+## 3.6.59
+
+### Fixed
+- Resolved Chordex -> Hub return black screen by keeping StudioHub permanently mounted.
+- Eliminated watchdog false-positives via an optimized 1.2s verification delay.
+- Added separate HUB_ROOT_MISSING_CAPTURE diagnostic snapshot inside local storage.
+- Preserved accurate previous mode history in failsafe recovery logs.
+
+## 3.6.58
+
+### Fixed
+- Fixed persistent Chordex-to-Hub return black screen issue via a deterministic failsafe.
+- Resolved GSAP target missing console warning.
+- Improved diagnostics and trace logging.
+
+## 3.6.57
+
+### Added
+- Added advanced WebView diagnostics for black screen analysis.
+- Added automatic localStorage persistence for watchdog trace reports.
+
+## 3.6.56
+
+### Added
+- Added black screen diagnostic capture action in Developer Tools.
+- Added automatic black screen blocker detection and telemetry.
+
+### Fixed
+- Fixed Stagex scene buttons touch hitboxes alignment using concentric transparent layout.
+- Enlarged delete scene buttons to 36x36px touch target.
+
+## 3.6.55
+
+### Added
+- Integrated a "Test Stagex Scenes Input" diagnostic action in Developer Tools.
+
+### Fixed
+- Hard-gated Firestore on Android when Supabase is active to prevent runtime connections.
+- Resolved Chordex-to-Hub return black screen with an opacity transition fallback.
+- Fixed Stagex Scenes bar touch hitboxes by adding position: relative and CSS pseudo-element expansions.
+
+## 3.6.54
+
+### Added
+- Added navigation trace and transition diagnostics tab under Developer Tools.
+
+### Fixed
+- Fixed false hub warnings by reclassifying diagnostics logs inside devTools.
+- Resolved black screen bug when returning from Chordex to Livex Hub.
+- Mapped Warnings Inspector to conform to clean WarningItem data model.
+
+## 3.6.53
+
+### Added
+- Rebranded user-facing elements and text from "Studio" to "Livex" (Livex Hub).
+- Enhanced Developer Tools Warnings view with warning copy and unified diagnostics layout.
+
+### Fixed
+- Fixed the "View Warnings" button click responsiveness and event lifecycle on Android.
+- Resolved "Black Screen Return Bug" by properly clearing sub-app launch timers on Hub return.
+- Polished Stagex landscape mode: zoomed out stage plot and adjusted left toolbar placement.
+
+## 3.6.52
+
+### Added
+- Integrated Warnings Inspector inside the Logs view in Developer Tools.
+- Added Missing Assets sniffer to Network Request tab to group and diagnose 404 errors.
+
+### Fixed
+- Packaged complete Drumex audio assets inside the APK, preventing 404 remote preloading issues.
+- Fixed 'View Warnings' WebView touch propagation and overlay response delays on Android.
+- Polished Stagex landscape mode: adjusted canvas zoom, decreased toolbar toggle size, increased scenes tab touch targets with ontouchend fast-tap, and positioned element drawer above Add button.
+
+## 3.6.51
+
+### Added
+- Dedicated Warnings Inspector in Developer Tools with duplicate count grouping and mobile-friendly scrolling.
+
+### Fixed
+- Resolved console module parsing bug to correctly categorize system and infrastructure warnings under true source modules instead of defaulting to Studio Hub.
+- Refined Stagex landscape layout, removing bottom collapse arrows, center-aligning left toolbar vertically, and elevating the vertical drawer to clear FAB/Eye buttons.
+
+## 3.6.50
+
+### Added
+- Redesigned Developer Tools toggle switch and added live card stats.
+- Added multi-app status diagnostics for Hub, Chordex, Drumex, Stagex, Groovex, and Vocalex.
+
+### Fixed
+- Resolved app switching black screen transition issue with cached views.
+- Fixed startup routing restoration to prevent default sub-app recovery.
+- Improved Stagex landscape layouts, Safe Area offsets, and expanded button touch targets.
+
+## 3.6.49
+
+### Fixed
+- Optimized 120 Hz display rendering and route animations for extreme responsiveness.
+- Eliminated background gray flashes by enforcing pure black (#000000) layouts and windows.
+- Redesigned Developer Tools into an intuitive dashboard with dedicated sub-view cards.
+- Implemented modular diagnostics copy buttons for individual diagnostic sections.
+
+## 3.6.48
+
+### Added
+- Created an interactive Stagex Bridge Self-Test runner to verify runtime command execution.
+- Added a System Health Summary card at the top of the Developer Tools dashboard for quick mobile check.
+- Upgraded the log viewer with a collapsible summary list tailored for phone viewports.
+- Added available and missing handlers details to the Stagex diagnostics section.
+
+### Fixed
+- Fixed Stagex runtime command system on Android by correcting syntax issues and bracket mismatches.
+- Resolved the `_orig is not a function` error.
+- Upgraded the iframe postMessage bridge to immediately return ACK/NACK and prevent silent timeouts.
+
+## 3.6.47
+
+### Added
+- Upgraded the Developer Tools UI to be fully phone-adapted with collapsible sections and safe area layouts.
+- Added a dedicated Stagex diagnostics panel showing detailed postMessage ACK telemetry.
+- Preserved the legacy Update Diagnostics page and added sub-navigation.
+
+### Fixed
+- Fixed the Stagex iframe postMessage ACK bridge error by adding robust try-catch wrapping and diagnostics.
+
+## 3.6.46
+
+### Added
+- Created a centralized Developer Tools / Debugging Tools system accessible via Settings.
+- Support for runtime log, error, event, performance, and network sniffing.
+- App-specific diagnostic panels for Chordex, Stagex, Drumex, Groovex, Vocalex, and Hub.
+
+## 3.6.45
+
+### Fixed
+- Reverted the old Stagex restoration and adapted the modern Web Stagex design for Android.
+- Fixed layout alignment to prevent bottom navigation overlaps on Samsung SM-S921B.
+- Resolved cross-frame SecurityErrors by implementing asynchronous postMessage channels.
+- Restored functional Stagex controls: Add picker, Setup/Preferences tabs, Save, PDF export, and Back-to-Hub navigation.
+
+## 3.6.44
+
+### Fixed
+- Restored stable Stagex editor functionality and touch controls on Android.
+- Optimized Android WebView performance and Hub transition times.
+- Corrected Stagex plus-button and element-picker interaction.
+- Restored Setup and Preferences tab switching within Stagex.
+- Fixed elements scaling, rotation, deletion, and selection on canvas.
+
+## 3.6.43
+
+### Fixed
+- Fixed Back-to-Hub navigation gray screen freeze.
+- Reconnected Stagex controls and canvas touch events.
+
+
+## 3.6.42
+
+### Fixed
+- Restored missing theme and layout CSS variables in separated platform build.
+- Fixed Stagex onTouchEnd responsiveness for eye, plus, and rotate buttons on Android.
+- Added transition active lock safety watchdog to prevent stuck screens.
+
 
 ## 3.6.41
 

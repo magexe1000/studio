@@ -2,6 +2,31 @@
 <!-- v8 — pro intro with real app logos that fly into hub positions -->
 <html lang="en" class="dark">
   <head>
+    <script>
+      window.__bootTimings = {
+        htmlStart: performance.now(),
+        firstPaint: -1,
+        introStart: -1,
+        reactBootstrapStart: -1,
+        reactMounted: -1,
+        hubVisible: -1
+      };
+      if (typeof PerformanceObserver !== 'undefined') {
+        var observer = new PerformanceObserver(function(list) {
+          var entries = list.getEntries();
+          for (var i = 0; i < entries.length; i++) {
+            if (entries[i].name === 'first-paint') {
+              window.__bootTimings.firstPaint = entries[i].startTime;
+              console.log("[LivexBoot] first-paint detected at: " + entries[i].startTime.toFixed(2) + "ms");
+            }
+          }
+        });
+        try {
+          observer.observe({ entryTypes: ['paint'] });
+        } catch(e) {}
+      }
+      console.log("[LivexBoot] index.html parsing started at: " + window.__bootTimings.htmlStart.toFixed(2) + "ms");
+    </script>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1, viewport-fit=cover" />
     <meta http-equiv="Cache-Control" content="no-store, no-cache, must-revalidate, max-age=0" />
@@ -39,6 +64,8 @@
     <link
       rel="stylesheet"
       href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&display=block"
+      media="print"
+      onload="this.media='all'"
     />
     <script>
       (function() {
@@ -151,7 +178,7 @@
         background: var(--intro-bg);
         overflow: hidden;
         pointer-events: none;
-        opacity: 0; /* Changed from 1 to enable fade-in */
+        opacity: 1; /* Keep at 1 for instant first paint */
         font-family: Manrope, system-ui, -apple-system, sans-serif;
       }
       #intro.dismissed  { display: none; }
@@ -347,13 +374,7 @@
         var titleEl  = center.querySelector('.title');
         var subEl    = center.querySelector('.sub');
 
-        // Fade in the intro overlay smoothly
-        requestAnimationFrame(function() {
-          requestAnimationFrame(function() {
-            intro.style.transition = 'opacity 400ms ease-out';
-            intro.style.opacity = '1';
-          });
-        });
+        // Fade in is no-op because opacity starts at 1
 
         // Trigger fade out of the cover overlay on load
         var cover = document.getElementById('intro-cover');
@@ -491,6 +512,18 @@
           lastT  = now;
           angle  = (angle + omegaAt(t) * dt) % 360;
 
+          if (window.__bootTimings && window.__bootTimings.introStart === -1) {
+            window.__bootTimings.introStart = performance.now();
+            console.log("[LivexBoot] Intro planets first frame painted at: " + window.__bootTimings.introStart.toFixed(2) + "ms");
+            try {
+              if (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.AppInstaller) {
+                window.Capacitor.Plugins.AppInstaller.notifyAppReady();
+              }
+            } catch (e) {
+              console.warn("Failed to notify app ready:", e);
+            }
+          }
+
           // Track startup animation freeze points (dt > 50ms)
           if (dt > 50 && t > 100) {
             window.__startupAnimationFreezes = window.__startupAnimationFreezes || [];
@@ -608,6 +641,14 @@
         function doFade() {
           if (dismissed) return;
           dismissed = true;
+          if (window.__bootTimings) {
+            window.__bootTimings.hubVisible = performance.now();
+            console.log("[LivexBoot] Hub fully visible to user at: " + window.__bootTimings.hubVisible.toFixed(2) + "ms");
+            console.log("[LivexBoot] TIMINGS SUMMARY:", JSON.stringify({
+              native: window.__nativeBootTimings || null,
+              web: window.__bootTimings
+            }));
+          }
           try {
             sessionStorage.setItem('studio-intro-shown', 'true');
           } catch (e) {}

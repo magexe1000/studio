@@ -74,16 +74,20 @@ if (typeof document !== 'undefined') {
   }
 }
 
-// Defer React mount by 100ms to let startup planets animation run stutter-free initially
-setTimeout(() => {
-  createRoot(document.getElementById("root")!).render(
-    <>
-      <RootAppContainer />
-      <GlobalOverlays />
-      <EmergencyDebugOverlay />
-    </>,
-  );
-}, 100);
+// Log React bootstrap start time
+if (typeof window !== 'undefined' && (window as any).__bootTimings) {
+  (window as any).__bootTimings.reactBootstrapStart = performance.now();
+  console.log("[LivexBoot] React bootstrap started: " + (window as any).__bootTimings.reactBootstrapStart.toFixed(2) + "ms");
+}
+
+// Mount React immediately (native splash screen takes care of hiding visual load transitions)
+createRoot(document.getElementById("root")!).render(
+  <>
+    <RootAppContainer />
+    <GlobalOverlays />
+    <EmergencyDebugOverlay />
+  </>,
+);
 
 // Clean up all service workers since they are not supported in native wrappers.
 if (typeof window !== 'undefined' && 'serviceWorker' in navigator) {

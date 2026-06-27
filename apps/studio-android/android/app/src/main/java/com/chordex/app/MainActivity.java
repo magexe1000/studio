@@ -25,17 +25,36 @@ public class MainActivity extends BridgeActivity {
     // Cached shared file payload for cold starts
     public static JSObject lastSharedFile = null;
     private Uri sharedFileUriToProcess = null;
+    public static volatile boolean isWebViewReady = false;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         // Intercept file sharing intent BEFORE calling super.onCreate to prevent Bridge from redirecting
         handleIncomingIntent(getIntent());
 
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-            getSplashScreen().setOnExitAnimationListener(
-                splashScreenView -> splashScreenView.remove()
-            );
+        long processStartTime = 0;
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+            processStartTime = android.os.Process.getStartElapsedRealtime();
         }
+        final long onCreateTime = android.os.SystemClock.elapsedRealtime();
+        android.util.Log.i("LivexBoot", "MainActivity onCreate started at " + onCreateTime + "ms since boot. Process start to onCreate gap: " + (processStartTime > 0 ? (onCreateTime - processStartTime) : "N/A") + "ms");
+
+        // Initialize Androidx SplashScreen library
+        androidx.core.splashscreen.SplashScreen splashScreen = androidx.core.splashscreen.SplashScreen.installSplashScreen(this);
+        final long finalProcessStartTime = processStartTime;
+        splashScreen.setKeepOnScreenCondition(new androidx.core.splashscreen.SplashScreen.KeepOnScreenCondition() {
+            @Override
+            public boolean shouldKeepOnScreen() {
+                if (isWebViewReady) {
+                    return false;
+                }
+                if (android.os.SystemClock.elapsedRealtime() - onCreateTime > 2500) {
+                    return false; // Fallback safety timeout
+                }
+                return true;
+            }
+        });
+
         // CRITICAL: Custom local Capacitor plugins in the app package MUST be registered
         // manually in MainActivity. Do not remove or rename this plugin registration.
         registerPlugin(AppInstallerPlugin.class);
@@ -46,7 +65,25 @@ public class MainActivity extends BridgeActivity {
         // Custom WebChromeClient to automatically grant WebView permission requests (e.g. getUserMedia microphone)
         // This bypasses any site-level permission blocks inside WebView once OS permission is granted.
         if (this.bridge != null && this.bridge.getWebView() != null) {
+            android.util.Log.i("LivexBoot", "WebView initialized at " + android.os.SystemClock.elapsedRealtime() + "ms since boot");
             this.bridge.getWebView().setBackgroundColor(android.graphics.Color.BLACK);
+            
+            // Pass native boot timings to WebView
+            final long webViewInitTime = android.os.SystemClock.elapsedRealtime();
+            this.bridge.getWebView().post(new Runnable() {
+                @Override
+                public void run() {
+                    if (MainActivity.this.bridge != null && MainActivity.this.bridge.getWebView() != null) {
+                        String js = "window.__nativeBootTimings = {" +
+                            "processStart: " + finalProcessStartTime + "," +
+                            "onCreate: " + onCreateTime + "," +
+                            "webViewInit: " + webViewInitTime +
+                            "};";
+                        MainActivity.this.bridge.getWebView().evaluateJavascript(js, null);
+                    }
+                }
+            });
+
             this.bridge.getWebView().setWebChromeClient(new com.getcapacitor.BridgeWebChromeClient(this.bridge) {
                 @Override
                 public void onPermissionRequest(final android.webkit.PermissionRequest request) {

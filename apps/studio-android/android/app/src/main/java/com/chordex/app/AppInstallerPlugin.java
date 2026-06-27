@@ -71,6 +71,12 @@ public class AppInstallerPlugin extends Plugin {
     }
 
     @PluginMethod
+    public void notifyAppReady(PluginCall call) {
+        MainActivity.isWebViewReady = true;
+        call.resolve();
+    }
+
+    @PluginMethod
     public void getSharedFile(PluginCall call) {
         if (MainActivity.lastSharedFile != null) {
             call.resolve(MainActivity.lastSharedFile);

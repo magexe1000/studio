@@ -247,30 +247,17 @@ export default function BottomNav() {
         zIndex: 50,
         overflow: 'hidden',
         pointerEvents: (navHidden || navCollapsed) ? 'none' : 'auto',
-        transform: `translateX(-50%) translateY(${navHidden ? 'calc(100% + 32px)' : '0px'})`,
-        clipPath: navCollapsed
-          ? `inset(${Math.max(0, NAV_HEIGHT_PX - 5)}px ${Math.max(0, Math.floor((expandedW - 90) / 2))}px 0 ${Math.max(0, Math.floor((expandedW - 90) / 2))}px round 99px)`
-          : 'inset(0 0 0 0 round 2rem)',
-        willChange: 'clip-path, transform',
-        transition: [
-          navCollapsed
-            ? 'clip-path 500ms cubic-bezier(0.4,0,0.2,1)'
-            : 'clip-path 380ms cubic-bezier(0.16,1,0.3,1)',
-          navCollapsed
-            ? 'transform 500ms cubic-bezier(0.4,0,0.2,1)'
-            : 'transform 380ms cubic-bezier(0.16,1,0.3,1)',
-          'background-color 300ms ease',
-          'border-color     300ms ease',
-          'box-shadow       300ms ease',
-        ].join(', '),
+        transform: `translateX(-50%) translateY(${(navHidden || navCollapsed) ? 'calc(100% + 32px)' : '0px'})`,
+        opacity: (navHidden || navCollapsed) ? 0 : 1,
+        willChange: 'transform, opacity',
+        transition: 'transform 200ms cubic-bezier(0.25, 1, 0.5, 1), opacity 200ms cubic-bezier(0.25, 1, 0.5, 1), background-color 300ms ease, border-color 300ms ease, box-shadow 300ms ease',
       }}
     >
       <div style={{
         position: 'absolute', inset: 0,
         display: 'flex', alignItems: 'center', justifyContent: 'space-around',
         padding: '4px 6px',
-        opacity: navCollapsed ? 0 : 1,
-        transition: navCollapsed ? 'opacity 100ms ease' : 'opacity 350ms ease 180ms',
+        opacity: 1,
         willChange: 'opacity',
       }}>
       {/* ── Elastic sliding pill ── */}

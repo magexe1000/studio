@@ -948,6 +948,14 @@ export default function App() {
     }
   }, []);
 
+  // Log React App mounted completion time
+  useEffect(() => {
+    if (typeof window !== 'undefined' && (window as any).__bootTimings) {
+      (window as any).__bootTimings.reactMounted = performance.now();
+      console.log("[LivexBoot] React App mounted: " + (window as any).__bootTimings.reactMounted.toFixed(2) + "ms");
+    }
+  }, []);
+
   // Record initial app launch diagnostic event
   useEffect(() => {
     const active = useChordStore.getState().settings.appMode || 'hub';

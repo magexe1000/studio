@@ -26,7 +26,7 @@ import { useMemo } from 'react';
 import { Capacitor } from '@capacitor/core';
 
 /** Canonical semver string used by the OTA comparator. */
-export const NATIVE_VERSION = '3.6.93';
+export const NATIVE_VERSION = '3.6.94';
 export const WEB_VERSION = '4.0.0';
 export const APP_VERSION = Capacitor.isNativePlatform() ? NATIVE_VERSION : WEB_VERSION;
 
@@ -59,13 +59,12 @@ export interface ChangelogSection {
 
 export const APP_CHANGELOG_SECTIONS: ChangelogSection[] = [
   {
-    heading: "Added",
+    heading: "Fixed",
     items: [
-      "Expanded guitar chord database with new qualities and 14 slash chords.",
-      "Fixed floating chord diagram skipping and auto-scrolling issues in Practice.",
-      "Added active segment/phrase highlighting to sync with playback timeline.",
-      "Fixed horizontal scroll block on Discover genre chips.",
-      "Made app entry transition and launch animations 25% faster.",
+      "Fixed Android cold launch delay before app appears.",
+      "Improved launch surface / first visible frame.",
+      "Improved startup timing diagnostics.",
+      "Restored Hub bottom nav auto-hide/show.",
     ],
   },
 ];

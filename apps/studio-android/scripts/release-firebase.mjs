@@ -10,6 +10,8 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const pkgRoot = path.resolve(__dirname, '..');
 const repoRoot = path.resolve(pkgRoot, '../..');
 
+const isDevPreview = process.argv.includes('--development-preview');
+
 // Load .env file if it exists in pkgRoot
 const envPath = path.join(pkgRoot, '.env');
 if (existsSync(envPath)) {
@@ -354,7 +356,11 @@ if (syncResult.status !== 0) {
 }
 
 console.log('release-firebase: → Running AppInstaller contract validation...');
-const validateResult = spawnSync('node', ['scripts/validate-app-installer.mjs', '--allow-missing-apk'], {
+const validateArgs = ['scripts/validate-app-installer.mjs', '--allow-missing-apk'];
+if (isDevPreview) {
+  validateArgs.push('--development-preview');
+}
+const validateResult = spawnSync('node', validateArgs, {
   cwd: pkgRoot,
   stdio: 'inherit',
   shell: process.platform === 'win32',
@@ -377,7 +383,6 @@ function run(cmd, args, extraEnv = {}) {
 }
 
 // ── Signing preflight — fail fast before expensive builds ───────────
-const isDevPreview = process.argv.includes('--development-preview');
 if (!isDevPreview) {
   console.log('release-firebase: → Running signing preflight...');
   const ksPath = path.join(pkgRoot, 'android', 'app', 'release.keystore');
@@ -551,7 +556,11 @@ if (gradleResult.status !== 0) {
 
 // Step 4: Validate AppInstaller native plugin
 console.log('Step 4/15: Validate AppInstaller native plugin...');
-const appInstallerValidateResult = spawnSync('node', ['scripts/validate-app-installer.mjs'], {
+const appInstallerValidateArgs = ['scripts/validate-app-installer.mjs'];
+if (isDevPreview) {
+  appInstallerValidateArgs.push('--development-preview');
+}
+const appInstallerValidateResult = spawnSync('node', appInstallerValidateArgs, {
   cwd: pkgRoot,
   stdio: 'inherit',
   shell: process.platform === 'win32',
@@ -713,7 +722,11 @@ try {
 
 // Step 11: Generate version.json and app-release.json using verified URL/SHA
 console.log('Step 11/15: Generate version.json and app-release.json using verified URL/SHA...');
-const generateResult = spawnSync('node', ['scripts/generate-release-metadata.mjs'], {
+const generateArgs = ['scripts/generate-release-metadata.mjs'];
+if (isDevPreview) {
+  generateArgs.push('--development-preview');
+}
+const generateResult = spawnSync('node', generateArgs, {
   cwd: pkgRoot,
   stdio: 'inherit',
   shell: process.platform === 'win32',

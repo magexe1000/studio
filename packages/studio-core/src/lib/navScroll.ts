@@ -99,5 +99,5 @@ export function useScrollHide(ref: React.RefObject<HTMLElement | null>) {
     };
     el.addEventListener('scroll', onScroll, { passive: true });
     return () => el.removeEventListener('scroll', onScroll);
-  }, []);
+  }, [ref.current]);
 }

@@ -12,6 +12,14 @@ Conventions:
 - Bullets start with `- ` and use plain English a non-technical user
   can parse. Keep each line short — the modal's text area is narrow.
 
+## 3.6.94
+
+### Fixed
+- Fixed Android cold launch delay before app appears.
+- Improved launch surface / first visible frame.
+- Improved startup timing diagnostics.
+- Restored Hub bottom nav auto-hide/show.
+
 ## 3.6.93
 
 ### Added
