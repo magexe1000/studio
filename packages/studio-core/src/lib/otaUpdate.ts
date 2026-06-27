@@ -23,7 +23,7 @@
  */
 
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { APP_VERSION, compareSemver, normalizeSemver } from './appVersion';
+import { APP_VERSION, compareSemver, normalizeSemver, PRODUCTION_SIGNING_SHA256 } from './appVersion';
 import { isNative, notifyOtaAvailable, shouldUseAndroidApkUpdater } from './capgoUpdater';
 import { nativeSet, NATIVE_PREFS } from './nativePrefs';
 import { useChordStore } from '../store/useChordStore';
@@ -103,6 +103,13 @@ export let otaDebugLogs: {
   currentDownloadSource: string | null;
   recoveryAttemptsPerformed: string[];
   signatureMismatchDetectedCause: string | null;
+  expectedSigningSha256: string | null;
+  certificateSubject: string | null;
+  certificateIssuer: string | null;
+  validationStage: string | null;
+  exactFailingStage: string | null;
+  rootCause: string | null;
+  suggestedFix: string | null;
 } = {
   appVersion: APP_VERSION,
   nativeApkVersion: null,
@@ -177,6 +184,13 @@ export let otaDebugLogs: {
   currentDownloadSource: null,
   recoveryAttemptsPerformed: [],
   signatureMismatchDetectedCause: null,
+  expectedSigningSha256: null,
+  certificateSubject: null,
+  certificateIssuer: null,
+  validationStage: null,
+  exactFailingStage: null,
+  rootCause: null,
+  suggestedFix: null,
 };
 
 export interface OtaDiagnostics {
@@ -448,6 +462,7 @@ export interface RemoteVersionInfo {
   newSignatureSha256?: string;
   installMode?: 'reinstall-required';
   packageName?: string;
+  signatures?: string;
 }
 
 export interface OtaState {
@@ -573,6 +588,7 @@ async function fetchOne(
     const newSignatureSha256 = typeof obj.newSignatureSha256 === 'string' ? obj.newSignatureSha256 : (typeof obj.new_signature_sha256 === 'string' ? obj.new_signature_sha256 : undefined);
     const installMode = (obj.installMode === 'reinstall-required' || obj.install_mode === 'reinstall-required') ? 'reinstall-required' : undefined;
     const packageName = typeof obj.packageName === 'string' ? obj.packageName : (typeof obj.package_name === 'string' ? obj.package_name : undefined);
+    const signatures = typeof obj.signatures === 'string' ? obj.signatures : (typeof obj.signature === 'string' ? obj.signature : undefined);
     
     const requiredApkVersion = typeof obj.required_apk_version === 'string'
       ? obj.required_apk_version
@@ -630,6 +646,7 @@ async function fetchOne(
       newSignatureSha256,
       installMode,
       packageName,
+      signatures,
     };
   } catch (err) {
     const errMsg = err instanceof Error ? err.message : String(err);
@@ -1323,11 +1340,42 @@ export function checkForUpdate(isManual = false): Promise<CentralizedOtaState> {
         versionComparisonResult = sCmp > 0 ? 'remote_version_higher' : (sCmp < 0 ? 'remote_version_lower' : 'same_version');
       }
 
-      const isUpgrade = isNativePlat
+      let isUpgrade = isNativePlat
         ? (targetVersionCode && installedVersionCode > 0
             ? targetVersionCode > installedVersionCode
             : compareSemver(remote.version, localCompareVersion) > 0)
         : compareSemver(remote.version, APP_VERSION) > 0;
+
+      // Authoritative expected production signing certificate
+      const expectedFingerprint = PRODUCTION_SIGNING_SHA256.toLowerCase().replace(/:/g, '').trim();
+
+      // Check if metadata signatures field differs from the authoritative fingerprint
+      let isMetadataSignatureMismatch = false;
+      if (isNative() && remote.platform === 'android' && remote.signatures) {
+        const cleanRemoteSig = remote.signatures.toLowerCase().replace(/:/g, '').trim();
+        if (cleanRemoteSig !== expectedFingerprint) {
+          isMetadataSignatureMismatch = true;
+          isUpgrade = false;
+          
+          // Populate details immediately to reject without downloading!
+          otaDebugLogs.eligibilityReason = 'signature_mismatch';
+          otaDebugLogs.eligibilitySigningMatch = false;
+          otaDebugLogs.downloadedSigningSha256 = cleanRemoteSig;
+          otaDebugLogs.installedSigningSha256 = installedSignature || expectedFingerprint;
+          otaDebugLogs.expectedSigningSha256 = expectedFingerprint;
+          
+          otaDebugLogs.validationStage = 'Metadata Verification';
+          otaDebugLogs.exactFailingStage = 'Release Metadata Certificate Check';
+          otaDebugLogs.signatureMismatchDetectedCause = 'Wrong certificate signature. The published release metadata indicates it is signed with a non-production certificate.';
+          otaDebugLogs.rootCause = 'Mismatch between published signature in release metadata and the authoritative production signing fingerprint.';
+          otaDebugLogs.suggestedFix = 'Re-sign the update package using the production certificate keys and re-publish the release metadata.';
+          
+          console.warn('[OTA] Published release signature mismatch in metadata! Rejecting immediately.', {
+            expected: expectedFingerprint,
+            found: cleanRemoteSig
+          });
+        }
+      }
 
       if (isUpgrade) {
         nativeApkBehind = true;
@@ -1457,7 +1505,7 @@ export function checkForUpdate(isManual = false): Promise<CentralizedOtaState> {
       manualApkUrl = remote.manualApkUrl || `https://studio-30f44.web.app/apk/studio-${remote.version}.apk`;
       fallbackApkUrl = remote.fallbackApkUrl || apkUrl;
 
-      const shouldSkip = !isUpgrade;
+      const shouldSkip = !isUpgrade && !isMetadataSignatureMismatch;
 
       if (globalOtaState.updateState !== 'checking') {
         console.log(`[INSTRUMENTATION] checkForUpdate ABORT: State transitioned to "${globalOtaState.updateState}" during check.`);
@@ -1516,7 +1564,11 @@ export function checkForUpdate(isManual = false): Promise<CentralizedOtaState> {
         ? 'manual_apk_required'
         : 'available';
       
-      otaDebugLogs.finalDecision = `Show: ${nextState === 'manual_apk_required' ? 'Manual APK Update Required' : 'Available'} (isDismissed=${isDismissed})`;
+      if (isMetadataSignatureMismatch) {
+        nextState = 'signature_mismatch';
+      }
+      
+      otaDebugLogs.finalDecision = `Show: ${nextState === 'manual_apk_required' ? 'Manual APK Update Required' : (nextState === 'signature_mismatch' ? 'Signature Mismatch (Metadata)' : 'Available')} (isDismissed=${isDismissed})`;
 
       console.log('[OTA DEBUG] Showing Update:', {
         version: remote.version,
@@ -1528,7 +1580,7 @@ export function checkForUpdate(isManual = false): Promise<CentralizedOtaState> {
       });
 
       // Check for interrupted installation
-      if (isNative() && isAppInstallerAvailable()) {
+      if (isNative() && isAppInstallerAvailable() && !isMetadataSignatureMismatch) {
         try {
           const { AppInstaller } = await import('./apkDownloader');
           const result = await AppInstaller.getLastInstallResult();
@@ -1601,24 +1653,24 @@ export function checkForUpdate(isManual = false): Promise<CentralizedOtaState> {
 
       updateGlobalState({
         updateState: nextState,
-        updateAvailable: true,
+        updateAvailable: !isMetadataSignatureMismatch,
         remoteVersion: remote.version,
         changelog: remote.changelog ?? null,
         mandatory: remote.mandatory === true,
         downloadUrl: null,
-        updateType,
+        updateType: isMetadataSignatureMismatch ? 'none' : updateType,
         remoteUpdateType: remote.updateType || 'none',
         otaBlockedBecauseApkRequired,
-        apkUrl,
-        apkSha256: remote.apkSha256 ?? null,
+        apkUrl: isMetadataSignatureMismatch ? null : apkUrl,
+        apkSha256: isMetadataSignatureMismatch ? null : (remote.apkSha256 ?? null),
         manualApkUrl,
         fallbackApkUrl,
         releaseNotes: remote.releaseNotes ?? null,
         loading: false,
         requiredApkVersion: remote.requiredApkVersion ?? null,
         requiredVersionCode: remote.requiredVersionCode ?? null,
-        nativeApkBehind,
-        apkUpdateRequired,
+        nativeApkBehind: isMetadataSignatureMismatch ? false : nativeApkBehind,
+        apkUpdateRequired: isMetadataSignatureMismatch ? false : apkUpdateRequired,
         reinstallRequired: clientReinstallRequired,
         signatureChanged: remote.signatureChanged === true,
         previousSignatureSha256: remote.previousSignatureSha256 ?? null,
@@ -1696,6 +1748,19 @@ export async function runEligibilityCheck(filePath: string, allowDowngrade?: boo
       otaDebugLogs.eligibilityVersionCodeHigher = el.downloaded.versionCode > el.installed.versionCode;
       otaDebugLogs.eligibilityReleaseBuild = el.downloaded.debuggable === false;
       otaDebugLogs.eligibilityValidApk = el.downloaded.isValidApk === true;
+      
+      // Detailed diagnostics fields
+      otaDebugLogs.certificateSubject = (el.downloaded as any).certificateSubject || (el.installed as any).certificateSubject || 'CN=Unknown Subject';
+      otaDebugLogs.certificateIssuer = (el.downloaded as any).certificateIssuer || (el.installed as any).certificateIssuer || 'CN=Unknown Issuer';
+      otaDebugLogs.expectedSigningSha256 = PRODUCTION_SIGNING_SHA256.toLowerCase().replace(/:/g, '').trim();
+      otaDebugLogs.validationStage = 'Post-Download Package Verification';
+      otaDebugLogs.exactFailingStage = el.reason === 'signature_mismatch' ? 'Certificate Fingerprint Match Check' : (el.reason === 'packageName_mismatch' ? 'Package Name Match Check' : 'Version/Metadata Match Check');
+      otaDebugLogs.rootCause = el.reason === 'signature_mismatch' 
+        ? `Signing certificate mismatch. Expected production fingerprint: ${PRODUCTION_SIGNING_SHA256}, but the downloaded APK was signed with fingerprint: ${el.downloaded.signingSha256}`
+        : el.errorDetails || 'N/A';
+      otaDebugLogs.suggestedFix = el.reason === 'signature_mismatch'
+        ? 'Re-sign the update package using the official production key corresponding to the production certificate fingerprint, or reinstall the official production app release.'
+        : 'Ensure package is built and signed correctly.';
     } else {
       otaDebugLogs.eligibilityPackageNameMatch = null;
       otaDebugLogs.eligibilitySigningMatch = null;

@@ -7,6 +7,9 @@
   },
   "hosting": {
     "public": "firebase-public",
+    "predeploy": [
+      "node scripts/verify-release-signatures.mjs"
+    ],
     "ignore": [
       "firebase.json",
       "**/.*",

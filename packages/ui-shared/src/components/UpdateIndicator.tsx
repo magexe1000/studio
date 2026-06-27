@@ -958,17 +958,25 @@ function UpdateModal({
 
           <div style={{ background: 'rgba(248,113,113,0.06)', border: '1px solid rgba(248,113,113,0.2)', padding: '10px 12px', borderRadius: 10 }}>
             <p style={{ margin: 0, fontWeight: 700, color: '#f87171' }}>
-              Detected Cause:
+              Detected Cause & Root Cause:
             </p>
             <p style={{ margin: '2px 0 0', color: 'var(--c-text-secondary)', fontSize: 12, lineHeight: 1.45 }}>
-              {otaDebugLogs.eligibilitySigningMatch === false 
+              {otaDebugLogs.rootCause || (otaDebugLogs.eligibilitySigningMatch === false 
                 ? 'Wrong certificate signature. The downloaded update signature differs from the installed app signing key.'
                 : otaDebugLogs.downloadedIsValidApk === false
                   ? 'Corrupted download. The cached package is incomplete or not a valid Android APK.'
                   : otaDiagnostics.shaExpected !== otaDiagnostics.shaCalculated
                     ? 'Invalid SHA checksum. The downloaded file signature does not match the expected release hash.'
-                    : 'PackageInstaller issue. The system installer rejected the session handoff.'}
+                    : 'PackageInstaller issue. The system installer rejected the session handoff.')}
             </p>
+            {otaDebugLogs.suggestedFix && (
+              <div style={{ marginTop: 6, borderTop: '1px solid rgba(248,113,113,0.15)', paddingTop: 6 }}>
+                <strong style={{ color: 'var(--c-text-primary)', fontSize: 11 }}>Suggested Fix:</strong>
+                <p style={{ margin: '2px 0 0', color: 'var(--c-text-secondary)', fontSize: 11, lineHeight: 1.45 }}>
+                  {otaDebugLogs.suggestedFix}
+                </p>
+              </div>
+            )}
           </div>
 
           <div style={{ background: 'rgba(128,128,128,0.03)', border: '1px solid rgba(128,128,128,0.1)', padding: '10px 12px', borderRadius: 10 }}>
@@ -988,6 +996,17 @@ function UpdateModal({
 
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, fontSize: 11, fontFamily: 'monospace' }}>
             <div style={{ background: 'rgba(128,128,128,0.04)', padding: '8px 10px', borderRadius: 8 }}>
+              <strong>Validation Stage:</strong><br />
+              {otaDebugLogs.validationStage || 'N/A'}
+            </div>
+            <div style={{ background: 'rgba(128,128,128,0.04)', padding: '8px 10px', borderRadius: 8 }}>
+              <strong>Exact Failing Stage:</strong><br />
+              {otaDebugLogs.exactFailingStage || 'N/A'}
+            </div>
+          </div>
+
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, fontSize: 11, fontFamily: 'monospace' }}>
+            <div style={{ background: 'rgba(128,128,128,0.04)', padding: '8px 10px', borderRadius: 8 }}>
               <strong>Installed Version:</strong><br />
               v{fromLabel} (code {otaDebugLogs.installedVersionCode || 'N/A'})
             </div>
@@ -997,16 +1016,27 @@ function UpdateModal({
             </div>
           </div>
 
-          <div style={{ background: 'rgba(128,128,128,0.04)', padding: '10px 12px', borderRadius: 10, fontFamily: 'monospace', fontSize: 10, display: 'flex', flexDirection: 'column', gap: 4 }}>
+          <div style={{ background: 'rgba(128,128,128,0.04)', padding: '10px 12px', borderRadius: 10, fontFamily: 'monospace', fontSize: 10, display: 'flex', flexDirection: 'column', gap: 6 }}>
             <div>
               <strong style={{ color: 'var(--c-text-primary)' }}>Certificate comparison:</strong>
-              <div style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>Installed: {otaDebugLogs.installedSigningSha256 || 'N/A'}</div>
-              <div style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>Downloaded: {otaDebugLogs.downloadedSigningSha256 || 'N/A'}</div>
+              <div style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>Expected Production: {otaDebugLogs.expectedSigningSha256 || '900cf259185c81100cda8bb08571fa23552e9789131cf07a8f4056e4d4129206'}</div>
+              <div style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>Installed App:        {otaDebugLogs.installedSigningSha256 || 'N/A'}</div>
+              <div style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>Downloaded APK:       {otaDebugLogs.downloadedSigningSha256 || 'N/A'}</div>
+              <div style={{ marginTop: 2, fontWeight: 'bold', color: otaDebugLogs.eligibilitySigningMatch ? '#4ade80' : '#f87171' }}>
+                Comparison Result: {otaDebugLogs.eligibilitySigningMatch === true ? 'MATCH' : 'MISMATCH'}
+              </div>
             </div>
-            <div style={{ borderTop: '1px solid rgba(128,128,128,0.08)', marginTop: 4, paddingTop: 4 }}>
+            {(otaDebugLogs.certificateSubject || otaDebugLogs.certificateIssuer) && (
+              <div style={{ borderTop: '1px solid rgba(128,128,128,0.08)', paddingTop: 4 }}>
+                <strong style={{ color: 'var(--c-text-primary)' }}>Certificate Info:</strong>
+                <div style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>Subject: {otaDebugLogs.certificateSubject || 'N/A'}</div>
+                <div style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>Issuer:  {otaDebugLogs.certificateIssuer || 'N/A'}</div>
+              </div>
+            )}
+            <div style={{ borderTop: '1px solid rgba(128,128,128,0.08)', paddingTop: 4 }}>
               <strong style={{ color: 'var(--c-text-primary)' }}>SHA comparison:</strong>
-              <div style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>Expected: {otaDiagnostics.shaExpected || 'N/A'}</div>
-              <div style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>Calculated: {otaDiagnostics.shaCalculated || 'N/A'}</div>
+              <div style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>Expected Release SHA: {otaDiagnostics.shaExpected || 'N/A'}</div>
+              <div style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>Calculated APK SHA:   {otaDiagnostics.shaCalculated || 'N/A'}</div>
             </div>
           </div>
         </div>

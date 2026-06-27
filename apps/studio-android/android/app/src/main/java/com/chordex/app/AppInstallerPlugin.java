@@ -958,6 +958,8 @@ public class AppInstallerPlugin extends Plugin {
             result.put("debuggable", debuggable);
 
             String sha256 = "";
+            String subject = "";
+            String issuer = "";
             Signature[] signatures = null;
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
                 if (info.signingInfo != null) {
@@ -982,8 +984,26 @@ public class AppInstallerPlugin extends Plugin {
                     hexString.append(append);
                 }
                 sha256 = hexString.toString().toLowerCase();
+
+                try {
+                    java.io.InputStream is = new java.io.ByteArrayInputStream(cert);
+                    java.security.cert.CertificateFactory cf = java.security.cert.CertificateFactory.getInstance("X.509");
+                    java.security.cert.X509Certificate x509 = (java.security.cert.X509Certificate) cf.generateCertificate(is);
+                    if (x509 != null) {
+                        if (x509.getSubjectX500Principal() != null) {
+                            subject = x509.getSubjectX500Principal().getName();
+                        }
+                        if (x509.getIssuerX500Principal() != null) {
+                            issuer = x509.getIssuerX500Principal().getName();
+                        }
+                    }
+                } catch (Exception certEx) {
+                    // Ignored
+                }
             }
             result.put("signingSha256", sha256);
+            result.put("certificateSubject", subject);
+            result.put("certificateIssuer", issuer);
 
             call.resolve(result);
         } catch (Exception e) {
@@ -1082,6 +1102,8 @@ public class AppInstallerPlugin extends Plugin {
             result.put("debuggable", debuggable);
 
             String sha256 = "";
+            String subject = "";
+            String issuer = "";
             Signature[] signatures = null;
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
                 if (info.signingInfo != null) {
@@ -1106,8 +1128,26 @@ public class AppInstallerPlugin extends Plugin {
                     hexString.append(append);
                 }
                 sha256 = hexString.toString().toLowerCase();
+
+                try {
+                    java.io.InputStream is = new java.io.ByteArrayInputStream(cert);
+                    java.security.cert.CertificateFactory cf = java.security.cert.CertificateFactory.getInstance("X.509");
+                    java.security.cert.X509Certificate x509 = (java.security.cert.X509Certificate) cf.generateCertificate(is);
+                    if (x509 != null) {
+                        if (x509.getSubjectX500Principal() != null) {
+                            subject = x509.getSubjectX500Principal().getName();
+                        }
+                        if (x509.getIssuerX500Principal() != null) {
+                            issuer = x509.getIssuerX500Principal().getName();
+                        }
+                    }
+                } catch (Exception certEx) {
+                    // Ignored
+                }
             }
             result.put("signingSha256", sha256);
+            result.put("certificateSubject", subject);
+            result.put("certificateIssuer", issuer);
 
             call.resolve(result);
         } catch (Exception e) {

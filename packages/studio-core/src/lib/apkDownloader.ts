@@ -42,7 +42,7 @@ export interface AppInstallerPlugin {
   }>;
   getApkDetails(options: { filePath: string }): Promise<{ packageName: string; versionName: string; versionCode: number; signatures: string }>;
   getInstalledAppDetails(): Promise<{ packageName: string; versionName: string; versionCode: number; signatures: string }>;
-  getInstalledAppInfo(): Promise<{ packageName: string; versionName: string; versionCode: number; signingSha256: string; debuggable: boolean }>;
+  getInstalledAppInfo(): Promise<{ packageName: string; versionName: string; versionCode: number; signingSha256: string; debuggable: boolean; certificateSubject?: string; certificateIssuer?: string; }>;
   inspectApk(options: { filePath: string }): Promise<{
     packageName: string;
     versionName: string;
@@ -53,6 +53,8 @@ export interface AppInstallerPlugin {
     targetSdk: number;
     isValidApk: boolean;
     isUniversalApk: boolean;
+    certificateSubject?: string;
+    certificateIssuer?: string;
   }>;
   readFirstBytes(options: { filePath: string; count?: number }): Promise<{ hex: string; ascii: string }>;
 }
@@ -410,7 +412,9 @@ export async function checkApkEligibility(filePath: string, allowDowngrade?: boo
       minSdk: downloadedInspect.minSdk,
       targetSdk: downloadedInspect.targetSdk,
       isValidApk: downloadedInspect.isValidApk,
-      isUniversalApk: downloadedInspect.isUniversalApk
+      isUniversalApk: downloadedInspect.isUniversalApk,
+      certificateSubject: downloadedInspect.certificateSubject,
+      certificateIssuer: downloadedInspect.certificateIssuer,
     };
 
     if (!downloaded.isValidApk) {
