@@ -22,9 +22,8 @@ import {
   fetchRemoteVersion,
   versionJsonUrls
 } from './updater/releaseMetadata';
-
 import { compareVersions } from './updater/versionComparison';
-import { downloadUpdateApk } from './updater/downloadManager';
+import { downloadUpdateApk, downloadAndInstallGitHubApk } from './updater/downloadManager';
 import { verifyFileIntegrity } from './updater/integrityVerification';
 import { runEligibilityCheck } from './updater/eligibilityVerification';
 import { triggerNativeInstall, processLastInstallResult } from './updater/installer';
@@ -35,7 +34,10 @@ import {
   logProgressStage,
   populateDiagnostics,
   nextJsCallId,
-  isAppInstallerAvailable
+  isAppInstallerAvailable,
+  runUpdaterHealthCheck,
+  getDiagnosticsReport,
+  HealthStatus
 } from './updater/diagnostics';
 
 import { detectJustUpdated, writeLastSeen } from './updater/versionManager';
@@ -51,10 +53,13 @@ export {
   runEligibilityCheck,
   runSignatureMismatchRecovery,
   detectJustUpdated,
-  resetLastCheckedTime
+  resetLastCheckedTime,
+  downloadAndInstallGitHubApk,
+  runUpdaterHealthCheck,
+  getDiagnosticsReport
 };
 
-export type { CentralizedOtaState, OtaUpdateState, StructuredReleaseNotes, RemoteVersionInfo };
+export type { CentralizedOtaState, OtaUpdateState, StructuredReleaseNotes, RemoteVersionInfo, HealthStatus };
 
 // Storage utilities
 export function getStoredList(key: string): string[] {
@@ -945,175 +950,4 @@ export async function shareDownloadedApk(): Promise<void> {
   }
 }
 
-export interface HealthStatus {
-  status: 'healthy' | 'warning' | 'unhealthy';
-  metadataReachable: boolean;
-  githubReachable: boolean;
-  firebaseReachable: boolean;
-  installerAvailable: boolean;
-  packageInstallerAvailable: boolean;
-  certificateValid: boolean;
-  details: string[];
-}
 
-export async function runUpdaterHealthCheck(): Promise<HealthStatus> {
-  const details: string[] = [];
-  let metadataReachable = false;
-  let githubReachable = false;
-  let firebaseReachable = false;
-  let installerAvailable = false;
-  let packageInstallerAvailable = false;
-  let certificateValid = false;
-
-  try {
-    const res = await fetch('https://studio-30f44.web.app/app-release.json', { method: 'HEAD' });
-    metadataReachable = res.ok;
-    firebaseReachable = res.ok;
-    details.push(res.ok ? 'Firebase metadata server reachable.' : `Firebase metadata unreachable (HTTP ${res.status}).`);
-  } catch (err: any) {
-    details.push(`Firebase metadata unreachable: ${err.message || String(err)}`);
-  }
-
-  try {
-    const res = await fetch('https://api.github.com/repos/MAGEXE1000/Studio/releases', { method: 'HEAD' });
-    githubReachable = res.ok;
-    details.push(res.ok ? 'GitHub API reachable.' : `GitHub API unreachable (HTTP ${res.status}).`);
-  } catch (err: any) {
-    details.push(`GitHub API unreachable: ${err.message || String(err)}`);
-  }
-
-  if (isNative()) {
-    try {
-      const { AppInstaller } = await import('./apkDownloader');
-      installerAvailable = typeof AppInstaller.installApk === 'function';
-      packageInstallerAvailable = true;
-      details.push('AppInstaller native plugin loaded.');
-      
-      const appInfo = await AppInstaller.getInstalledAppInfo();
-      const expectedFingerprint = '900cf259185c81100cda8bb08571fa23552e9789131cf07a8f4056e4d4129206';
-      const cleanFingerprint = appInfo.signingSha256.replace(/:/g, '').toLowerCase();
-      certificateValid = (cleanFingerprint === expectedFingerprint);
-      if (certificateValid) {
-        details.push('App signing certificate matches official production key.');
-      } else {
-        details.push(`Warning: App certificate mismatch! Current: ${cleanFingerprint}, Expected: ${expectedFingerprint}`);
-      }
-    } catch (err: any) {
-      details.push(`Native installer check failed: ${err.message || String(err)}`);
-    }
-  } else {
-    details.push('Running on Web platform. Native installer not required.');
-    installerAvailable = true;
-    packageInstallerAvailable = true;
-    certificateValid = true;
-  }
-
-  const isHealthy = metadataReachable && githubReachable && installerAvailable && certificateValid;
-  const status = isHealthy ? 'healthy' : (installerAvailable && certificateValid ? 'warning' : 'unhealthy');
-
-  return {
-    status,
-    metadataReachable,
-    githubReachable,
-    firebaseReachable,
-    installerAvailable,
-    packageInstallerAvailable,
-    certificateValid,
-    details
-  };
-}
-
-export async function getDiagnosticsReport(): Promise<string> {
-  const health = await runUpdaterHealthCheck();
-  let info: any = null;
-  let dev: any = null;
-  if (isNative()) {
-    try {
-      const { AppInstaller } = await import('./apkDownloader');
-      info = await AppInstaller.getInstalledAppInfo();
-      dev = await AppInstaller.getDeviceInfo();
-    } catch {}
-  }
-  
-  return `=== STUDIO UPDATER HEALTH & DIAGNOSTICS REPORT ===
-Timestamp: ${new Date().toISOString()}
-Current State: ${globalOtaState.updateState}
-Update Available: ${globalOtaState.updateAvailable}
-Remote Version: ${globalOtaState.remoteVersion}
-Download Source: ${otaDebugLogs.currentDownloadSource || 'None'}
-SHA Status: ${otaDebugLogs.shaVerification || 'N/A'}
-Consecutive Failures: ${globalOtaState.consecutiveFailures}
-Active Fallback: ${globalOtaState.activeFallback || 'None'}
-Recovery Mode Active: ${globalOtaState.recoveryMode}
-
---- Platform Health ---
-Overall Status: ${health.status.toUpperCase()}
-Metadata Reachable: ${health.metadataReachable}
-GitHub Reachable: ${health.githubReachable}
-Firebase Reachable: ${health.firebaseReachable}
-Installer Available: ${health.installerAvailable}
-PackageInstaller Available: ${health.packageInstallerAvailable}
-Signing Certificate Valid: ${health.certificateValid}
-
---- Device & Package Info ---
-App Version: ${APP_VERSION}
-Package Name: ${info?.packageName || 'com.chordex.app'}
-Installed Version Code: ${info?.versionCode || 'N/A'}
-Installed Sign SHA256: ${info?.signingSha256 || 'N/A'}
-Android Version: ${dev?.androidVersion || 'N/A'}
-Device Model: ${dev?.model || 'N/A'}
-Storage Available: ${dev?.storageAvailable || 'N/A'}
-
---- Health Check Logs ---
-${health.details.join('\n')}
-==================================================`;
-}
-
-export async function downloadAndInstallGitHubApk(): Promise<void> {
-  const callId = nextJsCallId();
-  console.log(`[INSTRUMENTATION] downloadAndInstallGitHubApk ENTER Call #${callId}`);
-  void logProgressStage('[INSTRUMENTATION] downloadAndInstallGitHubApk ENTER', `Call #${callId}`);
-
-  updateGlobalState({ loading: true, progress: 0, statusText: 'Resolving latest GitHub Release...' });
-  try {
-    const { resolveApkUrl, AppInstaller } = await import('./apkDownloader');
-    const gitHubApkUrl = await resolveApkUrl(globalOtaState.remoteVersion ?? undefined);
-    
-    otaDebugLogs.currentDownloadSource = gitHubApkUrl;
-    otaDebugLogs.downloadStatus = `Downloading GitHub package: ${gitHubApkUrl}`;
-    updateGlobalState({ statusText: 'Downloading from GitHub...' });
-    
-    const { filePath } = await AppInstaller.downloadApk({ url: gitHubApkUrl, fileName: `studio-github-${globalOtaState.remoteVersion || 'latest'}.apk` });
-    
-    otaDebugLogs.downloadStatus += `\nDownload finished. Path: ${filePath}`;
-    updateGlobalState({ progress: 1.0, statusText: 'Verifying package signatures...' });
-    
-    if (globalOtaState.apkSha256) {
-      updateGlobalState({ statusText: 'Verifying SHA-256...' });
-      const shaMatches = (await AppInstaller.verifyApkSha256({ filePath, expectedHash: globalOtaState.apkSha256 })).matches;
-      otaDebugLogs.shaVerification = shaMatches ? 'SUCCESS' : 'FAILED';
-      if (!shaMatches) {
-        throw new Error('SHA-256 checksum verification failed.');
-      }
-    }
-    
-    const info = await AppInstaller.inspectApk({ filePath });
-    otaDebugLogs.downloadedIsValidApk = info.isValidApk;
-    otaDebugLogs.downloadedSigningSha256 = info.signingSha256;
-    if (!info.isValidApk) {
-      throw new Error('The downloaded package is not a valid APK.');
-    }
-    
-    updateGlobalState({ statusText: 'Launching package installer...' });
-    await AppInstaller.installApk({ filePath });
-    
-    updateGlobalState({ updateState: 'idle', loading: false });
-    console.log(`[INSTRUMENTATION] downloadAndInstallGitHubApk EXIT Call #${callId} Success`);
-  } catch (err: any) {
-    console.error(`[INSTRUMENTATION] downloadAndInstallGitHubApk EXIT Call #${callId} error:`, err);
-    updateGlobalState({ 
-      loading: false,
-      error: `GitHub installation failed: ${err.message || String(err)}`
-    });
-  }
-}

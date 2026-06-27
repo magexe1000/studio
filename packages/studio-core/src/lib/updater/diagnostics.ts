@@ -321,3 +321,127 @@ export async function populateDiagnostics(err: any, reason: string) {
     console.error('[OTA] Failed to populate diagnostics:', diagErr);
   }
 }
+
+export interface HealthStatus {
+  status: 'healthy' | 'warning' | 'unhealthy';
+  metadataReachable: boolean;
+  githubReachable: boolean;
+  firebaseReachable: boolean;
+  installerAvailable: boolean;
+  packageInstallerAvailable: boolean;
+  certificateValid: boolean;
+  details: string[];
+}
+
+export async function runUpdaterHealthCheck(): Promise<HealthStatus> {
+  const details: string[] = [];
+  let metadataReachable = false;
+  let githubReachable = false;
+  let firebaseReachable = false;
+  let installerAvailable = false;
+  let packageInstallerAvailable = false;
+  let certificateValid = false;
+
+  try {
+    const res = await fetch('https://studio-30f44.web.app/app-release.json', { method: 'HEAD' });
+    metadataReachable = res.ok;
+    firebaseReachable = res.ok;
+    details.push(res.ok ? 'Firebase metadata server reachable.' : `Firebase metadata unreachable (HTTP ${res.status}).`);
+  } catch (err: any) {
+    details.push(`Firebase metadata unreachable: ${err.message || String(err)}`);
+  }
+
+  try {
+    const res = await fetch('https://api.github.com/repos/MAGEXE1000/Studio/releases', { method: 'HEAD' });
+    githubReachable = res.ok;
+    details.push(res.ok ? 'GitHub API reachable.' : `GitHub API unreachable (HTTP ${res.status}).`);
+  } catch (err: any) {
+    details.push(`GitHub API unreachable: ${err.message || String(err)}`);
+  }
+
+  if (isNative()) {
+    try {
+      const { AppInstaller } = await import('../apkDownloader');
+      installerAvailable = typeof AppInstaller.installApk === 'function';
+      packageInstallerAvailable = true;
+      details.push('AppInstaller native plugin loaded.');
+      
+      const appInfo = await AppInstaller.getInstalledAppInfo();
+      const expectedFingerprint = '900cf259185c81100cda8bb08571fa23552e9789131cf07a8f4056e4d4129206';
+      const cleanFingerprint = appInfo.signingSha256.replace(/:/g, '').toLowerCase();
+      certificateValid = (cleanFingerprint === expectedFingerprint);
+      if (certificateValid) {
+        details.push('App signing certificate matches official production key.');
+      } else {
+        details.push(`Warning: App certificate mismatch! Current: ${cleanFingerprint}, Expected: ${expectedFingerprint}`);
+      }
+    } catch (err: any) {
+      details.push(`Native installer check failed: ${err.message || String(err)}`);
+    }
+  } else {
+    details.push('Running on Web platform. Native installer not required.');
+    installerAvailable = true;
+    packageInstallerAvailable = true;
+    certificateValid = true;
+  }
+
+  const isHealthy = metadataReachable && githubReachable && installerAvailable && certificateValid;
+  const status = isHealthy ? 'healthy' : (installerAvailable && certificateValid ? 'warning' : 'unhealthy');
+
+  return {
+    status,
+    metadataReachable,
+    githubReachable,
+    firebaseReachable,
+    installerAvailable,
+    packageInstallerAvailable,
+    certificateValid,
+    details
+  };
+}
+
+export async function getDiagnosticsReport(): Promise<string> {
+  const health = await runUpdaterHealthCheck();
+  let info: any = null;
+  let dev: any = null;
+  if (isNative()) {
+    try {
+      const { AppInstaller } = await import('../apkDownloader');
+      info = await AppInstaller.getInstalledAppInfo();
+      dev = await AppInstaller.getDeviceInfo();
+    } catch {}
+  }
+  
+  return `=== STUDIO UPDATER HEALTH & DIAGNOSTICS REPORT ===
+Timestamp: ${new Date().toISOString()}
+Current State: ${globalOtaState.updateState}
+Update Available: ${globalOtaState.updateAvailable}
+Remote Version: ${globalOtaState.remoteVersion}
+Download Source: ${otaDebugLogs.currentDownloadSource || 'None'}
+SHA Status: ${otaDebugLogs.shaVerification || 'N/A'}
+Consecutive Failures: ${globalOtaState.consecutiveFailures}
+Active Fallback: ${globalOtaState.activeFallback || 'None'}
+Recovery Mode Active: ${globalOtaState.recoveryMode}
+
+--- Platform Health ---
+Overall Status: ${health.status.toUpperCase()}
+Metadata Reachable: ${health.metadataReachable}
+GitHub Reachable: ${health.githubReachable}
+Firebase Reachable: ${health.firebaseReachable}
+Installer Available: ${health.installerAvailable}
+PackageInstaller Available: ${health.packageInstallerAvailable}
+Signing Certificate Valid: ${health.certificateValid}
+
+--- Device & Package Info ---
+App Version: ${APP_VERSION}
+Package Name: ${info?.packageName || 'com.chordex.app'}
+Installed Version Code: ${info?.versionCode || 'N/A'}
+Installed Sign SHA256: ${info?.signingSha256 || 'N/A'}
+Android Version: ${dev?.androidVersion || 'N/A'}
+Device Model: ${dev?.model || 'N/A'}
+Storage Available: ${dev?.storageAvailable || 'N/A'}
+
+--- Health Check Logs ---
+${health.details.join('\n')}
+==================================================`;
+}

@@ -1,6 +1,6 @@
-import { downloadApk } from '../apkDownloader';
-import { updateGlobalState, resetDownloadWatchdog } from './stateMachine';
-import { otaDebugLogs, logProgressStage } from './diagnostics';
+import { downloadApk, resolveApkUrl, AppInstaller } from '../apkDownloader';
+import { updateGlobalState, resetDownloadWatchdog, globalOtaState } from './stateMachine';
+import { otaDebugLogs, logProgressStage, nextJsCallId } from './diagnostics';
 
 export interface DownloadOptions {
   url: string;
@@ -75,4 +75,52 @@ export async function downloadUpdateApk(options: DownloadOptions): Promise<strin
   }
   
   return filePath;
+}
+
+export async function downloadAndInstallGitHubApk(): Promise<void> {
+  const callId = nextJsCallId();
+  console.log(`[INSTRUMENTATION] downloadAndInstallGitHubApk ENTER Call #${callId}`);
+  void logProgressStage('[INSTRUMENTATION] downloadAndInstallGitHubApk ENTER', `Call #${callId}`);
+
+  updateGlobalState({ loading: true, progress: 0, statusText: 'Resolving latest GitHub Release...' });
+  try {
+    const gitHubApkUrl = await resolveApkUrl(globalOtaState.remoteVersion ?? undefined);
+    
+    otaDebugLogs.currentDownloadSource = gitHubApkUrl;
+    otaDebugLogs.downloadStatus = `Downloading GitHub package: ${gitHubApkUrl}`;
+    updateGlobalState({ statusText: 'Downloading from GitHub...' });
+    
+    const { filePath } = await AppInstaller.downloadApk({ url: gitHubApkUrl, fileName: `studio-github-${globalOtaState.remoteVersion || 'latest'}.apk` });
+    
+    otaDebugLogs.downloadStatus += `\nDownload finished. Path: ${filePath}`;
+    updateGlobalState({ progress: 1.0, statusText: 'Verifying package signatures...' });
+    
+    if (globalOtaState.apkSha256) {
+      updateGlobalState({ statusText: 'Verifying SHA-256...' });
+      const shaMatches = (await AppInstaller.verifyApkSha256({ filePath, expectedHash: globalOtaState.apkSha256 })).matches;
+      otaDebugLogs.shaVerification = shaMatches ? 'SUCCESS' : 'FAILED';
+      if (!shaMatches) {
+        throw new Error('SHA-256 checksum verification failed.');
+      }
+    }
+    
+    const info = await AppInstaller.inspectApk({ filePath });
+    otaDebugLogs.downloadedIsValidApk = info.isValidApk;
+    otaDebugLogs.downloadedSigningSha256 = info.signingSha256;
+    if (!info.isValidApk) {
+      throw new Error('The downloaded package is not a valid APK.');
+    }
+    
+    updateGlobalState({ statusText: 'Launching package installer...' });
+    await AppInstaller.installApk({ filePath });
+    
+    updateGlobalState({ updateState: 'idle', loading: false });
+    console.log(`[INSTRUMENTATION] downloadAndInstallGitHubApk EXIT Call #${callId} Success`);
+  } catch (err: any) {
+    console.error(`[INSTRUMENTATION] downloadAndInstallGitHubApk EXIT Call #${callId} error:`, err);
+    updateGlobalState({ 
+      loading: false,
+      error: `GitHub installation failed: ${err.message || String(err)}`
+    });
+  }
 }
