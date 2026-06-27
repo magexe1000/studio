@@ -82,3 +82,10 @@ graph TD
 ```
 -   **Direct Legacy Installer (Fallback 5)**: Launches an `ACTION_VIEW` intent with a secure `FileProvider` `content://` URI to override `PackageInstaller` session blocks.
 -   **Share Update APK (Fallback 9)**: Opens the system sharing sheet using `@capacitor/share` to allow backup copying or manual sideloading.
+
+### 7.1 GitHub Release Fallback (Permanent Manual Recovery)
+To ensure users are never trapped without an update path, the system includes a permanent **GitHub Release Fallback** integrated directly into the user interface:
+- **Settings → Updates**: A premium updates card displays the installed version, latest available version, and release channel. It features an `Open Official GitHub Release` button.
+- **Update Failure Screen**: A third action button, `Download from GitHub` (visually distinct outlined button with a GitHub icon), is rendered below the Retry and Cancel actions on both the progress screen and the failure dialog.
+- **Recovery Mode**: The primary manual action is updated to `Download Latest Release`, prioritizing the official GitHub signed APK.
+- **Confirmation Sheet**: Before launching the browser, a confirmation sheet is displayed to explain that the APK is published on the official repository, ensuring a safe, guided recovery experience.

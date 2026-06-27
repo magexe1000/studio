@@ -1,5 +1,5 @@
-import { useChordStore, ACCENT_COLORS, type ActivePanel, useScrollHide, useT, useIsWebDesktop } from '@workspace/studio-core';
-import React, { useRef } from 'react';
+import { useChordStore, ACCENT_COLORS, type ActivePanel, useScrollHide, useT, useIsWebDesktop, isNative, useOtaUpdate, APP_VERSION_LABEL } from '@workspace/studio-core';
+import React, { useRef, useState } from 'react';
 import { AppModeMenuLogo } from '../components/AppModeMenuLogo';
 import { Toggle, SectionHeader, SettingRow } from '../components/SettingControls';
 import { IconSongs, IconLibrary, IconChords, IconSettings } from '../components/NavIcons';
@@ -12,6 +12,9 @@ export default function SettingsPanel() {
   const scrollRef = useRef<HTMLDivElement>(null);
   useScrollHide(scrollRef);
   const t = useT();
+
+  const ota = useOtaUpdate();
+  const [showGitHubConfirm, setShowGitHubConfirm] = useState(false);
 
   const cardStyle: React.CSSProperties = {
     background: 'var(--app-surface)',
@@ -300,8 +303,171 @@ export default function SettingsPanel() {
           )}
         </div>
 
+        {/* ── UPDATES ── */}
+        {isNative() && (
+          <div style={{ marginTop: '24px' }}>
+            <SectionHeader icon="system_update" title="Updates" />
+            <div style={{ ...cardStyle, padding: '20px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
+              <div>
+                <h3 style={{ margin: 0, fontSize: '15px', fontWeight: 700, fontFamily: 'Manrope', color: 'var(--c-text-primary)' }}>
+                  Official Release Downloads
+                </h3>
+                <p style={{ margin: '6px 0 0', fontSize: '12px', color: 'var(--c-text-secondary)', fontFamily: 'Inter', lineHeight: 1.5 }}>
+                  If the automatic updater cannot complete an installation, you can always download the latest official production release directly from GitHub.
+                </p>
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', background: 'rgba(128,128,128,0.04)', padding: '12px', borderRadius: '12px', border: '1px solid rgba(128,128,128,0.08)' }}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                  <span style={{ fontSize: '10px', color: 'var(--c-text-tertiary)', textTransform: 'uppercase', fontWeight: 700, fontFamily: 'Inter' }}>Installed Version</span>
+                  <span style={{ fontSize: '13px', color: 'var(--c-text-primary)', fontWeight: 600, fontFamily: 'monospace' }}>v{APP_VERSION_LABEL}</span>
+                </div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                  <span style={{ fontSize: '10px', color: 'var(--c-text-tertiary)', textTransform: 'uppercase', fontWeight: 700, fontFamily: 'Inter' }}>Latest Available</span>
+                  <span style={{ fontSize: '13px', color: 'var(--c-text-primary)', fontWeight: 600, fontFamily: 'monospace' }}>
+                    {ota.remoteVersion ? `v${ota.remoteVersion}` : 'Checking...'}
+                  </span>
+                </div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', gridColumn: 'span 2', borderTop: '1px solid rgba(128,128,128,0.08)', paddingTop: '8px', marginTop: '4px' }}>
+                  <span style={{ fontSize: '10px', color: 'var(--c-text-tertiary)', textTransform: 'uppercase', fontWeight: 700, fontFamily: 'Inter' }}>Release Channel</span>
+                  <span style={{ fontSize: '13px', color: 'var(--c-text-primary)', fontWeight: 600, fontFamily: 'Inter', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                    <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#22c55e' }}></span>
+                    Official Production
+                  </span>
+                </div>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => setShowGitHubConfirm(true)}
+                style={{
+                  width: '100%', height: '42px', borderRadius: '12px',
+                  background: `linear-gradient(135deg, ${acc.from}, ${acc.to})`,
+                  border: 'none', color: 'white',
+                  fontFamily: 'Manrope', fontWeight: 800, fontSize: '13px',
+                  cursor: 'pointer',
+                  boxShadow: `0 4px 14px color-mix(in srgb, ${acc.to} 25%, transparent)`,
+                  display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px',
+                  transition: 'opacity 200ms ease, transform 150ms ease',
+                }}
+              >
+                <GithubIcon size={18} color="white" />
+                Open Official GitHub Release
+              </button>
+            </div>
+          </div>
+        )}
+
       </div>
+
+      {showGitHubConfirm && (
+        <div
+          role="dialog"
+          aria-modal="true"
+          onClick={() => setShowGitHubConfirm(false)}
+          style={{
+            position: 'fixed',
+            inset: 0,
+            zIndex: 9000,
+            background: 'rgba(0,0,0,0.55)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: 24,
+            backdropFilter: 'blur(8px)',
+            WebkitBackdropFilter: 'blur(8px)',
+            animation: 'fade-in 200ms ease-out both',
+          }}
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            style={{
+              maxWidth: 380,
+              width: '100%',
+              background: 'var(--app-surface)',
+              borderRadius: 22,
+              overflow: 'hidden',
+              border: '1px solid rgba(128,128,128,0.15)',
+              boxShadow: '0 24px 60px rgba(0,0,0,0.45)',
+              animation: 'rise-in 240ms cubic-bezier(0.34,1.15,0.64,1) both',
+              padding: 24,
+            }}
+          >
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center', gap: 12 }}>
+              <div style={{
+                width: 58, height: 58, borderRadius: '50%',
+                background: 'rgba(128,128,128,0.06)',
+                border: '1.5px solid rgba(128,128,128,0.15)',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                marginBottom: 10,
+              }}>
+                <GithubIcon size={28} color="var(--c-text-primary)" />
+              </div>
+              
+              <h3 style={{ margin: 0, fontSize: 18, fontWeight: 800, fontFamily: 'Manrope', color: 'var(--c-text-primary)' }}>
+                Download Official Release
+              </h3>
+              
+              <p style={{ margin: 0, fontSize: 13, color: 'var(--c-text-secondary)', fontFamily: 'Inter', lineHeight: 1.5, textAlign: 'left' }}>
+                The automatic updater could not complete this installation.<br /><br />
+                Studio publishes every official production APK on GitHub. You can safely download the latest signed release directly from the official repository.<br /><br />
+                This is the recommended recovery method whenever automatic installation cannot complete.
+              </p>
+              
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginTop: 14, width: '100%' }}>
+                <button
+                  type="button"
+                  onClick={async () => {
+                    try {
+                      const { resolveReleasePageUrl } = await import('@workspace/studio-core');
+                      const fallbackUrl = await resolveReleasePageUrl(ota.remoteVersion ?? undefined);
+                      window.open(fallbackUrl, '_system');
+                    } catch (err) {
+                      window.open('https://github.com/MAGEXE1000/Studio/releases', '_system');
+                    }
+                    setShowGitHubConfirm(false);
+                  }}
+                  style={{
+                    width: '100%', height: '44px', borderRadius: '12px',
+                    background: `linear-gradient(135deg, ${acc.from}, ${acc.to})`,
+                    border: 'none', color: 'white',
+                    fontFamily: 'Manrope', fontWeight: 800, fontSize: '13px',
+                    cursor: 'pointer',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  }}
+                >
+                  Open GitHub
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setShowGitHubConfirm(false)}
+                  style={{
+                    width: '100%', height: 40, borderRadius: 12,
+                    background: 'transparent',
+                    border: 'none',
+                    color: 'var(--c-text-secondary)',
+                    fontFamily: 'Manrope', fontWeight: 700, fontSize: 13,
+                    cursor: 'pointer',
+                    marginTop: 2,
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  }}
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
+  );
+}
+
+function GithubIcon({ size = 18, color = 'currentColor' }: { size?: number; color?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" width={size} height={size} fill={color} style={{ flexShrink: 0 }}>
+      <path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/>
+    </svg>
   );
 }
 

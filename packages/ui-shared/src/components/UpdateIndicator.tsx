@@ -60,6 +60,14 @@ function CheckIconSvg() {
   );
 }
 
+function GithubIcon({ size = 18, color = 'currentColor' }: { size?: number; color?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" width={size} height={size} fill={color} style={{ flexShrink: 0 }}>
+      <path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/>
+    </svg>
+  );
+}
+
 function SpinnerSvg({ cFrom, cTo }: { cFrom: string; cTo: string }) {
   return (
     <svg
@@ -640,6 +648,7 @@ function UpdateModal({
   const [permissionBlocked, setPermissionBlocked] = useState(false);
   const [diagnosticsOpen, setDiagnosticsOpen] = useState(false);
   const [linkCopied, setLinkCopied] = useState(false);
+  const [showGitHubConfirm, setShowGitHubConfirm] = useState(false);
 
   const isApkFlow = ota.updateType === 'apk' || ota.updateType === 'both';
 
@@ -1201,16 +1210,15 @@ function UpdateModal({
         }
       };
 
-      const downloadUrlToUse = ota.manualApkUrl || ota.apkUrl || `https://github.com/MAGEXE1000/Studio/releases/tag/v${ota.remoteVersion}`;
-
       return (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginTop: 18, width: '100%' }}>
           <button
             type="button"
-            onClick={() => window.open(downloadUrlToUse, '_system')}
+            onClick={() => setShowGitHubConfirm(true)}
             style={primaryButtonStyle}
           >
-            Download reinstall build
+            <span className="material-symbols-outlined" style={{ fontSize: 18, marginRight: 6 }}>download</span>
+            Download Latest Release
           </button>
           
           <div style={{ display: 'flex', gap: 8, width: '100%' }}>
@@ -1538,8 +1546,17 @@ function UpdateModal({
       if (ota.recoveryMode) {
         return (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginTop: 14, width: '100%' }}>
-            
-            {/* Fallback 5: Try direct intent installation */}
+            {/* Primary manual recovery action: Download Latest Release */}
+            <button
+              type="button"
+              onClick={() => setShowGitHubConfirm(true)}
+              style={primaryButtonStyle}
+            >
+              <span className="material-symbols-outlined" style={{ fontSize: 18, marginRight: 6 }}>download</span>
+              Download Latest Release
+            </button>
+
+            {/* Direct intent installation */}
             <button
               type="button"
               onClick={async () => {
@@ -1549,22 +1566,14 @@ function UpdateModal({
                   alert(`Direct install failed: ${err.message || String(err)}`);
                 }
               }}
-              style={primaryButtonStyle}
+              style={secondaryButtonStyle}
             >
-              <span className="material-symbols-outlined" style={{ fontSize: 18 }}>install_mobile</span>
+              <span className="material-symbols-outlined" style={{ fontSize: 18, marginRight: 6 }}>install_mobile</span>
               Install Directly (Failsafe)
             </button>
 
             <div style={{ display: 'flex', gap: 8, width: '100%' }}>
-              {/* Fallback 6: Open GitHub release */}
-              <button
-                type="button"
-                onClick={() => window.open(ota.apkUrl || 'https://github.com/MAGEXE1000/Studio/releases', '_system')}
-                style={halfSecondaryButtonStyle}
-              >
-                GitHub Release
-              </button>
-              {/* Fallback 7: Open Firebase APK mirror */}
+              {/* Fallback: Firebase APK mirror */}
               <button
                 type="button"
                 onClick={async () => {
@@ -1584,10 +1593,8 @@ function UpdateModal({
               >
                 Firebase Mirror
               </button>
-            </div>
 
-            <div style={{ display: 'flex', gap: 8, width: '100%' }}>
-              {/* Fallback 9: Share APK file */}
+              {/* Share APK file */}
               <button
                 type="button"
                 onClick={async () => {
@@ -1601,25 +1608,10 @@ function UpdateModal({
               >
                 Share APK File
               </button>
-              {/* Fallback 8: Copy download URL */}
-              <button
-                type="button"
-                onClick={async () => {
-                  try {
-                    await navigator.clipboard.writeText(manualApkUrl);
-                    alert('Download link copied to clipboard!');
-                  } catch (err) {
-                    console.error('Failed to copy link:', err);
-                  }
-                }}
-                style={halfSecondaryButtonStyle}
-              >
-                Copy Link
-              </button>
             </div>
 
             <div style={{ display: 'flex', gap: 8, width: '100%' }}>
-              {/* Fallback 10: Copy diagnostics health report */}
+              {/* Copy Diagnostics */}
               <button
                 type="button"
                 onClick={copyDiagnostics}
@@ -1627,7 +1619,7 @@ function UpdateModal({
               >
                 Health Report
               </button>
-              {/* Diagnostics details UI */}
+              {/* Diagnostics UI */}
               <button
                 type="button"
                 onClick={() => setDiagnosticsOpen(true)}
@@ -1652,39 +1644,6 @@ function UpdateModal({
       // Normal Failed State Buttons
       return (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginTop: 18, width: '100%' }}>
-          <button
-            type="button"
-            onClick={() => window.open(manualApkUrl, '_system')}
-            style={{
-              width: '100%', height: 42, borderRadius: 12,
-              background: 'rgba(128,128,128,0.08)',
-              border: '1px solid rgba(128,128,128,0.15)',
-              color: 'var(--c-text-primary)',
-              fontFamily: 'Manrope', fontWeight: 700, fontSize: 13,
-              cursor: 'pointer',
-              display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6
-            }}
-          >
-            Download APK Manually
-          </button>
-          
-          <div style={{ display: 'flex', gap: 8, width: '100%' }}>
-            <button
-              type="button"
-              onClick={copyDiagnostics}
-              style={halfSecondaryButtonStyle}
-            >
-              Copy Diagnostics
-            </button>
-            <button
-              type="button"
-              onClick={() => setDiagnosticsOpen(true)}
-              style={halfSecondaryButtonStyle}
-            >
-              Diagnostics UI
-            </button>
-          </div>
-
           <div style={{ display: 'flex', gap: 8, width: '100%' }}>
             <button
               type="button"
@@ -1702,9 +1661,44 @@ function UpdateModal({
                   await ota.checkNow();
                 }
               }}
-              style={{ ...primaryButtonStyle, width: '100%' }}
+              style={primaryButtonStyle}
             >
               Try Again
+            </button>
+          </div>
+
+          <button
+            type="button"
+            onClick={() => setShowGitHubConfirm(true)}
+            style={{
+              width: '100%', height: 44, borderRadius: 12,
+              background: 'transparent',
+              border: '1px solid rgba(128, 128, 128, 0.25)',
+              color: 'var(--c-text-secondary)',
+              fontFamily: 'Manrope', fontWeight: 700, fontSize: 13,
+              cursor: 'pointer',
+              display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+              transition: 'background-color 200ms ease',
+            }}
+          >
+            <GithubIcon size={18} color="var(--c-text-secondary)" />
+            Download from GitHub
+          </button>
+          
+          <div style={{ display: 'flex', gap: 8, width: '100%', marginTop: 4 }}>
+            <button
+              type="button"
+              onClick={copyDiagnostics}
+              style={halfSecondaryButtonStyle}
+            >
+              Copy Diagnostics
+            </button>
+            <button
+              type="button"
+              onClick={() => setDiagnosticsOpen(true)}
+              style={halfSecondaryButtonStyle}
+            >
+              Diagnostics UI
             </button>
           </div>
         </div>
@@ -1958,7 +1952,6 @@ function UpdateModal({
       </div>
     );
   };
-
   const isProgressScreenActive = [
     'preparing',
     'enteringProgressScreen',
@@ -1971,32 +1964,51 @@ function UpdateModal({
     'failed'
   ].includes(state);
 
-  if (isProgressScreenActive) {
+  if (isProgressScreenActive && !showGitHubConfirm) {
     let actionButtons: React.ReactNode = null;
     if (state === 'failed') {
       actionButtons = (
-        <div style={{ display: 'flex', gap: 10, width: '100%', marginTop: 20 }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 10, width: '100%', marginTop: 20 }}>
+          <div style={{ display: 'flex', gap: 10, width: '100%' }}>
+            <button
+              onClick={handleStartUpdate}
+              style={{
+                flex: 1, padding: '12px', borderRadius: 12,
+                background: `linear-gradient(90deg, ${purpleFrom}, ${purpleTo})`,
+                color: '#fff', border: 'none', fontWeight: 700, cursor: 'pointer',
+                fontFamily: 'Manrope, sans-serif',
+                transition: 'opacity 200ms ease',
+              }}
+            >
+              Retry
+            </button>
+            <button
+              onClick={onClose}
+              style={{
+                flex: 1, padding: '12px', borderRadius: 12,
+                background: 'rgba(128,128,128,0.12)',
+                color: 'var(--c-text-primary)', border: 'none', fontWeight: 700, cursor: 'pointer',
+                fontFamily: 'Manrope, sans-serif',
+                transition: 'background-color 200ms ease',
+              }}
+            >
+              Cancel
+            </button>
+          </div>
           <button
-            onClick={handleStartUpdate}
+            onClick={() => setShowGitHubConfirm(true)}
             style={{
-              flex: 1, padding: '12px', borderRadius: 12,
-              background: `linear-gradient(90deg, ${purpleFrom}, ${purpleTo})`,
-              color: '#fff', border: 'none', fontWeight: 700, cursor: 'pointer',
-              fontFamily: 'Manrope, sans-serif'
+              width: '100%', padding: '12px', borderRadius: 12,
+              background: 'transparent',
+              border: '1px solid rgba(128, 128, 128, 0.25)',
+              color: 'var(--c-text-secondary)', fontWeight: 700, cursor: 'pointer',
+              fontFamily: 'Manrope, sans-serif',
+              display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+              transition: 'background-color 200ms ease',
             }}
           >
-            Retry
-          </button>
-          <button
-            onClick={onClose}
-            style={{
-              flex: 1, padding: '12px', borderRadius: 12,
-              background: 'rgba(128,128,128,0.12)',
-              color: 'var(--c-text-primary)', border: 'none', fontWeight: 700, cursor: 'pointer',
-              fontFamily: 'Manrope, sans-serif'
-            }}
-          >
-            Cancel
+            <GithubIcon size={18} color="var(--c-text-secondary)" />
+            Download from GitHub
           </button>
         </div>
       );
@@ -2013,6 +2025,85 @@ function UpdateModal({
     );
   }
 
+  if (showGitHubConfirm) {
+    return (
+      <div
+        role="dialog"
+        aria-modal="true"
+        onClick={() => setShowGitHubConfirm(false)}
+        style={{
+          position: 'fixed',
+          inset: 0,
+          zIndex: 9000,
+          background: 'rgba(0,0,0,0.55)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          padding: 24,
+          backdropFilter: 'blur(8px)',
+          WebkitBackdropFilter: 'blur(8px)',
+          animation: 'fade-in 200ms ease-out both',
+        }}
+      >
+        <div
+          onClick={(e) => e.stopPropagation()}
+          style={{
+            maxWidth: 380,
+            width: '100%',
+            background: 'var(--app-surface)',
+            borderRadius: 22,
+            overflow: 'hidden',
+            border: '1px solid rgba(128,128,128,0.15)',
+            boxShadow: '0 24px 60px rgba(0,0,0,0.45)',
+            animation: 'rise-in 240ms cubic-bezier(0.34,1.15,0.64,1) both',
+            padding: 24,
+          }}
+        >
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center', gap: 12 }}>
+            <div style={{
+              width: 58, height: 58, borderRadius: '50%',
+              background: 'rgba(128,128,128,0.06)',
+              border: '1.5px solid rgba(128,128,128,0.15)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              marginBottom: 10,
+            }}>
+              <GithubIcon size={28} color="var(--c-text-primary)" />
+            </div>
+            
+            <h3 style={{ margin: 0, fontSize: 18, fontWeight: 800, fontFamily: 'Manrope', color: 'var(--c-text-primary)' }}>
+              Download Official Release
+            </h3>
+            
+            <p style={{ margin: 0, fontSize: 13, color: 'var(--c-text-secondary)', fontFamily: 'Inter', lineHeight: 1.5, textAlign: 'left' }}>
+              The automatic updater could not complete this installation.<br /><br />
+              Studio publishes every official production APK on GitHub. You can safely download the latest signed release directly from the official repository.<br /><br />
+              This is the recommended recovery method whenever automatic installation cannot complete.
+            </p>
+            
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginTop: 14, width: '100%' }}>
+              <button
+                type="button"
+                onClick={async () => {
+                  await handleOpenGitHub();
+                  setShowGitHubConfirm(false);
+                }}
+                style={primaryButtonStyle}
+              >
+                Open GitHub
+              </button>
+              <button
+                type="button"
+                onClick={() => setShowGitHubConfirm(false)}
+                style={tertiaryButtonStyle}
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
   return (
     <div
       role="dialog"
