@@ -260,7 +260,8 @@ export function addLog(level: 'info' | 'warn' | 'error', module: string, ...args
   }
 
   const id = Math.random().toString(36).substring(2, 9);
-  const source = getCallerSource();
+  const isDevModeSafe = typeof useChordStore !== 'undefined' && useChordStore?.getState?.()?.settings?.developerMode;
+  const source = isDevModeSafe ? getCallerSource() : 'unknown';
   const isFirestore = msg.includes('@firebase/firestore') || msg.toLowerCase().includes('firestore');
 
   logsBuffer.push({

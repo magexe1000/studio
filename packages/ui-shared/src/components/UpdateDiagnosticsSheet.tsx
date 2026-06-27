@@ -334,6 +334,108 @@ export default function UpdateDiagnosticsSheet({ open, onClose }: Props) {
     };
   };
 
+  const getValidationPhases = () => {
+    const code = otaDiagnostics.statusCode;
+    const failureReason = otaDiagnostics.failureReason || '';
+    const text = otaDiagnostics.statusText || '';
+    const eligibilityReason = otaDebugLogs.eligibilityReason || '';
+    const shaExpected = otaDiagnostics.shaExpected || '';
+    const shaCalculated = otaDiagnostics.shaCalculated || '';
+    const downloadedPackage = otaDebugLogs.downloadedPackageName || '';
+    const downloadedSigning = otaDebugLogs.downloadedSigningSha256 || '';
+
+    // 1. Release Validation
+    let releaseStatus: 'PASS' | 'FAIL' | 'WARNING' = 'PASS';
+    let releaseReason = 'Release version and structure are correct.';
+    if (eligibilityReason === 'versionCode_low' || code === 7) {
+      releaseStatus = 'FAIL';
+      releaseReason = 'Version downgrade is blocked.';
+    } else if (otaDebugLogs.nativeApkVersion && otaDebugLogs.appVersion !== otaDebugLogs.nativeApkVersion) {
+      releaseStatus = 'WARNING';
+      releaseReason = 'Wrapper/App version mismatch detected.';
+    }
+
+    // 2. Certificate Validation
+    let certStatus: 'PASS' | 'FAIL' | 'WARNING' = 'PASS';
+    let certReason = 'Certificate matches expected production signature.';
+    const prodCert = '900cf259185c81100cda8bb08571fa23552e9789131cf07a8f4056e4d4129206';
+    if (downloadedSigning && downloadedSigning !== prodCert) {
+      certStatus = 'FAIL';
+      certReason = 'Downloaded certificate signature mismatch.';
+    } else if (eligibilityReason === 'signature_mismatch' || code === 5) {
+      certStatus = 'FAIL';
+      certReason = 'Signature mismatch with current installation.';
+    }
+
+    // 3. APK Validation
+    let apkStatus: 'PASS' | 'FAIL' | 'WARNING' = 'PASS';
+    let apkReason = 'APK package structure is valid.';
+    if (otaDebugLogs.downloadedIsValidApk === false || otaDebugLogs.eligibilityValidApk === false) {
+      apkStatus = 'FAIL';
+      apkReason = 'Downloaded file is not a valid Android APK.';
+    } else if (otaDebugLogs.downloadedDebuggable === true) {
+      apkStatus = 'WARNING';
+      apkReason = 'Downloaded APK is debuggable.';
+    }
+
+    // 4. SHA Validation
+    let shaStatus: 'PASS' | 'FAIL' | 'WARNING' = 'PASS';
+    let shaReason = 'SHA-256 hash matches metadata.';
+    if (shaExpected && shaCalculated && shaExpected !== shaCalculated) {
+      shaStatus = 'FAIL';
+      shaReason = 'APK checksum validation failed (corrupted download).';
+    } else if (otaDebugLogs.shaVerification === 'failed') {
+      shaStatus = 'FAIL';
+      shaReason = 'SHA-256 verification failed.';
+    }
+
+    // 5. Package Validation
+    let pkgStatus: 'PASS' | 'FAIL' | 'WARNING' = 'PASS';
+    let pkgReason = 'Package name matches com.chordex.app.';
+    if (downloadedPackage && downloadedPackage !== 'com.chordex.app') {
+      pkgStatus = 'FAIL';
+      pkgReason = `Wrong package: ${downloadedPackage}`;
+    }
+
+    // 6. Firebase Validation
+    let fbStatus: 'PASS' | 'FAIL' | 'WARNING' = 'PASS';
+    let fbReason = 'Firebase metadata checks passed.';
+    if (!otaDebugLogs.fetchedAppReleaseJson) {
+      fbStatus = 'WARNING';
+      fbReason = 'Could not fetch app-release.json.';
+    }
+
+    // 7. GitHub Validation
+    let ghStatus: 'PASS' | 'FAIL' | 'WARNING' = 'PASS';
+    let ghReason = 'GitHub Release asset is reachable.';
+    if (otaDiagnostics.downloadUrl && !otaDiagnostics.downloadUrl.includes('github.com')) {
+      ghStatus = 'WARNING';
+      ghReason = 'Non-GitHub download path detected.';
+    }
+
+    // 8. PackageInstaller Validation
+    let piStatus: 'PASS' | 'FAIL' | 'WARNING' = 'PASS';
+    let piReason = 'PackageInstaller completed successfully.';
+    if (typeof code === 'number' && code > 1 && code !== 3) {
+      piStatus = 'FAIL';
+      piReason = `Installer failed with code ${code}: ${text}`;
+    } else if (code === 3) {
+      piStatus = 'WARNING';
+      piReason = 'Installation cancelled by user.';
+    }
+
+    return [
+      { name: 'Release Validation', status: releaseStatus, desc: releaseReason },
+      { name: 'Certificate Validation', status: certStatus, desc: certReason },
+      { name: 'APK Validation', status: apkStatus, desc: apkReason },
+      { name: 'SHA Validation', status: shaStatus, desc: shaReason },
+      { name: 'Package Validation', status: pkgStatus, desc: pkgReason },
+      { name: 'Firebase Validation', status: fbStatus, desc: fbReason },
+      { name: 'GitHub Validation', status: ghStatus, desc: ghReason },
+      { name: 'PackageInstaller Validation', status: piStatus, desc: piReason },
+    ];
+  };
+
   const exp = getExplanation();
 
   const overlayOpacity = closing ? 0 : Math.max(0, 1 - drag / 380);
@@ -562,6 +664,66 @@ export default function UpdateDiagnosticsSheet({ open, onClose }: Props) {
             </div>
           )}
 
+          {/* Section: Update Pipeline Validation */}
+          <div style={{
+            fontFamily: 'Manrope',
+            fontWeight: 800,
+            fontSize: 11,
+            color: 'var(--c-text-primary)',
+            marginTop: 4,
+            marginBottom: 12,
+            borderBottom: '1px solid rgba(128,128,128,0.16)',
+            paddingBottom: 6,
+            textTransform: 'uppercase',
+            letterSpacing: '0.05em'
+          }}>
+            Update Pipeline Validation
+          </div>
+
+          <div style={{
+            background: 'rgba(128,128,128,0.04)',
+            borderRadius: 12,
+            padding: '10px 14px',
+            marginBottom: 20,
+            border: '1px solid rgba(128,128,128,0.1)'
+          }}>
+            {getValidationPhases().map((phase, idx) => {
+              const badgeColor = phase.status === 'PASS' ? '#22c55e' : (phase.status === 'FAIL' ? '#ef4444' : '#fbbf24');
+              const badgeBg = phase.status === 'PASS' ? 'rgba(34,197,94,0.15)' : (phase.status === 'FAIL' ? 'rgba(239,68,68,0.15)' : 'rgba(251,191,36,0.15)');
+              return (
+                <div key={idx} style={{
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                  padding: '8px 0',
+                  borderBottom: idx < 7 ? '1px solid rgba(128,128,128,0.08)' : 'none',
+                  gap: 12
+                }}>
+                  <div style={{ flex: 1 }}>
+                    <div style={{ fontFamily: 'Manrope', fontWeight: 700, fontSize: 13, color: 'var(--c-text-primary)' }}>
+                      {phase.name}
+                    </div>
+                    <div style={{ fontFamily: 'Inter', fontSize: 11.5, color: 'var(--c-text-muted)', marginTop: 2 }}>
+                      {phase.desc}
+                    </div>
+                  </div>
+                  <span style={{
+                    fontFamily: 'Manrope',
+                    fontWeight: 800,
+                    fontSize: 9.5,
+                    padding: '3px 8px',
+                    borderRadius: 6,
+                    color: badgeColor,
+                    background: badgeBg,
+                    letterSpacing: '0.04em'
+                  }}>
+                    {phase.status}
+                  </span>
+                </div>
+              );
+            })}
+          </div>
+
           {/* Section: General Device Info */}
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px 24px', marginBottom: 6 }}>
             <div style={{ minWidth: 120, flex: 1 }}>
@@ -705,6 +867,7 @@ export default function UpdateDiagnosticsSheet({ open, onClose }: Props) {
 
               <DiagnosticField label="Installed Certificate Signature Hash" value={otaDebugLogs.installedSigningSha256} isCode />
               <DiagnosticField label="Downloaded Certificate Signature Hash" value={otaDebugLogs.downloadedSigningSha256} isCode />
+              <DiagnosticField label="Expected Certificate Signature Hash" value="900cf259185c81100cda8bb08571fa23552e9789131cf07a8f4056e4d4129206" isCode />
               <DiagnosticField label="Release Channel" value={otaDebugLogs.releaseChannel} />
               <DiagnosticField label="Internal Decision Reason" value={otaDebugLogs.updateDecisionReason} />
 

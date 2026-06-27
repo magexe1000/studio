@@ -1440,7 +1440,8 @@ export default function App() {
           }
           const currentMode = useChordStore.getState().settings.appMode || 'hub';
           const rootNode = document.querySelector('[data-livex-hub-root="true"]') || document.getElementById('hub-root');
-          if (currentMode === 'hub' && !rootNode) {
+          const isEarlyStage = name === 'T+50ms' || name === 'T+100ms' || name === 'T+250ms' || name === 'T+500ms';
+          if (currentMode === 'hub' && !rootNode && !isEarlyStage) {
             (window as any).__runFailsafeRecovery?.(name);
           }
           (window as any).__watchdogRunning = false;
@@ -1828,12 +1829,12 @@ export default function App() {
     };
   }, [hubRenderKey]);
 
-  // Failsafe auto-trigger at T+50ms
+  // Failsafe auto-trigger at T+1000ms (deferred from 50ms to prevent interrupting normal React boot)
   useEffect(() => {
     if (appMode !== 'hub') return;
     const timer = setTimeout(() => {
-      (window as any).__runFailsafeRecovery?.('T+50ms');
-    }, 50);
+      (window as any).__runFailsafeRecovery?.('T+1000ms');
+    }, 1000);
     return () => clearTimeout(timer);
   }, [appMode]);
 

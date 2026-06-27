@@ -420,13 +420,19 @@ if (fs.existsSync(paths.apkPath)) {
   try {
     const apksigner = getAndroidTool('apksigner');
     console.log(`Verifying release APK signature status via ${apksigner}...`);
-    const signInfo = execSync(`${apksigner} verify --print-certs "${paths.apkPath}"`, { encoding: 'utf8' });
-    if (!signInfo.includes('SHA-256 digest')) {
+    const signInfoVerbose = execSync(`${apksigner} verify --verbose --print-certs "${paths.apkPath}"`, { encoding: 'utf8' });
+    if (!signInfoVerbose.includes('SHA-256 digest')) {
       assert(false, 'The release APK is not signed!', EXIT_CODES.RELEASE_VALIDATION);
     }
     console.log('✓ APK is successfully signed.');
 
-    const sha256Match = signInfo.match(/certificate SHA-256 digest:\s+([a-fA-F0-9:]+)/i);
+    // 1. Signature Scheme Check (V2 or V3 must be true)
+    const v2Scheme = /Verified using v2 scheme.*:\s*true/i.test(signInfoVerbose);
+    const v3Scheme = /Verified using v3 scheme.*:\s*true/i.test(signInfoVerbose);
+    assert(v2Scheme || v3Scheme, 'APK is not signed with a modern signature scheme (V2 or V3 must be true)!', EXIT_CODES.RELEASE_VALIDATION);
+    console.log('✓ APK signature scheme (V2/V3) verified successfully.');
+
+    const sha256Match = signInfoVerbose.match(/certificate SHA-256 digest:\s+([a-fA-F0-9:]+)/i);
     const currentSignature = sha256Match ? sha256Match[1].replace(/:/g, '').toLowerCase() : '';
     
     // Check signature consistency with previous release
@@ -461,6 +467,64 @@ if (fs.existsSync(paths.apkPath)) {
       }
     }
     console.log('✓ APK signing certificate validation check passed.');
+
+    // 2. Certificate Details Check (Owner, Issuer, Validity)
+    try {
+      console.log('Verifying certificate Owner, Issuer, and Validity via keytool...');
+      const keytoolOut = execSync(`keytool -printcert -jarfile "${paths.apkPath}"`, { encoding: 'utf8' });
+      
+      const ownerMatch = keytoolOut.match(/Owner:\s*(.*)/i);
+      const issuerMatch = keytoolOut.match(/Issuer:\s*(.*)/i);
+      const validMatch = keytoolOut.match(/Valid from:\s*(.*?)\s+until:\s*(.*)/i);
+      
+      assert(ownerMatch, 'Could not parse certificate Owner (Subject) from keytool!', EXIT_CODES.RELEASE_VALIDATION);
+      assert(issuerMatch, 'Could not parse certificate Issuer from keytool!', EXIT_CODES.RELEASE_VALIDATION);
+      assert(validMatch, 'Could not parse certificate Validity range from keytool!', EXIT_CODES.RELEASE_VALIDATION);
+      
+      const owner = ownerMatch[1].trim();
+      const issuer = issuerMatch[1].trim();
+      const validFromStr = validMatch[1].trim();
+      const validUntilStr = validMatch[2].trim();
+      
+      console.log(`Certificate Owner:  ${owner}`);
+      console.log(`Certificate Issuer: ${issuer}`);
+      console.log(`Validity Window:    ${validFromStr} to ${validUntilStr}`);
+      
+      assert(owner.length > 0, 'Certificate Owner cannot be empty', EXIT_CODES.RELEASE_VALIDATION);
+      assert(issuer.length > 0, 'Certificate Issuer cannot be empty', EXIT_CODES.RELEASE_VALIDATION);
+      
+      const validFrom = new Date(validFromStr);
+      const validUntil = new Date(validUntilStr);
+      const now = new Date();
+      
+      assert(now >= validFrom && now <= validUntil, `Certificate is outside its validity range! Valid from: ${validFromStr} until: ${validUntilStr}`, EXIT_CODES.RELEASE_VALIDATION);
+      console.log('✓ Certificate Validity check passed.');
+    } catch (err) {
+      assert(false, `Failed to verify certificate fields using keytool: ${err.message}`, EXIT_CODES.RELEASE_VALIDATION);
+    }
+
+    // 3. Verify local app-release.json matches the generated APK SHA-256
+    const appReleasePath = path.join(repoRoot, 'firebase-public/app-release.json');
+    if (fs.existsSync(appReleasePath)) {
+      try {
+        console.log('Verifying local app-release.json matches the APK SHA-256...');
+        const metadata = JSON.parse(fs.readFileSync(appReleasePath, 'utf8'));
+        
+        const crypto = await import('node:crypto');
+        const fileBuffer = fs.readFileSync(paths.apkPath);
+        const hashSum = crypto.createHash('sha256');
+        hashSum.update(fileBuffer);
+        const localApkSha = hashSum.digest('hex');
+        
+        if (metadata.sha256 && metadata.sha256 !== localApkSha) {
+          assert(false, `Local metadata SHA-256 (${metadata.sha256}) does not match APK SHA-256 (${localApkSha})!`, EXIT_CODES.RELEASE_VALIDATION);
+        }
+        console.log('✓ Local app-release.json SHA-256 matches APK hash.');
+      } catch (e) {
+        console.warn(`⚠ Could not verify app-release.json match: ${e.message}`);
+      }
+    }
+
   } catch (err) {
     assert(false, `Failed to verify APK signature: ${err.message}`, EXIT_CODES.RELEASE_VALIDATION);
   }

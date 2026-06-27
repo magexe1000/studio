@@ -12,6 +12,23 @@ Conventions:
 - Bullets start with `- ` and use plain English a non-technical user
   can parse. Keep each line short — the modal's text area is narrow.
 
+## 3.6.96
+
+### Added
+- Implemented deep pre-release APK certificate validation via keytool and apksigner checks.
+- Deployed automated self-test utility test-updater-flow.mjs for update system pipeline verification.
+- Optimized app startup time by disabling heavy stack trace captures inside production console loggers.
+- Deferred active watchdog recovery to T+1000ms to eliminate false positive startup thrashes.
+- Expanded Update Diagnostics Sheet with validation status matrices, certificate hashes comparison, and logs controls.
+
+## 3.6.95
+
+### Added
+- Implemented native PackageInstaller Session API for the update system.
+- Added a premium, comprehensive diagnostics system for updater failures.
+- Added share, export, and retry capabilities for update logs.
+- Added detailed hardware, locale, storage, and certificate comparison diagnostics.
+
 ## 3.6.94
 
 ### Fixed
