@@ -28,7 +28,7 @@ import { verifyFileIntegrity } from './updater/integrityVerification';
 import { runEligibilityCheck } from './updater/eligibilityVerification';
 import { triggerNativeInstall, processLastInstallResult } from './updater/installer';
 import { runSignatureMismatchRecovery, isRecovering, setIsRecovering } from './updater/recovery';
-import { validateLocalApk, deleteLocalApk, getLocalApkPath } from './updater/cacheManager';
+import { validateLocalApk, deleteLocalApk, getLocalApkPath, recordDismissal, shouldShowRecoveryReminder } from './updater/cacheManager';
 import {
   otaDebugLogs,
   otaDiagnostics,
@@ -828,6 +828,8 @@ export function useOtaUpdate() {
     triggerDowngrade,
     checkAndCleanCache,
     deleteLocalApk,
+    recordDismissal,
+    shouldShowRecoveryReminder,
   };
 }
 

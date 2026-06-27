@@ -1,6 +1,6 @@
 ### Added
-- Recovery Center.
-- Smart Installation Recovery.
-- Continue Installation action.
-- Intelligent cache validation.
-- Recovery workflow improvements.
+- Installation UX improvements.
+- Persistent installation stage.
+- Improved PackageInstaller handoff.
+- Recovery reminder persistence.
+- Continue Installation improvements.

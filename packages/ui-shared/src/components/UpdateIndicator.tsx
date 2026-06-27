@@ -68,23 +68,23 @@ function GithubIcon({ size = 18, color = 'currentColor' }: { size?: number; colo
   );
 }
 
-function SpinnerSvg({ cFrom, cTo }: { cFrom: string; cTo: string }) {
+function SpinnerSvg({ cFrom, cTo, size = 14, strokeWidth = 3.2 }: { cFrom: string; cTo: string; size?: number; strokeWidth?: number }) {
   return (
     <svg
-      width="14"
-      height="14"
+      width={size}
+      height={size}
       viewBox="0 0 24 24"
       fill="none"
       stroke="currentColor"
-      strokeWidth="3.2"
+      strokeWidth={strokeWidth}
       strokeLinecap="round"
       style={{
         animation: 'lg-spin-spinner 1s linear infinite',
         flexShrink: 0,
       }}
     >
-      <circle cx="12" cy="12" r="10" stroke="rgba(255,255,255,0.15)" />
-      <path d="M12 2a10 10 0 0 1 10 10" stroke="url(#lg-spinner-grad-indicator)" />
+      <circle cx="12" cy="12" r="10" stroke="rgba(255,255,255,0.15)" strokeWidth={strokeWidth} />
+      <path d="M12 2a10 10 0 0 1 10 10" stroke="url(#lg-spinner-grad-indicator)" strokeWidth={strokeWidth} />
       <defs>
         <linearGradient id="lg-spinner-grad-indicator" x1="0%" y1="0%" x2="100%" y2="100%">
           <stop offset="0%" stopColor={cFrom} />
@@ -204,11 +204,15 @@ export default function UpdateIndicator({
   }, []);
 
   useEffect(() => {
-    if (ota.validApkExists) {
-      console.log('[Smart Recovery] Valid APK exists on startup. Opening recovery modal.');
-      setOpen(true);
+    if (ota.validApkExists && ota.remoteVersion) {
+      if (ota.shouldShowRecoveryReminder(ota.remoteVersion)) {
+        console.log('[Smart Recovery] Valid APK exists on startup and reminder policy allows it. Opening modal.');
+        setOpen(true);
+      } else {
+        console.log('[Smart Recovery] Valid APK exists on startup, but suppressed by reminder policy.');
+      }
     }
-  }, [ota.validApkExists]);
+  }, [ota.validApkExists, ota.remoteVersion]);
 
   useEffect(() => {
     console.log('[INSTRUMENTATION] [REACT] Add open-update-dialog event listener');
@@ -224,6 +228,47 @@ export default function UpdateIndicator({
       window.removeEventListener('studio:open-update-dialog', handleOpen);
     };
   }, []);
+
+  useEffect(() => {
+    let active = true;
+    let listener: any = null;
+    let timer: any = null;
+    
+    if (open && ota.updateState === 'installed') {
+      console.log('[Updater Handoff] UpdateState is "installed". Monitoring background transition...');
+      import('@capacitor/app').then(async ({ App }) => {
+        if (!active) return;
+        listener = await App.addListener('appStateChange', (state) => {
+          if (!state.isActive && active) {
+            console.log('[Updater Handoff] App moved to background, dismissing updater.');
+            setOpen(false);
+            ota.dismissUpdate();
+          }
+        });
+      }).catch(err => console.warn('Failed to load App plugin:', err));
+      
+      // Fallback timer: close after 6 seconds if app backgrounding wasn't detected
+      timer = setTimeout(async () => {
+        if (active) {
+          console.log('[Updater Handoff] Fallback timer reached, closing updater and minimizing.');
+          setOpen(false);
+          ota.dismissUpdate();
+          if (isNative()) {
+            try {
+              const { App } = await import('@capacitor/app');
+              await App.minimizeApp();
+            } catch {}
+          }
+        }
+      }, 6000);
+    }
+    
+    return () => {
+      active = false;
+      if (listener) listener.remove();
+      if (timer) clearTimeout(timer);
+    };
+  }, [open, ota.updateState]);
 
   // Auto-minimize disabled per user request so the banner remains fully visible.
 
@@ -419,6 +464,7 @@ export default function UpdateIndicator({
     if (ota.remoteVersion) {
       writeLaterVersion(ota.remoteVersion);
       setLaterVersion(ota.remoteVersion);
+      ota.recordDismissal(ota.remoteVersion);
       try {
         const key = 'studio:dismissedVersions';
         const val = localStorage.getItem(key);
@@ -608,6 +654,9 @@ export default function UpdateIndicator({
               setPhase('pill');
               markBannerShown();
             }
+            if (ota.remoteVersion) {
+              ota.recordDismissal(ota.remoteVersion);
+            }
           }}
         />
       )}
@@ -626,6 +675,10 @@ export default function UpdateIndicator({
         @keyframes lg-spin-spinner {
           from { transform: rotate(0deg); }
           to   { transform: rotate(360deg); }
+        }
+        @keyframes lg-indeterminate-progress {
+          0% { left: -40%; }
+          100% { left: 100%; }
         }
       `}</style>
     </>
@@ -687,19 +740,6 @@ function UpdateModal({
       
       // Attempt to launch installer
       await ota.applyUpdate('UpdateIndicator: UpdateModal');
-      
-      // Close dialog cleanly on successful launch
-      onClose();
-      
-      // Minimize app cleanly
-      if (isNative()) {
-        try {
-          const { App } = await import('@capacitor/app');
-          await App.minimizeApp();
-        } catch (e) {
-          console.warn('Failed to minimize app:', e);
-        }
-      }
     } catch (err) {
       console.error('[UpdateIndicator] APK Install failed:', err);
     }
@@ -736,11 +776,6 @@ function UpdateModal({
         if (hasPerm && active) {
           setPermissionBlocked(false);
           await ota.applyUpdate('UpdateIndicator: UpdateModal');
-          onClose();
-          if (isNative()) {
-            const { App } = await import('@capacitor/app');
-            await App.minimizeApp();
-          }
         }
       } catch (err) {
         console.warn('[Permissions] Failed to query status:', err);
@@ -762,31 +797,7 @@ function UpdateModal({
     };
   }, [permissionBlocked, ota]);
 
-  const SpinnerSvg = ({ cFrom, cTo }: { cFrom: string; cTo: string }) => {
-    return (
-      <svg
-        width="28"
-        height="28"
-        viewBox="0 0 24 24"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="3.2"
-        strokeLinecap="round"
-        style={{
-          animation: 'lg-spin-spinner 1s linear infinite',
-        }}
-      >
-        <circle cx="12" cy="12" r="10" stroke="rgba(255,255,255,0.15)" />
-        <path d="M12 2a10 10 0 0 1 10 10" stroke="url(#lg-spinner-grad-indicator-dialog)" />
-        <defs>
-          <linearGradient id="lg-spinner-grad-indicator-dialog" x1="0%" y1="0%" x2="100%" y2="100%">
-            <stop offset="0%" stopColor={cFrom} />
-            <stop offset="100%" stopColor={cTo} />
-          </linearGradient>
-        </defs>
-      </svg>
-    );
-  };
+
 
   // Select Icon and Colors based on State
   let iconName = 'download';
@@ -947,8 +958,8 @@ function UpdateModal({
       iconName = 'sync';
       iconColor = purpleFrom;
       showSpinner = true;
-      title = 'Installing update';
-      description = ota.statusText || 'Handing over to Android Package Installer...';
+      title = 'Installing update...';
+      description = ota.statusText || 'Waiting for system confirmation...';
       showButtons = false;
       break;
 
@@ -1562,8 +1573,6 @@ function UpdateModal({
     }
 
     if (state === 'failed') {
-      const manualApkUrl = ota.manualApkUrl || `https://studio-30f44.web.app/apk/studio-${ota.remoteVersion}.apk`;
-      
       const copyDiagnostics = async () => {
         try {
           const report = await getDiagnosticsReport();
@@ -1574,129 +1583,122 @@ function UpdateModal({
         }
       };
 
-      if (ota.recoveryMode) {
-        return (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginTop: 14, width: '100%' }}>
-            {/* Primary manual recovery action: Download Latest Release */}
-            <button
-              type="button"
-              onClick={() => setShowGitHubConfirm(true)}
-              style={primaryButtonStyle}
-            >
-              <span className="material-symbols-outlined" style={{ fontSize: 18, marginRight: 6 }}>download</span>
-              Download Latest Release
-            </button>
+      const exportDiagnostics = async () => {
+        try {
+          const report = await getDiagnosticsReport();
+          const { Share } = await import('@capacitor/share');
+          await Share.share({
+            title: 'Studio Updater Diagnostics',
+            text: report,
+            dialogTitle: 'Export Diagnostics'
+          });
+        } catch (err) {
+          console.error('Failed to export diagnostics, copying instead:', err);
+          await copyDiagnostics();
+        }
+      };
 
-            {/* Direct intent installation */}
+      if (ota.validApkExists) {
+        return (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginTop: 14, width: '100%' }}>
+            <h4 style={{ margin: '4px 0 2px', fontSize: 13, fontWeight: 800, color: 'var(--c-text-primary)', fontFamily: 'Manrope', alignSelf: 'flex-start' }}>
+              Installation could not be started
+            </h4>
+            <p style={{ margin: '0 0 6px', fontSize: 11.5, color: 'var(--c-text-secondary)', fontFamily: 'Inter', lineHeight: 1.45, textAlign: 'left' }}>
+              {ota.error || 'Studio could not start the installation automatically. Please choose an option below to recover.'}
+            </p>
+
             <button
               type="button"
               onClick={async () => {
-                try {
-                  await applyUpdateDirect();
-                } catch (err: any) {
-                  alert(`Direct install failed: ${err.message || String(err)}`);
-                }
+                await ota.applyUpdate('Recovery Center: Retry Installation');
+              }}
+              style={primaryButtonStyle}
+            >
+              <span className="material-symbols-outlined" style={{ fontSize: 18, marginRight: 6 }}>refresh</span>
+              Retry Installation
+            </button>
+
+            <button
+              type="button"
+              onClick={async () => {
+                await ota.applyUpdate('Recovery Center: Continue Installation');
               }}
               style={secondaryButtonStyle}
             >
-              <span className="material-symbols-outlined" style={{ fontSize: 18, marginRight: 6 }}>install_mobile</span>
-              Install Directly (Failsafe)
+              <span className="material-symbols-outlined" style={{ fontSize: 18, marginRight: 6 }}>play_circle</span>
+              Continue Installation
             </button>
 
-            <div style={{ display: 'flex', gap: 8, width: '100%' }}>
-              {/* Fallback: Firebase APK mirror */}
-              <button
-                type="button"
-                onClick={async () => {
-                  try {
-                    const { runUpdaterHealthCheck } = await import('@workspace/studio-core');
-                    const health = await runUpdaterHealthCheck();
-                    if (!health.firebaseReachable) {
-                      alert("Firebase mirror is currently unavailable. Reason: The Firebase metadata server could not be resolved or returned a network timeout.");
-                    } else {
-                      window.open(manualApkUrl, '_system');
-                    }
-                  } catch (e) {
-                    window.open(manualApkUrl, '_system');
-                  }
-                }}
-                style={halfSecondaryButtonStyle}
-              >
-                Firebase Mirror
-              </button>
+            <button
+              type="button"
+              onClick={() => setShowGitHubConfirm(true)}
+              style={{
+                width: '100%', height: 44, borderRadius: 12,
+                background: 'transparent',
+                border: '1px solid rgba(128, 128, 128, 0.25)',
+                color: 'var(--c-text-secondary)',
+                fontFamily: 'Manrope', fontWeight: 700, fontSize: 13,
+                cursor: 'pointer',
+                display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+                transition: 'background-color 200ms ease',
+              }}
+            >
+              <GithubIcon size={18} color="var(--c-text-secondary)" />
+              Download from GitHub
+            </button>
 
-              {/* Share APK file */}
-              <button
-                type="button"
-                onClick={async () => {
-                  try {
-                    await shareDownloadedApk();
-                  } catch (err: any) {
-                    alert(`Sharing failed: ${err.message || String(err)}`);
-                  }
-                }}
-                style={halfSecondaryButtonStyle}
-              >
-                Share APK File
-              </button>
-            </div>
-
-            <div style={{ display: 'flex', gap: 8, width: '100%' }}>
-              {/* Copy Diagnostics */}
+            <div style={{ display: 'flex', gap: 8, width: '100%', marginTop: 4 }}>
               <button
                 type="button"
                 onClick={copyDiagnostics}
                 style={halfSecondaryButtonStyle}
               >
-                Health Report
+                Copy Diagnostics
               </button>
-              {/* Diagnostics UI */}
               <button
                 type="button"
-                onClick={() => setDiagnosticsOpen(true)}
+                onClick={exportDiagnostics}
                 style={halfSecondaryButtonStyle}
               >
-                Diagnostics UI
+                Export Diagnostics
               </button>
             </div>
 
-            {/* Exit/Dismiss */}
             <button
               type="button"
               onClick={onLater}
               style={tertiaryButtonStyle}
             >
-              Later
+              Cancel
             </button>
           </div>
         );
       }
 
-      // Normal Failed State Buttons
       return (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginTop: 18, width: '100%' }}>
-          <div style={{ display: 'flex', gap: 8, width: '100%' }}>
-            <button
-              type="button"
-              onClick={onLater}
-              style={halfSecondaryButtonStyle}
-            >
-              Later
-            </button>
-            <button
-              type="button"
-              onClick={async () => {
-                if (ota.updateAvailable) {
-                  await handleStartUpdate();
-                } else {
-                  await ota.checkNow();
-                }
-              }}
-              style={primaryButtonStyle}
-            >
-              Try Again
-            </button>
-          </div>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginTop: 14, width: '100%' }}>
+          <h4 style={{ margin: '4px 0 2px', fontSize: 13, fontWeight: 800, color: 'var(--c-text-primary)', fontFamily: 'Manrope', alignSelf: 'flex-start' }}>
+            Update Recovery Center
+          </h4>
+          <p style={{ margin: '0 0 6px', fontSize: 11.5, color: 'var(--c-text-secondary)', fontFamily: 'Inter', lineHeight: 1.45, textAlign: 'left' }}>
+            {ota.error || 'Studio could not complete the update automatically. Please choose a recovery action below.'}
+          </p>
+
+          <button
+            type="button"
+            onClick={async () => {
+              if (ota.updateAvailable) {
+                await handleStartUpdate();
+              } else {
+                await ota.checkNow();
+              }
+            }}
+            style={primaryButtonStyle}
+          >
+            <span className="material-symbols-outlined" style={{ fontSize: 18, marginRight: 6 }}>refresh</span>
+            Retry Update
+          </button>
 
           <button
             type="button"
@@ -1713,9 +1715,9 @@ function UpdateModal({
             }}
           >
             <GithubIcon size={18} color="var(--c-text-secondary)" />
-            Download from GitHub
+            Download Latest Release
           </button>
-          
+
           <div style={{ display: 'flex', gap: 8, width: '100%', marginTop: 4 }}>
             <button
               type="button"
@@ -1726,12 +1728,20 @@ function UpdateModal({
             </button>
             <button
               type="button"
-              onClick={() => setDiagnosticsOpen(true)}
+              onClick={exportDiagnostics}
               style={halfSecondaryButtonStyle}
             >
-              Diagnostics UI
+              Export Diagnostics
             </button>
           </div>
+
+          <button
+            type="button"
+            onClick={onLater}
+            style={tertiaryButtonStyle}
+          >
+            Cancel
+          </button>
         </div>
       );
     }
@@ -1739,7 +1749,33 @@ function UpdateModal({
     return null;
   };
 
+  const renderIndeterminateProgress = () => {
+    return (
+      <div style={{ width: '100%', marginTop: 14, display: 'flex', flexDirection: 'column', gap: 6 }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, fontWeight: 700, fontFamily: 'Manrope', color: 'var(--c-text-primary)' }}>
+          <span>Installing update...</span>
+          <span>In progress</span>
+        </div>
+        <div style={{ width: '100%', height: 6, borderRadius: 3, background: 'rgba(128,128,128,0.12)', overflow: 'hidden', position: 'relative' }}>
+          <div style={{
+            position: 'absolute',
+            width: '40%', height: '100%',
+            background: `linear-gradient(90deg, ${purpleFrom}, ${purpleTo})`,
+            animation: 'lg-indeterminate-progress 1.5s infinite linear',
+            borderRadius: 3,
+          }} />
+        </div>
+        <div style={{ fontSize: 11, color: 'var(--c-text-secondary)', fontFamily: 'Inter', opacity: 0.8, textAlign: 'left' }}>
+          {ota.statusText || 'Waiting for system confirmation...'}
+        </div>
+      </div>
+    );
+  };
+
   const renderProgress = () => {
+    if (state === 'installing' || state === 'installedOrReady') {
+      return renderIndeterminateProgress();
+    }
     if (!showProgress) return null;
     const pct = Math.round(progressVal * 100);
     const fileName = `studio-update-${toVersion || 'latest'}.apk`;
@@ -1787,7 +1823,7 @@ function UpdateModal({
           display: 'flex', alignItems: 'center', justifyContent: 'center',
           marginBottom: 10,
         }}>
-          <SpinnerSvg cFrom={purpleFrom} cTo={purpleTo} />
+          <SpinnerSvg cFrom={purpleFrom} cTo={purpleTo} size={28} strokeWidth={3.6} />
         </div>
       );
     }

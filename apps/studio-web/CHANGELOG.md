@@ -12,6 +12,15 @@ Conventions:
 - Bullets start with `- ` and use plain English a non-technical user
   can parse. Keep each line short — the modal's text area is narrow.
 
+## 3.7.11
+
+### Added
+- Installation UX improvements.
+- Persistent installation stage.
+- Improved PackageInstaller handoff.
+- Recovery reminder persistence.
+- Continue Installation improvements.
+
 ## 3.7.10
 
 ### Added

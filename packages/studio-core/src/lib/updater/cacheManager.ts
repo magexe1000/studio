@@ -75,3 +75,42 @@ export async function deleteLocalApk(version: string): Promise<void> {
     // File might not exist, which is fine
   }
 }
+
+export const REMINDER_INTERVAL_MS = 24 * 60 * 60 * 1000; // 24 hours
+
+export function recordDismissal(version: string | null) {
+  if (!version) return;
+  try {
+    localStorage.setItem('studio:lastDismissedRecoveryVersion', version);
+    localStorage.setItem('studio:lastDismissedRecoveryTimestamp', Date.now().toString());
+    console.log(`[Recovery Reminder] Dismissal recorded for v${version}`);
+  } catch (err) {
+    console.warn('[Recovery Reminder] Failed to record dismissal:', err);
+  }
+}
+
+export function shouldShowRecoveryReminder(remoteVersion: string | null): boolean {
+  if (!remoteVersion) return false;
+  try {
+    const lastDismissedVer = localStorage.getItem('studio:lastDismissedRecoveryVersion');
+    const lastDismissedTime = localStorage.getItem('studio:lastDismissedRecoveryTimestamp');
+    
+    if (lastDismissedVer && lastDismissedVer !== remoteVersion) {
+      return true;
+    }
+    
+    if (lastDismissedTime) {
+      const parsedTime = parseInt(lastDismissedTime, 10);
+      if (!isNaN(parsedTime)) {
+        const elapsed = Date.now() - parsedTime;
+        if (elapsed < REMINDER_INTERVAL_MS) {
+          return false;
+        }
+      }
+    }
+    return true;
+  } catch (err) {
+    console.warn('[Recovery Reminder] Failed to read reminder state:', err);
+    return true;
+  }
+}
