@@ -12,6 +12,14 @@ Conventions:
 - Bullets start with `- ` and use plain English a non-technical user
   can parse. Keep each line short — the modal's text area is narrow.
 
+## 3.6.95
+
+### Added
+- Implemented native PackageInstaller Session API for the update system.
+- Added a premium, comprehensive diagnostics system for updater failures.
+- Added share, export, and retry capabilities for update logs.
+- Added detailed hardware, locale, storage, and certificate comparison diagnostics.
+
 ## 3.6.94
 
 ### Fixed

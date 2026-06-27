@@ -59,12 +59,12 @@ export interface ChangelogSection {
 
 export const APP_CHANGELOG_SECTIONS: ChangelogSection[] = [
   {
-    heading: "Fixed",
+    heading: "Added",
     items: [
-      "Fixed Android cold launch delay before app appears.",
-      "Improved launch surface / first visible frame.",
-      "Improved startup timing diagnostics.",
-      "Restored Hub bottom nav auto-hide/show.",
+      "Implemented native PackageInstaller Session API for the update system.",
+      "Added a premium, comprehensive diagnostics system for updater failures.",
+      "Added share, export, and retry capabilities for update logs.",
+      "Added detailed hardware, locale, storage, and certificate comparison diagnostics.",
     ],
   },
 ];
