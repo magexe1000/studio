@@ -1,4 +1,4 @@
-import { useOtaUpdate, type StructuredReleaseNotes, otaDiagnostics, otaDebugLogs, APP_VERSION_LABEL, compareSemver, normalizeSemver, applyUpdate, isNative, fadeToBlackAndReload, useChordStore } from '@workspace/studio-core';
+import { useOtaUpdate, type StructuredReleaseNotes, otaDiagnostics, otaDebugLogs, APP_VERSION_LABEL, compareSemver, normalizeSemver, applyUpdate, isNative, fadeToBlackAndReload, useChordStore, isAppInstallerAvailable } from '@workspace/studio-core';
 import { applyUpdateDirect, shareDownloadedApk, getDiagnosticsReport } from '@workspace/studio-core';
 /**
  * Floating "update available" indicator — top of the Hub.
@@ -212,28 +212,8 @@ export default function UpdateIndicator({
 
   // Auto-minimize disabled per user request so the banner remains fully visible.
 
-  // Auto-OPEN the update modal whenever an update is available.
-  // NATIVE-ONLY: on web, the refresh banner handles this instead.
-  useEffect(() => {
-    console.log('[INSTRUMENTATION] [REACT] Auto-open modal check effect. updateAvailable:', ota.updateAvailable, 'remoteVersion:', ota.remoteVersion, 'updateState:', ota.updateState);
-    if (!isNative()) return; // web uses its own non-blocking refresh banner
-    if (!ota.updateAvailable || !ota.remoteVersion) return;
-    const laterVer = readLaterVersion();
-    if (laterVer === ota.remoteVersion) {
-      console.log('[INSTRUMENTATION] [REACT] Auto-open skipped: user chose later version', laterVer);
-      return;
-    }
-
-    const autoOpened = readAutoOpenedVersion();
-    if (autoOpened === ota.remoteVersion) {
-      console.log('[INSTRUMENTATION] [REACT] Auto-open skipped: already auto-opened in this session', autoOpened);
-      return;
-    }
-
-    console.log('[INSTRUMENTATION] [REACT] Auto-opening modal! Setting open to true');
-    setOpen(true);
-    writeAutoOpenedVersion(ota.remoteVersion);
-  }, [ota.updateAvailable, ota.remoteVersion, ota.updateState]);
+  // Auto-OPEN the update modal is disabled to protect the application startup sequence.
+  // The user will see a subtle pill in the corner, or they can click Check for Updates in settings.
 
   // WEB-ONLY: track whether the user dismissed the web refresh banner this session
   const [webBannerDismissed, setWebBannerDismissed] = useState(() => {
@@ -803,8 +783,32 @@ function UpdateModal({
   let showSpinner = false;
 
   let state = permissionBlocked ? 'permission_blocked' : ota.updateState;
-  if (state === 'available' && ota.reinstallRequired) {
-    state = 'reinstall_warning';
+  if (ota.updateState === 'update_available') {
+    if (ota.reinstallRequired) {
+      state = 'reinstall_warning';
+    } else if (ota.apkUpdateRequired && !isAppInstallerAvailable()) {
+      state = 'manual_apk_required';
+    } else {
+      state = 'available';
+    }
+  } else if (ota.updateState === 'waiting_for_confirmation') {
+    state = 'available';
+  } else if (ota.updateState === 'ready_to_install') {
+    state = 'readyForInstallPrompt';
+  } else if (ota.updateState === 'completed') {
+    state = 'installedOrReady';
+  } else if (ota.updateState === 'idle') {
+    if (ota.error) {
+      if (ota.error.includes('Signature mismatch')) {
+        state = 'signature_mismatch';
+      } else if (ota.error.includes('versionCode_low')) {
+        state = 'versionCode_low';
+      } else {
+        state = 'failed';
+      }
+    } else {
+      state = 'idle';
+    }
   }
 
   // Collapsible changelog section state

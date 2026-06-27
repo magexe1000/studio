@@ -727,8 +727,8 @@ export async function fetchRemoteVersion(
 export type OtaUpdateState =
   | 'idle'
   | 'checking'
-  | 'available'
-  | 'waiting_for_user'
+  | 'update_available'
+  | 'waiting_for_confirmation'
   | 'downloading'
   | 'verifying'
   | 'ready_to_install'
@@ -796,7 +796,7 @@ let globalOtaState: CentralizedOtaState = {
   changelog: null,
   mandatory: false,
   downloadUrl: null,
-  loading: true,
+  loading: false,
   progress: 0,
   error: null,
   updateType: 'none',
@@ -833,85 +833,114 @@ const stateListeners = new Set<(state: CentralizedOtaState) => void>();
 
 const VALID_TRANSITIONS: Record<OtaUpdateState, OtaUpdateState[]> = {
   idle: ['checking', 'preparing'],
-  checking: ['available', 'idle', 'failed', 'manual_apk_required'],
-  available: ['waiting_for_user', 'failed', 'idle'],
-  waiting_for_user: ['downloading', 'failed', 'idle', 'preparing'],
+  checking: ['update_available', 'idle', 'failed', 'manual_apk_required'],
+  update_available: ['waiting_for_confirmation', 'failed', 'idle'],
+  waiting_for_confirmation: ['downloading', 'failed', 'idle', 'preparing'],
   downloading: ['verifying', 'failed', 'idle'],
   verifying: ['ready_to_install', 'failed', 'signature_mismatch', 'versionCode_low', 'reinstall_warning', 'idle'],
   ready_to_install: ['installing', 'failed', 'idle'],
-  installing: ['installed', 'failed', 'idle'],
-  installed: ['completed', 'failed', 'idle'],
+  installing: ['completed', 'failed', 'idle'],
   completed: ['idle'],
-  
-  failed: ['checking', 'idle'],
-  manual_apk_required: ['checking', 'idle'],
-  signature_mismatch: ['checking', 'idle'],
-  versionCode_low: ['checking', 'idle'],
-  reinstall_warning: ['checking', 'idle'],
 
-  preparing: ['checking', 'idle', 'downloading_ota', 'downloading_apk', 'failed', 'enteringProgressScreen'],
-  enteringProgressScreen: ['downloading_ota', 'downloading_apk', 'failed', 'idle'],
-  downloading_ota: ['verifying_apk', 'ready_to_install', 'failed', 'idle'],
-  downloading_apk: ['verifying_apk', 'ready_to_install', 'failed', 'idle'],
-  verifying_apk: ['ready_to_install', 'failed', 'idle'],
-  readyForInstallPrompt: ['waitingForUserInstallConfirmation', 'installing', 'failed', 'idle', 'installedOrReady'],
-  waitingForUserInstallConfirmation: ['installing', 'failed', 'idle'],
-  installedOrReady: ['completed', 'failed', 'idle'],
+  // For backwards compatibility and safety, let all other states exit to idle
+  failed: ['idle'],
+  manual_apk_required: ['idle'],
+  signature_mismatch: ['idle'],
+  versionCode_low: ['idle'],
+  reinstall_warning: ['idle'],
+  preparing: ['idle'],
+  enteringProgressScreen: ['idle'],
+  downloading_ota: ['idle'],
+  downloading_apk: ['idle'],
+  verifying_apk: ['idle'],
+  readyForInstallPrompt: ['idle'],
+  waitingForUserInstallConfirmation: ['idle'],
+  installedOrReady: ['idle'],
+  installed: ['idle'],
 };
 
-let stalledTimer: ReturnType<typeof setTimeout> | null = null;
+let watchdogTimer: ReturnType<typeof setTimeout> | null = null;
+let lastDownloadProgress = 0;
+let lastDownloadTime = Date.now();
 
-function manageStalledTimer(nextState: OtaUpdateState, progress: number) {
-  if (stalledTimer) {
-    clearTimeout(stalledTimer);
-    stalledTimer = null;
+async function handleWatchdogTimeout(errorMsg: string) {
+  console.warn(`[Watchdog Timeout] ${errorMsg}. Cleaning state and returning to IDLE.`);
+  void logProgressStage('[Watchdog Timeout]', `${errorMsg}. Resetting to IDLE.`);
+
+  // Cancel operations
+  activeCheckPromise = null;
+  activeApplyPromise = null;
+  activeDownloadPromise = null;
+
+  try {
+    const downloadedPath = localStorage.getItem('studio:downloadedApkPath');
+    if (downloadedPath) {
+      const { Filesystem } = await import('@capacitor/filesystem');
+      await Filesystem.deleteFile({ path: downloadedPath });
+      localStorage.removeItem('studio:downloadedApkPath');
+    }
+  } catch (_) {}
+
+  // Reset to idle
+  globalOtaState = {
+    ...globalOtaState,
+    updateState: 'idle',
+    loading: false,
+    error: errorMsg,
+    progress: 0,
+    statusText: null,
+  };
+
+  if (watchdogTimer) {
+    clearTimeout(watchdogTimer);
+    watchdogTimer = null;
   }
 
-  const transientStates: OtaUpdateState[] = ['checking', 'downloading', 'verifying', 'installing'];
-  if (transientStates.includes(nextState)) {
-    let timeoutMs = 15000; // 15s default
-    if (nextState === 'downloading') {
-      timeoutMs = 20000; // 20s
-    } else if (nextState === 'installing') {
-      timeoutMs = 60000; // 60s
-    }
+  stateListeners.forEach((l) => l(globalOtaState));
+}
 
-    const lastProgress = progress;
-    stalledTimer = setTimeout(async () => {
-      // If we are downloading and progress has advanced, do not count as stalled
-      if (nextState === 'downloading' && globalOtaState.progress > lastProgress) {
-        // Re-schedule the timer since progress is active
-        manageStalledTimer(nextState, globalOtaState.progress);
-        return;
+function startWatchdog(state: OtaUpdateState) {
+  if (watchdogTimer) {
+    clearTimeout(watchdogTimer);
+    watchdogTimer = null;
+  }
+
+  if (state === 'checking') {
+    watchdogTimer = setTimeout(() => {
+      if (globalOtaState.updateState === 'checking') {
+        handleWatchdogTimeout('Checking for updates timed out (10s). Server was unreachable.');
       }
+    }, 10000);
+  } else if (state === 'downloading') {
+    lastDownloadProgress = globalOtaState.progress;
+    lastDownloadTime = Date.now();
 
-      console.warn(`[OTA STALL DETECT] Update stalled in state "${nextState}".`);
-      void logProgressStage('[OTA STALL DETECT]', `Stall detected in state ${nextState} (Timeout: ${timeoutMs}ms). Triggering auto-recovery.`);
-
-      const currentFailures = Number(localStorage.getItem('studio:consecutiveInstallFailures') || 0) + 1;
-      localStorage.setItem('studio:consecutiveInstallFailures', String(currentFailures));
-      updateGlobalState({ consecutiveFailures: currentFailures });
-
-      let errorMsg = 'Operation timed out.';
-      if (nextState === 'checking') {
-        errorMsg = 'Connection timed out while checking for updates. Release server is unreachable.';
-      } else if (nextState === 'downloading') {
-        errorMsg = 'Download stalled. Mirror connection was dropped or timed out.';
-      } else if (nextState === 'verifying') {
-        errorMsg = 'Verification timed out. Check filesystem permissions or try manual download.';
-      } else if (nextState === 'installing') {
-        errorMsg = 'Installation timed out. Android PackageInstaller failed to commit session.';
+    const checkDownload = () => {
+      if (globalOtaState.updateState !== 'downloading') return;
+      const now = Date.now();
+      if (globalOtaState.progress > lastDownloadProgress) {
+        lastDownloadProgress = globalOtaState.progress;
+        lastDownloadTime = now;
+        watchdogTimer = setTimeout(checkDownload, 5000);
+      } else if (now - lastDownloadTime >= 30000) {
+        handleWatchdogTimeout('Download stalled (30s). No progress received.');
+      } else {
+        watchdogTimer = setTimeout(checkDownload, 5000);
       }
-
-      const recovery = currentFailures >= 3;
-      // Trigger transition to failed
-      transitionToState('failed', `Stalled timer expired in state ${nextState}`);
-      updateGlobalState({
-        error: errorMsg,
-        loading: false,
-        recoveryMode: recovery
-      });
-    }, timeoutMs);
+    };
+    watchdogTimer = setTimeout(checkDownload, 5000);
+  } else if (state === 'verifying') {
+    watchdogTimer = setTimeout(() => {
+      if (globalOtaState.updateState === 'verifying') {
+        handleWatchdogTimeout('Verification timed out (20s). Package checks stalled.');
+      }
+    }, 20000);
+  } else if (state === 'installing') {
+    watchdogTimer = setTimeout(() => {
+      if (globalOtaState.updateState === 'installing') {
+        handleWatchdogTimeout('Installation timed out (120s). No PackageInstaller activity detected.');
+      }
+    }, 120000);
   }
 }
 
@@ -921,7 +950,7 @@ let executionId = Math.random().toString(36).substring(2, 10);
 export function transitionToState(nextState: OtaUpdateState, reason: string): boolean {
   const currentState = globalOtaState.updateState;
   if (currentState === nextState) {
-    return true; // No-op, allow redundant state sets without violation
+    return true; // No-op
   }
 
   const allowed = VALID_TRANSITIONS[currentState] || [];
@@ -940,20 +969,35 @@ export function transitionToState(nextState: OtaUpdateState, reason: string): bo
   if (!isValid) {
     console.error(
       `[STATE_TRANSITION_VIOLATION] Blocked invalid transition: ` +
-      `${currentState} -> ${nextState}. Reason: ${reason}. Caller: ${callerLine.trim()}`
+      `${currentState} -> ${nextState}. Reason: ${reason}. Caller: ${callerLine.trim()}. Resetting to IDLE.`
     );
     void logProgressStage(
       'State transition violation',
-      `Blocked transition: ${currentState} -> ${nextState}. Reason: ${reason}. Caller: ${callerLine.trim()}`
+      `Blocked transition: ${currentState} -> ${nextState}. Reason: ${reason}. Resetting to IDLE.`
     );
+
+    // Reset to IDLE immediately
+    globalOtaState = {
+      ...globalOtaState,
+      updateState: 'idle',
+      loading: false,
+      error: `Invalid transition attempted: ${currentState} -> ${nextState} (${reason})`
+    };
+
+    if (watchdogTimer) {
+      clearTimeout(watchdogTimer);
+      watchdogTimer = null;
+    }
+
+    stateListeners.forEach((l) => l(globalOtaState));
     return false;
   }
 
   // Update state variable bypass
   globalOtaState = { ...globalOtaState, updateState: nextState };
   
-  // Manage stalled timer for transient states
-  manageStalledTimer(nextState, globalOtaState.progress);
+  // Start watchdog for transient states
+  startWatchdog(nextState);
 
   // Notify listeners
   stateListeners.forEach((l) => l(globalOtaState));
@@ -962,19 +1006,18 @@ export function transitionToState(nextState: OtaUpdateState, reason: string): bo
 
 function updateGlobalState(updates: Partial<CentralizedOtaState>) {
   if ('updateState' in updates && updates.updateState !== globalOtaState.updateState) {
-    console.warn(`[WARNING] Direct updateState change attempted in updateGlobalState: ${updates.updateState}. Use transitionToState instead.`);
-    // Omit updateState from direct mutations to enforce transitionToState
+    const nextState = updates.updateState!;
     const { updateState, ...rest } = updates;
     globalOtaState = { ...globalOtaState, ...rest };
+    transitionToState(nextState, 'updateGlobalState delegation');
   } else {
     globalOtaState = { ...globalOtaState, ...updates };
+    stateListeners.forEach((l) => l(globalOtaState));
   }
-  stateListeners.forEach((l) => l(globalOtaState));
 }
 
 export function resetOtaUpdateState() {
   updateGlobalState({
-    updateState: 'idle',
     updateAvailable: false,
     remoteVersion: null,
     changelog: null,
@@ -1004,6 +1047,59 @@ export function resetOtaUpdateState() {
     recoveryMode: false,
     diagnosticsReport: null,
   });
+
+  // Force state change bypass
+  globalOtaState = { ...globalOtaState, updateState: 'idle', loading: false };
+  if (watchdogTimer) {
+    clearTimeout(watchdogTimer);
+    watchdogTimer = null;
+  }
+  stateListeners.forEach((l) => l(globalOtaState));
+}
+
+export async function enforceStartupRecovery() {
+  console.log('[OTA DEBUG] enforceStartupRecovery starting...');
+  let isInstallationActive = false;
+
+  if (isNative() && isAppInstallerAvailable()) {
+    try {
+      const { AppInstaller } = await import('./apkDownloader');
+      const check = await AppInstaller.isInstallActive();
+      isInstallationActive = check.active;
+      console.log('[OTA DEBUG] enforceStartupRecovery: Android active session =', isInstallationActive);
+    } catch (err) {
+      console.warn('[OTA] enforceStartupRecovery error checking session:', err);
+    }
+  }
+
+  if (!isInstallationActive) {
+    console.log('[OTA DEBUG] No active PackageInstaller session. Hard resetting all state to IDLE.');
+    
+    if (watchdogTimer) {
+      clearTimeout(watchdogTimer);
+      watchdogTimer = null;
+    }
+
+    activeCheckPromise = null;
+    activeApplyPromise = null;
+    activeDownloadPromise = null;
+
+    resetOtaUpdateState();
+
+    if (isNative() && isAppInstallerAvailable()) {
+      try {
+        const { AppInstaller } = await import('./apkDownloader');
+        await AppInstaller.clearInstallerLogHistory();
+
+        const downloadedPath = localStorage.getItem('studio:downloadedApkPath');
+        if (downloadedPath) {
+          const { Filesystem } = await import('@capacitor/filesystem');
+          await Filesystem.deleteFile({ path: downloadedPath });
+          localStorage.removeItem('studio:downloadedApkPath');
+        }
+      } catch (_) {}
+    }
+  }
 }
 
 export async function logProgressStage(stage: string, message?: string, exceptionStack?: string) {
@@ -1153,7 +1249,7 @@ export function checkForUpdate(isManual = false): Promise<CentralizedOtaState> {
             transitionToState('versionCode_low', 'Last install result: versionCode_low');
             updateGlobalState({ error: errMsg, loading: false });
           } else if (category === 'cancelled') {
-            transitionToState('available', 'Last install result: cancelled');
+            transitionToState('update_available', 'Last install result: cancelled');
             updateGlobalState({ loading: false });
           } else {
             transitionToState('failed', 'Last install result: failed');
@@ -1562,13 +1658,14 @@ export function checkForUpdate(isManual = false): Promise<CentralizedOtaState> {
       
       let nextState: OtaUpdateState = (isNative() && !isAppInstallerAvailable())
         ? 'manual_apk_required'
-        : 'available';
+        : 'update_available';
       
       if (isMetadataSignatureMismatch) {
-        nextState = 'signature_mismatch';
+        nextState = 'idle';
+        updateGlobalState({ error: 'Signature mismatch: Cryptographic signature mismatch detected in release metadata.' });
       }
       
-      otaDebugLogs.finalDecision = `Show: ${nextState === 'manual_apk_required' ? 'Manual APK Update Required' : (nextState === 'signature_mismatch' ? 'Signature Mismatch (Metadata)' : 'Available')} (isDismissed=${isDismissed})`;
+      otaDebugLogs.finalDecision = `Show: ${nextState === 'manual_apk_required' ? 'Manual APK Update Required' : (nextState === 'idle' ? 'Signature Mismatch (Metadata)' : 'Available')} (isDismissed=${isDismissed})`;
 
       console.log('[OTA DEBUG] Showing Update:', {
         version: remote.version,
@@ -1578,64 +1675,6 @@ export function checkForUpdate(isManual = false): Promise<CentralizedOtaState> {
         nextState,
         apkUpdateRequired
       });
-
-      // Check for interrupted installation
-      if (isNative() && isAppInstallerAvailable() && !isMetadataSignatureMismatch) {
-        try {
-          const { AppInstaller } = await import('./apkDownloader');
-          const result = await AppInstaller.getLastInstallResult();
-          if (result && result.statusCode === -1) {
-            const lang = useChordStore.getState().settings.language || 'en';
-            const confirmMsg = lang === 'es'
-              ? `Se detectó una instalación interrumpida de la versión ${remote.version}. ¿Deseas reanudar la instalación?`
-              : `An interrupted installation of version ${remote.version} was detected. Do you want to resume the installation?`;
-            const resume = typeof window !== 'undefined' && window.confirm(confirmMsg);
-            if (resume) {
-              updateGlobalState({
-                updateState: 'waitingForUserInstallConfirmation',
-                remoteVersion: remote.version,
-                changelog: remote.changelog ?? null,
-                mandatory: remote.mandatory === true,
-                updateType,
-                apkUrl,
-                apkSha256: remote.apkSha256 ?? null,
-                manualApkUrl,
-                fallbackApkUrl,
-                releaseNotes: remote.releaseNotes ?? null,
-                loading: false,
-                requiredApkVersion: remote.requiredApkVersion ?? null,
-                requiredVersionCode: remote.requiredVersionCode ?? null,
-                nativeApkBehind,
-                apkUpdateRequired,
-                reinstallRequired: remote.reinstallRequired || remote.installMode === 'reinstall-required',
-                signatureChanged: remote.signatureChanged === true,
-                previousSignatureSha256: remote.previousSignatureSha256 ?? null,
-                newSignatureSha256: remote.newSignatureSha256 ?? null,
-                installMode: remote.installMode ?? null,
-                packageName: remote.packageName ?? null,
-              });
-              activeCheckPromise = null;
-              void applyUpdate('Interrupted Resume');
-              return globalOtaState;
-            } else {
-              console.log('[OTA DEBUG] User discarded interrupted installation. Clearing status.');
-              await AppInstaller.clearInstallerLogHistory();
-              try {
-                const downloadedPath = localStorage.getItem('studio:downloadedApkPath');
-                if (downloadedPath) {
-                  const { Filesystem } = await import('@capacitor/filesystem');
-                  await Filesystem.deleteFile({
-                    path: downloadedPath
-                  });
-                  localStorage.removeItem('studio:downloadedApkPath');
-                }
-              } catch (_) {}
-            }
-          }
-        } catch (err) {
-          console.warn('[OTA] Failed to check last install result during upgrade check:', err);
-        }
-      }
 
       let clientReinstallRequired = false;
       if (remote.reinstallRequired || remote.installMode === 'reinstall-required') {
@@ -1694,7 +1733,7 @@ export function checkForUpdate(isManual = false): Promise<CentralizedOtaState> {
       console.error(`[INSTRUMENTATION] checkForUpdate EXIT Call #${callId} error:`, err);
       void logProgressStage('[INSTRUMENTATION] checkForUpdate EXIT', `Call #${callId} failed err=${err instanceof Error ? err.message : String(err)}`);
       console.warn('[OTA] Check failed:', err);
-      updateGlobalState({ updateState: 'failed', error: String(err), loading: false });
+      updateGlobalState({ updateState: 'idle', error: String(err), loading: false });
       return globalOtaState;
     } finally {
       activeCheckPromise = null;
@@ -2189,12 +2228,10 @@ export function applyUpdate(trigger?: string): Promise<void> {
  * Centralized dismissUpdate: saves state in persistent storage.
  */
 export function dismissUpdate(): void {
-  const { remoteVersion, updateType } = globalOtaState;
+  const { remoteVersion } = globalOtaState;
   if (!remoteVersion) return;
   setSessionItem('studio:laterUpdateVersion', remoteVersion);
-  const isApkFlow = updateType === 'apk' || updateType === 'both';
-  const nextState = (isNative() && isApkFlow && !isAppInstallerAvailable()) ? 'manual_apk_required' : 'available';
-  transitionToState(nextState, 'dismissUpdate');
+  transitionToState('idle', 'dismissUpdate');
 }
 
 /**
@@ -2232,10 +2269,16 @@ export function initializeOtaListener() {
     void checkForUpdate();
   };
 
-  // 1. Initial check on load
-  if (globalOtaState.updateState === 'idle') {
-    void checkForUpdate();
-  }
+  // 1. Enforce startup recovery on boot
+  void enforceStartupRecovery().then(() => {
+    // Delay silent check for updates by 5 seconds to unblock startup
+    setTimeout(() => {
+      const autoCheck = useChordStore.getState().settings.otaAutoCheck ?? true;
+      if (autoCheck && globalOtaState.updateState === 'idle') {
+        void checkForUpdate(false);
+      }
+    }, 5000);
+  });
 
   // 2. Window/Document listeners
   const onVisibility = () => {
@@ -2447,10 +2490,19 @@ export function useOtaUpdate(): UseOtaUpdateResult {
   }, []);
 
   const checkNow = async () => {
+    const res = await checkForUpdate(true);
     if (typeof window !== 'undefined') {
-      window.dispatchEvent(new CustomEvent('studio:open-update-dialog'));
+      if (res.updateAvailable) {
+        window.dispatchEvent(new CustomEvent('studio:open-update-dialog'));
+      } else {
+        if (res.error) {
+          alert(`Check failed: ${res.error}`);
+        } else {
+          alert('Studio is up to date!');
+        }
+      }
     }
-    return await checkForUpdate(true);
+    return res;
   };
 
   return {

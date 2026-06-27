@@ -1197,4 +1197,27 @@ public class AppInstallerPlugin extends Plugin {
             call.reject("Failed to read first bytes: " + e.getMessage());
         }
     }
+
+    @PluginMethod
+    public void isInstallActive(PluginCall call) {
+        try {
+            Context context = getContext();
+            PackageInstaller packageInstaller = context.getPackageManager().getPackageInstaller();
+            java.util.List<PackageInstaller.SessionInfo> sessions = packageInstaller.getMySessions();
+            boolean active = false;
+            int activeSessionId = -1;
+            
+            if (sessions != null && !sessions.isEmpty()) {
+                active = true;
+                activeSessionId = sessions.get(0).getSessionId();
+            }
+            
+            JSObject result = new JSObject();
+            result.put("active", active);
+            result.put("sessionId", activeSessionId);
+            call.resolve(result);
+        } catch (Exception e) {
+            call.reject("Failed to check active installer sessions: " + e.getMessage(), e);
+        }
+    }
 }

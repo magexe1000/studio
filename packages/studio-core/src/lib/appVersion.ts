@@ -26,7 +26,7 @@ import { useMemo } from 'react';
 import { Capacitor } from '@capacitor/core';
 
 /** Canonical semver string used by the OTA comparator. */
-export const NATIVE_VERSION = '3.7.6';
+export const NATIVE_VERSION = '3.7.7';
 export const WEB_VERSION = '4.0.0';
 export const APP_VERSION = Capacitor.isNativePlatform() ? NATIVE_VERSION : WEB_VERSION;
 
@@ -59,12 +59,12 @@ export interface ChangelogSection {
 
 export const APP_CHANGELOG_SECTIONS: ChangelogSection[] = [
   {
-    heading: "Added",
+    heading: "Fixed",
     items: [
-      "Added pre-deploy signature verification check preventing deployment of incorrectly signed or debug-signed APK packages to Firebase Hosting CDN channels.",
-      "Added dynamic authoritative expected signature validation resolving directly from app version configuration files.",
-      "Improved updater checking by validating signature fingerprints in release metadata to block mismatching packages before downloading.",
-      "Added detailed troubleshooting diagnostics fields including certificate subject and issuer, validation stage, exact failing stage, root cause, and suggested fixes in the signature mismatch UI.",
+      "Fixed critical updater system regressions by enforcing a strict deterministic state machine.",
+      "Added native PackageInstaller active session checks on startup to prevent boot deadlocks and blank screens.",
+      "Implemented robust watchdog timers for checking, downloading, verifying, and installing states.",
+      "Cleaned up interrupted installation behaviors to reset to idle safely when the installer session is dead.",
     ],
   },
 ];

@@ -1660,6 +1660,17 @@ export default function App() {
     // Force app mode classes on mount
     document.documentElement.classList.add('app-route');
     document.documentElement.classList.remove('landing-route');
+
+    // Startup recovery invariant: Reset update state to idle unless Android confirms an active installation
+    const checkStartupInvariants = async () => {
+      try {
+        const { enforceStartupRecovery } = await import('@workspace/studio-core');
+        await enforceStartupRecovery();
+      } catch (err) {
+        console.error('[Startup Invariant] Failed to check updater state:', err);
+      }
+    };
+    void checkStartupInvariants();
     
     const intro = document.getElementById('intro');
     if (intro && (window as any).__introReturnedEarly) {

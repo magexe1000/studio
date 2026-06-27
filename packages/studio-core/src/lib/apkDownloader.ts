@@ -57,6 +57,7 @@ export interface AppInstallerPlugin {
     certificateIssuer?: string;
   }>;
   readFirstBytes(options: { filePath: string; count?: number }): Promise<{ hex: string; ascii: string }>;
+  isInstallActive(): Promise<{ active: boolean; sessionId: number }>;
 }
 
 export const AppInstaller = registerPlugin<AppInstallerPlugin>('AppInstaller');
