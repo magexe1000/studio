@@ -26,7 +26,7 @@ import { useMemo } from 'react';
 import { Capacitor } from '@capacitor/core';
 
 /** Canonical semver string used by the OTA comparator. */
-export const NATIVE_VERSION = '3.6.98';
+export const NATIVE_VERSION = '3.6.99';
 export const WEB_VERSION = '4.0.0';
 export const APP_VERSION = Capacitor.isNativePlatform() ? NATIVE_VERSION : WEB_VERSION;
 
@@ -38,7 +38,7 @@ export const APP_VERSION_LABEL = `${APP_VERSION_TAG} ${APP_VERSION}`;
 
 /** Release date for the CURRENT bundle, shown alongside the version pill
  *  in the changelog sheet. ISO-8601 (`YYYY-MM-DD`). */
-export const APP_VERSION_DATE = '2026-06-27'; // 3.6.98
+export const APP_VERSION_DATE = '2026-06-27'; // 3.6.99
 // Note: keep ISO-8601. Bump together with APP_VERSION on each release.
 
 export const APP_COMMIT_SHA = import.meta.env.VITE_GIT_COMMIT_SHA || 'efd2b1a3';
@@ -61,10 +61,9 @@ export const APP_CHANGELOG_SECTIONS: ChangelogSection[] = [
   {
     heading: "Added",
     items: [
-      "Resolved PackageInstaller update handoff bug by actively launching system confirmation intent from InstallReceiver.",
-      "Optimized native launch splash screen to use DayNight color systems to eliminate light/dark flashes.",
-      "Made startup experience premium by transitioning directly into planets animation on WebView mount.",
-      "Expanded Update Diagnostics Sheet to render complete PackageInstaller session logs, timestamps, elapsed times, and stack traces.",
+      "Resolved Android 14+ background activity start block by configuring explicit ActivityOptions in InstallReceiver.",
+      "Prevented double-download and progress thrashes with strict state-transition guards in the update manager.",
+      "Fully validated system update end-to-end and successfully launched native confirmation dialog.",
     ],
   },
 ];

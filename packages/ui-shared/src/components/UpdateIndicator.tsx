@@ -186,15 +186,24 @@ export default function UpdateIndicator({
     return false;
   })();
 
-  // Wipe the legacy "dismissed forever" key on mount so users who tapped
-  // Later in a previous build aren't stuck without an indicator.
-  useEffect(() => { clearLegacyDismissed(); }, []);
+  useEffect(() => {
+    console.log('[INSTRUMENTATION] [REACT] UpdateIndicator component mounted!');
+    clearLegacyDismissed();
+    return () => {
+      console.log('[INSTRUMENTATION] [REACT] UpdateIndicator component unmounted!');
+    };
+  }, []);
 
   useEffect(() => {
+    console.log('[INSTRUMENTATION] [REACT] Add open-update-dialog event listener');
     const id = requestAnimationFrame(() => setEntered(true));
-    const handleOpen = () => setOpen(true);
+    const handleOpen = () => {
+      console.log('[INSTRUMENTATION] [REACT] studio:open-update-dialog event fired');
+      setOpen(true);
+    };
     window.addEventListener('studio:open-update-dialog', handleOpen);
     return () => {
+      console.log('[INSTRUMENTATION] [REACT] Remove open-update-dialog event listener');
       cancelAnimationFrame(id);
       window.removeEventListener('studio:open-update-dialog', handleOpen);
     };
@@ -205,14 +214,22 @@ export default function UpdateIndicator({
   // Auto-OPEN the update modal whenever an update is available.
   // NATIVE-ONLY: on web, the refresh banner handles this instead.
   useEffect(() => {
+    console.log('[INSTRUMENTATION] [REACT] Auto-open modal check effect. updateAvailable:', ota.updateAvailable, 'remoteVersion:', ota.remoteVersion, 'updateState:', ota.updateState);
     if (!isNative()) return; // web uses its own non-blocking refresh banner
     if (!ota.updateAvailable || !ota.remoteVersion) return;
     const laterVer = readLaterVersion();
-    if (laterVer === ota.remoteVersion) return;
+    if (laterVer === ota.remoteVersion) {
+      console.log('[INSTRUMENTATION] [REACT] Auto-open skipped: user chose later version', laterVer);
+      return;
+    }
 
     const autoOpened = readAutoOpenedVersion();
-    if (autoOpened === ota.remoteVersion) return;
+    if (autoOpened === ota.remoteVersion) {
+      console.log('[INSTRUMENTATION] [REACT] Auto-open skipped: already auto-opened in this session', autoOpened);
+      return;
+    }
 
+    console.log('[INSTRUMENTATION] [REACT] Auto-opening modal! Setting open to true');
     setOpen(true);
     writeAutoOpenedVersion(ota.remoteVersion);
   }, [ota.updateAvailable, ota.remoteVersion, ota.updateState]);

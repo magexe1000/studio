@@ -12,6 +12,13 @@ Conventions:
 - Bullets start with `- ` and use plain English a non-technical user
   can parse. Keep each line short — the modal's text area is narrow.
 
+## 3.6.99
+
+### Added
+- Resolved Android 14+ background activity start block by configuring explicit ActivityOptions in InstallReceiver.
+- Prevented double-download and progress thrashes with strict state-transition guards in the update manager.
+- Fully validated system update end-to-end and successfully launched native confirmation dialog.
+
 ## 3.6.98
 
 ### Added

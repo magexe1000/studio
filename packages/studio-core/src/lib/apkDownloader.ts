@@ -16,6 +16,7 @@ export interface AppInstallerPlugin {
   getLastInstallResult(): Promise<{ statusCode: number; statusMessage: string; packageName: string; timestamp: number }>;
   getInstallerLogHistory(): Promise<{ logs: string }>;
   clearInstallerLogHistory(): Promise<void>;
+  appendLog(options: { stage: string; status?: number; message?: string; packageName?: string; exceptionStack?: string }): Promise<void>;
   checkPermissions(): Promise<any>;
   requestPermissions(options?: { aliases?: string[] }): Promise<any>;
   getSharedFile(): Promise<{ none?: boolean; type?: 'json' | 'audio'; data?: string; fileName?: string }>;
@@ -223,10 +224,14 @@ export async function downloadApk(
   let progressListener: any = null;
   
   try {
+    console.log(`[INSTRUMENTATION] [JS] downloadApk ENTER url=${url}`);
+    await AppInstaller.appendLog({ stage: '[INSTRUMENTATION] downloadApk ENTER', message: `url=${url}` });
+
     if (onProgress) {
       try {
         progressListener = await (AppInstaller as any).addListener('apkDownloadProgress', (status: any) => {
           if (status && typeof status.progress === 'number') {
+            console.log(`[INSTRUMENTATION] [JS] apkDownloadProgress event status.progress=${status.progress}%`);
             onProgress(status.progress);
           }
         });
@@ -242,11 +247,16 @@ export async function downloadApk(
       await progressListener.remove();
     }
     
+    console.log(`[INSTRUMENTATION] [JS] downloadApk EXIT success res.filePath=${res.filePath}`);
+    await AppInstaller.appendLog({ stage: '[INSTRUMENTATION] downloadApk EXIT', message: `Success res.filePath=${res.filePath}` });
     return res.filePath;
   } catch (err) {
     if (progressListener) {
       await progressListener.remove();
     }
+    const errMsg = err instanceof Error ? err.message : String(err);
+    console.error(`[INSTRUMENTATION] [JS] downloadApk EXIT error=${errMsg}`);
+    await AppInstaller.appendLog({ stage: '[INSTRUMENTATION] downloadApk EXIT', message: `Error: ${errMsg}` });
     console.error('[apkDownloader] Native downloadApk failed:', err);
     throw err;
   }
@@ -256,8 +266,12 @@ export async function downloadApk(
  * Verifies the SHA-256 hash of a file at the given absolute path.
  */
 export async function verifyApkSha256(filePath: string, expectedHash: string): Promise<boolean> {
+  console.log(`[INSTRUMENTATION] [JS] verifyApkSha256 ENTER filePath=${filePath}, expectedHash=${expectedHash}`);
+  await AppInstaller.appendLog({ stage: '[INSTRUMENTATION] verifyApkSha256 ENTER', message: `filePath=${filePath}, expectedHash=${expectedHash}` });
   if (!expectedHash) {
     console.warn('[apkDownloader] No expected hash provided for verification.');
+    console.log('[INSTRUMENTATION] [JS] verifyApkSha256 EXIT (Skipped: no expected hash)');
+    await AppInstaller.appendLog({ stage: '[INSTRUMENTATION] verifyApkSha256 EXIT', message: 'Skipped: no expected hash' });
     return true; // Skip if no hash provided
   }
   try {
@@ -268,6 +282,8 @@ export async function verifyApkSha256(filePath: string, expectedHash: string): P
       const { otaDebugLogs } = await import('./otaUpdate');
       otaDebugLogs.downloadedApkSha256 = res.computedHash;
     } catch {}
+    console.log(`[INSTRUMENTATION] [JS] verifyApkSha256 EXIT matches=${res.matches}`);
+    await AppInstaller.appendLog({ stage: '[INSTRUMENTATION] verifyApkSha256 EXIT', message: `matches=${res.matches}, computedHash=${res.computedHash}` });
     return res.matches;
   } catch (err) {
     console.error('[apkDownloader] Native verifySha256 failed, falling back to JS implementation:', err);

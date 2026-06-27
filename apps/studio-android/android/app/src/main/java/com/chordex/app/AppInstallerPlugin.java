@@ -61,6 +61,34 @@ import android.util.Log;
 // The Studio OTA/APK update flow depends on this native bridge to function.
 public class AppInstallerPlugin extends Plugin {
 
+    private static int callIdCounter = 0;
+    
+    public static int downloadApkCallCount = 0;
+    public static int downloadAndInstallApkCallCount = 0;
+    public static int verifySha256CallCount = 0;
+    public static int installApkCallCount = 0;
+    public static int triggerInstallationCallCount = 0;
+    public static int sessionCreateCallCount = 0;
+    public static int sessionWriteCallCount = 0;
+    public static int sessionFsyncCallCount = 0;
+    public static int sessionCommitCallCount = 0;
+
+    private static int nextCallId() {
+        synchronized (AppInstallerPlugin.class) {
+            return ++callIdCounter;
+        }
+    }
+    
+    public static void logNativeInstrumentation(Context context, String methodName, int callId, String event, String details) {
+        String threadName = Thread.currentThread().getName();
+        long threadId = Thread.currentThread().getId();
+        String message = String.format("[%s] Call #%d [Thread: %s (id: %d)] Details: %s", event, callId, threadName, threadId, details);
+        Log.d("INSTRUMENTATION", "NATIVE: " + methodName + " " + message);
+        if (context != null) {
+            InstallReceiver.appendLog(context, "[INSTRUMENTATION] " + methodName, 0, message, context.getPackageName(), null);
+        }
+    }
+
     private SharedPreferences getSecurePreferences() throws Exception {
         Context context = getContext();
         String masterKeyAlias = MasterKeys.getOrCreate(MasterKeys.AES256_GCM_SPEC);
@@ -148,9 +176,13 @@ public class AppInstallerPlugin extends Plugin {
 
     @PluginMethod
     public void verifySha256(PluginCall call) {
+        verifySha256CallCount++;
+        int callId = nextCallId();
         String path = call.getString("filePath");
         String expectedHash = call.getString("expectedHash");
+        logNativeInstrumentation(getContext(), "verifySha256", callId, "ENTER", "filePath=" + path + ", expectedHash=" + expectedHash + " (total calls: " + verifySha256CallCount + ")");
         if (path == null || expectedHash == null) {
+            logNativeInstrumentation(getContext(), "verifySha256", callId, "EXIT", "Rejected: missing filePath or expectedHash");
             call.reject("filePath and expectedHash are required");
             return;
         }
@@ -166,6 +198,7 @@ public class AppInstallerPlugin extends Plugin {
                 file = new File(path);
             }
             if (!file.exists()) {
+                logNativeInstrumentation(getContext(), "verifySha256", callId, "EXIT", "Rejected: file does not exist: " + file.getAbsolutePath());
                 call.reject("File does not exist: " + file.getAbsolutePath());
                 return;
             }
@@ -190,11 +223,13 @@ public class AppInstallerPlugin extends Plugin {
             JSObject result = new JSObject();
             result.put("matches", matches);
             result.put("computedHash", computedHash);
+            logNativeInstrumentation(getContext(), "verifySha256", callId, "EXIT", "matches=" + matches + ", computedHash=" + computedHash);
             call.resolve(result);
         } catch (Exception e) {
             JSObject result = new JSObject();
             result.put("matches", false);
             result.put("computedHash", "ERROR: " + e.getMessage());
+            logNativeInstrumentation(getContext(), "verifySha256", callId, "EXIT", "Exception: " + e.getMessage());
             call.resolve(result);
         }
     }
@@ -311,9 +346,32 @@ public class AppInstallerPlugin extends Plugin {
     }
 
     @PluginMethod
+    public void appendLog(PluginCall call) {
+        String stage = call.getString("stage");
+        Integer status = call.getInt("status");
+        String message = call.getString("message");
+        String packageName = call.getString("packageName");
+        String exceptionStack = call.getString("exceptionStack");
+        if (stage == null) {
+            call.reject("stage is required");
+            return;
+        }
+        try {
+            InstallReceiver.appendLog(getContext(), stage, status != null ? status : 0, message, packageName, exceptionStack);
+            call.resolve();
+        } catch (Exception e) {
+            call.reject("Failed to append log: " + e.getMessage());
+        }
+    }
+
+    @PluginMethod
     public void installApk(PluginCall call) {
+        installApkCallCount++;
+        int callId = nextCallId();
         String path = call.getString("filePath");
+        logNativeInstrumentation(getContext(), "installApk", callId, "ENTER", "filePath=" + path + " (total calls: " + installApkCallCount + ")");
         if (path == null) {
+            logNativeInstrumentation(getContext(), "installApk", callId, "EXIT", "Rejected: missing filePath");
             call.reject("filePath is required");
             return;
         }
@@ -331,20 +389,27 @@ public class AppInstallerPlugin extends Plugin {
             }
 
             if (!file.exists()) {
+                logNativeInstrumentation(getContext(), "installApk", callId, "EXIT", "Rejected: file does not exist: " + file.getAbsolutePath());
                 call.reject("File does not exist: " + file.getAbsolutePath());
                 return;
             }
 
+            logNativeInstrumentation(getContext(), "installApk", callId, "EXIT", "Launching triggerInstallation for file: " + file.getAbsolutePath());
             triggerInstallation(file, call);
         } catch (Exception e) {
+            logNativeInstrumentation(getContext(), "installApk", callId, "EXIT", "Exception: " + e.getMessage());
             call.reject("Failed to install APK: " + e.getMessage(), e);
         }
     }
 
     @PluginMethod
     public void downloadAndInstallApk(PluginCall call) {
+        downloadAndInstallApkCallCount++;
+        int callId = nextCallId();
         String urlString = call.getString("url");
+        logNativeInstrumentation(getContext(), "downloadAndInstallApk", callId, "ENTER", "url=" + urlString + " (total calls: " + downloadAndInstallApkCallCount + ")");
         if (urlString == null) {
+            logNativeInstrumentation(getContext(), "downloadAndInstallApk", callId, "EXIT", "Rejected: missing url");
             call.reject("url is required");
             return;
         }
@@ -352,6 +417,8 @@ public class AppInstallerPlugin extends Plugin {
         new Thread(new Runnable() {
             @Override
             public void run() {
+                int threadCallId = callId;
+                logNativeInstrumentation(getContext(), "downloadAndInstallApk", threadCallId, "STEP", "Download/Install thread started");
                 java.io.InputStream input = null;
                 java.io.OutputStream output = null;
                 java.net.HttpURLConnection connection = null;
@@ -381,6 +448,7 @@ public class AppInstallerPlugin extends Plugin {
                     }
 
                     int fileLength = connection.getContentLength();
+                    logNativeInstrumentation(getContext(), "downloadAndInstallApk", threadCallId, "STEP", "Connected. File size: " + fileLength + " bytes");
                     input = new java.io.BufferedInputStream(connection.getInputStream());
                     
                     File cacheDir = getContext().getExternalCacheDir();
@@ -431,6 +499,7 @@ public class AppInstallerPlugin extends Plugin {
                     output.close();
                     input.close();
 
+                    logNativeInstrumentation(getContext(), "downloadAndInstallApk", threadCallId, "EXIT", "Success. Triggering installation for: " + apkFile.getAbsolutePath());
                     triggerInstallation(apkFile, call);
 
                 } catch (Exception e) {
@@ -438,6 +507,7 @@ public class AppInstallerPlugin extends Plugin {
                         if (output != null) output.close();
                         if (input != null) input.close();
                     } catch (Exception ignored) {}
+                    logNativeInstrumentation(getContext(), "downloadAndInstallApk", threadCallId, "EXIT", "Exception: " + e.getMessage());
                     call.reject("Download failed: " + e.getMessage(), e);
                 }
             }
@@ -446,8 +516,12 @@ public class AppInstallerPlugin extends Plugin {
 
     @PluginMethod
     public void downloadApk(PluginCall call) {
+        downloadApkCallCount++;
+        int callId = nextCallId();
         String urlString = call.getString("url");
+        logNativeInstrumentation(getContext(), "downloadApk", callId, "ENTER", "url=" + urlString + " (total calls: " + downloadApkCallCount + ")");
         if (urlString == null) {
+            logNativeInstrumentation(getContext(), "downloadApk", callId, "EXIT", "Rejected: missing url");
             call.reject("url is required");
             return;
         }
@@ -455,6 +529,8 @@ public class AppInstallerPlugin extends Plugin {
         new Thread(new Runnable() {
             @Override
             public void run() {
+                int threadCallId = callId;
+                logNativeInstrumentation(getContext(), "downloadApk", threadCallId, "STEP", "Download thread started");
                 java.io.InputStream input = null;
                 java.io.OutputStream output = null;
                 java.net.HttpURLConnection connection = null;
@@ -484,6 +560,7 @@ public class AppInstallerPlugin extends Plugin {
                     }
 
                     int fileLength = connection.getContentLength();
+                    logNativeInstrumentation(getContext(), "downloadApk", threadCallId, "STEP", "Connected. File size: " + fileLength + " bytes");
                     input = new java.io.BufferedInputStream(connection.getInputStream());
                     
                     File cacheDir = getContext().getExternalCacheDir();
@@ -536,6 +613,7 @@ public class AppInstallerPlugin extends Plugin {
 
                     JSObject result = new JSObject();
                     result.put("filePath", apkFile.getAbsolutePath());
+                    logNativeInstrumentation(getContext(), "downloadApk", threadCallId, "EXIT", "Success. File path: " + apkFile.getAbsolutePath());
                     call.resolve(result);
 
                 } catch (Exception e) {
@@ -543,6 +621,7 @@ public class AppInstallerPlugin extends Plugin {
                         if (output != null) output.close();
                         if (input != null) input.close();
                     } catch (Exception ignored) {}
+                    logNativeInstrumentation(getContext(), "downloadApk", threadCallId, "EXIT", "Exception: " + e.getMessage());
                     call.reject("Download failed: " + e.getMessage(), e);
                 }
             }
@@ -583,6 +662,9 @@ public class AppInstallerPlugin extends Plugin {
 
     private void triggerInstallation(File file, PluginCall call) {
         Context context = getContext();
+        triggerInstallationCallCount++;
+        int callId = nextCallId();
+        logNativeInstrumentation(context, "triggerInstallation", callId, "ENTER", "file=" + file.getAbsolutePath() + " (total calls: " + triggerInstallationCallCount + ")");
         try {
             // Reset previous results and store session start time in prefs
             SharedPreferences prefs = context.getSharedPreferences(InstallReceiver.PREFS_NAME, Context.MODE_PRIVATE);
@@ -601,6 +683,7 @@ public class AppInstallerPlugin extends Plugin {
                     settingsIntent.setData(Uri.parse("package:" + context.getPackageName()));
                     settingsIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
                     context.startActivity(settingsIntent);
+                    logNativeInstrumentation(context, "triggerInstallation", callId, "EXIT", "Rejected: missing REQUEST_INSTALL_PACKAGES permission");
                     call.reject("Please enable install permission for this app and try again.");
                     InstallReceiver.appendLog(context, "Install Failure", -2, "Missing unknown sources permission", null, null);
                     return;
@@ -617,24 +700,36 @@ public class AppInstallerPlugin extends Plugin {
                 params.setSize(file.length());
             }
 
+            sessionCreateCallCount++;
+            logNativeInstrumentation(context, "triggerInstallation", callId, "STEP", "Calling PackageInstaller.createSession() call #" + sessionCreateCallCount);
             int sessionId = packageInstaller.createSession(params);
+            logNativeInstrumentation(context, "triggerInstallation", callId, "STEP", "Session.create() success. sessionId=" + sessionId);
             InstallReceiver.appendLog(context, "PackageInstaller Session Created", 0, "Session ID: " + sessionId, null, null);
 
+            logNativeInstrumentation(context, "triggerInstallation", callId, "STEP", "Opening Session: sessionId=" + sessionId);
             PackageInstaller.Session session = packageInstaller.openSession(sessionId);
             
+            sessionWriteCallCount++;
+            logNativeInstrumentation(context, "triggerInstallation", callId, "STEP", "Session.write() call #" + sessionWriteCallCount + " start. Opening output stream.");
             java.io.OutputStream out = session.openWrite("studio_install", 0, -1);
             java.io.FileInputStream fis = new java.io.FileInputStream(file);
             byte[] buffer = new byte[65536];
             int count;
+            long bytesWritten = 0;
             while ((count = fis.read(buffer)) != -1) {
                 out.write(buffer, 0, count);
+                bytesWritten += count;
             }
             fis.close();
             out.flush();
+            logNativeInstrumentation(context, "triggerInstallation", callId, "STEP", "Session.write() finished. Total bytes written: " + bytesWritten);
             InstallReceiver.appendLog(context, "Package Written", 0, "Bytes written: " + file.length(), null, null);
 
+            sessionFsyncCallCount++;
+            logNativeInstrumentation(context, "triggerInstallation", callId, "STEP", "Session.fsync() call #" + sessionFsyncCallCount + " start");
             session.fsync(out);
             out.close();
+            logNativeInstrumentation(context, "triggerInstallation", callId, "STEP", "Session.fsync() finished");
             InstallReceiver.appendLog(context, "Package Synced", 0, "fsync completed", null, null);
             
             Intent intent = new Intent(context, InstallReceiver.class);
@@ -651,17 +746,22 @@ public class AppInstallerPlugin extends Plugin {
                     pendingFlags
             );
             
+            sessionCommitCallCount++;
+            logNativeInstrumentation(context, "triggerInstallation", callId, "STEP", "Session.commit() call #" + sessionCommitCallCount + " start. Calling session.commit()");
             InstallReceiver.appendLog(context, "Session Commit Started", 0, "Calling session.commit()", null, null);
             session.commit(pendingIntent.getIntentSender());
             session.close();
+            logNativeInstrumentation(context, "triggerInstallation", callId, "STEP", "Session.commit() finished and session closed");
             InstallReceiver.appendLog(context, "Session Commit Finished", 0, "Session committed and closed", null, null);
             
             Log.d("AppInstallerPlugin", "Installation session committed: sessionId=" + sessionId);
             JSObject result = new JSObject();
             result.put("sessionId", sessionId);
+            logNativeInstrumentation(context, "triggerInstallation", callId, "EXIT", "Success: sessionId=" + sessionId);
             call.resolve(result);
         } catch (Exception e) {
             Log.e("AppInstallerPlugin", "Failed to trigger installation via PackageInstaller", e);
+            logNativeInstrumentation(context, "triggerInstallation", callId, "EXIT", "Exception: " + e.getMessage() + "\nStack: " + Log.getStackTraceString(e));
             InstallReceiver.appendLog(context, "Install Failure", -3, "Exception: " + e.getMessage(), null, Log.getStackTraceString(e));
             call.reject("Failed to trigger installation: " + e.getMessage(), e);
         }

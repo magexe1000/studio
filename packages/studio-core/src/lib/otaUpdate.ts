@@ -830,6 +830,35 @@ export function resetOtaUpdateState() {
   });
 }
 
+export async function logProgressStage(stage: string, message?: string, exceptionStack?: string) {
+  if (isNative() && isAppInstallerAvailable()) {
+    try {
+      const { AppInstaller } = await import('./apkDownloader');
+      await AppInstaller.appendLog({
+        stage,
+        status: 0,
+        message: message || '',
+        exceptionStack: exceptionStack || '',
+        packageName: globalOtaState.packageName || 'com.chordex.app'
+      });
+    } catch (e) {
+      console.warn('[OTA] Failed to write progress stage log:', e);
+    }
+  }
+}
+
+// Instrumentation counters
+export let checkForUpdateCallCount = 0;
+export let downloadUpdateCallCount = 0;
+export let applyUpdateCallCount = 0;
+export let eligibilityCheckCallCount = 0;
+export let shaVerifyCallCount = 0;
+
+let checkCallIdCounter = 0;
+export function nextJsCallId(): number {
+  return ++checkCallIdCounter;
+}
+
 let activeCheckPromise: Promise<CentralizedOtaState> | null = null;
 let activeDownloadPromise: Promise<void> | null = null;
 let activeApplyPromise: Promise<void> | null = null;
@@ -842,25 +871,50 @@ const MIN_AUTO_CHECK_INTERVAL_MS = 15 * 60 * 1000; // 15 minutes rate limit for 
  * immediately, checking seen/dismissed locks, and locking concurrent requests.
  */
 export function checkForUpdate(isManual = false): Promise<CentralizedOtaState> {
+  checkForUpdateCallCount++;
+  const callId = nextJsCallId();
+  const callerError = new Error();
+  const stack = callerError.stack || 'No stack trace';
+  
+  // Try to find the exact React component or event handler from the stack trace
+  const callerLine = stack.split('\n')[2] || 'unknown';
+  
+  console.log(`[INSTRUMENTATION] checkForUpdate ENTER Call #${callId} (isManual=${isManual}, total calls: ${checkForUpdateCallCount}) Caller: ${callerLine}`);
+  void logProgressStage('[INSTRUMENTATION] checkForUpdate ENTER', `Call #${callId} isManual=${isManual} caller=${callerLine}`);
+
   // 1. Synchronously return if check is already running
-  if (activeCheckPromise) return activeCheckPromise;
+  if (activeCheckPromise) {
+    console.log(`[INSTRUMENTATION] checkForUpdate EXIT Call #${callId} (Early return: activeCheckPromise is running)`);
+    void logProgressStage('[INSTRUMENTATION] checkForUpdate EXIT', `Call #${callId} early exit (activeCheckPromise running)`);
+    return activeCheckPromise;
+  }
 
   // Rate limit non-manual auto updates to avoid infinite loops on focus changes, etc.
   if (!isManual) {
     const now = Date.now();
     if (now - lastCheckedTime < MIN_AUTO_CHECK_INTERVAL_MS) {
-      console.log('[OTA] Skipping auto-check, checked recently (rate limited).');
+      console.log(`[INSTRUMENTATION] checkForUpdate EXIT Call #${callId} (Early return: rate limited)`);
+      void logProgressStage('[INSTRUMENTATION] checkForUpdate EXIT', `Call #${callId} early exit (rate limited)`);
       return Promise.resolve(globalOtaState);
     }
   }
 
   // 2. Synchronous early return if check is unnecessary
-  if (globalOtaState.updateState === 'downloading_ota' || 
+  if (globalOtaState.updateState === 'preparing' ||
+      globalOtaState.updateState === 'enteringProgressScreen' ||
+      globalOtaState.updateState === 'downloading' ||
+      globalOtaState.updateState === 'verifying' ||
+      globalOtaState.updateState === 'readyForInstallPrompt' ||
+      globalOtaState.updateState === 'waitingForUserInstallConfirmation' ||
+      globalOtaState.updateState === 'installing' ||
+      globalOtaState.updateState === 'installedOrReady' ||
+      globalOtaState.updateState === 'downloading_ota' || 
       globalOtaState.updateState === 'downloading_apk' || 
       globalOtaState.updateState === 'verifying_apk' || 
       globalOtaState.updateState === 'ready_to_install' || 
-      globalOtaState.updateState === 'installing' || 
       globalOtaState.updateState === 'completed') {
+    console.log(`[INSTRUMENTATION] checkForUpdate EXIT Call #${callId} (Early return: already in state "${globalOtaState.updateState}")`);
+    void logProgressStage('[INSTRUMENTATION] checkForUpdate EXIT', `Call #${callId} early exit (state is ${globalOtaState.updateState})`);
     return Promise.resolve(globalOtaState);
   }
 
@@ -1025,6 +1079,12 @@ export function checkForUpdate(isManual = false): Promise<CentralizedOtaState> {
         }
       });
 
+      if (globalOtaState.updateState !== 'checking') {
+        console.log(`[INSTRUMENTATION] checkForUpdate ABORT: State transitioned to "${globalOtaState.updateState}" during check.`);
+        activeCheckPromise = null;
+        return globalOtaState;
+      }
+
       if (!remote) {
         console.log('[OTA DEBUG] Skip: fetchRemoteVersion returned null.');
         otaDebugLogs.compareResult = null;
@@ -1181,6 +1241,12 @@ export function checkForUpdate(isManual = false): Promise<CentralizedOtaState> {
       let manualApkUrl: string | null = null;
       let fallbackApkUrl: string | null = null;
 
+      if (globalOtaState.updateState !== 'checking') {
+        console.log(`[INSTRUMENTATION] checkForUpdate ABORT: State transitioned to "${globalOtaState.updateState}" during check.`);
+        activeCheckPromise = null;
+        return globalOtaState;
+      }
+
       if (updateType === 'none') {
         console.log('[OTA DEBUG] Skip: updateType evaluated to "none" because remote.version <= APP_VERSION and no APK update required.', {
           remoteVersion: remote.version,
@@ -1218,6 +1284,12 @@ export function checkForUpdate(isManual = false): Promise<CentralizedOtaState> {
       fallbackApkUrl = remote.fallbackApkUrl || apkUrl;
 
       const shouldSkip = !isUpgrade;
+
+      if (globalOtaState.updateState !== 'checking') {
+        console.log(`[INSTRUMENTATION] checkForUpdate ABORT: State transitioned to "${globalOtaState.updateState}" during check.`);
+        activeCheckPromise = null;
+        return globalOtaState;
+      }
 
       if (shouldSkip) {
         console.log('[OTA DEBUG] Skip: No upgrade required.', {
@@ -1283,6 +1355,12 @@ export function checkForUpdate(isManual = false): Promise<CentralizedOtaState> {
         }
       }
 
+      if (globalOtaState.updateState !== 'checking') {
+        console.log(`[INSTRUMENTATION] checkForUpdate ABORT: State transitioned to "${globalOtaState.updateState}" during check.`);
+        activeCheckPromise = null;
+        return globalOtaState;
+      }
+
       updateGlobalState({
         updateState: nextState,
         updateAvailable: true,
@@ -1311,13 +1389,20 @@ export function checkForUpdate(isManual = false): Promise<CentralizedOtaState> {
         packageName: remote.packageName ?? null,
       });
 
+      void logProgressStage('Update detected', 'Version: ' + remote.version + ' (code ' + (remote.versionCode ?? '') + ')');
+
       // System notification if never seen and not already dismissed
       if (!notifiedList.includes(remote.version) && !isDismissed) {
         addToStoredList('studio:notifiedVersions', remote.version);
         await notifyOtaAvailable(remote.version);
       }
+      
+      console.log(`[INSTRUMENTATION] checkForUpdate EXIT Call #${callId} resolvedState=${globalOtaState.updateState}`);
+      void logProgressStage('[INSTRUMENTATION] checkForUpdate EXIT', `Call #${callId} resolvedState=${globalOtaState.updateState}`);
       return globalOtaState;
     } catch (err) {
+      console.error(`[INSTRUMENTATION] checkForUpdate EXIT Call #${callId} error:`, err);
+      void logProgressStage('[INSTRUMENTATION] checkForUpdate EXIT', `Call #${callId} failed err=${err instanceof Error ? err.message : String(err)}`);
       console.warn('[OTA] Check failed:', err);
       updateGlobalState({ updateState: 'failed', error: String(err), loading: false });
       return globalOtaState;
@@ -1331,6 +1416,10 @@ export function checkForUpdate(isManual = false): Promise<CentralizedOtaState> {
 }
 
 export async function runEligibilityCheck(filePath: string): Promise<boolean> {
+  eligibilityCheckCallCount++;
+  const callId = nextJsCallId();
+  console.log(`[INSTRUMENTATION] runEligibilityCheck ENTER Call #${callId} (filePath=${filePath}, total calls: ${eligibilityCheckCallCount})`);
+  void logProgressStage('[INSTRUMENTATION] runEligibilityCheck ENTER', `Call #${callId} filePath=${filePath}`);
   try {
     const { checkApkEligibility } = await import('./apkDownloader');
     const el = await checkApkEligibility(filePath);
@@ -1392,11 +1481,17 @@ export async function runEligibilityCheck(filePath: string): Promise<boolean> {
           error: el.errorDetails || 'APK eligibility validation failed.'
         });
       }
+      console.log(`[INSTRUMENTATION] runEligibilityCheck EXIT Call #${callId} returns: false (reason: ${el.reason})`);
+      void logProgressStage('[INSTRUMENTATION] runEligibilityCheck EXIT', `Call #${callId} returns=false reason=${el.reason}`);
       return false;
     }
     
+    console.log(`[INSTRUMENTATION] runEligibilityCheck EXIT Call #${callId} returns: true`);
+    void logProgressStage('[INSTRUMENTATION] runEligibilityCheck EXIT', `Call #${callId} returns=true`);
     return true;
   } catch (err) {
+    console.error(`[INSTRUMENTATION] runEligibilityCheck EXIT Call #${callId} error:`, err);
+    void logProgressStage('[INSTRUMENTATION] runEligibilityCheck EXIT', `Call #${callId} failed err=${err instanceof Error ? err.message : String(err)}`);
     console.error('[OTA] Eligibility helper check failed:', err);
     otaDebugLogs.eligibilityFinalInstall = 'cannot install';
     otaDebugLogs.eligibilityReason = 'parse_failed';
@@ -1413,7 +1508,16 @@ export async function runEligibilityCheck(filePath: string): Promise<boolean> {
  * Centralized downloadUpdate: locks the download process and mirrors progress globally.
  */
 export function downloadUpdate(trigger?: string): Promise<void> {
-  if (activeDownloadPromise) return activeDownloadPromise;
+  downloadUpdateCallCount++;
+  const callId = nextJsCallId();
+  console.log(`[INSTRUMENTATION] downloadUpdate ENTER Call #${callId} (trigger=${trigger}, total calls: ${downloadUpdateCallCount})`);
+  void logProgressStage('[INSTRUMENTATION] downloadUpdate ENTER', `Call #${callId} trigger=${trigger}`);
+
+  if (activeDownloadPromise) {
+    console.log(`[INSTRUMENTATION] downloadUpdate EXIT Call #${callId} (Early return: activeDownloadPromise is running)`);
+    void logProgressStage('[INSTRUMENTATION] downloadUpdate EXIT', `Call #${callId} early exit (activeDownloadPromise running)`);
+    return activeDownloadPromise;
+  }
 
   if (trigger) {
     otaDebugLogs.triggerComponent = trigger;
@@ -1426,6 +1530,8 @@ export function downloadUpdate(trigger?: string): Promise<void> {
   if (globalOtaState.updateState === 'readyForInstallPrompt' || globalOtaState.updateState === 'installedOrReady') {
     const downloadedPath = localStorage.getItem('studio:downloadedApkPath');
     if (downloadedPath) {
+      console.log(`[INSTRUMENTATION] downloadUpdate EXIT Call #${callId} (Resolved: cached APK exists)`);
+      void logProgressStage('[INSTRUMENTATION] downloadUpdate EXIT', `Call #${callId} resolved (cached APK exists)`);
       return Promise.resolve();
     }
   }
@@ -1435,6 +1541,8 @@ export function downloadUpdate(trigger?: string): Promise<void> {
       otaDebugLogs.finalDecision = 'Manual update required (AppInstaller missing)';
       otaDebugLogs.downloadStatus = 'Error: AppInstaller missing';
       updateGlobalState({ updateState: 'manual_apk_required' });
+      console.log(`[INSTRUMENTATION] downloadUpdate EXIT Call #${callId} (Rejected: AppInstaller missing)`);
+      void logProgressStage('[INSTRUMENTATION] downloadUpdate EXIT', `Call #${callId} rejected (AppInstaller missing)`);
       return Promise.reject(new Error('AppInstaller is missing. Manual update required.'));
     }
   }
@@ -1463,12 +1571,16 @@ export function downloadUpdate(trigger?: string): Promise<void> {
         }
       }
     })();
+    console.log(`[INSTRUMENTATION] downloadUpdate EXIT Call #${callId} (Resolved: web fallback)`);
+    void logProgressStage('[INSTRUMENTATION] downloadUpdate EXIT', `Call #${callId} resolved (web fallback)`);
     return Promise.resolve();
   }
 
   if (!apkUrl) {
     otaDebugLogs.downloadStatus = 'Error: Missing APK URL';
     updateGlobalState({ updateState: 'failed', error: 'No APK download URL available' });
+    console.log(`[INSTRUMENTATION] downloadUpdate EXIT Call #${callId} (Rejected: missing apkUrl)`);
+    void logProgressStage('[INSTRUMENTATION] downloadUpdate EXIT', `Call #${callId} rejected (missing apkUrl)`);
     return Promise.reject(new Error('No APK download URL available'));
   }
 
@@ -1493,6 +1605,7 @@ export function downloadUpdate(trigger?: string): Promise<void> {
       
       updateGlobalState({ updateState: 'downloading', progress: 0.01, statusText: 'Downloading update' });
       
+      void logProgressStage('Download started', 'URL: ' + apkUrl);
       const filePath = await downloadApk(apkUrl, fileName, (percent) => {
         updateGlobalState({ 
           progress: Math.max(0, Math.min(1, percent / 100)),
@@ -1500,6 +1613,7 @@ export function downloadUpdate(trigger?: string): Promise<void> {
         });
       });
       otaDebugLogs.downloadStatus += `\nAPK download completed. Path: ${filePath}`;
+      void logProgressStage('Download completed', 'Path: ' + filePath);
 
       // Compute/Verify SHA-256 if expected hash is available
       const expectedHash = globalOtaState.apkSha256;
@@ -1508,6 +1622,7 @@ export function downloadUpdate(trigger?: string): Promise<void> {
         updateGlobalState({ updateState: 'verifying', statusText: 'Verifying package' });
         const { verifyApkSha256 } = await import('./apkDownloader');
         const isValid = await verifyApkSha256(filePath, expectedHash);
+        void logProgressStage('SHA verified', isValid ? 'SHA validation successful' : 'SHA validation failed');
         otaDebugLogs.shaVerification = isValid ? 'SUCCESS' : 'FAILED';
         if (!isValid) {
           throw new Error('APK hash verification failed (corrupted download)');
@@ -1534,17 +1649,24 @@ export function downloadUpdate(trigger?: string): Promise<void> {
       if (!isEligible) {
         throw new Error('Eligibility validation failed: ' + (otaDebugLogs.eligibilityReason || 'unknown'));
       }
+      void logProgressStage('Eligibility check passed', 'APK is eligible for installation');
+      void logProgressStage('Installer prepared', 'Installer prepared and files verified');
 
       updateGlobalState({ statusText: 'Ready to install', updateState: 'readyForInstallPrompt' });
       localStorage.setItem('studio:downloadedApkPath', filePath);
       localStorage.removeItem('studio:downloadedBundleId');
       addToStoredList('studio:downloadedVersions', ver);
 
+      console.log(`[INSTRUMENTATION] downloadUpdate EXIT Call #${callId} Resolved successfully (Triggering auto-install in 1000ms)`);
+      void logProgressStage('[INSTRUMENTATION] downloadUpdate EXIT', `Call #${callId} resolved (Triggering auto-install in 1000ms)`);
+
       // Automatically trigger native installation once verified
       setTimeout(() => {
         applyUpdate('AutoInstall: downloadUpdate');
       }, 1000);
     } catch (err) {
+      console.error(`[INSTRUMENTATION] downloadUpdate EXIT Call #${callId} error:`, err);
+      void logProgressStage('[INSTRUMENTATION] downloadUpdate EXIT', `Call #${callId} failed err=${err instanceof Error ? err.message : String(err)}`);
       console.error('[OTA] APK download failed:', err);
       const errMsg = err instanceof Error ? err.message : String(err);
       const errStack = (err instanceof Error && err.stack ? err.stack : null);
@@ -1569,10 +1691,23 @@ export function downloadUpdate(trigger?: string): Promise<void> {
  * Centralized applyUpdate: locks activation, saves history, and reloads WebView.
  */
 export function applyUpdate(trigger?: string): Promise<void> {
-  if (activeApplyPromise) return activeApplyPromise;
+  applyUpdateCallCount++;
+  const callId = nextJsCallId();
+  console.log(`[INSTRUMENTATION] applyUpdate ENTER Call #${callId} (trigger=${trigger}, total calls: ${applyUpdateCallCount})`);
+  void logProgressStage('[INSTRUMENTATION] applyUpdate ENTER', `Call #${callId} trigger=${trigger}`);
+
+  if (activeApplyPromise) {
+    console.log(`[INSTRUMENTATION] applyUpdate EXIT Call #${callId} (Early return: activeApplyPromise is running)`);
+    void logProgressStage('[INSTRUMENTATION] applyUpdate EXIT', `Call #${callId} early exit (activeApplyPromise running)`);
+    return activeApplyPromise;
+  }
 
   const { remoteVersion } = globalOtaState;
-  if (!remoteVersion) return Promise.resolve();
+  if (!remoteVersion) {
+    console.log(`[INSTRUMENTATION] applyUpdate EXIT Call #${callId} (Resolved: missing remoteVersion)`);
+    void logProgressStage('[INSTRUMENTATION] applyUpdate EXIT', `Call #${callId} resolved (missing remoteVersion)`);
+    return Promise.resolve();
+  }
 
   if (trigger) {
     otaDebugLogs.triggerComponent = trigger;
@@ -1602,6 +1737,8 @@ export function applyUpdate(trigger?: string): Promise<void> {
           window.location.reload();
         }
       }
+      console.log(`[INSTRUMENTATION] applyUpdate EXIT Call #${callId} (Resolved: web reload completed)`);
+      void logProgressStage('[INSTRUMENTATION] applyUpdate EXIT', `Call #${callId} resolved (web reload completed)`);
       return;
     }
 
@@ -1628,7 +1765,9 @@ export function applyUpdate(trigger?: string): Promise<void> {
       otaDebugLogs.installError += `\nAPK is eligible. Launching APK installer intent for file: ${filePath}`;
       updateGlobalState({ statusText: 'Launching APK installer' });
 
+      void logProgressStage('Session committed', 'Handing over to PackageInstaller');
       await AppInstaller.installApk({ filePath });
+      void logProgressStage('Waiting for Android confirmation', 'Waiting for system confirmation dialog to overlay');
       
       otaDebugLogs.installError += `\nAPK installer intent launched successfully!`;
       otaDebugLogs.installerLaunchStatus = 'SUCCESS';
@@ -1640,7 +1779,11 @@ export function applyUpdate(trigger?: string): Promise<void> {
         statusText: 'APK installer launched',
         finalPathExecuted: 'APK installer launched'
       });
+      console.log(`[INSTRUMENTATION] applyUpdate EXIT Call #${callId} Resolved successfully (Installer intent launched)`);
+      void logProgressStage('[INSTRUMENTATION] applyUpdate EXIT', `Call #${callId} resolved (Installer intent launched)`);
     } catch (err) {
+      console.error(`[INSTRUMENTATION] applyUpdate EXIT Call #${callId} error:`, err);
+      void logProgressStage('[INSTRUMENTATION] applyUpdate EXIT', `Call #${callId} failed err=${err instanceof Error ? err.message : String(err)}`);
       console.error('[OTA] APK install failed:', err);
       const errMsg = err instanceof Error ? err.message : String(err);
       const errStack = (err instanceof Error && err.stack ? err.stack : null);

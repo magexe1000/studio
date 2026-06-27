@@ -77,6 +77,17 @@ export default function StudioUpdateScreen({
   const [msgIdx, setMsgIdx] = useState(0);
 
   useEffect(() => {
+    console.log('[INSTRUMENTATION] [REACT] StudioUpdateScreen progress screen component mounted!');
+    return () => {
+      console.log('[INSTRUMENTATION] [REACT] StudioUpdateScreen progress screen component unmounted!');
+    };
+  }, []);
+
+  useEffect(() => {
+    console.log('[INSTRUMENTATION] [REACT] StudioUpdateScreen progress prop updated:', progress);
+  }, [progress]);
+
+  useEffect(() => {
     if (isDone) return; // stop cycling once complete
     const id = setInterval(
       () => setMsgIdx(i => (i + 1) % messages.length),

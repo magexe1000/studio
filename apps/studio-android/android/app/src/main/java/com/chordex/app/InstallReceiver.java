@@ -73,12 +73,27 @@ public class InstallReceiver extends BroadcastReceiver {
         return "Stage: " + stage + " status: " + status;
     }
     
+    private static int receiverCallIdCounter = 0;
+    public static int onReceiveCallCount = 0;
+    public static int startActivityCallCount = 0;
+    
+    private static int nextCallId() {
+        synchronized (InstallReceiver.class) {
+            return ++receiverCallIdCounter;
+        }
+    }
+    
     @Override
     public void onReceive(Context context, Intent intent) {
         if (intent == null) return;
+        onReceiveCallCount++;
+        int callId = nextCallId();
         
         String action = intent.getAction();
         Log.d(TAG, "onReceive: action=" + action);
+        
+        String threadInfo = String.format("Thread: %s (id: %d)", Thread.currentThread().getName(), Thread.currentThread().getId());
+        appendLog(context, "[INSTRUMENTATION] InstallReceiver.onReceive", 0, "Call #" + callId + " [" + threadInfo + "] ENTER Action: " + action + " (total calls: " + onReceiveCallCount + ")", null, null);
         
         if ("com.chordex.app.SESSION_API_PACKAGE_INSTALLED".equals(action)) {
             int status = intent.getIntExtra(PackageInstaller.EXTRA_STATUS, PackageInstaller.STATUS_FAILURE);
@@ -99,17 +114,34 @@ public class InstallReceiver extends BroadcastReceiver {
             appendLog(context, "IntentSender Delivered", status, message, otherPackageName, null);
             
             if (status == PackageInstaller.STATUS_PENDING_USER_ACTION) {
-                appendLog(context, "Installer UI Displayed", status, "Launching system confirmation screen", otherPackageName, null);
+                appendLog(context, "Installer dialog displayed", status, "Launching system confirmation screen", otherPackageName, null);
                 Intent confirmIntent = intent.getParcelableExtra(Intent.EXTRA_INTENT);
                 if (confirmIntent != null) {
+                    startActivityCallCount++;
+                    String confirmAction = confirmIntent.getAction();
+                    int confirmFlags = confirmIntent.getFlags();
+                    android.content.ComponentName confirmComponent = confirmIntent.getComponent();
+                    String confirmDetails = String.format("Action: %s, Flags: 0x%X, Component: %s", confirmAction, confirmFlags, confirmComponent != null ? confirmComponent.flattenToString() : "null");
+                    appendLog(context, "[INSTRUMENTATION] InstallReceiver.startActivity", status, "Calling startActivity() call #" + startActivityCallCount + " for Intent: " + confirmDetails, otherPackageName, null);
+                    
                     confirmIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
                     try {
-                        context.startActivity(confirmIntent);
+                        if (android.os.Build.VERSION.SDK_INT >= 34) {
+                            android.app.ActivityOptions options = android.app.ActivityOptions.makeBasic();
+                            options.setPendingIntentBackgroundActivityStartMode(
+                                    android.app.ActivityOptions.MODE_BACKGROUND_ACTIVITY_START_ALLOWED);
+                            context.startActivity(confirmIntent, options.toBundle());
+                        } else {
+                            context.startActivity(confirmIntent);
+                        }
+                        appendLog(context, "[INSTRUMENTATION] InstallReceiver.startActivity", status, "startActivity() completed successfully", otherPackageName, null);
                     } catch (Exception e) {
                         Log.e(TAG, "Failed to launch confirmation activity", e);
+                        appendLog(context, "[INSTRUMENTATION] InstallReceiver.startActivity", status, "startActivity() threw exception: " + e.getMessage() + "\nStack: " + Log.getStackTraceString(e), otherPackageName, Log.getStackTraceString(e));
                         appendLog(context, "Install Failure", status, "Failed to launch confirmation activity: " + e.getMessage(), otherPackageName, Log.getStackTraceString(e));
                     }
                 } else {
+                    appendLog(context, "[INSTRUMENTATION] InstallReceiver.startActivity", status, "Error: confirmIntent was null", otherPackageName, null);
                     appendLog(context, "Install Failure", status, "System confirmation intent was null", otherPackageName, null);
                 }
             } else if (status == PackageInstaller.STATUS_SUCCESS) {
@@ -121,5 +153,6 @@ public class InstallReceiver extends BroadcastReceiver {
                 appendLog(context, "Install Failure", status, "PackageInstaller reported failure: " + message, otherPackageName, null);
             }
         }
+        appendLog(context, "[INSTRUMENTATION] InstallReceiver.onReceive", 0, "Call #" + callId + " EXIT", null, null);
     }
 }
