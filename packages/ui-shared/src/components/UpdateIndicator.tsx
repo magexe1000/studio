@@ -1695,7 +1695,13 @@ function UpdateModal({
             </button>
             <button
               type="button"
-              onClick={handleStartUpdate}
+              onClick={async () => {
+                if (ota.updateAvailable) {
+                  await handleStartUpdate();
+                } else {
+                  await ota.checkNow();
+                }
+              }}
               style={{ ...primaryButtonStyle, width: '100%' }}
             >
               Try Again

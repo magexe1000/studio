@@ -672,52 +672,68 @@ export async function fetchRemoteVersion(
 
   const ctrl = signal ? null : new AbortController();
   const sig = signal ?? ctrl!.signal;
-  const timer = ctrl ? setTimeout(() => ctrl.abort(), FETCH_TIMEOUT_MS) : null;
 
-  try {
-    // Race all URL fetches in parallel, resolving immediately on the first
-    // successful fetch of a version strictly newer than local APP_VERSION.
-    // Otherwise, collect them and fallback to the best response once all complete.
-    return await new Promise<RemoteVersionInfo | null>((resolve) => {
-      let resolved = false;
-      let failedCount = 0;
-      let fallbackRes: RemoteVersionInfo | null = null;
-      const total = urls.length;
+  return new Promise<RemoteVersionInfo | null>((resolve) => {
+    let completed = false;
+    const timer = setTimeout(() => {
+      if (!completed) {
+        completed = true;
+        console.warn('[OTA] fetchRemoteVersion timed out (6s). Aborting fetches.');
+        if (ctrl) {
+          try {
+            ctrl.abort();
+          } catch (_) {}
+        }
+        resolve(null);
+      }
+    }, FETCH_TIMEOUT_MS);
 
-      urls.forEach((url) => {
-        fetchOne(url, sig)
-          .then((res) => {
-            if (resolved) return;
-            if (res) {
-              if (compareSemver(res.version, APP_VERSION) > 0) {
-                resolved = true;
-                resolve(res);
-              } else {
-                fallbackRes = res;
-                failedCount++;
-                if (failedCount === total) {
-                  resolve(fallbackRes);
-                }
-              }
+    let resolved = false;
+    let failedCount = 0;
+    let fallbackRes: RemoteVersionInfo | null = null;
+    const total = urls.length;
+
+    urls.forEach((url) => {
+      fetchOne(url, sig)
+        .then((res) => {
+          if (completed) return;
+          if (resolved) return;
+          if (res) {
+            if (compareSemver(res.version, APP_VERSION) > 0) {
+              resolved = true;
+              completed = true;
+              clearTimeout(timer);
+              resolve(res);
             } else {
+              fallbackRes = res;
               failedCount++;
               if (failedCount === total) {
+                completed = true;
+                clearTimeout(timer);
                 resolve(fallbackRes);
               }
             }
-          })
-          .catch(() => {
-            if (resolved) return;
+          } else {
             failedCount++;
             if (failedCount === total) {
+              completed = true;
+              clearTimeout(timer);
               resolve(fallbackRes);
             }
-          });
-      });
+          }
+        })
+        .catch(() => {
+          if (completed) return;
+          if (resolved) return;
+          failedCount++;
+          if (failedCount === total) {
+            completed = true;
+            clearTimeout(timer);
+            resolve(fallbackRes);
+          }
+        });
     });
-  } finally {
-    if (timer) clearTimeout(timer);
-  }
+  });
 }
 
 /**
@@ -1216,18 +1232,24 @@ export function checkForUpdate(isManual = false): Promise<CentralizedOtaState> {
         console.log('[OTA DEBUG] Last install result status:', result);
         
         if (result && result.statusCode !== -999 && result.statusCode !== 0) {
-          let errMsg = result.statusMessage || `PackageInstaller error: status ${result.statusCode}`;
+          let errMsg = `[PackageInstaller] ${result.statusMessage || `PackageInstaller error: status ${result.statusCode}`}`;
           let category: 'signature_mismatch' | 'versionCode_low' | 'cancelled' | 'failed' = 'failed';
           
           if (result.statusCode === 3) {
             category = 'cancelled';
-            errMsg = 'User cancelled the installation';
+            errMsg = '[User Cancelled] User cancelled the installation';
           } else if (result.statusCode === 5) {
             category = 'signature_mismatch';
-            errMsg = 'Signature mismatch or conflicting package name. Uninstalling the old app and installing the new one might be required.';
+            errMsg = '[Conflicting Package / Signature Mismatch] Signature mismatch or conflicting package name. Uninstalling the old app and installing the new one might be required.';
           } else if (result.statusCode === 7) {
             category = 'versionCode_low';
-            errMsg = 'Version downgrade is not allowed by the system.';
+            errMsg = '[Version Downgrade Blocked] Version downgrade is not allowed by the system.';
+          } else if (result.statusCode === 6) {
+            category = 'failed';
+            errMsg = '[Insufficient Storage] Installation failed due to insufficient storage space.';
+          } else if (result.statusCode === 2) {
+            category = 'failed';
+            errMsg = '[Installation Blocked by Policy] Installation blocked by administrator policy or system settings.';
           }
 
           // Populate diagnostics
@@ -1371,7 +1393,12 @@ export function checkForUpdate(isManual = false): Promise<CentralizedOtaState> {
         otaDebugLogs.compareResult = null;
         otaDebugLogs.updateType = null;
         otaDebugLogs.finalDecision = 'Skip: fetchRemoteVersion returned null';
-        updateGlobalState({ updateState: 'idle', updateAvailable: false, loading: false });
+        updateGlobalState({
+          updateState: 'idle',
+          updateAvailable: false,
+          loading: false,
+          error: isManual ? 'Unable to contact the update server.' : null
+        });
         return globalOtaState;
       }
 
@@ -1733,7 +1760,11 @@ export function checkForUpdate(isManual = false): Promise<CentralizedOtaState> {
       console.error(`[INSTRUMENTATION] checkForUpdate EXIT Call #${callId} error:`, err);
       void logProgressStage('[INSTRUMENTATION] checkForUpdate EXIT', `Call #${callId} failed err=${err instanceof Error ? err.message : String(err)}`);
       console.warn('[OTA] Check failed:', err);
-      updateGlobalState({ updateState: 'idle', error: String(err), loading: false });
+      updateGlobalState({
+        updateState: 'idle',
+        error: isManual ? 'Unable to contact the update server.' : null,
+        loading: false
+      });
       return globalOtaState;
     } finally {
       activeCheckPromise = null;
@@ -1995,7 +2026,8 @@ export function downloadUpdate(trigger?: string, isDowngrade?: boolean): Promise
       }
       
       if (!downloadSuccess) {
-        throw lastDownloadError || new Error('All download sources failed.');
+        const baseErr = lastDownloadError || new Error('All download sources failed.');
+        throw new Error('[Download] ' + baseErr.message);
       }
       
       otaDebugLogs.downloadStatus += `\nAPK download completed. Path: ${filePath}`;
@@ -2012,7 +2044,7 @@ export function downloadUpdate(trigger?: string, isDowngrade?: boolean): Promise
         void logProgressStage('SHA verified', isValid ? 'SHA validation successful' : 'SHA validation failed');
         otaDebugLogs.shaVerification = isValid ? 'SUCCESS' : 'FAILED';
         if (!isValid) {
-          throw new Error('APK hash verification failed (corrupted download)');
+          throw new Error('[SHA Verification] APK hash verification failed (corrupted download)');
         }
       } else {
         otaDebugLogs.shaVerification = 'SKIPPED (No expected hash)';
@@ -2039,7 +2071,7 @@ export function downloadUpdate(trigger?: string, isDowngrade?: boolean): Promise
           const recovered = await runSignatureMismatchRecovery();
           if (recovered) return;
         }
-        throw new Error('Eligibility validation failed: ' + (otaDebugLogs.eligibilityReason || 'unknown'));
+        throw new Error('[Eligibility Check] Validation failed: ' + (otaDebugLogs.eligibilityReason || 'unknown'));
       }
       void logProgressStage('Eligibility check passed', 'APK is eligible for installation');
       void logProgressStage('Installer prepared', 'Installer prepared and files verified');
@@ -2158,14 +2190,18 @@ export function applyUpdate(trigger?: string): Promise<void> {
           const recovered = await runSignatureMismatchRecovery();
           if (recovered) return;
         }
-        throw new Error('Eligibility validation failed: ' + (otaDebugLogs.eligibilityReason || 'unknown'));
+        throw new Error('[Eligibility Check] Validation failed: ' + (otaDebugLogs.eligibilityReason || 'unknown'));
       }
  
       otaDebugLogs.installError += `\nAPK is eligible. Launching APK installer intent for file: ${filePath}`;
       updateGlobalState({ statusText: 'Launching APK installer' });
  
       void logProgressStage('Session committed', 'Handing over to PackageInstaller');
-      await AppInstaller.installApk({ filePath });
+      try {
+        await AppInstaller.installApk({ filePath });
+      } catch (err: any) {
+        throw new Error('[PackageInstaller] ' + (err.message || String(err)));
+      }
       void logProgressStage('Waiting for Android confirmation', 'Waiting for system confirmation dialog to overlay');
       
       otaDebugLogs.installError += `\nAPK installer intent launched successfully!`;
@@ -2490,18 +2526,10 @@ export function useOtaUpdate(): UseOtaUpdateResult {
   }, []);
 
   const checkNow = async () => {
-    const res = await checkForUpdate(true);
     if (typeof window !== 'undefined') {
-      if (res.updateAvailable) {
-        window.dispatchEvent(new CustomEvent('studio:open-update-dialog'));
-      } else {
-        if (res.error) {
-          alert(`Check failed: ${res.error}`);
-        } else {
-          alert('Studio is up to date!');
-        }
-      }
+      window.dispatchEvent(new CustomEvent('studio:open-update-dialog'));
     }
+    const res = await checkForUpdate(true);
     return res;
   };
 

@@ -26,7 +26,7 @@ import { useMemo } from 'react';
 import { Capacitor } from '@capacitor/core';
 
 /** Canonical semver string used by the OTA comparator. */
-export const NATIVE_VERSION = '3.7.7';
+export const NATIVE_VERSION = '3.7.8';
 export const WEB_VERSION = '4.0.0';
 export const APP_VERSION = Capacitor.isNativePlatform() ? NATIVE_VERSION : WEB_VERSION;
 
@@ -61,10 +61,10 @@ export const APP_CHANGELOG_SECTIONS: ChangelogSection[] = [
   {
     heading: "Fixed",
     items: [
-      "Fixed critical updater system regressions by enforcing a strict deterministic state machine.",
-      "Added native PackageInstaller active session checks on startup to prevent boot deadlocks and blank screens.",
-      "Implemented robust watchdog timers for checking, downloading, verifying, and installing states.",
-      "Cleaned up interrupted installation behaviors to reset to idle safely when the installer session is dead.",
+      "Fixed update check hangs by implementing a strict timeout race in version metadata queries.",
+      "Enhanced updater diagnostics by prefixing error messages with the exact failing stage (e.g., Download, SHA Verification, Eligibility, PackageInstaller).",
+      "Replaced JS alert popups with native themed modal states for up-to-date and failure outcomes.",
+      "Upgraded the failed state retry button to dynamically retry update checks or downloads.",
     ],
   },
 ];

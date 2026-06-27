@@ -714,59 +714,91 @@ public class AppInstallerPlugin extends Plugin {
                 params.setSize(file.length());
             }
 
-            sessionCreateCallCount++;
-            logNativeInstrumentation(context, "triggerInstallation", callId, "STEP", "Calling PackageInstaller.createSession() call #" + sessionCreateCallCount);
-            int sessionId = packageInstaller.createSession(params);
-            logNativeInstrumentation(context, "triggerInstallation", callId, "STEP", "Session.create() success. sessionId=" + sessionId);
-            InstallReceiver.appendLog(context, "PackageInstaller Session Created", 0, "Session ID: " + sessionId, null, null);
-
-            logNativeInstrumentation(context, "triggerInstallation", callId, "STEP", "Opening Session: sessionId=" + sessionId);
-            PackageInstaller.Session session = packageInstaller.openSession(sessionId);
-            
-            sessionWriteCallCount++;
-            logNativeInstrumentation(context, "triggerInstallation", callId, "STEP", "Session.write() call #" + sessionWriteCallCount + " start. Opening output stream.");
-            java.io.OutputStream out = session.openWrite("studio_install", 0, -1);
-            java.io.FileInputStream fis = new java.io.FileInputStream(file);
-            byte[] buffer = new byte[65536];
-            int count;
-            long bytesWritten = 0;
-            while ((count = fis.read(buffer)) != -1) {
-                out.write(buffer, 0, count);
-                bytesWritten += count;
+            int sessionId;
+            try {
+                sessionCreateCallCount++;
+                logNativeInstrumentation(context, "triggerInstallation", callId, "STEP", "Calling PackageInstaller.createSession() call #" + sessionCreateCallCount);
+                sessionId = packageInstaller.createSession(params);
+                logNativeInstrumentation(context, "triggerInstallation", callId, "STEP", "Session.create() success. sessionId=" + sessionId);
+                InstallReceiver.appendLog(context, "PackageInstaller Session Created", 0, "Session ID: " + sessionId, null, null);
+            } catch (Exception e) {
+                throw new Exception("[Session creation] Failed to create PackageInstaller session: " + e.getMessage(), e);
             }
-            fis.close();
-            out.flush();
-            logNativeInstrumentation(context, "triggerInstallation", callId, "STEP", "Session.write() finished. Total bytes written: " + bytesWritten);
-            InstallReceiver.appendLog(context, "Package Written", 0, "Bytes written: " + file.length(), null, null);
 
-            sessionFsyncCallCount++;
-            logNativeInstrumentation(context, "triggerInstallation", callId, "STEP", "Session.fsync() call #" + sessionFsyncCallCount + " start");
-            session.fsync(out);
-            out.close();
-            logNativeInstrumentation(context, "triggerInstallation", callId, "STEP", "Session.fsync() finished");
-            InstallReceiver.appendLog(context, "Package Synced", 0, "fsync completed", null, null);
-            
-            Intent intent = new Intent(context, InstallReceiver.class);
-            intent.setAction("com.chordex.app.SESSION_API_PACKAGE_INSTALLED");
-            
-            int pendingFlags = PendingIntent.FLAG_UPDATE_CURRENT;
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-                pendingFlags |= PendingIntent.FLAG_MUTABLE;
+            PackageInstaller.Session session;
+            try {
+                logNativeInstrumentation(context, "triggerInstallation", callId, "STEP", "Opening Session: sessionId=" + sessionId);
+                session = packageInstaller.openSession(sessionId);
+            } catch (Exception e) {
+                throw new Exception("[Session open] Failed to open session " + sessionId + ": " + e.getMessage(), e);
             }
-            PendingIntent pendingIntent = PendingIntent.getBroadcast(
-                    context, 
-                    sessionId, 
-                    intent, 
-                    pendingFlags
-            );
             
-            sessionCommitCallCount++;
-            logNativeInstrumentation(context, "triggerInstallation", callId, "STEP", "Session.commit() call #" + sessionCommitCallCount + " start. Calling session.commit()");
-            InstallReceiver.appendLog(context, "Session Commit Started", 0, "Calling session.commit()", null, null);
-            session.commit(pendingIntent.getIntentSender());
-            session.close();
-            logNativeInstrumentation(context, "triggerInstallation", callId, "STEP", "Session.commit() finished and session closed");
-            InstallReceiver.appendLog(context, "Session Commit Finished", 0, "Session committed and closed", null, null);
+            java.io.OutputStream out;
+            try {
+                sessionWriteCallCount++;
+                logNativeInstrumentation(context, "triggerInstallation", callId, "STEP", "Session.write() call #" + sessionWriteCallCount + " start. Opening output stream.");
+                out = session.openWrite("studio_install", 0, -1);
+                java.io.FileInputStream fis = new java.io.FileInputStream(file);
+                byte[] buffer = new byte[65536];
+                int count;
+                long bytesWritten = 0;
+                while ((count = fis.read(buffer)) != -1) {
+                    out.write(buffer, 0, count);
+                    bytesWritten += count;
+                }
+                fis.close();
+                out.flush();
+                logNativeInstrumentation(context, "triggerInstallation", callId, "STEP", "Session.write() finished. Total bytes written: " + bytesWritten);
+                InstallReceiver.appendLog(context, "Package Written", 0, "Bytes written: " + file.length(), null, null);
+            } catch (Exception e) {
+                try { session.close(); } catch (Exception ignored) {}
+                throw new Exception("[Session write] Failed to write APK to session " + sessionId + ": " + e.getMessage(), e);
+            }
+
+            try {
+                sessionFsyncCallCount++;
+                logNativeInstrumentation(context, "triggerInstallation", callId, "STEP", "Session.fsync() call #" + sessionFsyncCallCount + " start");
+                session.fsync(out);
+                out.close();
+                logNativeInstrumentation(context, "triggerInstallation", callId, "STEP", "Session.fsync() finished");
+                InstallReceiver.appendLog(context, "Package Synced", 0, "fsync completed", null, null);
+            } catch (Exception e) {
+                try { session.close(); } catch (Exception ignored) {}
+                throw new Exception("[Session fsync] Failed to fsync session " + sessionId + ": " + e.getMessage(), e);
+            }
+            
+            PendingIntent pendingIntent;
+            try {
+                Intent intent = new Intent(context, InstallReceiver.class);
+                intent.setAction("com.chordex.app.SESSION_API_PACKAGE_INSTALLED");
+                
+                int pendingFlags = PendingIntent.FLAG_UPDATE_CURRENT;
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                    pendingFlags |= PendingIntent.FLAG_MUTABLE;
+                }
+                pendingIntent = PendingIntent.getBroadcast(
+                        context, 
+                        sessionId, 
+                        intent, 
+                        pendingFlags
+                );
+            } catch (Exception e) {
+                try { session.close(); } catch (Exception ignored) {}
+                throw new Exception("[PendingIntent creation] Failed to create PendingIntent for session " + sessionId + ": " + e.getMessage(), e);
+            }
+            
+            try {
+                sessionCommitCallCount++;
+                logNativeInstrumentation(context, "triggerInstallation", callId, "STEP", "Session.commit() call #" + sessionCommitCallCount + " start. Calling session.commit()");
+                InstallReceiver.appendLog(context, "Session Commit Started", 0, "Calling session.commit()", null, null);
+                session.commit(pendingIntent.getIntentSender());
+                session.close();
+                logNativeInstrumentation(context, "triggerInstallation", callId, "STEP", "Session.commit() finished and session closed");
+                InstallReceiver.appendLog(context, "Session Commit Finished", 0, "Session committed and closed", null, null);
+            } catch (Exception e) {
+                try { session.close(); } catch (Exception ignored) {}
+                throw new Exception("[Installation handoff] Failed to commit session " + sessionId + ": " + e.getMessage(), e);
+            }
             
             Log.d("AppInstallerPlugin", "Installation session committed: sessionId=" + sessionId);
             JSObject result = new JSObject();
