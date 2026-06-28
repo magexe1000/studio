@@ -12,6 +12,14 @@ Conventions:
 - Bullets start with `- ` and use plain English a non-technical user
   can parse. Keep each line short — the modal's text area is narrow.
 
+## 3.7.17
+
+### Added
+- Updater transaction consistency to prevent impossible execution paths.
+- Eligibility pipeline version code validation fixes.
+- State machine validation and granular verification states.
+- Diagnostic error reporting improvements.
+
 ## 3.7.16
 
 ### Added

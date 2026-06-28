@@ -1409,7 +1409,12 @@ function UpdateModal({
               <button
                 type="button"
                 onClick={async () => {
-                  await ota.applyUpdate('Modal: Continue Installation');
+                  try {
+                    await ota.downloadUpdate('Modal: Continue Installation');
+                    await ota.applyUpdate('Modal: Continue Installation');
+                  } catch (err) {
+                    console.error('[UpdateIndicator] Continue installation failed:', err);
+                  }
                 }}
                 style={primaryButtonStyle}
               >
@@ -1681,7 +1686,12 @@ function UpdateModal({
             <button
               type="button"
               onClick={async () => {
-                await ota.applyUpdate('Recovery Center: Retry Installation');
+                try {
+                  await ota.downloadUpdate('Recovery Center: Retry Installation');
+                  await ota.applyUpdate('Recovery Center: Retry Installation');
+                } catch (err) {
+                  console.error('[UpdateIndicator] Recovery retry failed:', err);
+                }
               }}
               style={primaryButtonStyle}
             >
@@ -1692,7 +1702,12 @@ function UpdateModal({
             <button
               type="button"
               onClick={async () => {
-                await ota.applyUpdate('Recovery Center: Continue Installation');
+                try {
+                  await ota.downloadUpdate('Recovery Center: Continue Installation');
+                  await ota.applyUpdate('Recovery Center: Continue Installation');
+                } catch (err) {
+                  console.error('[UpdateIndicator] Recovery continue failed:', err);
+                }
               }}
               style={secondaryButtonStyle}
             >

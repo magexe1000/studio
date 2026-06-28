@@ -5,14 +5,21 @@ export type OtaUpdateState =
   | 'manual_apk_required'
   | 'downloading'
   | 'verifying'
+  | 'verifying_sha'
+  | 'verifying_eligibility'
   | 'ready_to_install'
   | 'installing'
   | 'installed'
+  | 'download_failed'
+  | 'sha_failed'
+  | 'eligibility_failed'
+  | 'install_failed'
   | 'failed'
   | 'signature_mismatch'
   | 'versionCode_low'
   | 'waiting_for_confirmation'
   | 'completed';
+
 
 export interface StructuredReleaseNotes {
   added?: string[];
@@ -111,16 +118,22 @@ export function transitionToState(state: OtaUpdateState, reason: string) {
   } else if (current === 'manual_apk_required') {
     isValid = ['idle', 'checking'].includes(state);
   } else if (current === 'downloading') {
-    isValid = ['verifying', 'failed', 'idle'].includes(state);
+    isValid = ['verifying', 'verifying_sha', 'download_failed', 'failed', 'idle'].includes(state);
   } else if (current === 'verifying') {
-    isValid = ['ready_to_install', 'failed', 'idle'].includes(state);
+    isValid = ['ready_to_install', 'verifying_eligibility', 'failed', 'idle'].includes(state);
+  } else if (current === 'verifying_sha') {
+    isValid = ['verifying_eligibility', 'sha_failed', 'failed', 'idle'].includes(state);
+  } else if (current === 'verifying_eligibility') {
+    isValid = ['ready_to_install', 'eligibility_failed', 'signature_mismatch', 'versionCode_low', 'failed', 'idle'].includes(state);
   } else if (current === 'ready_to_install') {
     isValid = ['installing', 'failed', 'idle'].includes(state);
   } else if (current === 'installing') {
-    isValid = ['installed', 'failed', 'idle'].includes(state);
+    isValid = ['installed', 'install_failed', 'failed', 'idle'].includes(state);
   } else if (current === 'installed') {
     isValid = ['idle', 'checking'].includes(state);
-  } else if (current === 'failed') {
+  } else if (['download_failed', 'sha_failed', 'eligibility_failed', 'install_failed'].includes(current)) {
+    isValid = state === 'failed';
+  } else if (['failed', 'signature_mismatch', 'versionCode_low'].includes(current)) {
     isValid = ['checking', 'downloading', 'idle'].includes(state);
   }
 
@@ -138,9 +151,9 @@ export function transitionToState(state: OtaUpdateState, reason: string) {
     }, 10000);
   } else if (state === 'downloading') {
     resetDownloadWatchdog();
-  } else if (state === 'verifying') {
+  } else if (['verifying', 'verifying_sha', 'verifying_eligibility'].includes(state)) {
     watchdogTimer = setTimeout(() => {
-      if (globalOtaState.updateState === 'verifying') {
+      if (['verifying', 'verifying_sha', 'verifying_eligibility'].includes(globalOtaState.updateState)) {
         handleWatchdogTimeout('Verification timed out (20s). Package may be corrupted.');
       }
     }, 20000);
@@ -154,8 +167,8 @@ export function transitionToState(state: OtaUpdateState, reason: string) {
 
   updateGlobalState({
     updateState: state,
-    loading: ['checking', 'downloading', 'verifying', 'installing'].includes(state),
-    error: state === 'failed' ? globalOtaState.error : null,
+    loading: ['checking', 'downloading', 'verifying', 'verifying_sha', 'verifying_eligibility', 'installing'].includes(state),
+    error: ['failed', 'download_failed', 'sha_failed', 'eligibility_failed', 'install_failed'].includes(state) ? globalOtaState.error : null,
   });
 }
 
