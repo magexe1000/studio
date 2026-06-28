@@ -12,6 +12,13 @@ Conventions:
 - Bullets start with `- ` and use plain English a non-technical user
   can parse. Keep each line short — the modal's text area is narrow.
 
+## 3.7.23
+
+### Added
+- Restored original splash screen dismissal behavior to synchronize with the React Hub mount.
+- Eliminated the black screen regression by keeping the splash screen active until the Hub is painted.
+- All updater, offline recovery, and signature checking functionality preserved.
+
 ## 3.7.22
 
 ### Added

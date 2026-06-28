@@ -1,4 +1,4 @@
 ### Added
-- Rollback of the React startup state machine to restore the stable architecture of version 3.7.15.
-- All startup overlay lifecycle coordination moved into a simple self-contained inline script.
-- All updater enhancements (native success checks, recovery centers, signature verification) preserved.
+- Restored original splash screen dismissal behavior to synchronize with the React Hub mount.
+- Eliminated the black screen regression by keeping the splash screen active until the Hub is painted.
+- All updater, offline recovery, and signature checking functionality preserved.

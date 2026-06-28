@@ -31,7 +31,7 @@ async function runStartupRegressionTests() {
 
     // Assert that active/complex timing or loops have been removed
     assert.ok(!content.includes('checkReadyToDismiss'), 'Active ready-to-dismiss check still present in index.html');
-    assert.ok(!content.includes('dismissIntro'), 'Active dismissIntro() timing logic still present in index.html');
+    assert.ok(content.includes('reactMounted'), 'Splash screen is not coordinated with React mount via reactMounted() check');
   });
 
   // Test 2: App.tsx Startup State Machine Removal & Decoupled Loader

@@ -260,6 +260,10 @@
           }
         } catch (e) {}
 
+        function reactMounted() {
+          return !!(document.querySelector('[data-livex-hub-root="true"]') || document.getElementById('hub-root'));
+        }
+
         if (alreadyShown || !isApp || appMode !== 'hub') {
           intro.style.display = 'none';
           window.__introDone = true;
@@ -275,6 +279,18 @@
         window.__introDone = false;
         // Let the CSS logo animation run for 750ms
         setTimeout(function() {
+          var startTime = performance.now();
+          var iv = setInterval(function() {
+            var mounted = reactMounted();
+            var elapsed = performance.now() - startTime;
+            if (mounted || elapsed > 4000) {
+              clearInterval(iv);
+              dismissIntro();
+            }
+          }, 50);
+        }, 750);
+
+        function dismissIntro() {
           window.__introDone = true;
           try {
             if (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.AppInstaller) {
@@ -294,7 +310,7 @@
               sessionStorage.setItem('studio-intro-shown', 'true');
             } catch (e) {}
           }, 300);
-        }, 750);
+        }
       })();
     </script>
     <script>
