@@ -26,7 +26,7 @@ import { useMemo } from 'react';
 import { Capacitor } from '@capacitor/core';
 
 /** Canonical semver string used by the OTA comparator. */
-export const NATIVE_VERSION = '3.7.30';
+export const NATIVE_VERSION = '3.7.31';
 export const WEB_VERSION = '4.0.0';
 export const APP_VERSION = Capacitor.isNativePlatform() ? NATIVE_VERSION : WEB_VERSION;
 
@@ -38,7 +38,7 @@ export const APP_VERSION_LABEL = `${APP_VERSION_TAG} ${APP_VERSION}`;
 
 /** Release date for the CURRENT bundle, shown alongside the version pill
  *  in the changelog sheet. ISO-8601 (`YYYY-MM-DD`). */
-export const APP_VERSION_DATE = '2026-06-28'; // 3.7.30
+export const APP_VERSION_DATE = '2026-06-28'; // 3.7.31
 // Note: keep ISO-8601. Bump together with APP_VERSION on each release.
 
 export const APP_COMMIT_SHA = import.meta.env.VITE_GIT_COMMIT_SHA || 'efd2b1a3';
@@ -61,8 +61,8 @@ export const APP_CHANGELOG_SECTIONS: ChangelogSection[] = [
   {
     heading: "Added",
     items: [
-      "Fixed critical bug where the Android PackageInstaller prompt never appeared due to background activity start restrictions on Android 14.",
-      "Implemented a transparent foreground InstallActivity to reliably launch the installer confirmation screen.",
+      "Release validation build for v3.7.31.",
+      "No functional, updater, startup, or UI behavior changes.",
     ],
   },
 ];
@@ -72,8 +72,8 @@ export const APP_CHANGELOG_SECTIONS_NATIVE: ChangelogSection[] = [
   {
     heading: "What's New",
     items: [
-      "Fixed critical bug where the Android PackageInstaller prompt never appeared due to background activity start restrictions on Android 14.",
-      "Implemented a transparent foreground InstallActivity to reliably launch the installer confirmation screen.",
+      "Release validation build for v3.7.31.",
+      "No functional, updater, startup, or UI behavior changes.",
     ],
   },
 ];
