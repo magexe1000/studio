@@ -279,11 +279,48 @@ export function checkForUpdate(isManual = false): Promise<CentralizedOtaState> {
     removeSessionItem('studio:autoOpenedUpdateVersion');
   }
 
+import { updaterSimulation, setSimulateStatusCallback, addJsLog } from './updater/updaterSimulation';
+
   activeCheckIsManual = isManual;
   activeCheckPromise = (async () => {
     transitionToState('checking', 'checkForUpdate start');
     try {
-      let remote = await fetchRemoteVersion();
+      const natVer = await getNativeVersion();
+      const natVerCode = await getNativeVersionCode();
+
+      let remote;
+      if (updaterSimulation.forceUpdateAvailable) {
+        remote = {
+          version: '3.7.99',
+          versionCode: 999,
+          mandatory: updaterSimulation.forceMandatoryUpdate,
+          apkUrl: 'https://cdn.example.com/studio-3.7.99.apk',
+          apkSha256: '900cf259185c81100cda8bb08571fa23552e9789131cf07a8f4056e4d4129206',
+          changelog: 'Simulated update release notes.',
+          releaseNotes: { added: ['Feature A'], improved: ['Performance B'], fixed: ['Bug C'] }
+        };
+        addJsLog(`Simulation override: Forcing Update Available (v3.7.99)`);
+      } else if (updaterSimulation.forceNoUpdate) {
+        remote = {
+          version: APP_VERSION,
+          versionCode: natVerCode ?? 1,
+          mandatory: false,
+          apkUrl: '',
+          apkSha256: ''
+        };
+        addJsLog(`Simulation override: Forcing No Update (matching current version ${APP_VERSION})`);
+      } else if (updaterSimulation.forceDowngrade) {
+        remote = {
+          version: '3.7.10',
+          versionCode: 10,
+          mandatory: false,
+          apkUrl: 'https://cdn.example.com/studio-3.7.10.apk',
+          apkSha256: '1234567890'
+        };
+        addJsLog(`Simulation override: Forcing Downgrade (v3.7.10)`);
+      } else {
+        remote = await fetchRemoteVersion();
+      }
 
       if (checkId !== latestCheckId) {
         console.log(`[OTA] Check request checkId=${checkId} was superseded by checkId=${latestCheckId}. Exiting silently.`);
@@ -291,7 +328,7 @@ export function checkForUpdate(isManual = false): Promise<CentralizedOtaState> {
       }
 
       const mockOta = getSessionItem('studio:mockOtaResponse');
-      if (mockOta) {
+      if (mockOta && !updaterSimulation.forceUpdateAvailable && !updaterSimulation.forceNoUpdate && !updaterSimulation.forceDowngrade) {
         try {
           remote = JSON.parse(mockOta);
           console.log('[OTA DEBUG] Using mock remote response:', remote);
@@ -300,8 +337,6 @@ export function checkForUpdate(isManual = false): Promise<CentralizedOtaState> {
         }
       }
 
-      const natVer = await getNativeVersion();
-      const natVerCode = await getNativeVersionCode();
       const dismissedList = getStoredList('studio:dismissedVersions');
       const notifiedList = getStoredList('studio:notifiedVersions');
       const laterVersion = getSessionItem('studio:laterUpdateVersion');
@@ -571,32 +606,61 @@ export function downloadUpdate(trigger?: string): Promise<void> {
     
     try {
       let filePath: string;
-      try {
-        filePath = await downloadUpdateApk({
-          url: apkUrl,
-          version: ver,
-          manualApkUrl: (globalOtaState as any).manualApkUrl,
-          fallbackApkUrl: (globalOtaState as any).fallbackApkUrl,
-        });
-      } catch (dlErr) {
-        transitionToState('download_failed', 'APK download execution failed');
-        throw dlErr;
+      if (updaterSimulation.simulateDownload) {
+        addJsLog('[Simulate Download] Starting simulated download loop...');
+        for (let i = 1; i <= 10; i++) {
+          if (updaterSimulation.injectNetworkTimeout) {
+            addJsLog('[Simulate Download] Injecting network timeout!');
+            transitionToState('download_failed', 'Simulated network timeout');
+            throw new Error('Simulated network timeout');
+          }
+          if (updaterSimulation.injectDownloadFailure) {
+            addJsLog('[Simulate Download] Injecting download failure!');
+            transitionToState('download_failed', 'Simulated download failure');
+            throw new Error('Simulated download failure');
+          }
+          updateGlobalState({ progress: i / 10, statusText: `Simulating download... (${i * 10}%)` });
+          await new Promise((resolve) => setTimeout(resolve, 300));
+        }
+        filePath = '/mock/path/to/simulated_download.apk';
+        addJsLog(`[Simulate Download] Completed. Mock Path: ${filePath}`);
+      } else {
+        try {
+          filePath = await downloadUpdateApk({
+            url: apkUrl,
+            version: ver,
+            manualApkUrl: (globalOtaState as any).manualApkUrl,
+            fallbackApkUrl: (globalOtaState as any).fallbackApkUrl,
+          });
+        } catch (dlErr) {
+          transitionToState('download_failed', 'APK download execution failed');
+          throw dlErr;
+        }
       }
 
       otaDebugLogs.downloadStatus += `\nAPK download completed. Path: ${filePath}`;
       void logProgressStage('Download completed', 'Path: ' + filePath);
 
       transitionToState('verifying_sha', 'Verifying checksum');
-      const expectedHash = (globalOtaState as any).apkSha256;
-      if (expectedHash) {
-        try {
-          await verifyFileIntegrity(filePath, expectedHash);
-        } catch (shaErr) {
-          transitionToState('sha_failed', 'SHA integrity check failed');
-          throw shaErr;
+      if (updaterSimulation.simulateDownload) {
+        if (updaterSimulation.injectChecksumFailure) {
+          addJsLog('[Simulate Download] Injecting checksum failure!');
+          transitionToState('sha_failed', 'Simulated checksum failure');
+          throw new Error('Simulated checksum failure');
         }
+        otaDebugLogs.shaVerification = 'PASSED (Simulated)';
       } else {
-        otaDebugLogs.shaVerification = 'SKIPPED (No expected hash)';
+        const expectedHash = (globalOtaState as any).apkSha256;
+        if (expectedHash) {
+          try {
+            await verifyFileIntegrity(filePath, expectedHash);
+          } catch (shaErr) {
+            transitionToState('sha_failed', 'SHA integrity check failed');
+            throw shaErr;
+          }
+        } else {
+          otaDebugLogs.shaVerification = 'SKIPPED (No expected hash)';
+        }
       }
 
       try {
@@ -736,10 +800,11 @@ export function applyUpdate(trigger?: string): Promise<void> {
       const statusPromise = new Promise<void>(async (resolvePromise, rejectPromise) => {
         try {
           console.log('[INSTRUMENTATION] [JS] Registering native status listener for onInstallStatusChanged');
-          nativeListener = await (AppInstaller as any).addListener('onInstallStatusChanged', (eventData: any) => {
+          const onStatusEvent = (eventData: any) => {
             const status = eventData.status;
             const message = eventData.message;
             console.log('[INSTRUMENTATION] [JS] onInstallStatusChanged received:', eventData);
+            addJsLog(`Install Status Received: status=${status}, message=${message}, progress=${eventData.progress || 0}`);
 
             if (status === -1) { // STATUS_PENDING_USER_ACTION
               console.log('[INSTRUMENTATION] [JS] STATUS_PENDING_USER_ACTION received. Showing confirmation dialog.');
@@ -766,7 +831,10 @@ export function applyUpdate(trigger?: string): Promise<void> {
               transitionToState('failed', `Install failed: ${message || `code ${status}`}`);
               rejectPromise(new Error(message || `PackageInstaller error code ${status}`));
             }
-          });
+          };
+
+          nativeListener = await (AppInstaller as any).addListener('onInstallStatusChanged', onStatusEvent);
+          setSimulateStatusCallback(onStatusEvent);
         } catch (e) {
           console.warn('Failed to register native status listener:', e);
         }
@@ -775,9 +843,14 @@ export function applyUpdate(trigger?: string): Promise<void> {
       otaDebugLogs.installError += `\nAPK is eligible. Launching APK installer intent for file: ${filePath}`;
       updateGlobalState({ statusText: 'Waiting for Android...' });
 
-      void logProgressStage('Session committed', 'Handing over to PackageInstaller');
-      await triggerNativeInstall(filePath);
-      void logProgressStage('Waiting for Android confirmation', 'Waiting for system confirmation dialog to overlay');
+      if (updaterSimulation.simulateDownload) {
+        addJsLog('[Simulate Install] Skipping native install trigger in simulation mode.');
+        void logProgressStage('Simulation committed', 'Simulation mode active');
+      } else {
+        void logProgressStage('Session committed', 'Handing over to PackageInstaller');
+        await triggerNativeInstall(filePath);
+        void logProgressStage('Waiting for Android confirmation', 'Waiting for system confirmation dialog to overlay');
+      }
 
       otaDebugLogs.installError += `\nAPK installer intent launched successfully!`;
       otaDebugLogs.installerLaunchStatus = 'SUCCESS';
@@ -812,6 +885,7 @@ export function applyUpdate(trigger?: string): Promise<void> {
           await nativeListener.remove();
         } catch (_) {}
       }
+      setSimulateStatusCallback(null);
       activeApplyPromise = null;
     }
   })();

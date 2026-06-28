@@ -100,8 +100,12 @@ export function stopWatchdog() {
   }
 }
 
+import { recordStateTransition, addJsLog } from './updaterSimulation';
+
 export function transitionToState(state: OtaUpdateState, reason: string) {
   console.log(`[OTA STATE] Transitioning to: ${state}. Reason: ${reason}`);
+  addJsLog(`State Transition: ${globalOtaState.updateState} -> ${state}. Reason: ${reason}`);
+  recordStateTransition(state, reason);
   stopWatchdog();
 
   const current = globalOtaState.updateState;

@@ -801,14 +801,14 @@ public class AppInstallerPlugin extends Plugin {
             
             PendingIntent pendingIntent;
             try {
-                Intent intent = new Intent(context, InstallActivity.class);
+                Intent intent = new Intent(context, InstallReceiver.class);
                 intent.setAction("com.chordex.app.SESSION_API_PACKAGE_INSTALLED");
                 
                 int pendingFlags = PendingIntent.FLAG_UPDATE_CURRENT;
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
                     pendingFlags |= PendingIntent.FLAG_MUTABLE;
                 }
-                pendingIntent = PendingIntent.getActivity(
+                pendingIntent = PendingIntent.getBroadcast(
                         context, 
                         sessionId, 
                         intent, 

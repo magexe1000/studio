@@ -125,7 +125,28 @@ public class InstallReceiver extends BroadcastReceiver {
             appendLog(context, "Broadcast Received", status, message, otherPackageName, null);
             
             if (status == PackageInstaller.STATUS_PENDING_USER_ACTION) {
-                appendLog(context, "Installer dialog displayed", status, "System confirmation screen requested (handled by InstallActivity)", otherPackageName, null);
+                appendLog(context, "Installer dialog displayed", status, "System confirmation screen requested", otherPackageName, null);
+                Intent confirmIntent = intent.getParcelableExtra(Intent.EXTRA_INTENT);
+                if (confirmIntent != null) {
+                    confirmIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                    try {
+                        if (android.os.Build.VERSION.SDK_INT >= 34) {
+                            android.app.ActivityOptions options = android.app.ActivityOptions.makeBasic();
+                            options.setPendingIntentBackgroundActivityStartMode(
+                                    android.app.ActivityOptions.MODE_BACKGROUND_ACTIVITY_START_ALLOWED);
+                            context.startActivity(confirmIntent, options.toBundle());
+                            Log.d(TAG, "[INSTRUMENTATION] [NATIVE] Started confirmation intent from BroadcastReceiver on Android 14+ with background start mode allowed");
+                        } else {
+                            context.startActivity(confirmIntent);
+                            Log.d(TAG, "[INSTRUMENTATION] [NATIVE] Started confirmation intent from BroadcastReceiver");
+                        }
+                    } catch (Exception e) {
+                        Log.e(TAG, "[INSTRUMENTATION] [NATIVE] Failed to start confirmation intent from BroadcastReceiver", e);
+                        appendLog(context, "Install Failure", status, "Failed to start confirmation intent: " + e.getMessage(), otherPackageName, null);
+                    }
+                } else {
+                    Log.e(TAG, "[INSTRUMENTATION] [NATIVE] confirmIntent is null");
+                }
             } else if (status == PackageInstaller.STATUS_SUCCESS) {
                 appendLog(context, "User Accepted", status, "User accepted installation", otherPackageName, null);
                 appendLog(context, "Install Success", status, "Update installation complete", otherPackageName, null);

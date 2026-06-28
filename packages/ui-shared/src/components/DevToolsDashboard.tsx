@@ -23,7 +23,20 @@ import {
   getStageIframe,
   getNavigationEntries,
   clearNavigationEntries,
-  NavigationEntry
+  NavigationEntry,
+  updaterSimulation,
+  triggerSimulatedStatus,
+  jsLogs,
+  nativeLogs,
+  stateTimeline,
+  activityLifecycleTimeline,
+  simulateStatusCallback,
+  globalOtaState,
+  resetOtaUpdateState,
+  checkForUpdate,
+  downloadUpdate,
+  applyUpdate,
+  deleteLocalApk
 } from '@workspace/studio-core';
 
 interface Props {
@@ -329,7 +342,7 @@ export default function DevToolsDashboard({ accent, onBack }: Props) {
   const [versionUpdates, setVersionUpdates] = useState(0);
 
   const [expandedLogIndices, setExpandedLogIndices] = useState<Record<number, boolean>>({});
-  const [updaterTabMode, setUpdaterTabMode] = useState<'modern' | 'legacy'>('modern');
+  const [updaterTabMode, setUpdaterTabMode] = useState<'laboratory' | 'diagnostics'>('laboratory');
   const [selfTestRunning, setSelfTestRunning] = useState(false);
   const [selfTestResults, setSelfTestResults] = useState<Array<{
     command: string;
@@ -618,20 +631,45 @@ export default function DevToolsDashboard({ accent, onBack }: Props) {
     </div>
   );
 
-  // Render Inline Updater Diagnostics View
+  // Force re-render on simulation state changes
+  const [simUpdateCount, setSimUpdateCount] = useState(0);
+  const triggerSimRender = () => setSimUpdateCount(prev => prev + 1);
+
+  // Render Inline Updater Diagnostics & Laboratory View
   const renderUpdaterView = () => {
+    const handleCopyText = (text: string, label: string) => {
+      navigator.clipboard.writeText(text)
+        .then(() => showToast(`${label} copied to clipboard!`))
+        .catch(() => showToast('Copy failed.'));
+    };
+
+    const exportTimelineMarkdown = () => {
+      let md = `### State Transition Timeline\n\n| State | Reason | Timestamp | Elapsed (ms) |\n|---|---|---|---|\n`;
+      let prevTime = 0;
+      stateTimeline.forEach((t, idx) => {
+        const elapsed = idx === 0 ? 0 : t.timestamp - prevTime;
+        prevTime = t.timestamp;
+        md += `| ${t.state} | ${t.reason} | ${new Date(t.timestamp).toLocaleTimeString()} | ${elapsed} |\n`;
+      });
+      md += `\n### Activity Lifecycle Timeline\n\n| Stage | Timestamp |\n|---|---|\n`;
+      activityLifecycleTimeline.forEach(t => {
+        md += `| ${t.stage} | ${new Date(t.timestamp).toLocaleTimeString()} |\n`;
+      });
+      handleCopyText(md, 'Timeline Markdown');
+    };
+
     return (
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 4, paddingBottom: 'max(20px, env(safe-area-inset-bottom))' }}>
-        {/* Toggle between Legacy & Modern */}
-        <div style={{ display: 'flex', gap: 6, marginBottom: 12, background: 'rgba(255,255,255,0.03)', padding: 4, borderRadius: 8 }}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 12, paddingBottom: 'max(20px, env(safe-area-inset-bottom))' }}>
+        {/* Tab Switcher */}
+        <div style={{ display: 'flex', gap: 6, marginBottom: 4, background: 'rgba(255,255,255,0.03)', padding: 4, borderRadius: 8 }}>
           <button
-            onClick={() => setUpdaterTabMode('modern')}
+            onClick={() => setUpdaterTabMode('laboratory')}
             style={{
               flex: 1,
-              padding: '6px 10px',
+              padding: '8px 10px',
               borderRadius: 6,
-              background: updaterTabMode === 'modern' ? 'rgba(255,255,255,0.08)' : 'transparent',
-              color: updaterTabMode === 'modern' ? '#fff' : 'rgba(255,255,255,0.4)',
+              background: updaterTabMode === 'laboratory' ? 'rgba(255,255,255,0.08)' : 'transparent',
+              color: updaterTabMode === 'laboratory' ? '#fff' : 'rgba(255,255,255,0.4)',
               border: 'none',
               fontFamily: 'Manrope',
               fontSize: '11px',
@@ -639,16 +677,16 @@ export default function DevToolsDashboard({ accent, onBack }: Props) {
               cursor: 'pointer'
             }}
           >
-            Modern Diagnostics
+            Updater Laboratory
           </button>
           <button
-            onClick={() => setUpdaterTabMode('legacy')}
+            onClick={() => setUpdaterTabMode('diagnostics')}
             style={{
               flex: 1,
-              padding: '6px 10px',
+              padding: '8px 10px',
               borderRadius: 6,
-              background: updaterTabMode === 'legacy' ? 'rgba(255,255,255,0.08)' : 'transparent',
-              color: updaterTabMode === 'legacy' ? '#fff' : 'rgba(255,255,255,0.4)',
+              background: updaterTabMode === 'diagnostics' ? 'rgba(255,255,255,0.08)' : 'transparent',
+              color: updaterTabMode === 'diagnostics' ? '#fff' : 'rgba(255,255,255,0.4)',
               border: 'none',
               fontFamily: 'Manrope',
               fontSize: '11px',
@@ -656,101 +694,445 @@ export default function DevToolsDashboard({ accent, onBack }: Props) {
               cursor: 'pointer'
             }}
           >
-            Legacy Diagnostics
+            Diagnostics Dashboard
           </button>
         </div>
 
-        {updaterTabMode === 'modern' ? (
-          <div>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
-              <span style={{ fontSize: 13, fontWeight: 700, color: 'rgba(255,255,255,0.4)' }}>Modern OTA Telemetry</span>
-              <button
-                onClick={() => {
-                  window.dispatchEvent(new CustomEvent('studio:ota-check-manual'));
-                  showToast('Manual update check triggered.');
-                }}
-                style={{
-                  padding: '6px 12px',
-                  borderRadius: 8,
-                  background: accent.from,
-                  color: '#fff',
-                  border: 'none',
-                  fontFamily: 'Manrope',
-                  fontWeight: 700,
-                  fontSize: '11px',
-                  cursor: 'pointer'
-                }}
-              >
-                Check Update
-              </button>
+        {updaterTabMode === 'laboratory' ? (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+            {/* 1. Update Simulation */}
+            <div style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.05)', borderRadius: 12, padding: 12 }}>
+              <div style={{ fontSize: 13, fontWeight: 800, marginBottom: 10, color: '#a855f7', display: 'flex', alignItems: 'center', gap: 6 }}>
+                <span className="material-symbols-outlined" style={{ fontSize: 18 }}>science</span>
+                Update Simulation
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12, cursor: 'pointer' }}>
+                  <input
+                    type="checkbox"
+                    checked={updaterSimulation.forceUpdateAvailable}
+                    onChange={() => {
+                      updaterSimulation.forceUpdateAvailable = !updaterSimulation.forceUpdateAvailable;
+                      if (updaterSimulation.forceUpdateAvailable) {
+                        updaterSimulation.forceNoUpdate = false;
+                        updaterSimulation.forceDowngrade = false;
+                      }
+                      triggerSimRender();
+                    }}
+                  />
+                  Force Update Available (v3.7.99)
+                </label>
+                <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12, cursor: 'pointer' }}>
+                  <input
+                    type="checkbox"
+                    checked={updaterSimulation.forceNoUpdate}
+                    onChange={() => {
+                      updaterSimulation.forceNoUpdate = !updaterSimulation.forceNoUpdate;
+                      if (updaterSimulation.forceNoUpdate) {
+                        updaterSimulation.forceUpdateAvailable = false;
+                        updaterSimulation.forceDowngrade = false;
+                      }
+                      triggerSimRender();
+                    }}
+                  />
+                  Force No Update (Up-to-date)
+                </label>
+                <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12, cursor: 'pointer' }}>
+                  <input
+                    type="checkbox"
+                    checked={updaterSimulation.forceDowngrade}
+                    onChange={() => {
+                      updaterSimulation.forceDowngrade = !updaterSimulation.forceDowngrade;
+                      if (updaterSimulation.forceDowngrade) {
+                        updaterSimulation.forceUpdateAvailable = false;
+                        updaterSimulation.forceNoUpdate = false;
+                      }
+                      triggerSimRender();
+                    }}
+                  />
+                  Force Downgrade (v3.7.10)
+                </label>
+                <div style={{ borderTop: '1px solid rgba(255,255,255,0.05)', marginTop: 4, paddingTop: 6, display: 'flex', gap: 16 }}>
+                  <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 11, cursor: 'pointer' }}>
+                    <input
+                      type="radio"
+                      name="mandatory"
+                      checked={updaterSimulation.forceMandatoryUpdate}
+                      onChange={() => {
+                        updaterSimulation.forceMandatoryUpdate = true;
+                        updaterSimulation.forceOptionalUpdate = false;
+                        triggerSimRender();
+                      }}
+                    />
+                    Mandatory
+                  </label>
+                  <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 11, cursor: 'pointer' }}>
+                    <input
+                      type="radio"
+                      name="mandatory"
+                      checked={updaterSimulation.forceOptionalUpdate}
+                      onChange={() => {
+                        updaterSimulation.forceOptionalUpdate = true;
+                        updaterSimulation.forceMandatoryUpdate = false;
+                        triggerSimRender();
+                      }}
+                    />
+                    Optional
+                  </label>
+                </div>
+              </div>
             </div>
 
-            <CollapsibleSection
-              title="Modern Download Info"
-              collapsed={updaterCollapsed.ota}
-              onToggle={() => setUpdaterCollapsed(prev => ({ ...prev, ota: !prev.ota }))}
-            >
-              <DiagnosticField label="Download URL Used" value={otaDiagnostics.downloadUrl || 'N/A'} />
-              <DiagnosticField label="APK Path" value={otaDiagnostics.apkPath || 'N/A'} />
-              <DiagnosticField label="File Size" value={otaDiagnostics.fileSize || 'N/A'} />
-              <DiagnosticField label="SHA-256 Expected" value={otaDiagnostics.shaExpected || 'N/A'} />
-              <DiagnosticField label="SHA-256 Calculated" value={otaDiagnostics.shaCalculated || 'N/A'} />
-              <DiagnosticField label="Installer Result" value={otaDiagnostics.installerResult || 'N/A'} />
-            </CollapsibleSection>
+            {/* 2. Metadata cache */}
+            <div style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.05)', borderRadius: 12, padding: 12 }}>
+              <div style={{ fontSize: 13, fontWeight: 800, marginBottom: 10, color: '#3b82f6', display: 'flex', alignItems: 'center', gap: 6 }}>
+                <span className="material-symbols-outlined" style={{ fontSize: 18 }}>database</span>
+                Metadata & Cache
+              </div>
+              <div style={{ display: 'flex', gap: 6, marginBottom: 8 }}>
+                <button
+                  onClick={async () => {
+                    showToast('Checking for updates...');
+                    const res = await checkForUpdate(true);
+                    showToast(`Check complete: ${res.updateState}`);
+                  }}
+                  style={{ flex: 1, padding: '8px', borderRadius: 8, background: '#3b82f6', color: '#fff', border: 'none', fontWeight: 700, fontSize: 11, cursor: 'pointer' }}
+                >
+                  Reload Metadata
+                </button>
+                <button
+                  onClick={async () => {
+                    localStorage.removeItem('studio:remoteMetadata');
+                    showToast('Metadata cache cleared.');
+                  }}
+                  style={{ flex: 1, padding: '8px', borderRadius: 8, background: 'rgba(255,255,255,0.08)', color: '#fff', border: 'none', fontWeight: 700, fontSize: 11, cursor: 'pointer' }}
+                >
+                  Clear Cache
+                </button>
+              </div>
+              <CollapsibleSection title="Show Parsed Metadata" collapsed={true}>
+                <pre style={{ fontSize: 10, color: '#818cf8', background: 'rgba(0,0,0,0.2)', padding: 6, borderRadius: 6, overflowX: 'auto', margin: 0 }}>
+                  {JSON.stringify(globalOtaState, null, 2)}
+                </pre>
+              </CollapsibleSection>
+            </div>
+
+            {/* 3. Download Simulation */}
+            <div style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.05)', borderRadius: 12, padding: 12 }}>
+              <div style={{ fontSize: 13, fontWeight: 800, marginBottom: 10, color: '#10b981', display: 'flex', alignItems: 'center', gap: 6 }}>
+                <span className="material-symbols-outlined" style={{ fontSize: 18 }}>download</span>
+                Download & Flow Simulation
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 10 }}>
+                <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12, cursor: 'pointer' }}>
+                  <input
+                    type="checkbox"
+                    checked={updaterSimulation.simulateDownload}
+                    onChange={() => {
+                      updaterSimulation.simulateDownload = !updaterSimulation.simulateDownload;
+                      triggerSimRender();
+                    }}
+                  />
+                  Simulate Download (Mock Loop)
+                </label>
+                <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12, cursor: 'pointer', paddingLeft: 16 }}>
+                  <input
+                    type="checkbox"
+                    disabled={!updaterSimulation.simulateDownload}
+                    checked={updaterSimulation.injectDownloadFailure}
+                    onChange={() => {
+                      updaterSimulation.injectDownloadFailure = !updaterSimulation.injectDownloadFailure;
+                      if (updaterSimulation.injectDownloadFailure) {
+                        updaterSimulation.injectChecksumFailure = false;
+                        updaterSimulation.injectNetworkTimeout = false;
+                      }
+                      triggerSimRender();
+                    }}
+                  />
+                  Inject Download Failure
+                </label>
+                <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12, cursor: 'pointer', paddingLeft: 16 }}>
+                  <input
+                    type="checkbox"
+                    disabled={!updaterSimulation.simulateDownload}
+                    checked={updaterSimulation.injectChecksumFailure}
+                    onChange={() => {
+                      updaterSimulation.injectChecksumFailure = !updaterSimulation.injectChecksumFailure;
+                      if (updaterSimulation.injectChecksumFailure) {
+                        updaterSimulation.injectDownloadFailure = false;
+                        updaterSimulation.injectNetworkTimeout = false;
+                      }
+                      triggerSimRender();
+                    }}
+                  />
+                  Inject Checksum Failure
+                </label>
+                <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12, cursor: 'pointer', paddingLeft: 16 }}>
+                  <input
+                    type="checkbox"
+                    disabled={!updaterSimulation.simulateDownload}
+                    checked={updaterSimulation.injectNetworkTimeout}
+                    onChange={() => {
+                      updaterSimulation.injectNetworkTimeout = !updaterSimulation.injectNetworkTimeout;
+                      if (updaterSimulation.injectNetworkTimeout) {
+                        updaterSimulation.injectDownloadFailure = false;
+                        updaterSimulation.injectChecksumFailure = false;
+                      }
+                      triggerSimRender();
+                    }}
+                  />
+                  Inject Network Timeout
+                </label>
+              </div>
+              <div style={{ display: 'flex', gap: 6 }}>
+                <button
+                  onClick={async () => {
+                    showToast('Triggering Download...');
+                    try {
+                      await downloadUpdate('DevTools Laboratory');
+                      showToast('Download complete.');
+                    } catch (e: any) {
+                      showToast(`Download failed: ${e.message}`);
+                    }
+                  }}
+                  style={{ flex: 1, padding: '8px', borderRadius: 8, background: '#10b981', color: '#fff', border: 'none', fontWeight: 700, fontSize: 11, cursor: 'pointer' }}
+                >
+                  Trigger Download
+                </button>
+                <button
+                  onClick={async () => {
+                    showToast('Triggering Install...');
+                    try {
+                      await applyUpdate('DevTools Laboratory');
+                      showToast('Install resolved.');
+                    } catch (e: any) {
+                      showToast(`Install failed: ${e.message}`);
+                    }
+                  }}
+                  style={{ flex: 1, padding: '8px', borderRadius: 8, background: '#a855f7', color: '#fff', border: 'none', fontWeight: 700, fontSize: 11, cursor: 'pointer' }}
+                >
+                  Trigger Install
+                </button>
+              </div>
+            </div>
+
+            {/* 4. PackageInstaller Simulator */}
+            <div style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.05)', borderRadius: 12, padding: 12 }}>
+              <div style={{ fontSize: 13, fontWeight: 800, marginBottom: 10, color: '#eab308', display: 'flex', alignItems: 'center', gap: 6 }}>
+                <span className="material-symbols-outlined" style={{ fontSize: 18 }}>terminal</span>
+                PackageInstaller Status Simulator
+              </div>
+              <p style={{ margin: '0 0 10px', fontSize: 11, color: 'rgba(255,255,255,0.4)', lineHeight: 1.4 }}>
+                Simulate native callbacks sent from Android PackageInstaller session. Note: A simulator listener must be active (Trigger Install must be waiting).
+              </p>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 6 }}>
+                <button
+                  onClick={() => triggerSimulatedStatus(-1, 'STATUS_PENDING_USER_ACTION')}
+                  style={{ padding: '6px', borderRadius: 6, background: 'rgba(234,179,8,0.15)', color: '#eab308', border: '1px solid rgba(234,179,8,0.3)', fontWeight: 700, fontSize: 10, cursor: 'pointer' }}
+                >
+                  Pending User Action (-1)
+                </button>
+                <button
+                  onClick={() => triggerSimulatedStatus(-2, 'installing_start')}
+                  style={{ padding: '6px', borderRadius: 6, background: 'rgba(59,130,246,0.15)', color: '#3b82f6', border: '1px solid rgba(59,130,246,0.3)', fontWeight: 700, fontSize: 10, cursor: 'pointer' }}
+                >
+                  Session Active (-2)
+                </button>
+                <button
+                  onClick={() => triggerSimulatedStatus(-3, 'installing_progress', 0.5)}
+                  style={{ padding: '6px', borderRadius: 6, background: 'rgba(59,130,246,0.15)', color: '#3b82f6', border: '1px solid rgba(59,130,246,0.3)', fontWeight: 700, fontSize: 10, cursor: 'pointer' }}
+                >
+                  Session Progress 50% (-3)
+                </button>
+                <button
+                  onClick={() => triggerSimulatedStatus(0, 'STATUS_SUCCESS')}
+                  style={{ padding: '6px', borderRadius: 6, background: 'rgba(16,185,129,0.15)', color: '#10b981', border: '1px solid rgba(16,185,129,0.3)', fontWeight: 700, fontSize: 10, cursor: 'pointer' }}
+                >
+                  Status Success (0)
+                </button>
+                <button
+                  onClick={() => triggerSimulatedStatus(3, 'STATUS_FAILURE_ABORTED')}
+                  style={{ padding: '6px', borderRadius: 6, background: 'rgba(239,68,68,0.15)', color: '#ef4444', border: '1px solid rgba(239,68,68,0.3)', fontWeight: 700, fontSize: 10, cursor: 'pointer' }}
+                >
+                  User Cancelled (3)
+                </button>
+                <button
+                  onClick={() => triggerSimulatedStatus(5, 'STATUS_FAILURE_CONFLICT')}
+                  style={{ padding: '6px', borderRadius: 6, background: 'rgba(239,68,68,0.15)', color: '#ef4444', border: '1px solid rgba(239,68,68,0.3)', fontWeight: 700, fontSize: 10, cursor: 'pointer' }}
+                >
+                  Signature Mismatch (5)
+                </button>
+                <button
+                  onClick={() => triggerSimulatedStatus(7, 'STATUS_FAILURE_INCOMPATIBLE')}
+                  style={{ padding: '6px', borderRadius: 6, background: 'rgba(239,68,68,0.15)', color: '#ef4444', border: '1px solid rgba(239,68,68,0.3)', fontWeight: 700, fontSize: 10, cursor: 'pointer' }}
+                >
+                  Version Downgrade (7)
+                </button>
+                <button
+                  onClick={() => triggerSimulatedStatus(2, 'STATUS_FAILURE_BLOCKED')}
+                  style={{ padding: '6px', borderRadius: 6, background: 'rgba(239,68,68,0.15)', color: '#ef4444', border: '1px solid rgba(239,68,68,0.3)', fontWeight: 700, fontSize: 10, cursor: 'pointer' }}
+                >
+                  Unknown Sources Blocked (2)
+                </button>
+              </div>
+            </div>
+
+            {/* 5. Recovery Controls */}
+            <div style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.05)', borderRadius: 12, padding: 12 }}>
+              <div style={{ fontSize: 13, fontWeight: 800, marginBottom: 10, color: '#ef4444', display: 'flex', alignItems: 'center', gap: 6 }}>
+                <span className="material-symbols-outlined" style={{ fontSize: 18 }}>restart_alt</span>
+                Recovery & Reset
+              </div>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 6 }}>
+                <button
+                  onClick={() => {
+                    resetOtaUpdateState();
+                    showToast('State machine reset to IDLE.');
+                  }}
+                  style={{ padding: '8px', borderRadius: 8, background: 'rgba(255,255,255,0.08)', color: '#fff', border: 'none', fontWeight: 700, fontSize: 11, cursor: 'pointer' }}
+                >
+                  Clear State
+                </button>
+                <button
+                  onClick={() => {
+                    localStorage.removeItem('studio:consecutiveFailures');
+                    localStorage.removeItem('studio:recoveryMode');
+                    showToast('Recovery counters cleared.');
+                  }}
+                  style={{ padding: '8px', borderRadius: 8, background: 'rgba(255,255,255,0.08)', color: '#fff', border: 'none', fontWeight: 700, fontSize: 11, cursor: 'pointer' }}
+                >
+                  Clear Recovery State
+                </button>
+                <button
+                  onClick={async () => {
+                    await deleteLocalApk();
+                    showToast('Cached APK file deleted.');
+                  }}
+                  style={{ padding: '8px', borderRadius: 8, background: 'rgba(255,255,255,0.08)', color: '#fff', border: 'none', fontWeight: 700, fontSize: 11, cursor: 'pointer' }}
+                >
+                  Delete Cached APK
+                </button>
+                <button
+                  onClick={async () => {
+                    resetOtaUpdateState();
+                    await deleteLocalApk();
+                    localStorage.removeItem('studio:consecutiveFailures');
+                    localStorage.removeItem('studio:recoveryMode');
+                    localStorage.removeItem('studio:downloadedApkPath');
+                    showToast('Updater completely reset.');
+                  }}
+                  style={{ padding: '8px', borderRadius: 8, background: '#ef4444', color: '#fff', border: 'none', fontWeight: 700, fontSize: 11, cursor: 'pointer' }}
+                >
+                  Reset Completely
+                </button>
+              </div>
+            </div>
           </div>
         ) : (
-          <div>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
-              <span style={{ fontSize: 13, fontWeight: 700, color: 'rgba(255,255,255,0.4)' }}>Legacy Updater Diagnostics</span>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+            {/* Real-time Diagnostics Fields */}
+            <div style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.05)', borderRadius: 12, padding: 12 }}>
+              <div style={{ fontSize: 13, fontWeight: 800, marginBottom: 10, color: '#a855f7', display: 'flex', alignItems: 'center', gap: 6 }}>
+                <span className="material-symbols-outlined" style={{ fontSize: 18 }}>monitoring</span>
+                Real-time Telemetry
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                <DiagnosticField label="App Version" value={APP_VERSION} />
+                <DiagnosticField label="Installed Wrapper Version" value={otaDebugLogs.nativeApkVersion || 'N/A'} />
+                <DiagnosticField label="Available Version" value={globalOtaState.remoteVersion || 'N/A'} />
+                <DiagnosticField label="Installed versionCode" value={otaDebugLogs.installedVersionCode !== null ? String(otaDebugLogs.installedVersionCode) : 'N/A'} />
+                <DiagnosticField label="Package Name" value={otaDebugLogs.installedPackageName || 'com.chordex.app'} />
+                <DiagnosticField label="Build Type" value={otaDebugLogs.installedDebuggable ? 'Debug (Debuggable)' : 'Production (Signed)'} />
+                <DiagnosticField label="Current State" value={globalOtaState.updateState} />
+                <DiagnosticField label="Download Progress" value={`${Math.round(globalOtaState.progress * 100)}%`} />
+                <DiagnosticField label="SHA-256 Expected" value={globalOtaState.apkSha256 || 'N/A'} />
+                <DiagnosticField label="SHA-256 Calculated" value={otaDebugLogs.shaVerification || 'N/A'} />
+                <DiagnosticField label="Downloaded APK Path" value={otaDebugLogs.downloadedApkPath || 'N/A'} />
+                <DiagnosticField label="Eligibility Result" value={otaDebugLogs.apkEligibilityResult || 'N/A'} />
+              </div>
             </div>
 
-            <CollapsibleSection
-              title="Device Info"
-              collapsed={updaterCollapsed.device}
-              onToggle={() => setUpdaterCollapsed(prev => ({ ...prev, device: !prev.device }))}
-            >
-              <DiagnosticField label="Device Model" value={otaDiagnostics.deviceModel} />
-              <DiagnosticField label="Android Version" value={otaDiagnostics.androidVersion} />
-              <DiagnosticField label="Permission State" value={otaDiagnostics.permissionState} />
-              <DiagnosticField label="Timestamp" value={otaDiagnostics.timestamp} />
-            </CollapsibleSection>
+            {/* State Timeline */}
+            <div style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.05)', borderRadius: 12, padding: 12 }}>
+              <div style={{ fontSize: 13, fontWeight: 800, marginBottom: 8, color: '#3b82f6', display: 'flex', alignItems: 'center', gap: 6 }}>
+                <span className="material-symbols-outlined" style={{ fontSize: 18 }}>history</span>
+                State Transition Timeline
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 6, maxH: 150, overflowY: 'auto', background: 'rgba(0,0,0,0.15)', padding: 8, borderRadius: 8 }}>
+                {stateTimeline.length === 0 ? (
+                  <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.3)' }}>No state transitions recorded yet.</div>
+                ) : (
+                  stateTimeline.map((t, idx) => {
+                    const timeStr = new Date(t.timestamp).toLocaleTimeString();
+                    return (
+                      <div key={idx} style={{ fontSize: 11, borderBottom: '1px solid rgba(255,255,255,0.03)', paddingBottom: 4 }}>
+                        <span style={{ color: '#60a5fa', fontWeight: 700 }}>[{timeStr}]</span>{' '}
+                        <span style={{ color: '#fff', fontWeight: 800 }}>{t.state}</span>
+                        <div style={{ color: 'rgba(255,255,255,0.4)', fontSize: 10, marginTop: 1 }}>Reason: {t.reason}</div>
+                      </div>
+                    );
+                  })
+                )}
+              </div>
+            </div>
 
-            <CollapsibleSection
-              title="Update Decision"
-              collapsed={updaterCollapsed.decision}
-              onToggle={() => setUpdaterCollapsed(prev => ({ ...prev, decision: !prev.decision }))}
-            >
-              <DiagnosticField label="Update Decision" value={otaDebugLogs.updateDecision || 'N/A'} />
-              <DiagnosticField label="Update Decision Reason" value={otaDebugLogs.updateDecisionReason || 'N/A'} />
-              <DiagnosticField label="Installed versionCode" value={otaDebugLogs.installedVersionCode !== null ? String(otaDebugLogs.installedVersionCode) : 'N/A'} />
-              <DiagnosticField label="Remote versionCode" value={otaDebugLogs.remoteVersionCode !== null ? String(otaDebugLogs.remoteVersionCode) : 'N/A'} />
-              <DiagnosticField label="Version Comparison" value={otaDebugLogs.versionComparisonResult || 'N/A'} />
-            </CollapsibleSection>
+            {/* JS & Native Console Logs */}
+            <div style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.05)', borderRadius: 12, padding: 12 }}>
+              <div style={{ fontSize: 13, fontWeight: 800, marginBottom: 8, color: '#10b981', display: 'flex', alignItems: 'center', gap: 6 }}>
+                <span className="material-symbols-outlined" style={{ fontSize: 18 }}>list_alt</span>
+                Console & Execution Logs
+              </div>
+              <div style={{ fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,0.4)', marginBottom: 4 }}>JavaScript Logs</div>
+              <div style={{ background: 'rgba(0,0,0,0.25)', padding: 8, borderRadius: 6, height: 120, overflowY: 'auto', fontFamily: 'monospace', fontSize: 10, color: '#34d399', marginBottom: 10 }}>
+                {jsLogs.length === 0 ? 'No JS logs captured.' : jsLogs.slice().reverse().join('\n')}
+              </div>
+              <div style={{ fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,0.4)', marginBottom: 4 }}>Native Wrapper Logs</div>
+              <div style={{ background: 'rgba(0,0,0,0.25)', padding: 8, borderRadius: 6, height: 120, overflowY: 'auto', fontFamily: 'monospace', fontSize: 10, color: '#60a5fa' }}>
+                {nativeLogs.length === 0 ? 'No native logs captured.' : nativeLogs.slice().reverse().join('\n')}
+              </div>
+            </div>
 
-            <CollapsibleSection
-              title="OTA Verification"
-              collapsed={updaterCollapsed.ota}
-              onToggle={() => setUpdaterCollapsed(prev => ({ ...prev, ota: !prev.ota }))}
-            >
-              <DiagnosticField label="Installer App Available" value={String(otaDebugLogs.appInstallerAvailable)} />
-              <DiagnosticField label="Vite App Version" value={otaDebugLogs.appVersion} />
-              <DiagnosticField label="Native Wrapper Version" value={otaDebugLogs.nativeApkVersion || 'N/A'} />
-              <DiagnosticField label="Expected SHA-256" value={otaDiagnostics.shaExpected} />
-              <DiagnosticField label="Calculated SHA-256" value={otaDiagnostics.shaCalculated} />
-            </CollapsibleSection>
-
-            <CollapsibleSection
-              title="Errors & Stack Trace"
-              collapsed={updaterCollapsed.errors}
-              onToggle={() => setUpdaterCollapsed(prev => ({ ...prev, errors: !prev.errors }))}
-            >
-              <DiagnosticField label="Exception Message" value={otaDiagnostics.exceptionMessage} />
-              <DiagnosticField label="Failure Stack Trace" value={otaDiagnostics.failureReason} isCode />
-              <DiagnosticField label="Installer Result" value={otaDiagnostics.installerResult} isCode />
-            </CollapsibleSection>
+            {/* Export Actions */}
+            <div style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.05)', borderRadius: 12, padding: 12 }}>
+              <div style={{ fontSize: 13, fontWeight: 800, marginBottom: 10, color: '#f59e0b', display: 'flex', alignItems: 'center', gap: 6 }}>
+                <span className="material-symbols-outlined" style={{ fontSize: 18 }}>ios_share</span>
+                Export Diagnostics
+              </div>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 6 }}>
+                <button
+                  onClick={async () => {
+                    const rep = await getDiagnosticsReport();
+                    handleCopyText(rep, 'Full Diagnostics');
+                  }}
+                  style={{ padding: '8px', borderRadius: 8, background: '#f59e0b', color: '#fff', border: 'none', fontWeight: 700, fontSize: 11, cursor: 'pointer' }}
+                >
+                  Copy Report
+                </button>
+                <button
+                  onClick={() => {
+                    const data = { otaDiagnostics, otaDebugLogs, globalOtaState };
+                    handleCopyText(JSON.stringify(data, null, 2), 'Diagnostics JSON');
+                  }}
+                  style={{ padding: '8px', borderRadius: 8, background: 'rgba(255,255,255,0.08)', color: '#fff', border: 'none', fontWeight: 700, fontSize: 11, cursor: 'pointer' }}
+                >
+                  Export JSON
+                </button>
+                <button
+                  onClick={exportTimelineMarkdown}
+                  style={{ padding: '8px', borderRadius: 8, background: 'rgba(255,255,255,0.08)', color: '#fff', border: 'none', fontWeight: 700, fontSize: 11, cursor: 'pointer' }}
+                >
+                  Export Timeline
+                </button>
+                <button
+                  onClick={() => handleCopyText(jsLogs.join('\n'), 'JavaScript Logs')}
+                  style={{ padding: '8px', borderRadius: 8, background: 'rgba(255,255,255,0.08)', color: '#fff', border: 'none', fontWeight: 700, fontSize: 11, cursor: 'pointer' }}
+                >
+                  Export JS Logs
+                </button>
+              </div>
+            </div>
           </div>
         )}
-        <WarningsInspector logs={logs} showToast={showToast} moduleFilter={['updater', 'apkdownloader']} />
       </div>
     );
   };

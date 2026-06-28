@@ -1,3 +1,3 @@
-### Added
-- Fixed critical bug where the Android PackageInstaller prompt never appeared due to background activity start restrictions on Android 14.
-- Implemented a transparent foreground InstallActivity to reliably launch the installer confirmation screen.
+### Fixed
+- Permanently fixed PackageInstaller by using BroadcastReceiver targeting InstallReceiver to launch system confirmation dialogs, preventing background activity blocks on Android 14+.
+- Added Updater Laboratory simulation controls and a comprehensive Diagnostics dashboard to Developer Options.

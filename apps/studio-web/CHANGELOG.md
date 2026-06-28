@@ -12,6 +12,12 @@ Conventions:
 - Bullets start with `- ` and use plain English a non-technical user
   can parse. Keep each line short — the modal's text area is narrow.
 
+## 3.7.36
+
+### Fixed
+- Permanently fixed PackageInstaller by using BroadcastReceiver targeting InstallReceiver to launch system confirmation dialogs, preventing background activity blocks on Android 14+.
+- Added Updater Laboratory simulation controls and a comprehensive Diagnostics dashboard to Developer Options.
+
 ## 3.7.35
 
 ### Added

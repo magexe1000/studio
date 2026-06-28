@@ -54,3 +54,6 @@ export * from './lib/devTools';
 export * from './lib/lyricsService';
 export * from './data/authorizedChords';
 export * from './lib/chordService';
+export * from './lib/updater/updaterSimulation';
+export * from './lib/updater/diagnostics';
+
