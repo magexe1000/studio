@@ -354,6 +354,7 @@ public class AppInstallerPlugin extends Plugin {
                 .putString("last_other_package", "")
                 .putLong("expected_version_code", 0)
                 .putString("expected_version_name", "")
+                .putBoolean("installation_active", false)
                 .apply();
             call.resolve();
         } catch (Exception e) {
@@ -822,6 +823,7 @@ public class AppInstallerPlugin extends Plugin {
                 sessionCommitCallCount++;
                 logNativeInstrumentation(context, "triggerInstallation", callId, "STEP", "Session.commit() call #" + sessionCommitCallCount + " start. Calling session.commit()");
                 InstallReceiver.appendLog(context, "Session Commit Started", 0, "Calling session.commit()", null, null);
+                prefs.edit().putBoolean("installation_active", true).apply();
                 session.commit(pendingIntent.getIntentSender());
                 session.close();
                 logNativeInstrumentation(context, "triggerInstallation", callId, "STEP", "Session.commit() finished and session closed");
@@ -1310,11 +1312,12 @@ public class AppInstallerPlugin extends Plugin {
     public void isInstallActive(PluginCall call) {
         try {
             Context context = getContext();
-            PackageInstaller packageInstaller = context.getPackageManager().getPackageInstaller();
-            java.util.List<PackageInstaller.SessionInfo> sessions = packageInstaller.getMySessions();
-            boolean active = false;
+            SharedPreferences prefs = context.getSharedPreferences(InstallReceiver.PREFS_NAME, Context.MODE_PRIVATE);
+            boolean active = prefs.getBoolean("installation_active", false);
             int activeSessionId = -1;
             
+            PackageInstaller packageInstaller = context.getPackageManager().getPackageInstaller();
+            java.util.List<PackageInstaller.SessionInfo> sessions = packageInstaller.getMySessions();
             if (sessions != null && !sessions.isEmpty()) {
                 active = true;
                 activeSessionId = sessions.get(0).getSessionId();

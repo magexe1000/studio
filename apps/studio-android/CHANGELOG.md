@@ -12,6 +12,13 @@ Conventions:
 - Bullets start with `- ` and use plain English a non-technical user
   can parse. Keep each line short — the modal's text area is narrow.
 
+## 3.7.26
+
+### Added
+- Fixed critical PackageInstaller synchronization bug in the in-app APK installer.
+- Implemented persistent active installation tracking in native code and SharedPreferences.
+- Ensured that the fullscreen installation screen remains active during the entire installation process.
+
 ## 3.7.25
 
 ### Added

@@ -108,6 +108,9 @@ public class InstallReceiver extends BroadcastReceiver {
             editor.putString("last_status_message", message != null ? message : "");
             editor.putString("last_other_package", otherPackageName != null ? otherPackageName : "");
             editor.putLong("last_status_timestamp", System.currentTimeMillis());
+            if (status >= 0) {
+                editor.putBoolean("installation_active", false);
+            }
             editor.apply();
             
             if (AppInstallerPlugin.instance != null) {

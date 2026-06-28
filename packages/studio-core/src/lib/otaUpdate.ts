@@ -160,21 +160,38 @@ export function resetOtaUpdateState() {
 
 export async function enforceStartupRecovery() {
   console.log('[OTA DEBUG] enforceStartupRecovery starting...');
-  let isInstallationActive = false;
-
-  if (isNative() && isAppInstallerAvailable()) {
-    try {
-      const { AppInstaller } = await import('./apkDownloader');
-      const check = await AppInstaller.isInstallActive();
-      isInstallationActive = check.active;
-      console.log('[OTA DEBUG] enforceStartupRecovery: Android active session =', isInstallationActive);
-    } catch (err) {
-      console.warn('[OTA] enforceStartupRecovery error checking session:', err);
-    }
+  
+  if (!isNative() || !isAppInstallerAvailable()) {
+    return;
   }
 
-  if (!isInstallationActive) {
-    console.log('[OTA DEBUG] No active PackageInstaller session. Hard resetting all state to IDLE.');
+  try {
+    const { AppInstaller } = await import('./apkDownloader');
+    const check = await AppInstaller.isInstallActive();
+    
+    if (check.active) {
+      console.log('[OTA DEBUG] enforceStartupRecovery: Active PackageInstaller session detected. Setting state to installing.');
+      const result = await AppInstaller.getLastInstallResult();
+      const expectedName = result.expectedVersionName || null;
+      const expectedCode = result.expectedVersionCode || null;
+      
+      updateGlobalState({
+        updateState: 'installing',
+        remoteVersion: expectedName,
+        requiredVersionCode: expectedCode ? Number(expectedCode) : 0,
+        statusText: 'Installing update...',
+        loading: true,
+      });
+      return;
+    }
+
+    const result = await AppInstaller.getLastInstallResult();
+    if (result.statusCode !== -999) {
+      console.log('[OTA DEBUG] enforceStartupRecovery: Pending install result exists (code ' + result.statusCode + '). Deferring cleanup to UI.');
+      return;
+    }
+
+    console.log('[OTA DEBUG] No active session and no pending result. Resetting state to IDLE.');
     stopWatchdog();
 
     activeCheckPromise = null;
@@ -183,19 +200,14 @@ export async function enforceStartupRecovery() {
 
     resetOtaUpdateState();
 
-    if (isNative() && isAppInstallerAvailable()) {
-      try {
-        const { AppInstaller } = await import('./apkDownloader');
-        await AppInstaller.clearInstallerLogHistory();
-
-        const downloadedPath = localStorage.getItem('studio:downloadedApkPath');
-        if (downloadedPath) {
-          const { Filesystem } = await import('@capacitor/filesystem');
-          await Filesystem.deleteFile({ path: downloadedPath }).catch(() => {});
-          localStorage.removeItem('studio:downloadedApkPath');
-        }
-      } catch (_) {}
+    const downloadedPath = localStorage.getItem('studio:downloadedApkPath');
+    if (downloadedPath) {
+      const { Filesystem } = await import('@capacitor/filesystem');
+      await Filesystem.deleteFile({ path: downloadedPath }).catch(() => {});
+      localStorage.removeItem('studio:downloadedApkPath');
     }
+  } catch (err) {
+    console.warn('[OTA] enforceStartupRecovery error:', err);
   }
 }
 
@@ -780,6 +792,11 @@ export function dismissUpdate(): void {
     addToStoredList('studio:dismissedVersions', ver);
   }
   resetOtaUpdateState();
+  if (isNative() && isAppInstallerAvailable()) {
+    import('./apkDownloader').then(({ AppInstaller }) => {
+      AppInstaller.clearInstallerLogHistory().catch(() => {});
+    });
+  }
 }
 
 export function markUpdateSeen(): void {

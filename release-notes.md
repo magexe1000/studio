@@ -1,4 +1,4 @@
 ### Added
-- Replaced the planets orbits intro animation with a premium minimalist centered logo fade-scale transition.
-- Preserved 100% of the startup event model, reactMounted checks, and Capacitor AppInstaller integration.
-- All updater and offline recovery features remain fully operational.
+- Fixed critical PackageInstaller synchronization bug in the in-app APK installer.
+- Implemented persistent active installation tracking in native code and SharedPreferences.
+- Ensured that the fullscreen installation screen remains active during the entire installation process.

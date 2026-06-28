@@ -810,6 +810,10 @@ function UpdateModal({
 
   const handleStartUpdate = async () => {
     try {
+      if (isNative() && isAppInstallerAvailable()) {
+        const { AppInstaller } = await import('@workspace/studio-core');
+        await AppInstaller.clearInstallerLogHistory();
+      }
       await ota.downloadUpdate('UpdateIndicator: UpdateModal');
       await ota.applyUpdate('UpdateIndicator: UpdateModal');
     } catch (err) {
