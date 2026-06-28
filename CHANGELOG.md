@@ -12,6 +12,11 @@ Conventions:
 - Bullets start with `- ` and use plain English a non-technical user
   can parse. Keep each line short — the modal's text area is narrow.
 
+## 3.7.34
+
+### Fixed
+- Restored native PackageInstaller session flow with corrected activity lifecycle management to prevent premature dismissal of the system confirmation dialog.
+
 ## 3.7.33
 
 ### Added

@@ -1054,7 +1054,6 @@ function UpdateModal({
 
     case 'installing':
     case 'installedOrReady':
-    case 'installed':
       iconName = 'sync';
       iconColor = purpleFrom;
       showSpinner = true;
@@ -1063,11 +1062,12 @@ function UpdateModal({
       showButtons = false;
       break;
 
+    case 'installed':
     case 'update_success':
       iconName = 'check_circle';
       iconColor = '#22c55e';
       title = 'App updated successfully';
-      description = `Studio has been updated to version ${successVersion || '3.7.18'}.`;
+      description = `Studio has been updated to version ${successVersion || ota.remoteVersion || 'latest'}.`;
       showButtons = true;
       showSpinner = false;
       break;
@@ -1815,12 +1815,13 @@ function UpdateModal({
       );
     }
 
-    if (state === 'update_success') {
+    if (state === 'update_success' || state === 'installed') {
       return (
         <div style={{ marginTop: 18, width: '100%' }}>
           <button
             type="button"
             onClick={async () => {
+              console.log('[INSTRUMENTATION] [JS] Done button clicked. Requesting app exit.');
               try {
                 setSuccessVersion(null);
                 setOpen(false);

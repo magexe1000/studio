@@ -30,7 +30,6 @@ public class InstallReceiver extends BroadcastReceiver {
             long elapsed = sessionStart > 0 ? (now - sessionStart) : 0;
             newLog.put("elapsedTimeMs", elapsed);
             
-            // Generate human-readable explanation
             String explanation = getHumanReadableExplanation(stage, status, message);
             newLog.put("explanation", explanation);
             
@@ -75,7 +74,6 @@ public class InstallReceiver extends BroadcastReceiver {
     
     private static int receiverCallIdCounter = 0;
     public static int onReceiveCallCount = 0;
-    public static int startActivityCallCount = 0;
     
     private static int nextCallId() {
         synchronized (InstallReceiver.class) {
@@ -90,7 +88,7 @@ public class InstallReceiver extends BroadcastReceiver {
         int callId = nextCallId();
         
         String action = intent.getAction();
-        Log.d(TAG, "onReceive: action=" + action);
+        Log.d(TAG, "[INSTRUMENTATION] [NATIVE] InstallReceiver.onReceive: action=" + action);
         
         String threadInfo = String.format("Thread: %s (id: %d)", Thread.currentThread().getName(), Thread.currentThread().getId());
         appendLog(context, "[INSTRUMENTATION] InstallReceiver.onReceive", 0, "Call #" + callId + " [" + threadInfo + "] ENTER Action: " + action + " (total calls: " + onReceiveCallCount + ")", null, null);
@@ -100,7 +98,7 @@ public class InstallReceiver extends BroadcastReceiver {
             String message = intent.getStringExtra(PackageInstaller.EXTRA_STATUS_MESSAGE);
             String otherPackageName = intent.getStringExtra(PackageInstaller.EXTRA_OTHER_PACKAGE_NAME);
             
-            Log.d(TAG, "Install status: " + status + ", message: " + message + ", package: " + otherPackageName);
+            Log.d(TAG, "[INSTRUMENTATION] [NATIVE] InstallReceiver status: " + status + ", message: " + message + ", package: " + otherPackageName);
             
             SharedPreferences prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE);
             SharedPreferences.Editor editor = prefs.edit();
@@ -118,43 +116,16 @@ public class InstallReceiver extends BroadcastReceiver {
                 eventData.put("status", status);
                 eventData.put("message", message != null ? message : "");
                 eventData.put("packageName", otherPackageName != null ? otherPackageName : "");
+                Log.d(TAG, "[INSTRUMENTATION] [NATIVE] Emitting status " + status + " to JS");
                 AppInstallerPlugin.instance.emitInstallStatus(eventData);
+            } else {
+                Log.w(TAG, "[INSTRUMENTATION] [NATIVE] AppInstallerPlugin.instance is null. Cannot emit status to JS.");
             }
             
             appendLog(context, "Broadcast Received", status, message, otherPackageName, null);
-            appendLog(context, "IntentSender Delivered", status, message, otherPackageName, null);
             
             if (status == PackageInstaller.STATUS_PENDING_USER_ACTION) {
-                appendLog(context, "Installer dialog displayed", status, "Launching system confirmation screen", otherPackageName, null);
-                Intent confirmIntent = intent.getParcelableExtra(Intent.EXTRA_INTENT);
-                if (confirmIntent != null) {
-                    startActivityCallCount++;
-                    String confirmAction = confirmIntent.getAction();
-                    int confirmFlags = confirmIntent.getFlags();
-                    android.content.ComponentName confirmComponent = confirmIntent.getComponent();
-                    String confirmDetails = String.format("Action: %s, Flags: 0x%X, Component: %s", confirmAction, confirmFlags, confirmComponent != null ? confirmComponent.flattenToString() : "null");
-                    appendLog(context, "[INSTRUMENTATION] InstallReceiver.startActivity", status, "Calling startActivity() call #" + startActivityCallCount + " for Intent: " + confirmDetails, otherPackageName, null);
-                    
-                    confirmIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-                    try {
-                        if (android.os.Build.VERSION.SDK_INT >= 34) {
-                            android.app.ActivityOptions options = android.app.ActivityOptions.makeBasic();
-                            options.setPendingIntentBackgroundActivityStartMode(
-                                    android.app.ActivityOptions.MODE_BACKGROUND_ACTIVITY_START_ALLOWED);
-                            context.startActivity(confirmIntent, options.toBundle());
-                        } else {
-                            context.startActivity(confirmIntent);
-                        }
-                        appendLog(context, "[INSTRUMENTATION] InstallReceiver.startActivity", status, "startActivity() completed successfully", otherPackageName, null);
-                    } catch (Exception e) {
-                        Log.e(TAG, "Failed to launch confirmation activity", e);
-                        appendLog(context, "[INSTRUMENTATION] InstallReceiver.startActivity", status, "startActivity() threw exception: " + e.getMessage() + "\nStack: " + Log.getStackTraceString(e), otherPackageName, Log.getStackTraceString(e));
-                        appendLog(context, "Install Failure", status, "Failed to launch confirmation activity: " + e.getMessage(), otherPackageName, Log.getStackTraceString(e));
-                    }
-                } else {
-                    appendLog(context, "[INSTRUMENTATION] InstallReceiver.startActivity", status, "Error: confirmIntent was null", otherPackageName, null);
-                    appendLog(context, "Install Failure", status, "System confirmation intent was null", otherPackageName, null);
-                }
+                appendLog(context, "Installer dialog displayed", status, "System confirmation screen requested (handled by InstallActivity)", otherPackageName, null);
             } else if (status == PackageInstaller.STATUS_SUCCESS) {
                 appendLog(context, "User Accepted", status, "User accepted installation", otherPackageName, null);
                 appendLog(context, "Install Success", status, "Update installation complete", otherPackageName, null);

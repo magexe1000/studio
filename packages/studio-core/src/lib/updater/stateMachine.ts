@@ -128,7 +128,7 @@ export function transitionToState(state: OtaUpdateState, reason: string) {
   } else if (current === 'ready_to_install') {
     isValid = ['waiting_for_confirmation', 'installing', 'failed', 'idle'].includes(state);
   } else if (current === 'waiting_for_confirmation') {
-    isValid = ['installing', 'failed', 'idle'].includes(state);
+    isValid = ['installing', 'failed', 'idle', 'installed'].includes(state);
   } else if (current === 'installing') {
     isValid = ['installed', 'install_failed', 'failed', 'idle', 'waiting_for_confirmation'].includes(state);
   } else if (current === 'installed') {

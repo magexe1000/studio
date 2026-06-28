@@ -735,27 +735,34 @@ export function applyUpdate(trigger?: string): Promise<void> {
       const { AppInstaller } = await import('./apkDownloader');
       const statusPromise = new Promise<void>(async (resolvePromise, rejectPromise) => {
         try {
+          console.log('[INSTRUMENTATION] [JS] Registering native status listener for onInstallStatusChanged');
           nativeListener = await (AppInstaller as any).addListener('onInstallStatusChanged', (eventData: any) => {
             const status = eventData.status;
             const message = eventData.message;
-            console.log('[OTA UPDATE] onInstallStatusChanged:', eventData);
+            console.log('[INSTRUMENTATION] [JS] onInstallStatusChanged received:', eventData);
 
             if (status === -1) { // STATUS_PENDING_USER_ACTION
+              console.log('[INSTRUMENTATION] [JS] STATUS_PENDING_USER_ACTION received. Showing confirmation dialog.');
               transitionToState('waiting_for_confirmation', 'Native prompt displayed');
               updateGlobalState({ statusText: 'System confirmation dialog is showing...' });
             } else if (status === -2) { // installing_start
+              console.log('[INSTRUMENTATION] [JS] Session active. Installation started.');
               transitionToState('installing', 'PackageInstaller session active');
               updateGlobalState({ statusText: 'Installing update...' });
             } else if (status === -3) { // installing_progress
               const progressPct = Math.round((eventData.progress || 0) * 100);
+              console.log(`[INSTRUMENTATION] [JS] Installation progress: ${progressPct}%`);
               updateGlobalState({ statusText: `Installing... (${progressPct}%)` });
             } else if (status === 0) { // STATUS_SUCCESS
+              console.log('[INSTRUMENTATION] [JS] STATUS_SUCCESS received. Installation completed successfully.');
               transitionToState('installed', 'PackageInstaller success');
               resolvePromise();
             } else if (status === 3) { // STATUS_FAILURE_ABORTED (User cancelled)
+              console.log('[INSTRUMENTATION] [JS] STATUS_FAILURE_ABORTED received. User cancelled.');
               transitionToState('failed', 'User cancelled installation');
               rejectPromise(new Error('Installation cancelled by user.'));
             } else {
+              console.log(`[INSTRUMENTATION] [JS] Installation failed with status ${status}: ${message}`);
               transitionToState('failed', `Install failed: ${message || `code ${status}`}`);
               rejectPromise(new Error(message || `PackageInstaller error code ${status}`));
             }
