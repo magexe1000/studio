@@ -12,6 +12,11 @@ Conventions:
 - Bullets start with `- ` and use plain English a non-technical user
   can parse. Keep each line short — the modal's text area is narrow.
 
+## 3.7.32
+
+### Fixed
+- Fixed critical race condition in the updater state machine where the native PackageInstaller session becoming active caused an invalid state transition, resetting the updater to idle.
+
 ## 3.7.31
 
 ### Added
