@@ -77,6 +77,11 @@
                 android:resource="@xml/file_paths"></meta-data>
         </provider>
 
+        <activity
+            android:name=".InstallActivity"
+            android:theme="@android:style/Theme.Translucent.NoTitleBar"
+            android:exported="true" />
+
         <receiver
             android:name=".InstallReceiver"
             android:exported="true">

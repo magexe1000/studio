@@ -12,6 +12,12 @@ Conventions:
 - Bullets start with `- ` and use plain English a non-technical user
   can parse. Keep each line short — the modal's text area is narrow.
 
+## 3.7.30
+
+### Added
+- Fixed critical bug where the Android PackageInstaller prompt never appeared due to background activity start restrictions on Android 14.
+- Implemented a transparent foreground InstallActivity to reliably launch the installer confirmation screen.
+
 ## 3.7.29
 
 ### Added
