@@ -115,7 +115,7 @@ public class InstallReceiver extends BroadcastReceiver {
                 eventData.put("status", status);
                 eventData.put("message", message != null ? message : "");
                 eventData.put("packageName", otherPackageName != null ? otherPackageName : "");
-                AppInstallerPlugin.instance.notifyListeners("onInstallStatusChanged", eventData);
+                AppInstallerPlugin.instance.emitInstallStatus(eventData);
             }
             
             appendLog(context, "Broadcast Received", status, message, otherPackageName, null);

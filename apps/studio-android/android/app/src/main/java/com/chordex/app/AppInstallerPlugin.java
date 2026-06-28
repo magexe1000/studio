@@ -68,6 +68,10 @@ public class AppInstallerPlugin extends Plugin {
         instance = this;
     }
 
+    public void emitInstallStatus(JSObject data) {
+        notifyListeners("onInstallStatusChanged", data);
+    }
+
     private static int callIdCounter = 0;
     
     public static int downloadApkCallCount = 0;
@@ -744,7 +748,7 @@ public class AppInstallerPlugin extends Plugin {
                                 JSObject data = new JSObject();
                                 data.put("status", -2); // installing start
                                 data.put("message", "installing_start");
-                                instance.notifyListeners("onInstallStatusChanged", data);
+                                instance.emitInstallStatus(data);
                             }
                         }
                     }
@@ -757,7 +761,7 @@ public class AppInstallerPlugin extends Plugin {
                                 data.put("status", -3); // installing progress
                                 data.put("message", "installing_progress");
                                 data.put("progress", progress);
-                                instance.notifyListeners("onInstallStatusChanged", data);
+                                instance.emitInstallStatus(data);
                             }
                         }
                     }
