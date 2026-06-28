@@ -12,6 +12,13 @@ Conventions:
 - Bullets start with `- ` and use plain English a non-technical user
   can parse. Keep each line short — the modal's text area is narrow.
 
+## 3.7.15
+
+### Added
+- Staged updater installation progress screen flow.
+- Background resume detection and failed-state recovery options.
+- Enriched compositor watchdog telemetry with deep diagnostics.
+
 ## 3.7.14
 
 ### Added

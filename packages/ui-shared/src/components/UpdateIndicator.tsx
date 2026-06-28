@@ -230,45 +230,70 @@ export default function UpdateIndicator({
   }, []);
 
   useEffect(() => {
+    const appliedVer = localStorage.getItem('studio:appliedUpdateVersion');
+    const showSuccess = localStorage.getItem('studio:showUpdateSuccess');
+    if (appliedVer && showSuccess === 'true') {
+      localStorage.removeItem('studio:showUpdateSuccess');
+      localStorage.removeItem('studio:appliedUpdateVersion');
+      setSuccessVersion(appliedVer);
+      setOpen(true);
+      const timer = setTimeout(() => {
+        setSuccessVersion(null);
+        setOpen(false);
+        ota.dismissUpdate();
+      }, 1800);
+      return () => clearTimeout(timer);
+    }
+  }, []);
+
+  useEffect(() => {
     let active = true;
     let listener: any = null;
-    let timer: any = null;
+    let timeoutTimer: any = null;
+    let didGoBackground = false;
     
-    if (open && ota.updateState === 'installed') {
-      console.log('[Updater Handoff] UpdateState is "installed". Monitoring background transition...');
+    const isInstallingOrInstalled = ['installing', 'installed'].includes(ota.updateState);
+    
+    if (open && isInstallingOrInstalled && !installFailedReason && !successVersion) {
+      console.log('[Updater Handoff] Monitoring installer handoff...');
+      
       import('@capacitor/app').then(async ({ App }) => {
         if (!active) return;
-        listener = await App.addListener('appStateChange', (state) => {
-          if (!state.isActive && active) {
-            console.log('[Updater Handoff] App moved to background, dismissing updater.');
-            setOpen(false);
-            ota.dismissUpdate();
+        listener = await App.addListener('appStateChange', (s) => {
+          if (!active) return;
+          console.log('[Updater Handoff] App state changed:', s.isActive);
+          if (!s.isActive) {
+            didGoBackground = true;
+            if (timeoutTimer) clearTimeout(timeoutTimer);
+          } else {
+            // Returned to foreground. Check if version actually updated
+            if (didGoBackground) {
+              console.log('[Updater Handoff] App resumed. Version checking...');
+              setTimeout(() => {
+                if (active) {
+                  setInstallFailedReason('The installation prompt was cancelled or did not complete.');
+                }
+              }, 500);
+            }
           }
         });
       }).catch(err => console.warn('Failed to load App plugin:', err));
       
-      // Fallback timer: close after 6 seconds if app backgrounding wasn't detected
-      timer = setTimeout(async () => {
-        if (active) {
-          console.log('[Updater Handoff] Fallback timer reached, closing updater and minimizing.');
-          setOpen(false);
-          ota.dismissUpdate();
-          if (isNative()) {
-            try {
-              const { App } = await import('@capacitor/app');
-              await App.minimizeApp();
-            } catch {}
-          }
+      // 8-second safety timeout: if the app never goes to the background, installer failed to launch
+      timeoutTimer = setTimeout(() => {
+        if (active && !didGoBackground) {
+          console.warn('[Updater Handoff] 8s timeout reached. App never went to background.');
+          setInstallFailedReason('The system installer could not be launched.');
         }
-      }, 6000);
+      }, 8000);
     }
     
     return () => {
       active = false;
       if (listener) listener.remove();
-      if (timer) clearTimeout(timer);
+      if (timeoutTimer) clearTimeout(timeoutTimer);
     };
-  }, [open, ota.updateState]);
+  }, [open, ota.updateState, installFailedReason, successVersion]);
 
   // Auto-minimize disabled per user request so the banner remains fully visible.
 
@@ -705,6 +730,8 @@ function UpdateModal({
   onLater: () => void;
 }) {
   const ota = useOtaUpdate();
+  const [successVersion, setSuccessVersion] = useState<string | null>(null);
+  const [installFailedReason, setInstallFailedReason] = useState<string | null>(null);
   const [permissionBlocked, setPermissionBlocked] = useState(false);
   const [diagnosticsOpen, setDiagnosticsOpen] = useState(false);
   const [linkCopied, setLinkCopied] = useState(false);
@@ -807,8 +834,13 @@ function UpdateModal({
   let showButtons = true;
   let showSpinner = false;
 
-  let state = permissionBlocked ? 'permission_blocked' : ota.updateState;
-  if (ota.updateState === 'update_available') {
+  let state = successVersion
+    ? 'update_success'
+    : (installFailedReason
+        ? 'install_failed'
+        : (permissionBlocked ? 'permission_blocked' : ota.updateState)
+      );
+  if (state === 'update_available') {
     if (ota.reinstallRequired) {
       state = 'reinstall_warning';
     } else if (ota.apkUpdateRequired && !isAppInstallerAvailable()) {
@@ -816,7 +848,7 @@ function UpdateModal({
     } else {
       state = 'available';
     }
-  } else if (ota.updateState === 'waiting_for_confirmation') {
+  } else if (state === 'waiting_for_confirmation') {
     state = 'available';
   } else if (ota.updateState === 'ready_to_install') {
     state = 'readyForInstallPrompt';
@@ -960,6 +992,24 @@ function UpdateModal({
       title = 'Installing update...';
       description = ota.statusText || 'Waiting for system confirmation...';
       showButtons = false;
+      break;
+
+    case 'update_success':
+      iconName = 'check_circle';
+      iconColor = '#22c55e';
+      title = 'App updated successfully';
+      description = `Studio has been updated to version ${successVersion || '3.7.15'}.`;
+      showButtons = false;
+      showSpinner = false;
+      break;
+
+    case 'install_failed':
+      iconName = 'error';
+      iconColor = '#f87171';
+      title = 'Installation Failed';
+      description = installFailedReason || 'The installation could not be launched.';
+      showButtons = false;
+      showSpinner = false;
       break;
 
     case 'signature_mismatch':
@@ -2028,6 +2078,8 @@ function UpdateModal({
     'installing',
     'installedOrReady',
     'installed',
+    'update_success',
+    'install_failed',
     'failed'
   ].includes(state);
 
@@ -2076,6 +2128,98 @@ function UpdateModal({
           >
             <GithubIcon size={18} color="var(--c-text-secondary)" />
             Download from GitHub
+          </button>
+        </div>
+      );
+    } else if (state === 'install_failed') {
+      actionButtons = (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 10, width: '100%', marginTop: 20 }}>
+          <div style={{ display: 'flex', gap: 10, width: '100%' }}>
+            <button
+              onClick={async () => {
+                setInstallFailedReason(null);
+                await handleInstallApk();
+              }}
+              style={{
+                flex: 1, padding: '12px', borderRadius: 12,
+                background: `linear-gradient(90deg, ${purpleFrom}, ${purpleTo})`,
+                color: '#fff', border: 'none', fontWeight: 700, cursor: 'pointer',
+                fontFamily: 'Manrope, sans-serif',
+                transition: 'opacity 200ms ease',
+              }}
+            >
+              Retry
+            </button>
+            <button
+              onClick={async () => {
+                setInstallFailedReason(null);
+                await handleInstallApk();
+              }}
+              style={{
+                flex: 1, padding: '12px', borderRadius: 12,
+                background: 'rgba(128,128,128,0.12)',
+                color: 'var(--c-text-primary)', border: 'none', fontWeight: 700, cursor: 'pointer',
+                fontFamily: 'Manrope, sans-serif',
+                transition: 'background-color 200ms ease',
+              }}
+            >
+              Continue
+            </button>
+          </div>
+          <div style={{ display: 'flex', gap: 10, width: '100%' }}>
+            <button
+              onClick={() => setShowGitHubConfirm(true)}
+              style={{
+                flex: 1, padding: '12.5px 12px', borderRadius: 12,
+                background: 'transparent',
+                border: '1px solid rgba(128, 128, 128, 0.25)',
+                color: 'var(--c-text-secondary)', fontWeight: 700, cursor: 'pointer',
+                fontFamily: 'Manrope, sans-serif',
+                display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+              }}
+            >
+              <GithubIcon size={16} color="var(--c-text-secondary)" />
+              GitHub
+            </button>
+            <button
+              onClick={async () => {
+                const text = getDiagnosticsText();
+                if (typeof navigator !== 'undefined' && navigator.clipboard) {
+                  try {
+                    await navigator.clipboard.writeText(text);
+                    alert('Diagnostics copied to clipboard!');
+                  } catch {
+                    alert('Diagnostics info: ' + text.slice(0, 100));
+                  }
+                } else {
+                  alert('Diagnostics info: ' + text.slice(0, 100));
+                }
+              }}
+              style={{
+                flex: 1, padding: '12.5px 12px', borderRadius: 12,
+                background: 'transparent',
+                border: '1px solid rgba(128, 128, 128, 0.25)',
+                color: 'var(--c-text-secondary)', fontWeight: 700, cursor: 'pointer',
+                fontFamily: 'Manrope, sans-serif',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+              }}
+            >
+              Copy Logs
+            </button>
+          </div>
+          <button
+            onClick={() => {
+              setInstallFailedReason(null);
+              onClose();
+            }}
+            style={{
+              width: '100%', padding: '12px', borderRadius: 12,
+              background: 'rgba(128,128,128,0.06)',
+              color: 'var(--c-text-secondary)', border: 'none', fontWeight: 700, cursor: 'pointer',
+              fontFamily: 'Manrope, sans-serif',
+            }}
+          >
+            Cancel
           </button>
         </div>
       );

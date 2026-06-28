@@ -1744,7 +1744,7 @@ export default function App() {
     const handleIntroDone = () => {
       if (fallbackTimer) clearTimeout(fallbackTimer);
       window.removeEventListener('studio-intro-done', handleIntroDone);
-      runPhase3();
+      setTimeout(runPhase3, 1000);
     };
 
     if (typeof window !== 'undefined') {
@@ -2216,14 +2216,32 @@ export default function App() {
         diag.failedReturns++;
         diag.blackScreenDetections++;
         diag.lastBlocker = finalReason;
-        diag.lastPayload = paintData ? { ...statePayload, paintVerification: paintData } : statePayload;
         
-        console.error('BLACK_SCREEN_DETECTED', finalReason, statePayload);
+        const systemDiagnostics = {
+          activeElement: document.activeElement ? `${document.activeElement.tagName.toLowerCase()}${document.activeElement.id ? '#' + document.activeElement.id : ''}${document.activeElement.className ? '.' + document.activeElement.className.split(' ').join('.') : ''}` : 'none',
+          rootChildrenCount: document.getElementById('root')?.children?.length || 0,
+          currentAppMode: useChordStore.getState().settings.appMode || 'none',
+          transitionActive: (window as any).studioTransitionActive || false,
+          memory: (performance as any).memory ? {
+            usedJSHeapSize: (performance as any).memory.usedJSHeapSize,
+            totalJSHeapSize: (performance as any).memory.totalJSHeapSize
+          } : 'N/A',
+          url: window.location.href,
+          timestamp: new Date().toISOString()
+        };
+        
+        const enrichedPayload = paintData
+          ? { ...statePayload, paintVerification: paintData, systemDiagnostics }
+          : { ...statePayload, systemDiagnostics };
+          
+        diag.lastPayload = enrichedPayload;
+        
+        console.error('BLACK_SCREEN_DETECTED', finalReason, enrichedPayload);
         
         diag.history.push({
           time: Date.now(),
           reason: finalReason,
-          payload: paintData ? { ...statePayload, paintVerification: paintData } : statePayload
+          payload: enrichedPayload
         });
 
         try {

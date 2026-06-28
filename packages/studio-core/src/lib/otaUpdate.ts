@@ -639,6 +639,7 @@ export function applyUpdate(trigger?: string): Promise<void> {
 
   transitionToState('installing', 'applyUpdate start');
   localStorage.setItem('studio:appliedUpdateVersion', remoteVersion);
+  localStorage.setItem('studio:showUpdateSuccess', 'true');
   addToStoredList('studio:installedVersions', remoteVersion);
   addToStoredList('studio:appliedVersions', remoteVersion);
   logActivity('apk_install', `Installing APK system update (v${remoteVersion})`, 'Studio');
@@ -650,7 +651,7 @@ export function applyUpdate(trigger?: string): Promise<void> {
         throw new Error('No downloaded APK path found.');
       }
 
-      updateGlobalState({ statusText: 'Verifying update eligibility' });
+      updateGlobalState({ statusText: 'Installing update...' });
       const isEligible = await runEligibilityCheck(filePath);
       if (!isEligible) {
         if (otaDebugLogs.eligibilityReason === 'signature_mismatch' && !isRecovering) {
@@ -661,8 +662,10 @@ export function applyUpdate(trigger?: string): Promise<void> {
       }
 
       otaDebugLogs.installError += `\nAPK is eligible. Launching APK installer intent for file: ${filePath}`;
-      updateGlobalState({ statusText: 'Launching APK installer' });
+      updateGlobalState({ statusText: 'Waiting for Android...' });
+      await new Promise((resolve) => setTimeout(resolve, 800));
 
+      updateGlobalState({ statusText: 'Installing...' });
       void logProgressStage('Session committed', 'Handing over to PackageInstaller');
       await triggerNativeInstall(filePath);
       void logProgressStage('Waiting for Android confirmation', 'Waiting for system confirmation dialog to overlay');
@@ -671,6 +674,9 @@ export function applyUpdate(trigger?: string): Promise<void> {
       otaDebugLogs.installerLaunchStatus = 'SUCCESS';
       otaDebugLogs.lastExceptionStackTrace = 'None';
       otaDebugLogs.finalPathExecuted = 'APK installer launched';
+      
+      updateGlobalState({ statusText: 'Finalizing...' });
+      await new Promise((resolve) => setTimeout(resolve, 600));
       transitionToState('installed', 'APK installer launched');
       
       console.log(`[INSTRUMENTATION] applyUpdate EXIT Call #${callId} (Resolved: Installer intent launched)`);
@@ -744,7 +750,7 @@ export function useOtaUpdate() {
         const handleIntroDone = () => {
           if (introTimer) clearTimeout(introTimer);
           window.removeEventListener('studio-intro-done', handleIntroDone);
-          initUpdater();
+          setTimeout(initUpdater, 1000);
         };
         window.addEventListener('studio-intro-done', handleIntroDone);
         introTimer = setTimeout(handleIntroDone, 3000);

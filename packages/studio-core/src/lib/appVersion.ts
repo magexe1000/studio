@@ -26,7 +26,7 @@ import { useMemo } from 'react';
 import { Capacitor } from '@capacitor/core';
 
 /** Canonical semver string used by the OTA comparator. */
-export const NATIVE_VERSION = '3.7.14';
+export const NATIVE_VERSION = '3.7.15';
 export const WEB_VERSION = '4.0.0';
 export const APP_VERSION = Capacitor.isNativePlatform() ? NATIVE_VERSION : WEB_VERSION;
 
@@ -38,11 +38,11 @@ export const APP_VERSION_LABEL = `${APP_VERSION_TAG} ${APP_VERSION}`;
 
 /** Release date for the CURRENT bundle, shown alongside the version pill
  *  in the changelog sheet. ISO-8601 (`YYYY-MM-DD`). */
-export const APP_VERSION_DATE = '2026-06-27'; // 3.7.5
+export const APP_VERSION_DATE = '2026-06-28'; // 3.7.15
 // Note: keep ISO-8601. Bump together with APP_VERSION on each release.
 
 export const APP_COMMIT_SHA = import.meta.env.VITE_GIT_COMMIT_SHA || 'efd2b1a3';
-export const APP_BUILD_TIMESTAMP = import.meta.env.VITE_BUILD_TIMESTAMP || '6/27/2026, 6:00:00 PM CST';
+export const APP_BUILD_TIMESTAMP = import.meta.env.VITE_BUILD_TIMESTAMP || '6/28/2026, 6:00:00 PM CST';
 
 /**
  * Changelog for the CURRENT release — shown to the user the first
@@ -61,10 +61,9 @@ export const APP_CHANGELOG_SECTIONS: ChangelogSection[] = [
   {
     heading: "Added",
     items: [
-      "Fullscreen updater UI locking and spinner integration.",
-      "Dedicated installing progress screen overlay.",
-      "Complete production end-to-end update validation.",
-      "Architectural and regression suite audits.",
+      "Staged updater installation progress screen flow.",
+      "Background resume detection and failed-state recovery options.",
+      "Enriched compositor watchdog telemetry with deep diagnostics.",
     ],
   },
 ];
@@ -74,9 +73,9 @@ export const APP_CHANGELOG_SECTIONS_NATIVE: ChangelogSection[] = [
   {
     heading: "What's New",
     items: [
-      "Added advanced update stability and failsafe multi-stage recovery flow.",
-      "Added direct installer package downloads and verification from official GitHub mirrors.",
-      "Improved updater error reporting with helpful human-readable troubleshooting guidance.",
+      "Added continuous installation completion states with success/fail panels.",
+      "Added background resume checks and 8-second safety timeouts.",
+      "Improved compositor watchdog diagnostics to minimize false black screens.",
     ],
   },
 ];

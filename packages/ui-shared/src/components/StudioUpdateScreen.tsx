@@ -75,7 +75,9 @@ export default function StudioUpdateScreen({
     'waitingForUserInstallConfirmation',
     'installing',
     'installedOrReady',
-    'installed'
+    'installed',
+    'update_success',
+    'install_failed',
   ].includes(updateState) || pct >= 100;
 
   // Shuffled pool — stable across re-renders via useState initializer
@@ -163,25 +165,66 @@ export default function StudioUpdateScreen({
               height: 120,
               marginBottom: 10
             }}>
-              <motion.div
-                animate={{ rotate: 360 }}
-                transition={{ repeat: Infinity, duration: 1.8, ease: "linear" }}
-                style={{
-                  width: 64,
-                  height: 64,
-                  borderRadius: '50%',
-                  border: `4px solid color-mix(in srgb, ${accentFrom} 20%, transparent)`,
-                  borderTop: `4px solid ${accentFrom}`,
-                  boxShadow: `0 0 20px color-mix(in srgb, ${accentFrom} 25%, transparent)`,
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                }}
-              >
-                <span className="material-symbols-outlined" style={{ fontSize: 32, color: accentFrom }}>
-                  system_update
-                </span>
-              </motion.div>
+              {updateState === 'update_success' ? (
+                <motion.div
+                  initial={{ scale: 0 }}
+                  animate={{ scale: 1 }}
+                  transition={{ type: 'spring', stiffness: 200, damping: 15 }}
+                  style={{
+                    width: 64,
+                    height: 64,
+                    borderRadius: '50%',
+                    background: '#22c55e',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    boxShadow: '0 0 20px rgba(34, 197, 94, 0.4)',
+                  }}
+                >
+                  <span className="material-symbols-outlined" style={{ fontSize: 36, color: '#fff' }}>
+                    check
+                  </span>
+                </motion.div>
+              ) : updateState === 'install_failed' ? (
+                <motion.div
+                  initial={{ scale: 0 }}
+                  animate={{ scale: 1 }}
+                  style={{
+                    width: 64,
+                    height: 64,
+                    borderRadius: '50%',
+                    background: '#f87171',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    boxShadow: '0 0 20px rgba(248, 113, 113, 0.4)',
+                  }}
+                >
+                  <span className="material-symbols-outlined" style={{ fontSize: 36, color: '#fff' }}>
+                    close
+                  </span>
+                </motion.div>
+              ) : (
+                <motion.div
+                  animate={{ rotate: 360 }}
+                  transition={{ repeat: Infinity, duration: 1.8, ease: "linear" }}
+                  style={{
+                    width: 64,
+                    height: 64,
+                    borderRadius: '50%',
+                    border: `4px solid color-mix(in srgb, ${accentFrom} 20%, transparent)`,
+                    borderTop: `4px solid ${accentFrom}`,
+                    boxShadow: `0 0 20px color-mix(in srgb, ${accentFrom} 25%, transparent)`,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                  }}
+                >
+                  <span className="material-symbols-outlined" style={{ fontSize: 32, color: accentFrom }}>
+                    system_update
+                  </span>
+                </motion.div>
+              )}
             </div>
           ) : (
             <div
@@ -239,7 +282,11 @@ export default function StudioUpdateScreen({
               opacity: 0.9,
             }}
           >
-            {isInstallingState ? 'Installing update...' : displayMsg}
+            {updateState === 'update_success'
+              ? 'App updated successfully'
+              : updateState === 'install_failed'
+                ? 'Installation failed'
+                : (isInstallingState ? (statusText || 'Installing update...') : displayMsg)}
           </motion.div>
 
           {isInstallingState && (
@@ -255,7 +302,11 @@ export default function StudioUpdateScreen({
                 lineHeight: 1.5,
               }}
             >
-              Please follow the Android installation prompts.
+              {updateState === 'update_success'
+                ? statusText
+                : updateState === 'install_failed'
+                  ? 'The system installer was cancelled or could not start.'
+                  : 'Please follow the Android installation prompts.'}
             </motion.p>
           )}
 
