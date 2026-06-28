@@ -43,7 +43,7 @@ export async function runEligibilityCheck(filePath: string, allowDowngrade?: boo
     // Populate eligibility checks
     if (el.installed && el.downloaded) {
       otaDebugLogs.eligibilityPackageNameMatch = el.installed.packageName === el.downloaded.packageName;
-      otaDebugLogs.eligibilitySigningMatch = el.installed.signingSha256.replace(/:/g, '').toLowerCase() === el.downloaded.signingSha256.replace(/:/g, '').toLowerCase();
+      otaDebugLogs.eligibilitySigningMatch = (el.installed.signingSha256 || '').replace(/:/g, '').toLowerCase() === (el.downloaded.signingSha256 || '').replace(/:/g, '').toLowerCase();
       otaDebugLogs.eligibilityVersionCodeHigher = el.downloaded.versionCode > el.installed.versionCode;
       otaDebugLogs.eligibilityReleaseBuild = el.downloaded.debuggable === false;
       otaDebugLogs.eligibilityValidApk = el.downloaded.isValidApk === true;
@@ -55,7 +55,7 @@ export async function runEligibilityCheck(filePath: string, allowDowngrade?: boo
       otaDebugLogs.validationStage = 'Post-Download Package Verification';
       otaDebugLogs.exactFailingStage = el.reason === 'signature_mismatch' ? 'Certificate Fingerprint Match Check' : (el.reason === 'packageName_mismatch' ? 'Package Name Match Check' : 'Version/Metadata Match Check');
       otaDebugLogs.rootCause = el.reason === 'signature_mismatch' 
-        ? `Signing certificate mismatch. Expected production fingerprint: ${PRODUCTION_SIGNING_SHA256}, but the downloaded APK was signed with fingerprint: ${el.downloaded.signingSha256}`
+        ? `Signing certificate mismatch. Expected production fingerprint: ${PRODUCTION_SIGNING_SHA256}, but the downloaded APK was signed with fingerprint: ${el.downloaded.signingSha256 || 'N/A'}`
         : el.errorDetails || 'N/A';
       otaDebugLogs.suggestedFix = el.reason === 'signature_mismatch'
         ? 'Re-sign the update package using the official production key corresponding to the production certificate fingerprint, or reinstall the official production app release.'

@@ -280,4 +280,34 @@ public class MainActivity extends BridgeActivity {
             android.util.Log.w("MainActivity", "OTA background work failed to schedule: " + e.getMessage());
         }
     }
+
+    @Override
+    public void onStart() {
+        super.onStart();
+        AppInstallerPlugin.logNativeInstrumentation(this, "MainActivity", -1, "onStart", "MainActivity entered onStart");
+    }
+
+    @Override
+    public void onResume() {
+        super.onResume();
+        AppInstallerPlugin.logNativeInstrumentation(this, "MainActivity", -1, "onResume", "MainActivity entered onResume");
+    }
+
+    @Override
+    public void onPause() {
+        super.onPause();
+        AppInstallerPlugin.logNativeInstrumentation(this, "MainActivity", -1, "onPause", "MainActivity entered onPause");
+    }
+
+    @Override
+    public void onStop() {
+        super.onStop();
+        AppInstallerPlugin.logNativeInstrumentation(this, "MainActivity", -1, "onStop", "MainActivity entered onStop");
+    }
+
+    @Override
+    public void onDestroy() {
+        super.onDestroy();
+        AppInstallerPlugin.logNativeInstrumentation(this, "MainActivity", -1, "onDestroy", "MainActivity entered onDestroy");
+    }
 }

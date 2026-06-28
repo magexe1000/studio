@@ -237,7 +237,7 @@ export default function UpdateIndicator({
       try {
         if (isNative()) {
           // 1. Get the last native installation result
-          const lastResult = await AppInstaller.getLastInstallResult();
+          const lastResult = (await AppInstaller.getLastInstallResult()) as any;
           console.log('[OTA Success Check] Last native install result:', lastResult);
           
           if (lastResult.statusCode === 0) { // PackageInstaller success
@@ -1824,7 +1824,7 @@ function UpdateModal({
               console.log('[INSTRUMENTATION] [JS] Done button clicked. Requesting app exit.');
               try {
                 setSuccessVersion(null);
-                setOpen(false);
+                onClose();
                 ota.dismissUpdate();
                 if (isNative()) {
                   await AppInstaller.clearInstallerLogHistory();

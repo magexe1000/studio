@@ -28,7 +28,7 @@ import { verifyFileIntegrity } from './updater/integrityVerification';
 import { runEligibilityCheck } from './updater/eligibilityVerification';
 import { triggerNativeInstall, processLastInstallResult } from './updater/installer';
 import { runSignatureMismatchRecovery, isRecovering, setIsRecovering } from './updater/recovery';
-import { updaterSimulation, setSimulateStatusCallback, addJsLog } from './updater/updaterSimulation';
+import { updaterSimulation, setSimulateStatusCallback, addJsLog, triggerSimulatedStatus } from './updater/updaterSimulation';
 import { validateLocalApk, deleteLocalApk, getLocalApkPath, recordDismissal, shouldShowRecoveryReminder } from './updater/cacheManager';
 import {
   otaDebugLogs,
@@ -285,6 +285,16 @@ export function checkForUpdate(isManual = false): Promise<CentralizedOtaState> {
   activeCheckPromise = (async () => {
     transitionToState('checking', 'checkForUpdate start');
     try {
+      if (updaterSimulation.forceMetadataFailure) {
+        addJsLog('Simulation override: Injecting Metadata Fetch Failure');
+        throw new Error('[Metadata Failure] Simulated network metadata fetch failure.');
+      }
+      
+      if (updaterSimulation.forceRecoveryMode) {
+        addJsLog('Simulation override: Forcing Recovery Mode');
+        updateGlobalState({ consecutiveFailures: 5, recoveryMode: true });
+      }
+
       const natVer = await getNativeVersion();
       const natVerCode = await getNativeVersionCode();
 
@@ -320,6 +330,26 @@ export function checkForUpdate(isManual = false): Promise<CentralizedOtaState> {
         addJsLog(`Simulation override: Forcing Downgrade (v3.7.10)`);
       } else {
         remote = await fetchRemoteVersion();
+      }
+
+      if (remote) {
+        if (updaterSimulation.forceApkUpdate) {
+          addJsLog('Simulation override: Forcing APK update type');
+          remote.updateType = 'apk';
+          remote.apkUrl = remote.apkUrl || 'https://cdn.example.com/studio-3.7.99.apk';
+        } else if (updaterSimulation.forceOtaUpdate) {
+          addJsLog('Simulation override: Forcing OTA update type');
+          remote.updateType = 'ota';
+          remote.downloadUrl = remote.downloadUrl || 'https://cdn.example.com/studio-3.7.99.zip';
+        }
+        
+        if (updaterSimulation.forceMandatoryUpdate) {
+          addJsLog('Simulation override: Forcing Mandatory Update');
+          remote.mandatory = true;
+        } else if (updaterSimulation.forceOptionalUpdate) {
+          addJsLog('Simulation override: Forcing Optional Update');
+          remote.mandatory = false;
+        }
       }
 
       if (checkId !== latestCheckId) {
@@ -507,6 +537,12 @@ export async function checkAndCleanCache(): Promise<boolean> {
     return false;
   }
   
+  if (updaterSimulation.forceCachedApk) {
+    addJsLog('[Simulation] Forcing valid cached APK check to true');
+    updateGlobalState({ validApkExists: true });
+    return true;
+  }
+  
   const expectedHash = globalOtaState.apkSha256 ?? undefined;
   const { valid, filePath } = await validateLocalApk(ver, expectedHash);
   
@@ -626,6 +662,17 @@ export function downloadUpdate(trigger?: string): Promise<void> {
         addJsLog(`[Simulate Download] Completed. Mock Path: ${filePath}`);
       } else {
         try {
+          if (updaterSimulation.forceDownloadFailure) {
+            addJsLog('Simulation override: Injecting Download Failure');
+            throw new Error('[Simulated Download Failure] Failed to download APK from server.');
+          }
+          if (updaterSimulation.forceDownloadTimeout) {
+            addJsLog('Simulation override: Injecting Download Timeout');
+            throw new Error('[Simulated Download Timeout] Network connection timed out.');
+          }
+          if (updaterSimulation.forceResumeDownload) {
+            addJsLog('Simulation override: Forcing download resumption mode');
+          }
           filePath = await downloadUpdateApk({
             url: apkUrl,
             version: ver,
@@ -642,6 +689,12 @@ export function downloadUpdate(trigger?: string): Promise<void> {
       void logProgressStage('Download completed', 'Path: ' + filePath);
 
       transitionToState('verifying_sha', 'Verifying checksum');
+      if (updaterSimulation.forceShaFailure) {
+        addJsLog('Simulation override: Injecting SHA checksum failure!');
+        transitionToState('sha_failed', 'Simulated checksum failure');
+        throw new Error('Simulated SHA-256 checksum mismatch');
+      }
+
       if (updaterSimulation.simulateDownload) {
         if (updaterSimulation.injectChecksumFailure) {
           addJsLog('[Simulate Download] Injecting checksum failure!');
@@ -678,7 +731,20 @@ export function downloadUpdate(trigger?: string): Promise<void> {
       transitionToState('verifying_eligibility', 'Checking eligibility');
       updateGlobalState({ statusText: 'Checking eligibility...' });
 
-      const isEligible = await runEligibilityCheck(filePath, isDowngrade);
+      const isEligible = await (async () => {
+        if (updaterSimulation.forceSignatureMismatch) {
+          addJsLog('Simulation override: Injecting Signature Mismatch');
+          otaDebugLogs.eligibilityReason = 'signature_mismatch';
+          return false;
+        }
+        if (updaterSimulation.forceInvalidApk) {
+          addJsLog('Simulation override: Injecting Invalid APK');
+          otaDebugLogs.eligibilityReason = 'invalid_apk';
+          return false;
+        }
+        return await runEligibilityCheck(filePath, isDowngrade);
+      })();
+
       if (!isEligible) {
         if (otaDebugLogs.eligibilityReason === 'signature_mismatch' && !isRecovering) {
           const recovered = await runSignatureMismatchRecovery(applyUpdate, downloadUpdate);
@@ -843,9 +909,36 @@ export function applyUpdate(trigger?: string): Promise<void> {
       otaDebugLogs.installError += `\nAPK is eligible. Launching APK installer intent for file: ${filePath}`;
       updateGlobalState({ statusText: 'Waiting for Android...' });
 
-      if (updaterSimulation.simulateDownload) {
-        addJsLog('[Simulate Install] Skipping native install trigger in simulation mode.');
+      if (updaterSimulation.simulateDownload || 
+          updaterSimulation.forceInstallSuccess || 
+          updaterSimulation.forceInstallFailure || 
+          updaterSimulation.forceUserCancel || 
+          updaterSimulation.forcePendingUserAction) {
+        addJsLog('[Simulate Install] Simulation active. Skipping native install trigger.');
         void logProgressStage('Simulation committed', 'Simulation mode active');
+        
+        // Timed sequence simulation
+        (async () => {
+          await new Promise((resolve) => setTimeout(resolve, 1000));
+          triggerSimulatedStatus(-2, 'installing_start');
+          
+          await new Promise((resolve) => setTimeout(resolve, 1500));
+          triggerSimulatedStatus(-1, 'STATUS_PENDING_USER_ACTION');
+          
+          if (updaterSimulation.forcePendingUserAction) {
+            addJsLog('[Simulate Install] Pausing in STATUS_PENDING_USER_ACTION.');
+            return;
+          }
+          
+          await new Promise((resolve) => setTimeout(resolve, 2000));
+          if (updaterSimulation.forceUserCancel) {
+            triggerSimulatedStatus(3, 'STATUS_FAILURE_ABORTED');
+          } else if (updaterSimulation.forceInstallFailure) {
+            triggerSimulatedStatus(1, 'STATUS_FAILURE');
+          } else {
+            triggerSimulatedStatus(0, 'STATUS_SUCCESS');
+          }
+        })();
       } else {
         void logProgressStage('Session committed', 'Handing over to PackageInstaller');
         await triggerNativeInstall(filePath);

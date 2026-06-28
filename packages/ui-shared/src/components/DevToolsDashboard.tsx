@@ -36,7 +36,10 @@ import {
   checkForUpdate,
   downloadUpdate,
   applyUpdate,
-  deleteLocalApk
+  deleteLocalApk,
+  transitionHistory,
+  rejectedTransitions,
+  AppInstaller
 } from '@workspace/studio-core';
 
 interface Props {
@@ -343,6 +346,75 @@ export default function DevToolsDashboard({ accent, onBack }: Props) {
 
   const [expandedLogIndices, setExpandedLogIndices] = useState<Record<number, boolean>>({});
   const [updaterTabMode, setUpdaterTabMode] = useState<'laboratory' | 'diagnostics'>('laboratory');
+
+  const [diagExceptionCollapsed, setDiagExceptionCollapsed] = useState(true);
+  const [stateHistoryCollapsed, setStateHistoryCollapsed] = useState(true);
+
+  const [nativeInstallerDetails, setNativeInstallerDetails] = useState<any>(null);
+  const [nativeDeviceInfo, setNativeDeviceInfo] = useState<any>(null);
+  const [localApkDetails, setLocalApkDetails] = useState<any>(null);
+  const [nativeLogsList, setNativeLogsList] = useState<any[]>([]);
+
+  useEffect(() => {
+    if (subView !== 'updater') return;
+
+    let active = true;
+
+    const refreshData = async () => {
+      try {
+        if (isNative() && typeof AppInstaller !== 'undefined') {
+          // 1. Get Device Info
+          const dev = await AppInstaller.getDeviceInfo();
+          if (active) setNativeDeviceInfo(dev);
+
+          // 2. Get PackageInstaller Details
+          if (typeof (AppInstaller as any).getPackageInstallerDetails === 'function') {
+            const det = await (AppInstaller as any).getPackageInstallerDetails();
+            if (active) setNativeInstallerDetails(det);
+          }
+
+          // 3. Get Installer Log History
+          if (typeof AppInstaller.getInstallerLogHistory === 'function') {
+            const historyRes = await AppInstaller.getInstallerLogHistory();
+            if (active && historyRes && historyRes.logs) {
+              try {
+                const parsedLogs = JSON.parse(historyRes.logs);
+                setNativeLogsList(Array.isArray(parsedLogs) ? parsedLogs : []);
+              } catch (e) {
+                console.warn('Failed to parse installer log history:', e);
+              }
+            }
+          }
+
+          // 4. Get File details for downloaded APK if exists
+          const path = localStorage.getItem('studio:downloadedApkPath');
+          if (path) {
+            try {
+              if (typeof AppInstaller.inspectApk === 'function') {
+                const apkDet = await AppInstaller.inspectApk({ filePath: path });
+                if (active) setLocalApkDetails(apkDet);
+              }
+            } catch (err) {
+              console.warn('Failed to inspect APK:', err);
+            }
+          } else {
+            if (active) setLocalApkDetails(null);
+          }
+        }
+      } catch (err) {
+        console.warn('Failed to refresh updater diagnostics:', err);
+      }
+    };
+
+    refreshData();
+    const timer = setInterval(refreshData, 2000);
+
+    return () => {
+      active = false;
+      clearInterval(timer);
+    };
+  }, [subView]);
+
   const [selfTestRunning, setSelfTestRunning] = useState(false);
   const [selfTestResults, setSelfTestResults] = useState<Array<{
     command: string;
@@ -630,7 +702,6 @@ export default function DevToolsDashboard({ accent, onBack }: Props) {
       </div>
     </div>
   );
-
   // Force re-render on simulation state changes
   const [simUpdateCount, setSimUpdateCount] = useState(0);
   const triggerSimRender = () => setSimUpdateCount(prev => prev + 1);
@@ -643,20 +714,173 @@ export default function DevToolsDashboard({ accent, onBack }: Props) {
         .catch(() => showToast('Copy failed.'));
     };
 
-    const exportTimelineMarkdown = () => {
-      let md = `### State Transition Timeline\n\n| State | Reason | Timestamp | Elapsed (ms) |\n|---|---|---|---|\n`;
-      let prevTime = 0;
-      stateTimeline.forEach((t, idx) => {
-        const elapsed = idx === 0 ? 0 : t.timestamp - prevTime;
-        prevTime = t.timestamp;
-        md += `| ${t.state} | ${t.reason} | ${new Date(t.timestamp).toLocaleTimeString()} | ${elapsed} |\n`;
+    const unifiedTimeline = getUnifiedTimeline();
+
+    function getUnifiedTimeline() {
+      const list: Array<{ time: number; type: 'js' | 'native' | 'state'; text: string; details?: string }> = [];
+      
+      jsLogs.forEach(log => {
+        list.push({ time: log.timestamp, type: 'js', text: log.message });
       });
-      md += `\n### Activity Lifecycle Timeline\n\n| Stage | Timestamp |\n|---|---|\n`;
-      activityLifecycleTimeline.forEach(t => {
-        md += `| ${t.stage} | ${new Date(t.timestamp).toLocaleTimeString()} |\n`;
+
+      nativeLogsList.forEach(log => {
+        const time = log.timestamp || Date.now();
+        list.push({
+          time,
+          type: 'native',
+          text: log.stage || 'Native Step',
+          details: `${log.message || ''} ${log.explanation || ''}`
+        });
+      });
+
+      stateTimeline.forEach(t => {
+        list.push({
+          time: t.timestamp,
+          type: 'state',
+          text: `State Transition: ${t.state}`,
+          details: `Reason: ${t.reason}`
+        });
+      });
+
+      list.sort((a, b) => a.time - b.time);
+      return list;
+    }
+
+    const exportTimelineMarkdown = () => {
+      let md = `# Unified Chronological Timeline\n\n| Type | Timestamp | Event / Details |\n|---|---|---|\n`;
+      unifiedTimeline.forEach(e => {
+        const timeStr = new Date(e.time).toLocaleTimeString();
+        md += `| **${e.type.toUpperCase()}** | ${timeStr} | ${e.text} ${e.details ? `(${e.details})` : ''} |\n`;
       });
       handleCopyText(md, 'Timeline Markdown');
     };
+
+    const exportCompleteTimelineJSON = () => {
+      handleCopyText(JSON.stringify(unifiedTimeline, null, 2), 'Unified Timeline JSON');
+    };
+
+    const exportCompleteTimelineText = () => {
+      let txt = `=== UNIFIED CHRONOLOGICAL TIMELINE ===\n`;
+      unifiedTimeline.forEach(e => {
+        const timeStr = new Date(e.time).toLocaleTimeString();
+        txt += `[${timeStr}] [${e.type.toUpperCase()}] ${e.text} ${e.details ? ` - ${e.details}` : ''}\n`;
+      });
+      handleCopyText(txt, 'Timeline Plain Text');
+    };
+
+    const exportEngineeringReport = async () => {
+      const diag = getAutoDiagnostics();
+      const devInfo = nativeDeviceInfo || {};
+      let report = `# UPDATER ENGINEERING REPORT\n`;
+      report += `Generated: ${new Date().toLocaleString()}\n`;
+      report += `Current Version: ${APP_VERSION}\n\n`;
+      
+      report += `## Diagnostic Summary\n`;
+      if (diag) {
+        report += `* **Failed Stage:** ${diag.failedStage}\n`;
+        report += `* **Error/Reason:** ${diag.reason}\n`;
+        report += `* **Suggested Root Cause:** ${diag.suggestedCause}\n`;
+        report += `* **Suggested Fix:** ${diag.suggestedFix}\n\n`;
+      } else {
+        report += `No active errors detected. All systems nominal.\n\n`;
+      }
+
+      report += `## Device & Context Telemetry\n`;
+      report += `* **SDK Version:** ${devInfo.sdkInt || 'N/A'}\n`;
+      report += `* **Manufacturer/Model:** ${devInfo.manufacturer || 'N/A'} ${devInfo.model || 'N/A'}\n`;
+      report += `* **Locale:** ${devInfo.deviceLocale || 'N/A'}\n`;
+      report += `* **Storage State:** ${devInfo.storageAvailable || 'N/A'}\n`;
+      report += `* **Unknown Sources Allowed:** ${devInfo.canRequestPackageInstalls ? 'YES' : 'NO'}\n`;
+      report += `* **Installer Package:** ${devInfo.installerPackage || 'Unknown'}\n\n`;
+
+      report += `## PackageInstaller Session Metrics\n`;
+      report += `* **Active Session ID:** ${nativeInstallerDetails?.sessionId ?? -1}\n`;
+      report += `* **Session State:** ${nativeInstallerDetails?.sessionState || 'None'}\n`;
+      report += `* **Last Native Code:** ${nativeInstallerDetails?.lastStatusCode ?? -999}\n`;
+      report += `* **Last Native Message:** ${nativeInstallerDetails?.lastStatusMessage || 'N/A'}\n\n`;
+
+      report += `## State Transition History\n`;
+      transitionHistory.forEach(t => {
+        report += `* ${new Date(t.timestamp).toLocaleTimeString()}: ${t.from} -> ${t.to} (${t.reason}) [Duration: ${t.durationMs}ms] ${t.invalid ? '(INVALID)' : ''}\n`;
+      });
+      
+      report += `\n=== END OF REPORT ===`;
+      handleCopyText(report, 'Complete Engineering Report');
+    };
+
+    const diag = getAutoDiagnostics();
+
+    function getAutoDiagnostics() {
+      const err = globalOtaState.error || otaDebugLogs.installError;
+      const status = nativeInstallerDetails?.lastStatusCode ?? -999;
+      
+      if (!err && status === -999) return null;
+
+      let failedStage = 'Unknown';
+      let reason = err || 'An error occurred during update processing.';
+      let suggestedCause = 'Underlying native session failed to commit or start confirmation activity.';
+      let suggestedFix = 'Please reset the state completely, check internet connectivity, and ensure unknown sources permission is granted.';
+
+      const errStr = String(err).toLowerCase();
+      
+      if (errStr.includes('download') || (globalOtaState.updateState as string) === 'download_failed') {
+        failedStage = 'Downloading';
+        reason = err || 'Download failed or timed out.';
+        suggestedCause = 'Network connectivity issues, unresolvable download server URL, or file system storage access denied.';
+        suggestedFix = 'Ensure your internet connection is active, try clean cache, or select custom backup APK mirror.';
+      } else if (errStr.includes('sha') || (globalOtaState.updateState as string) === 'sha_failed') {
+        failedStage = 'Verification (SHA-256)';
+        reason = err || 'SHA-256 checksum validation failed.';
+        suggestedCause = 'The downloaded APK does not match the expected SHA-256 hash. The download might be corrupted or incomplete.';
+        suggestedFix = 'Retry the download, or toggle Force SHA Failure off. Check if CDN caches old versions.';
+      } else if (errStr.includes('eligibility') || (globalOtaState.updateState as string) === 'eligibility_failed') {
+        failedStage = 'Pre-install Eligibility Verification';
+        reason = err || 'The system declared the package ineligible.';
+        suggestedCause = otaDebugLogs.eligibilityReason === 'signature_mismatch'
+          ? 'Signature mismatch: The downloaded APK is signed with a different key than the installed app.'
+          : otaDebugLogs.eligibilityReason === 'versionCode_low'
+          ? 'Version downgrade: The remote versionCode is lower than the local one.'
+          : 'Incompatible platform, architecture ABI mismatch, or corrupted APK package parsing error.';
+        suggestedFix = otaDebugLogs.eligibilityReason === 'signature_mismatch'
+          ? 'A full clean reinstall is required (uninstall current app manually first to avoid signature conflict).'
+          : 'Enable downgrade options inside simulator, or perform a clean manual install.';
+      } else if (status !== -999) {
+        failedStage = 'Native PackageInstaller Handoff';
+        if (status === 3) {
+          reason = 'User Cancelled (STATUS_FAILURE_ABORTED)';
+          suggestedCause = 'User clicked "Cancel" on the system install confirmation screen.';
+          suggestedFix = 'Rerun the update trigger and click "Update" instead of "Cancel".';
+        } else if (status === 5) {
+          reason = 'Signature Conflict (STATUS_FAILURE_CONFLICT)';
+          suggestedCause = 'System blocked package installation because the new APK signature does not match the previously installed signature.';
+          suggestedFix = 'Manually uninstall the app, then retry to perform a clean install.';
+        } else if (status === 7) {
+          reason = 'Downgrade Blocked (STATUS_FAILURE_INCOMPATIBLE)';
+          suggestedCause = 'The system blocks installing an APK with a lower versionCode than the current app.';
+          suggestedFix = 'Ensure the new update version has a higher versionCode, or perform a manual clean install.';
+        } else if (status === 6) {
+          reason = 'Storage Full (STATUS_FAILURE_STORAGE)';
+          suggestedCause = 'The device has insufficient available flash storage memory to install the APK package.';
+          suggestedFix = 'Free up space in the device storage and retry.';
+        } else if (status === 2) {
+          reason = 'Blocked by System Policy (STATUS_FAILURE_BLOCKED)';
+          suggestedCause = 'System security settings or administrator policies block unknown sources installations.';
+          suggestedFix = 'Open Android unknown app sources settings and explicitly grant install permissions to Studio.';
+        } else {
+          reason = `PackageInstaller code ${status}: ${nativeInstallerDetails?.lastStatusMessage || 'Unknown error'}`;
+          suggestedCause = 'The PackageInstaller subsystem returned a system exception during commit execution.';
+          suggestedFix = 'Re-try the installation or inspect native device logs via ADB/Diagnostics.';
+        }
+      }
+
+      return {
+        failedStage,
+        reason,
+        exceptionStack: otaDebugLogs.lastExceptionStackTrace || 'None',
+        suggestedCause,
+        suggestedFix
+      };
+    }
 
     return (
       <div style={{ display: 'flex', flexDirection: 'column', gap: 12, paddingBottom: 'max(20px, env(safe-area-inset-bottom))' }}>
@@ -698,6 +922,45 @@ export default function DevToolsDashboard({ accent, onBack }: Props) {
           </button>
         </div>
 
+        {/* 0. AUTO-DIAGNOSTICS FAILURE DETECTED */}
+        {diag && (
+          <div style={{
+            background: 'rgba(239, 68, 68, 0.08)',
+            border: '1px solid rgba(239, 68, 68, 0.25)',
+            borderRadius: '12px',
+            padding: '12px 14px',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: 6
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6, color: '#ef4444', fontWeight: 800, fontSize: 13 }}>
+              <span className="material-symbols-outlined" style={{ fontSize: 18 }}>emergency</span>
+              Auto-Diagnostics Failure Detected
+            </div>
+            <div style={{ fontSize: 11, color: '#fff', lineHeight: 1.4 }}>
+              <div style={{ borderBottom: '1px solid rgba(239, 68, 68, 0.1)', paddingBottom: 4, marginBottom: 4 }}>
+                <strong>Failed Stage:</strong> <span style={{ color: '#ef4444' }}>{diag.failedStage}</span>
+              </div>
+              <div style={{ borderBottom: '1px solid rgba(239, 68, 68, 0.1)', paddingBottom: 4, marginBottom: 4 }}>
+                <strong>Reason:</strong> {diag.reason}
+              </div>
+              <div style={{ borderBottom: '1px solid rgba(239, 68, 68, 0.1)', paddingBottom: 4, marginBottom: 4 }}>
+                <strong>Suggested Cause:</strong> <span style={{ color: '#fbcfe8' }}>{diag.suggestedCause}</span>
+              </div>
+              <div>
+                <strong>Suggested Fix:</strong> <span style={{ color: '#6ee7b7', fontWeight: 700 }}>{diag.suggestedFix}</span>
+              </div>
+            </div>
+            {diag.exceptionStack && diag.exceptionStack !== 'None' && (
+              <CollapsibleSection title="Show Exception Stack" collapsed={diagExceptionCollapsed} onToggle={() => setDiagExceptionCollapsed(!diagExceptionCollapsed)}>
+                <pre style={{ fontSize: 9, color: '#fca5a5', background: 'rgba(0,0,0,0.4)', padding: 6, borderRadius: 6, overflowX: 'auto', margin: 0 }}>
+                  {diag.exceptionStack}
+                </pre>
+              </CollapsibleSection>
+            )}
+          </div>
+        )}
+
         {updaterTabMode === 'laboratory' ? (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
             {/* 1. Update Simulation */}
@@ -707,124 +970,126 @@ export default function DevToolsDashboard({ accent, onBack }: Props) {
                 Update Simulation
               </div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12, cursor: 'pointer' }}>
-                  <input
-                    type="checkbox"
-                    checked={updaterSimulation.forceUpdateAvailable}
-                    onChange={() => {
-                      updaterSimulation.forceUpdateAvailable = !updaterSimulation.forceUpdateAvailable;
-                      if (updaterSimulation.forceUpdateAvailable) {
-                        updaterSimulation.forceNoUpdate = false;
-                        updaterSimulation.forceDowngrade = false;
-                      }
-                      triggerSimRender();
-                    }}
-                  />
-                  Force Update Available (v3.7.99)
-                </label>
-                <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12, cursor: 'pointer' }}>
-                  <input
-                    type="checkbox"
-                    checked={updaterSimulation.forceNoUpdate}
-                    onChange={() => {
-                      updaterSimulation.forceNoUpdate = !updaterSimulation.forceNoUpdate;
-                      if (updaterSimulation.forceNoUpdate) {
-                        updaterSimulation.forceUpdateAvailable = false;
-                        updaterSimulation.forceDowngrade = false;
-                      }
-                      triggerSimRender();
-                    }}
-                  />
-                  Force No Update (Up-to-date)
-                </label>
-                <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12, cursor: 'pointer' }}>
-                  <input
-                    type="checkbox"
-                    checked={updaterSimulation.forceDowngrade}
-                    onChange={() => {
-                      updaterSimulation.forceDowngrade = !updaterSimulation.forceDowngrade;
-                      if (updaterSimulation.forceDowngrade) {
-                        updaterSimulation.forceUpdateAvailable = false;
-                        updaterSimulation.forceNoUpdate = false;
-                      }
-                      triggerSimRender();
-                    }}
-                  />
-                  Force Downgrade (v3.7.10)
-                </label>
-                <div style={{ borderTop: '1px solid rgba(255,255,255,0.05)', marginTop: 4, paddingTop: 6, display: 'flex', gap: 16 }}>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
                   <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 11, cursor: 'pointer' }}>
                     <input
-                      type="radio"
-                      name="mandatory"
-                      checked={updaterSimulation.forceMandatoryUpdate}
+                      type="checkbox"
+                      checked={updaterSimulation.forceUpdateAvailable}
                       onChange={() => {
-                        updaterSimulation.forceMandatoryUpdate = true;
-                        updaterSimulation.forceOptionalUpdate = false;
+                        updaterSimulation.forceUpdateAvailable = !updaterSimulation.forceUpdateAvailable;
+                        if (updaterSimulation.forceUpdateAvailable) {
+                          updaterSimulation.forceNoUpdate = false;
+                          updaterSimulation.forceDowngrade = false;
+                        }
                         triggerSimRender();
                       }}
                     />
-                    Mandatory
+                    Force Update (v3.7.99)
                   </label>
                   <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 11, cursor: 'pointer' }}>
                     <input
-                      type="radio"
-                      name="mandatory"
-                      checked={updaterSimulation.forceOptionalUpdate}
+                      type="checkbox"
+                      checked={updaterSimulation.forceNoUpdate}
                       onChange={() => {
-                        updaterSimulation.forceOptionalUpdate = true;
-                        updaterSimulation.forceMandatoryUpdate = false;
+                        updaterSimulation.forceNoUpdate = !updaterSimulation.forceNoUpdate;
+                        if (updaterSimulation.forceNoUpdate) {
+                          updaterSimulation.forceUpdateAvailable = false;
+                          updaterSimulation.forceDowngrade = false;
+                        }
                         triggerSimRender();
                       }}
                     />
-                    Optional
+                    Force No Update
+                  </label>
+                  <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 11, cursor: 'pointer' }}>
+                    <input
+                      type="checkbox"
+                      checked={updaterSimulation.forceDowngrade}
+                      onChange={() => {
+                        updaterSimulation.forceDowngrade = !updaterSimulation.forceDowngrade;
+                        if (updaterSimulation.forceDowngrade) {
+                          updaterSimulation.forceUpdateAvailable = false;
+                          updaterSimulation.forceNoUpdate = false;
+                        }
+                        triggerSimRender();
+                      }}
+                    />
+                    Force Downgrade (v3.7.10)
+                  </label>
+                  <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 11, cursor: 'pointer' }}>
+                    <input
+                      type="checkbox"
+                      checked={updaterSimulation.forceMetadataFailure}
+                      onChange={() => {
+                        updaterSimulation.forceMetadataFailure = !updaterSimulation.forceMetadataFailure;
+                        triggerSimRender();
+                      }}
+                    />
+                    Force Meta Failure
+                  </label>
+                </div>
+
+                <div style={{ borderTop: '1px solid rgba(255,255,255,0.05)', marginTop: 4, paddingTop: 6, display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+                  <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 11, cursor: 'pointer' }}>
+                    <input
+                      type="checkbox"
+                      checked={updaterSimulation.forceMandatoryUpdate}
+                      onChange={() => {
+                        updaterSimulation.forceMandatoryUpdate = !updaterSimulation.forceMandatoryUpdate;
+                        if (updaterSimulation.forceMandatoryUpdate) updaterSimulation.forceOptionalUpdate = false;
+                        triggerSimRender();
+                      }}
+                    />
+                    Force Mandatory
+                  </label>
+                  <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 11, cursor: 'pointer' }}>
+                    <input
+                      type="checkbox"
+                      checked={updaterSimulation.forceOptionalUpdate}
+                      onChange={() => {
+                        updaterSimulation.forceOptionalUpdate = !updaterSimulation.forceOptionalUpdate;
+                        if (updaterSimulation.forceOptionalUpdate) updaterSimulation.forceMandatoryUpdate = false;
+                        triggerSimRender();
+                      }}
+                    />
+                    Force Optional
+                  </label>
+                  <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 11, cursor: 'pointer' }}>
+                    <input
+                      type="checkbox"
+                      checked={updaterSimulation.forceApkUpdate}
+                      onChange={() => {
+                        updaterSimulation.forceApkUpdate = !updaterSimulation.forceApkUpdate;
+                        if (updaterSimulation.forceApkUpdate) updaterSimulation.forceOtaUpdate = false;
+                        triggerSimRender();
+                      }}
+                    />
+                    Force APK Update
+                  </label>
+                  <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 11, cursor: 'pointer' }}>
+                    <input
+                      type="checkbox"
+                      checked={updaterSimulation.forceOtaUpdate}
+                      onChange={() => {
+                        updaterSimulation.forceOtaUpdate = !updaterSimulation.forceOtaUpdate;
+                        if (updaterSimulation.forceOtaUpdate) updaterSimulation.forceApkUpdate = false;
+                        triggerSimRender();
+                      }}
+                    />
+                    Force OTA Update
                   </label>
                 </div>
               </div>
             </div>
 
-            {/* 2. Metadata cache */}
-            <div style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.05)', borderRadius: 12, padding: 12 }}>
-              <div style={{ fontSize: 13, fontWeight: 800, marginBottom: 10, color: '#3b82f6', display: 'flex', alignItems: 'center', gap: 6 }}>
-                <span className="material-symbols-outlined" style={{ fontSize: 18 }}>database</span>
-                Metadata & Cache
-              </div>
-              <div style={{ display: 'flex', gap: 6, marginBottom: 8 }}>
-                <button
-                  onClick={async () => {
-                    showToast('Checking for updates...');
-                    const res = await checkForUpdate(true);
-                    showToast(`Check complete: ${res.updateState}`);
-                  }}
-                  style={{ flex: 1, padding: '8px', borderRadius: 8, background: '#3b82f6', color: '#fff', border: 'none', fontWeight: 700, fontSize: 11, cursor: 'pointer' }}
-                >
-                  Reload Metadata
-                </button>
-                <button
-                  onClick={async () => {
-                    localStorage.removeItem('studio:remoteMetadata');
-                    showToast('Metadata cache cleared.');
-                  }}
-                  style={{ flex: 1, padding: '8px', borderRadius: 8, background: 'rgba(255,255,255,0.08)', color: '#fff', border: 'none', fontWeight: 700, fontSize: 11, cursor: 'pointer' }}
-                >
-                  Clear Cache
-                </button>
-              </div>
-              <CollapsibleSection title="Show Parsed Metadata" collapsed={true}>
-                <pre style={{ fontSize: 10, color: '#818cf8', background: 'rgba(0,0,0,0.2)', padding: 6, borderRadius: 6, overflowX: 'auto', margin: 0 }}>
-                  {JSON.stringify(globalOtaState, null, 2)}
-                </pre>
-              </CollapsibleSection>
-            </div>
-
-            {/* 3. Download Simulation */}
+            {/* 2. Download & File Overrides */}
             <div style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.05)', borderRadius: 12, padding: 12 }}>
               <div style={{ fontSize: 13, fontWeight: 800, marginBottom: 10, color: '#10b981', display: 'flex', alignItems: 'center', gap: 6 }}>
                 <span className="material-symbols-outlined" style={{ fontSize: 18 }}>download</span>
-                Download & Flow Simulation
+                Download & File Verification Simulation
               </div>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 10 }}>
-                <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12, cursor: 'pointer' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginBottom: 10 }}>
+                <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 11, cursor: 'pointer' }}>
                   <input
                     type="checkbox"
                     checked={updaterSimulation.simulateDownload}
@@ -833,64 +1098,126 @@ export default function DevToolsDashboard({ accent, onBack }: Props) {
                       triggerSimRender();
                     }}
                   />
-                  Simulate Download (Mock Loop)
+                  Mock Progress (Web)
                 </label>
-                <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12, cursor: 'pointer', paddingLeft: 16 }}>
+                <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 11, cursor: 'pointer' }}>
                   <input
                     type="checkbox"
-                    disabled={!updaterSimulation.simulateDownload}
-                    checked={updaterSimulation.injectDownloadFailure}
+                    checked={updaterSimulation.forceDownloadFailure}
                     onChange={() => {
-                      updaterSimulation.injectDownloadFailure = !updaterSimulation.injectDownloadFailure;
-                      if (updaterSimulation.injectDownloadFailure) {
-                        updaterSimulation.injectChecksumFailure = false;
-                        updaterSimulation.injectNetworkTimeout = false;
+                      updaterSimulation.forceDownloadFailure = !updaterSimulation.forceDownloadFailure;
+                      if (updaterSimulation.forceDownloadFailure) {
+                        updaterSimulation.forceDownloadTimeout = false;
                       }
                       triggerSimRender();
                     }}
                   />
-                  Inject Download Failure
+                  Inject Download Fail
                 </label>
-                <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12, cursor: 'pointer', paddingLeft: 16 }}>
+                <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 11, cursor: 'pointer' }}>
                   <input
                     type="checkbox"
-                    disabled={!updaterSimulation.simulateDownload}
-                    checked={updaterSimulation.injectChecksumFailure}
+                    checked={updaterSimulation.forceDownloadTimeout}
                     onChange={() => {
-                      updaterSimulation.injectChecksumFailure = !updaterSimulation.injectChecksumFailure;
-                      if (updaterSimulation.injectChecksumFailure) {
-                        updaterSimulation.injectDownloadFailure = false;
-                        updaterSimulation.injectNetworkTimeout = false;
+                      updaterSimulation.forceDownloadTimeout = !updaterSimulation.forceDownloadTimeout;
+                      if (updaterSimulation.forceDownloadTimeout) {
+                        updaterSimulation.forceDownloadFailure = false;
                       }
                       triggerSimRender();
                     }}
                   />
-                  Inject Checksum Failure
+                  Inject Conn Timeout
                 </label>
-                <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12, cursor: 'pointer', paddingLeft: 16 }}>
+                <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 11, cursor: 'pointer' }}>
                   <input
                     type="checkbox"
-                    disabled={!updaterSimulation.simulateDownload}
-                    checked={updaterSimulation.injectNetworkTimeout}
+                    checked={updaterSimulation.forceShaFailure}
                     onChange={() => {
-                      updaterSimulation.injectNetworkTimeout = !updaterSimulation.injectNetworkTimeout;
-                      if (updaterSimulation.injectNetworkTimeout) {
-                        updaterSimulation.injectDownloadFailure = false;
-                        updaterSimulation.injectChecksumFailure = false;
+                      updaterSimulation.forceShaFailure = !updaterSimulation.forceShaFailure;
+                      triggerSimRender();
+                    }}
+                  />
+                  Inject SHA Checksum Fail
+                </label>
+                <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 11, cursor: 'pointer' }}>
+                  <input
+                    type="checkbox"
+                    checked={updaterSimulation.forceSignatureMismatch}
+                    onChange={() => {
+                      updaterSimulation.forceSignatureMismatch = !updaterSimulation.forceSignatureMismatch;
+                      if (updaterSimulation.forceSignatureMismatch) {
+                        updaterSimulation.forceInvalidApk = false;
                       }
                       triggerSimRender();
                     }}
                   />
-                  Inject Network Timeout
+                  Force Signature Conflict
+                </label>
+                <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 11, cursor: 'pointer' }}>
+                  <input
+                    type="checkbox"
+                    checked={updaterSimulation.forceInvalidApk}
+                    onChange={() => {
+                      updaterSimulation.forceInvalidApk = !updaterSimulation.forceInvalidApk;
+                      if (updaterSimulation.forceInvalidApk) {
+                        updaterSimulation.forceSignatureMismatch = false;
+                      }
+                      triggerSimRender();
+                    }}
+                  />
+                  Force Invalid APK
+                </label>
+                <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 11, cursor: 'pointer' }}>
+                  <input
+                    type="checkbox"
+                    checked={updaterSimulation.forceRecoveryMode}
+                    onChange={() => {
+                      updaterSimulation.forceRecoveryMode = !updaterSimulation.forceRecoveryMode;
+                      triggerSimRender();
+                    }}
+                  />
+                  Force Recovery Mode
+                </label>
+                <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 11, cursor: 'pointer' }}>
+                  <input
+                    type="checkbox"
+                    checked={updaterSimulation.forceCachedApk}
+                    onChange={() => {
+                      updaterSimulation.forceCachedApk = !updaterSimulation.forceCachedApk;
+                      triggerSimRender();
+                    }}
+                  />
+                  Force Valid Cached APK
+                </label>
+                <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 11, cursor: 'pointer' }}>
+                  <input
+                    type="checkbox"
+                    checked={updaterSimulation.forceResumeDownload}
+                    onChange={() => {
+                      updaterSimulation.forceResumeDownload = !updaterSimulation.forceResumeDownload;
+                      triggerSimRender();
+                    }}
+                  />
+                  Force Resume Mode
                 </label>
               </div>
               <div style={{ display: 'flex', gap: 6 }}>
                 <button
                   onClick={async () => {
-                    showToast('Triggering Download...');
+                    showToast('Checking for updates...');
+                    const res = await checkForUpdate(true);
+                    showToast(`Check result: ${res.updateState}`);
+                  }}
+                  style={{ flex: 1, padding: '8px', borderRadius: 8, background: '#3b82f6', color: '#fff', border: 'none', fontWeight: 700, fontSize: 11, cursor: 'pointer' }}
+                >
+                  Reload Metadata
+                </button>
+                <button
+                  onClick={async () => {
+                    showToast('Starting download...');
                     try {
-                      await downloadUpdate('DevTools Laboratory');
-                      showToast('Download complete.');
+                      await downloadUpdate('DevTools Lab');
+                      showToast('Download check completed.');
                     } catch (e: any) {
                       showToast(`Download failed: ${e.message}`);
                     }
@@ -901,10 +1228,10 @@ export default function DevToolsDashboard({ accent, onBack }: Props) {
                 </button>
                 <button
                   onClick={async () => {
-                    showToast('Triggering Install...');
+                    showToast('Triggering install...');
                     try {
-                      await applyUpdate('DevTools Laboratory');
-                      showToast('Install resolved.');
+                      await applyUpdate('DevTools Lab');
+                      showToast('Install complete.');
                     } catch (e: any) {
                       showToast(`Install failed: ${e.message}`);
                     }
@@ -916,72 +1243,97 @@ export default function DevToolsDashboard({ accent, onBack }: Props) {
               </div>
             </div>
 
-            {/* 4. PackageInstaller Simulator */}
+            {/* 3. PackageInstaller Native Mocking */}
             <div style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.05)', borderRadius: 12, padding: 12 }}>
-              <div style={{ fontSize: 13, fontWeight: 800, marginBottom: 10, color: '#eab308', display: 'flex', alignItems: 'center', gap: 6 }}>
+              <div style={{ fontSize: 13, fontWeight: 800, marginBottom: 6, color: '#eab308', display: 'flex', alignItems: 'center', gap: 6 }}>
                 <span className="material-symbols-outlined" style={{ fontSize: 18 }}>terminal</span>
-                PackageInstaller Status Simulator
+                Mock Native Status Responses
               </div>
               <p style={{ margin: '0 0 10px', fontSize: 11, color: 'rgba(255,255,255,0.4)', lineHeight: 1.4 }}>
-                Simulate native callbacks sent from Android PackageInstaller session. Note: A simulator listener must be active (Trigger Install must be waiting).
+                Simulate the native callback outcome that Android sends back to JavaScript when installation begins:
               </p>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 6 }}>
-                <button
-                  onClick={() => triggerSimulatedStatus(-1, 'STATUS_PENDING_USER_ACTION')}
-                  style={{ padding: '6px', borderRadius: 6, background: 'rgba(234,179,8,0.15)', color: '#eab308', border: '1px solid rgba(234,179,8,0.3)', fontWeight: 700, fontSize: 10, cursor: 'pointer' }}
-                >
-                  Pending User Action (-1)
-                </button>
-                <button
-                  onClick={() => triggerSimulatedStatus(-2, 'installing_start')}
-                  style={{ padding: '6px', borderRadius: 6, background: 'rgba(59,130,246,0.15)', color: '#3b82f6', border: '1px solid rgba(59,130,246,0.3)', fontWeight: 700, fontSize: 10, cursor: 'pointer' }}
-                >
-                  Session Active (-2)
-                </button>
-                <button
-                  onClick={() => triggerSimulatedStatus(-3, 'installing_progress', 0.5)}
-                  style={{ padding: '6px', borderRadius: 6, background: 'rgba(59,130,246,0.15)', color: '#3b82f6', border: '1px solid rgba(59,130,246,0.3)', fontWeight: 700, fontSize: 10, cursor: 'pointer' }}
-                >
-                  Session Progress 50% (-3)
-                </button>
-                <button
-                  onClick={() => triggerSimulatedStatus(0, 'STATUS_SUCCESS')}
-                  style={{ padding: '6px', borderRadius: 6, background: 'rgba(16,185,129,0.15)', color: '#10b981', border: '1px solid rgba(16,185,129,0.3)', fontWeight: 700, fontSize: 10, cursor: 'pointer' }}
-                >
-                  Status Success (0)
-                </button>
-                <button
-                  onClick={() => triggerSimulatedStatus(3, 'STATUS_FAILURE_ABORTED')}
-                  style={{ padding: '6px', borderRadius: 6, background: 'rgba(239,68,68,0.15)', color: '#ef4444', border: '1px solid rgba(239,68,68,0.3)', fontWeight: 700, fontSize: 10, cursor: 'pointer' }}
-                >
-                  User Cancelled (3)
-                </button>
-                <button
-                  onClick={() => triggerSimulatedStatus(5, 'STATUS_FAILURE_CONFLICT')}
-                  style={{ padding: '6px', borderRadius: 6, background: 'rgba(239,68,68,0.15)', color: '#ef4444', border: '1px solid rgba(239,68,68,0.3)', fontWeight: 700, fontSize: 10, cursor: 'pointer' }}
-                >
-                  Signature Mismatch (5)
-                </button>
-                <button
-                  onClick={() => triggerSimulatedStatus(7, 'STATUS_FAILURE_INCOMPATIBLE')}
-                  style={{ padding: '6px', borderRadius: 6, background: 'rgba(239,68,68,0.15)', color: '#ef4444', border: '1px solid rgba(239,68,68,0.3)', fontWeight: 700, fontSize: 10, cursor: 'pointer' }}
-                >
-                  Version Downgrade (7)
-                </button>
-                <button
-                  onClick={() => triggerSimulatedStatus(2, 'STATUS_FAILURE_BLOCKED')}
-                  style={{ padding: '6px', borderRadius: 6, background: 'rgba(239,68,68,0.15)', color: '#ef4444', border: '1px solid rgba(239,68,68,0.3)', fontWeight: 700, fontSize: 10, cursor: 'pointer' }}
-                >
-                  Unknown Sources Blocked (2)
-                </button>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginBottom: 10 }}>
+                <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 11, cursor: 'pointer' }}>
+                  <input
+                    type="radio"
+                    name="nativeMock"
+                    checked={updaterSimulation.forceInstallSuccess}
+                    onChange={() => {
+                      updaterSimulation.forceInstallSuccess = true;
+                      updaterSimulation.forceInstallFailure = false;
+                      updaterSimulation.forceUserCancel = false;
+                      updaterSimulation.forcePendingUserAction = false;
+                      triggerSimRender();
+                    }}
+                  />
+                  Force Success (0)
+                </label>
+                <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 11, cursor: 'pointer' }}>
+                  <input
+                    type="radio"
+                    name="nativeMock"
+                    checked={updaterSimulation.forceInstallFailure}
+                    onChange={() => {
+                      updaterSimulation.forceInstallSuccess = false;
+                      updaterSimulation.forceInstallFailure = true;
+                      updaterSimulation.forceUserCancel = false;
+                      updaterSimulation.forcePendingUserAction = false;
+                      triggerSimRender();
+                    }}
+                  />
+                  Force Fail (1)
+                </label>
+                <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 11, cursor: 'pointer' }}>
+                  <input
+                    type="radio"
+                    name="nativeMock"
+                    checked={updaterSimulation.forceUserCancel}
+                    onChange={() => {
+                      updaterSimulation.forceInstallSuccess = false;
+                      updaterSimulation.forceInstallFailure = false;
+                      updaterSimulation.forceUserCancel = true;
+                      updaterSimulation.forcePendingUserAction = false;
+                      triggerSimRender();
+                    }}
+                  />
+                  Force Cancel (3)
+                </label>
+                <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 11, cursor: 'pointer' }}>
+                  <input
+                    type="radio"
+                    name="nativeMock"
+                    checked={updaterSimulation.forcePendingUserAction}
+                    onChange={() => {
+                      updaterSimulation.forceInstallSuccess = false;
+                      updaterSimulation.forceInstallFailure = false;
+                      updaterSimulation.forceUserCancel = false;
+                      updaterSimulation.forcePendingUserAction = true;
+                      triggerSimRender();
+                    }}
+                  />
+                  Force Pending User
+                </label>
               </div>
+              <button
+                onClick={() => {
+                  updaterSimulation.forceInstallSuccess = false;
+                  updaterSimulation.forceInstallFailure = false;
+                  updaterSimulation.forceUserCancel = false;
+                  updaterSimulation.forcePendingUserAction = false;
+                  triggerSimRender();
+                  showToast('Native simulation overrides cleared.');
+                }}
+                style={{ width: '100%', padding: '6px', borderRadius: 6, background: 'rgba(255,255,255,0.06)', color: '#fff', border: 'none', fontSize: 10, fontWeight: 700, cursor: 'pointer' }}
+              >
+                Clear Mock Overrides
+              </button>
             </div>
 
-            {/* 5. Recovery Controls */}
+            {/* 4. Reset controls */}
             <div style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.05)', borderRadius: 12, padding: 12 }}>
               <div style={{ fontSize: 13, fontWeight: 800, marginBottom: 10, color: '#ef4444', display: 'flex', alignItems: 'center', gap: 6 }}>
                 <span className="material-symbols-outlined" style={{ fontSize: 18 }}>restart_alt</span>
-                Recovery & Reset
+                Reset & Diagnostics Clears
               </div>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 6 }}>
                 <button
@@ -991,22 +1343,23 @@ export default function DevToolsDashboard({ accent, onBack }: Props) {
                   }}
                   style={{ padding: '8px', borderRadius: 8, background: 'rgba(255,255,255,0.08)', color: '#fff', border: 'none', fontWeight: 700, fontSize: 11, cursor: 'pointer' }}
                 >
-                  Clear State
+                  Reset State Machine
                 </button>
                 <button
                   onClick={() => {
                     localStorage.removeItem('studio:consecutiveFailures');
                     localStorage.removeItem('studio:recoveryMode');
-                    showToast('Recovery counters cleared.');
+                    showToast('Recovery variables cleared.');
                   }}
                   style={{ padding: '8px', borderRadius: 8, background: 'rgba(255,255,255,0.08)', color: '#fff', border: 'none', fontWeight: 700, fontSize: 11, cursor: 'pointer' }}
                 >
-                  Clear Recovery State
+                  Clear Recovery Flags
                 </button>
                 <button
                   onClick={async () => {
-                    await deleteLocalApk();
-                    showToast('Cached APK file deleted.');
+                    const ver = globalOtaState.remoteVersion || '3.7.99';
+                    await deleteLocalApk(ver);
+                    showToast('Deleted cached update APKs.');
                   }}
                   style={{ padding: '8px', borderRadius: 8, background: 'rgba(255,255,255,0.08)', color: '#fff', border: 'none', fontWeight: 700, fontSize: 11, cursor: 'pointer' }}
                 >
@@ -1014,11 +1367,17 @@ export default function DevToolsDashboard({ accent, onBack }: Props) {
                 </button>
                 <button
                   onClick={async () => {
+                    const ver = globalOtaState.remoteVersion || '3.7.99';
                     resetOtaUpdateState();
-                    await deleteLocalApk();
+                    await deleteLocalApk(ver);
                     localStorage.removeItem('studio:consecutiveFailures');
                     localStorage.removeItem('studio:recoveryMode');
                     localStorage.removeItem('studio:downloadedApkPath');
+                    jsLogs.length = 0;
+                    nativeLogsList.length = 0;
+                    stateTimeline.length = 0;
+                    transitionHistory.length = 0;
+                    rejectedTransitions.length = 0;
                     showToast('Updater completely reset.');
                   }}
                   style={{ padding: '8px', borderRadius: 8, background: '#ef4444', color: '#fff', border: 'none', fontWeight: 700, fontSize: 11, cursor: 'pointer' }}
@@ -1030,7 +1389,7 @@ export default function DevToolsDashboard({ accent, onBack }: Props) {
           </div>
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-            {/* Real-time Diagnostics Fields */}
+            {/* 1. Real-time Telemetry */}
             <div style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.05)', borderRadius: 12, padding: 12 }}>
               <div style={{ fontSize: 13, fontWeight: 800, marginBottom: 10, color: '#a855f7', display: 'flex', alignItems: 'center', gap: 6 }}>
                 <span className="material-symbols-outlined" style={{ fontSize: 18 }}>monitoring</span>
@@ -1038,37 +1397,126 @@ export default function DevToolsDashboard({ accent, onBack }: Props) {
               </div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
                 <DiagnosticField label="App Version" value={APP_VERSION} />
-                <DiagnosticField label="Installed Wrapper Version" value={otaDebugLogs.nativeApkVersion || 'N/A'} />
+                <DiagnosticField label="Wrapper Version" value={otaDebugLogs.nativeApkVersion || 'N/A'} />
                 <DiagnosticField label="Available Version" value={globalOtaState.remoteVersion || 'N/A'} />
-                <DiagnosticField label="Installed versionCode" value={otaDebugLogs.installedVersionCode !== null ? String(otaDebugLogs.installedVersionCode) : 'N/A'} />
+                <DiagnosticField label="Wrapper versionCode" value={otaDebugLogs.installedVersionCode !== null ? String(otaDebugLogs.installedVersionCode) : 'N/A'} />
                 <DiagnosticField label="Package Name" value={otaDebugLogs.installedPackageName || 'com.chordex.app'} />
                 <DiagnosticField label="Build Type" value={otaDebugLogs.installedDebuggable ? 'Debug (Debuggable)' : 'Production (Signed)'} />
-                <DiagnosticField label="Current State" value={globalOtaState.updateState} />
+                <DiagnosticField label="Current JS State" value={globalOtaState.updateState} />
                 <DiagnosticField label="Download Progress" value={`${Math.round(globalOtaState.progress * 100)}%`} />
                 <DiagnosticField label="SHA-256 Expected" value={globalOtaState.apkSha256 || 'N/A'} />
                 <DiagnosticField label="SHA-256 Calculated" value={otaDebugLogs.shaVerification || 'N/A'} />
-                <DiagnosticField label="Downloaded APK Path" value={otaDebugLogs.downloadedApkPath || 'N/A'} />
                 <DiagnosticField label="Eligibility Result" value={otaDebugLogs.apkEligibilityResult || 'N/A'} />
               </div>
             </div>
 
-            {/* State Timeline */}
+            {/* 2. PackageInstaller Monitor */}
+            <div style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.05)', borderRadius: 12, padding: 12 }}>
+              <div style={{ fontSize: 13, fontWeight: 800, marginBottom: 10, color: '#eab308', display: 'flex', alignItems: 'center', gap: 6 }}>
+                <span className="material-symbols-outlined" style={{ fontSize: 18 }}>view_carousel</span>
+                PackageInstaller Monitor
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 4, marginBottom: 8 }}>
+                <DiagnosticField label="Active Session ID" value={nativeInstallerDetails?.sessionId !== undefined && nativeInstallerDetails.sessionId !== -1 ? String(nativeInstallerDetails.sessionId) : 'None'} />
+                <DiagnosticField label="Session Stage" value={nativeInstallerDetails?.sessionState || 'None'} />
+                <DiagnosticField label="PendingIntent Created" value={nativeInstallerDetails?.pendingIntentCreated ? 'YES' : 'NO'} />
+                <DiagnosticField label="IntentSender Created" value={nativeInstallerDetails?.intentSenderCreated ? 'YES' : 'NO'} />
+                <DiagnosticField label="Intent Fired" value={nativeInstallerDetails?.intentFired ? 'YES' : 'NO'} />
+                <DiagnosticField label="Confirmation Intent Recv" value={nativeInstallerDetails?.confirmationIntentReceived ? 'YES' : 'NO'} />
+                <DiagnosticField label="Confirmation Intent Active" value={nativeInstallerDetails?.confirmationIntentStarted ? 'YES' : 'NO'} />
+                <DiagnosticField label="Last Received Status" value={nativeInstallerDetails?.lastStatusCode !== undefined && nativeInstallerDetails.lastStatusCode !== -999 ? String(nativeInstallerDetails.lastStatusCode) : 'None'} />
+                <DiagnosticField label="Last Received Message" value={nativeInstallerDetails?.lastStatusMessage || 'N/A'} />
+                <DiagnosticField label="Last Callback Timestamp" value={nativeInstallerDetails?.lastStatusTimestamp ? new Date(nativeInstallerDetails.lastStatusTimestamp).toLocaleTimeString() : 'N/A'} />
+              </div>
+            </div>
+
+            {/* 3. State Machine Viewer */}
             <div style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.05)', borderRadius: 12, padding: 12 }}>
               <div style={{ fontSize: 13, fontWeight: 800, marginBottom: 8, color: '#3b82f6', display: 'flex', alignItems: 'center', gap: 6 }}>
-                <span className="material-symbols-outlined" style={{ fontSize: 18 }}>history</span>
-                State Transition Timeline
+                <span className="material-symbols-outlined" style={{ fontSize: 18 }}>account_tree</span>
+                State Machine Viewer
               </div>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 6, maxH: 150, overflowY: 'auto', background: 'rgba(0,0,0,0.15)', padding: 8, borderRadius: 8 }}>
-                {stateTimeline.length === 0 ? (
-                  <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.3)' }}>No state transitions recorded yet.</div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 4, marginBottom: 8 }}>
+                <DiagnosticField label="Current State" value={globalOtaState.updateState} />
+                <DiagnosticField label="Rejected Transitions" value={String(rejectedTransitions.length)} />
+              </div>
+              <CollapsibleSection title={`Show State History (${transitionHistory.length})`} collapsed={stateHistoryCollapsed} onToggle={() => setStateHistoryCollapsed(!stateHistoryCollapsed)}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 6, maxHeight: 150, overflowY: 'auto', background: 'rgba(0,0,0,0.15)', padding: 8, borderRadius: 8 }}>
+                  {transitionHistory.length === 0 ? (
+                    <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.3)' }}>No state transitions recorded.</div>
+                  ) : (
+                    transitionHistory.slice().reverse().map((t, idx) => (
+                      <div key={idx} style={{ fontSize: 10, borderBottom: '1px solid rgba(255,255,255,0.03)', paddingBottom: 4 }}>
+                        <span style={{ color: '#60a5fa' }}>[{new Date(t.timestamp).toLocaleTimeString()}]</span>{' '}
+                        <strong>{t.from}</strong> &rarr; <strong style={{ color: t.invalid ? '#f87171' : '#34d399' }}>{t.to}</strong>
+                        {t.durationMs > 0 && <span style={{ color: 'rgba(255,255,255,0.3)', marginLeft: 6 }}>({t.durationMs}ms)</span>}
+                        <div style={{ color: 'rgba(255,255,255,0.4)', fontSize: 9, marginTop: 1 }}>Reason: {t.reason}</div>
+                      </div>
+                    ))
+                  )}
+                </div>
+              </CollapsibleSection>
+            </div>
+
+            {/* 4. Device & Context Information */}
+            <div style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.05)', borderRadius: 12, padding: 12 }}>
+              <div style={{ fontSize: 13, fontWeight: 800, marginBottom: 8, color: '#f59e0b', display: 'flex', alignItems: 'center', gap: 6 }}>
+                <span className="material-symbols-outlined" style={{ fontSize: 18 }}>device_unknown</span>
+                Device Context
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                <DiagnosticField label="Android OS" value={nativeDeviceInfo?.androidVersion || 'N/A'} />
+                <DiagnosticField label="SDK Level" value={nativeDeviceInfo?.sdkInt !== undefined ? String(nativeDeviceInfo.sdkInt) : 'N/A'} />
+                <DiagnosticField label="Model / Brand" value={`${nativeDeviceInfo?.manufacturer || ''} ${nativeDeviceInfo?.model || ''}`} />
+                <DiagnosticField label="ABI Architecture" value={nativeDeviceInfo?.architecture || 'N/A'} />
+                <DiagnosticField label="Storage Space" value={nativeDeviceInfo?.storageAvailable || 'N/A'} />
+                <DiagnosticField label="System Memory" value={nativeDeviceInfo?.ram || 'N/A'} />
+                <DiagnosticField label="Battery Level" value={nativeDeviceInfo?.battery || 'N/A'} />
+                <DiagnosticField label="Network Status" value={nativeDeviceInfo?.networkState || 'N/A'} />
+                <DiagnosticField label="Device Time" value={nativeDeviceInfo?.time || 'N/A'} />
+                <DiagnosticField label="Installation Source" value={nativeDeviceInfo?.installerPackage || 'N/A'} />
+                <DiagnosticField label="Install Permission Granted" value={nativeDeviceInfo?.canRequestPackageInstalls ? 'YES' : 'NO'} />
+              </div>
+            </div>
+
+            {/* 5. File Diagnostics */}
+            {localApkDetails && (
+              <div style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.05)', borderRadius: 12, padding: 12 }}>
+                <div style={{ fontSize: 13, fontWeight: 800, marginBottom: 8, color: '#10b981', display: 'flex', alignItems: 'center', gap: 6 }}>
+                  <span className="material-symbols-outlined" style={{ fontSize: 18 }}>drafts</span>
+                  Downloaded APK Information
+                </div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                  <DiagnosticField label="Package Name" value={localApkDetails.packageName || 'N/A'} />
+                  <DiagnosticField label="Version Name" value={localApkDetails.versionName || 'N/A'} />
+                  <DiagnosticField label="Version Code" value={localApkDetails.versionCode ? String(localApkDetails.versionCode) : 'N/A'} />
+                  <DiagnosticField label="Universal APK" value={localApkDetails.isUniversalApk ? 'YES' : 'NO'} />
+                  <DiagnosticField label="Min / Target SDK" value={`${localApkDetails.minSdk || 'N/A'} / ${localApkDetails.targetSdk || 'N/A'}`} />
+                  <DiagnosticField label="Valid Package Header" value={localApkDetails.isValidApk ? 'YES' : 'NO'} />
+                  <DiagnosticField label="Sign Certificate SHA" value={localApkDetails.signingSha256 ? `${localApkDetails.signingSha256.substring(0, 16)}...` : 'N/A'} />
+                </div>
+              </div>
+            )}
+
+            {/* 6. Chronological Unified Timeline */}
+            <div style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.05)', borderRadius: 12, padding: 12 }}>
+              <div style={{ fontSize: 13, fontWeight: 800, marginBottom: 8, color: '#06b6d4', display: 'flex', alignItems: 'center', gap: 6 }}>
+                <span className="material-symbols-outlined" style={{ fontSize: 18 }}>view_headline</span>
+                Chronological Event Timeline
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 6, maxHeight: 220, overflowY: 'auto', background: 'rgba(0,0,0,0.25)', padding: 8, borderRadius: 8, fontFamily: 'monospace', fontSize: 10 }}>
+                {unifiedTimeline.length === 0 ? (
+                  <div style={{ color: 'rgba(255,255,255,0.3)', fontFamily: 'sans-serif' }}>No execution timeline recorded.</div>
                 ) : (
-                  stateTimeline.map((t, idx) => {
-                    const timeStr = new Date(t.timestamp).toLocaleTimeString();
+                  unifiedTimeline.map((e, idx) => {
+                    const timeStr = new Date(e.time).toLocaleTimeString();
+                    const color = e.type === 'js' ? '#34d399' : e.type === 'state' ? '#60a5fa' : '#f59e0b';
                     return (
-                      <div key={idx} style={{ fontSize: 11, borderBottom: '1px solid rgba(255,255,255,0.03)', paddingBottom: 4 }}>
-                        <span style={{ color: '#60a5fa', fontWeight: 700 }}>[{timeStr}]</span>{' '}
-                        <span style={{ color: '#fff', fontWeight: 800 }}>{t.state}</span>
-                        <div style={{ color: 'rgba(255,255,255,0.4)', fontSize: 10, marginTop: 1 }}>Reason: {t.reason}</div>
+                      <div key={idx} style={{ borderBottom: '1px solid rgba(255,255,255,0.02)', paddingBottom: 4 }}>
+                        <span style={{ color: 'rgba(255,255,255,0.3)' }}>[{timeStr}]</span>{' '}
+                        <span style={{ color, fontWeight: 700 }}>[{e.type.toUpperCase()}]</span>{' '}
+                        <span style={{ color: '#fff' }}>{e.text}</span>
+                        {e.details && <div style={{ color: 'rgba(255,255,255,0.4)', paddingLeft: 12, fontSize: 9 }}>{e.details}</div>}
                       </div>
                     );
                   })
@@ -1076,58 +1524,36 @@ export default function DevToolsDashboard({ accent, onBack }: Props) {
               </div>
             </div>
 
-            {/* JS & Native Console Logs */}
-            <div style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.05)', borderRadius: 12, padding: 12 }}>
-              <div style={{ fontSize: 13, fontWeight: 800, marginBottom: 8, color: '#10b981', display: 'flex', alignItems: 'center', gap: 6 }}>
-                <span className="material-symbols-outlined" style={{ fontSize: 18 }}>list_alt</span>
-                Console & Execution Logs
-              </div>
-              <div style={{ fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,0.4)', marginBottom: 4 }}>JavaScript Logs</div>
-              <div style={{ background: 'rgba(0,0,0,0.25)', padding: 8, borderRadius: 6, height: 120, overflowY: 'auto', fontFamily: 'monospace', fontSize: 10, color: '#34d399', marginBottom: 10 }}>
-                {jsLogs.length === 0 ? 'No JS logs captured.' : jsLogs.slice().reverse().join('\n')}
-              </div>
-              <div style={{ fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,0.4)', marginBottom: 4 }}>Native Wrapper Logs</div>
-              <div style={{ background: 'rgba(0,0,0,0.25)', padding: 8, borderRadius: 6, height: 120, overflowY: 'auto', fontFamily: 'monospace', fontSize: 10, color: '#60a5fa' }}>
-                {nativeLogs.length === 0 ? 'No native logs captured.' : nativeLogs.slice().reverse().join('\n')}
-              </div>
-            </div>
-
-            {/* Export Actions */}
+            {/* 7. Export Controls */}
             <div style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.05)', borderRadius: 12, padding: 12 }}>
               <div style={{ fontSize: 13, fontWeight: 800, marginBottom: 10, color: '#f59e0b', display: 'flex', alignItems: 'center', gap: 6 }}>
                 <span className="material-symbols-outlined" style={{ fontSize: 18 }}>ios_share</span>
-                Export Diagnostics
+                Export Engineering Report
               </div>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 6 }}>
                 <button
-                  onClick={async () => {
-                    const rep = await getDiagnosticsReport();
-                    handleCopyText(rep, 'Full Diagnostics');
-                  }}
+                  onClick={exportEngineeringReport}
                   style={{ padding: '8px', borderRadius: 8, background: '#f59e0b', color: '#fff', border: 'none', fontWeight: 700, fontSize: 11, cursor: 'pointer' }}
                 >
-                  Copy Report
-                </button>
-                <button
-                  onClick={() => {
-                    const data = { otaDiagnostics, otaDebugLogs, globalOtaState };
-                    handleCopyText(JSON.stringify(data, null, 2), 'Diagnostics JSON');
-                  }}
-                  style={{ padding: '8px', borderRadius: 8, background: 'rgba(255,255,255,0.08)', color: '#fff', border: 'none', fontWeight: 700, fontSize: 11, cursor: 'pointer' }}
-                >
-                  Export JSON
+                  Copy Report (.md)
                 </button>
                 <button
                   onClick={exportTimelineMarkdown}
                   style={{ padding: '8px', borderRadius: 8, background: 'rgba(255,255,255,0.08)', color: '#fff', border: 'none', fontWeight: 700, fontSize: 11, cursor: 'pointer' }}
                 >
-                  Export Timeline
+                  Copy Timeline (.md)
                 </button>
                 <button
-                  onClick={() => handleCopyText(jsLogs.join('\n'), 'JavaScript Logs')}
+                  onClick={exportCompleteTimelineJSON}
                   style={{ padding: '8px', borderRadius: 8, background: 'rgba(255,255,255,0.08)', color: '#fff', border: 'none', fontWeight: 700, fontSize: 11, cursor: 'pointer' }}
                 >
-                  Export JS Logs
+                  Copy Timeline (.json)
+                </button>
+                <button
+                  onClick={exportCompleteTimelineText}
+                  style={{ padding: '8px', borderRadius: 8, background: 'rgba(255,255,255,0.08)', color: '#fff', border: 'none', fontWeight: 700, fontSize: 11, cursor: 'pointer' }}
+                >
+                  Copy Timeline (.txt)
                 </button>
               </div>
             </div>

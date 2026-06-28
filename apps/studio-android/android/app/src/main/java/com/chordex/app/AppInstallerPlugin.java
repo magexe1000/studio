@@ -307,9 +307,89 @@ public class AppInstallerPlugin extends Plugin {
             } else {
                 result.put("canRequestPackageInstalls", true);
             }
+
+            // Battery info
+            try {
+                android.content.IntentFilter ifilter = new android.content.IntentFilter(Intent.ACTION_BATTERY_CHANGED);
+                Intent batteryStatus = context.registerReceiver(null, ifilter);
+                if (batteryStatus != null) {
+                    int level = batteryStatus.getIntExtra(android.os.BatteryManager.EXTRA_LEVEL, -1);
+                    int scale = batteryStatus.getIntExtra(android.os.BatteryManager.EXTRA_SCALE, -1);
+                    float batteryPct = (level * 100) / (float) scale;
+                    result.put("battery", String.format(java.util.Locale.US, "%.0f%%", batteryPct));
+                } else {
+                    result.put("battery", "Unknown");
+                }
+            } catch (Exception e) {
+                result.put("battery", "Unknown (Error: " + e.getMessage() + ")");
+            }
+
+            // RAM info
+            try {
+                android.app.ActivityManager.MemoryInfo mi = new android.app.ActivityManager.MemoryInfo();
+                android.app.ActivityManager activityManager = (android.app.ActivityManager) context.getSystemService(Context.ACTIVITY_SERVICE);
+                if (activityManager != null) {
+                    activityManager.getMemoryInfo(mi);
+                    long totalMegs = mi.totalMem / 1048576L;
+                    long availableMegs = mi.availMem / 1048576L;
+                    result.put("ram", availableMegs + " MB free / " + totalMegs + " MB total");
+                } else {
+                    result.put("ram", "Unknown");
+                }
+            } catch (Exception e) {
+                result.put("ram", "Unknown (Error: " + e.getMessage() + ")");
+            }
+
+            // Installer Package
+            try {
+                String installer = null;
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+                    android.content.pm.InstallSourceInfo info = context.getPackageManager().getInstallSourceInfo(context.getPackageName());
+                    installer = info.getInstallingPackageName();
+                } else {
+                    installer = context.getPackageManager().getInstallerPackageName(context.getPackageName());
+                }
+                result.put("installerPackage", installer != null ? installer : "Unknown/Direct");
+            } catch (Exception e) {
+                result.put("installerPackage", "Unknown (Error: " + e.getMessage() + ")");
+            }
+
+            // Time
+            result.put("time", new java.util.Date().toString());
+
             call.resolve(result);
         } catch (Exception e) {
             call.reject("Failed to get device info: " + e.getMessage(), e);
+        }
+    }
+
+    @PluginMethod
+    public void getPackageInstallerDetails(PluginCall call) {
+        try {
+            Context context = getContext();
+            SharedPreferences prefs = context.getSharedPreferences(InstallReceiver.PREFS_NAME, Context.MODE_PRIVATE);
+            JSObject result = new JSObject();
+            result.put("sessionId", prefs.getInt("session_id", -1));
+            result.put("sessionState", prefs.getString("session_state", "None"));
+            result.put("sessionCreatedTime", prefs.getLong("session_created_time", 0));
+            result.put("sessionCommitTime", prefs.getLong("session_commit_time", 0));
+            result.put("receiverTriggeredTime", prefs.getLong("receiver_triggered_time", 0));
+            result.put("lastStatusCode", prefs.getInt("last_status_code", -999));
+            result.put("lastStatusMessage", prefs.getString("last_status_message", ""));
+            result.put("lastStatusTimestamp", prefs.getLong("last_status_timestamp", 0));
+            result.put("expectedVersionCode", prefs.getLong("expected_version_code", 0));
+            result.put("expectedVersionName", prefs.getString("expected_version_name", ""));
+            
+            // PendingIntent tracking
+            result.put("pendingIntentCreated", prefs.getBoolean("pending_intent_created", false));
+            result.put("intentSenderCreated", prefs.getBoolean("intent_sender_created", false));
+            result.put("intentFired", prefs.getBoolean("intent_fired", false));
+            result.put("confirmationIntentReceived", prefs.getBoolean("confirmation_intent_received", false));
+            result.put("confirmationIntentStarted", prefs.getBoolean("confirmation_intent_started", false));
+            
+            call.resolve(result);
+        } catch (Exception e) {
+            call.reject("Failed to get PackageInstaller details: " + e.getMessage(), e);
         }
     }
 
@@ -707,6 +787,12 @@ public class AppInstallerPlugin extends Plugin {
                 .putLong("last_status_timestamp", System.currentTimeMillis())
                 .putLong("expected_version_code", expectedVersionCode)
                 .putString("expected_version_name", expectedVersionName)
+                .putBoolean("pending_intent_created", false)
+                .putBoolean("intent_sender_created", false)
+                .putBoolean("intent_fired", false)
+                .putBoolean("confirmation_intent_received", false)
+                .putBoolean("confirmation_intent_started", false)
+                .putString("session_state", "created")
                 .apply();
 
             // Check for INSTALL_PACKAGES permission on Android 8.0+
@@ -751,6 +837,11 @@ public class AppInstallerPlugin extends Plugin {
                 sessionCreateCallCount++;
                 logNativeInstrumentation(context, "triggerInstallation", callId, "STEP", "Calling PackageInstaller.createSession() call #" + sessionCreateCallCount);
                 sessionId = packageInstaller.createSession(params);
+                prefs.edit()
+                    .putInt("session_id", sessionId)
+                    .putLong("session_created_time", System.currentTimeMillis())
+                    .putString("session_state", "session_created")
+                    .apply();
                 logNativeInstrumentation(context, "triggerInstallation", callId, "STEP", "Session.create() success. sessionId=" + sessionId);
                 InstallReceiver.appendLog(context, "PackageInstaller Session Created", 0, "Session ID: " + sessionId, null, null);
             } catch (Exception e) {
@@ -814,6 +905,7 @@ public class AppInstallerPlugin extends Plugin {
                         intent, 
                         pendingFlags
                 );
+                prefs.edit().putBoolean("pending_intent_created", true).apply();
             } catch (Exception e) {
                 try { session.close(); } catch (Exception ignored) {}
                 throw new Exception("[PendingIntent creation] Failed to create PendingIntent for session " + sessionId + ": " + e.getMessage(), e);
@@ -823,7 +915,13 @@ public class AppInstallerPlugin extends Plugin {
                 sessionCommitCallCount++;
                 logNativeInstrumentation(context, "triggerInstallation", callId, "STEP", "Session.commit() call #" + sessionCommitCallCount + " start. Calling session.commit()");
                 InstallReceiver.appendLog(context, "Session Commit Started", 0, "Calling session.commit()", null, null);
-                prefs.edit().putBoolean("installation_active", true).apply();
+                prefs.edit()
+                     .putBoolean("installation_active", true)
+                     .putBoolean("intent_sender_created", true)
+                     .putBoolean("intent_fired", true)
+                     .putLong("session_commit_time", System.currentTimeMillis())
+                     .putString("session_state", "committed")
+                     .apply();
                 session.commit(pendingIntent.getIntentSender());
                 session.close();
                 logNativeInstrumentation(context, "triggerInstallation", callId, "STEP", "Session.commit() finished and session closed");

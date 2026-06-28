@@ -128,6 +128,7 @@ public class InstallReceiver extends BroadcastReceiver {
                 appendLog(context, "Installer dialog displayed", status, "System confirmation screen requested", otherPackageName, null);
                 Intent confirmIntent = intent.getParcelableExtra(Intent.EXTRA_INTENT);
                 if (confirmIntent != null) {
+                    prefs.edit().putBoolean("confirmation_intent_received", true).apply();
                     confirmIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
                     try {
                         if (android.os.Build.VERSION.SDK_INT >= 34) {
@@ -135,9 +136,11 @@ public class InstallReceiver extends BroadcastReceiver {
                             options.setPendingIntentBackgroundActivityStartMode(
                                     android.app.ActivityOptions.MODE_BACKGROUND_ACTIVITY_START_ALLOWED);
                             context.startActivity(confirmIntent, options.toBundle());
+                            prefs.edit().putBoolean("confirmation_intent_started", true).apply();
                             Log.d(TAG, "[INSTRUMENTATION] [NATIVE] Started confirmation intent from BroadcastReceiver on Android 14+ with background start mode allowed");
                         } else {
                             context.startActivity(confirmIntent);
+                            prefs.edit().putBoolean("confirmation_intent_started", true).apply();
                             Log.d(TAG, "[INSTRUMENTATION] [NATIVE] Started confirmation intent from BroadcastReceiver");
                         }
                     } catch (Exception e) {

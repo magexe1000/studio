@@ -100,7 +100,7 @@ export function stopWatchdog() {
   }
 }
 
-import { recordStateTransition, addJsLog } from './updaterSimulation';
+import { recordStateTransition, addJsLog, transitionHistory, rejectedTransitions } from './updaterSimulation';
 
 export function transitionToState(state: OtaUpdateState, reason: string) {
   console.log(`[OTA STATE] Transitioning to: ${state}. Reason: ${reason}`);
@@ -109,6 +109,7 @@ export function transitionToState(state: OtaUpdateState, reason: string) {
   stopWatchdog();
 
   const current = globalOtaState.updateState;
+  const now = Date.now();
   let isValid = true;
 
   if (current === state) {
@@ -145,8 +146,29 @@ export function transitionToState(state: OtaUpdateState, reason: string) {
 
   if (!isValid) {
     console.warn(`[OTA STATE WARNING] Invalid transition: ${current} -> ${state} (Reason: ${reason}). Resetting to idle.`);
+    rejectedTransitions.push({
+      from: current,
+      attempted: state,
+      reason: reason,
+      timestamp: now
+    });
     state = 'idle';
   }
+
+  // Calculate duration of previous state
+  const prevEntry = transitionHistory[transitionHistory.length - 1];
+  if (prevEntry) {
+    prevEntry.durationMs = now - prevEntry.timestamp;
+  }
+
+  transitionHistory.push({
+    from: current,
+    to: state,
+    reason: reason,
+    timestamp: now,
+    durationMs: 0,
+    invalid: !isValid
+  });
 
   // Setup watchdog timers for transient states
   if (state === 'checking') {

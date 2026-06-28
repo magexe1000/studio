@@ -12,6 +12,13 @@ Conventions:
 - Bullets start with `- ` and use plain English a non-technical user
   can parse. Keep each line short — the modal's text area is narrow.
 
+## 3.7.37
+
+### Fixed
+- Fixed PackageInstaller background activity launch blocks on Android 14+ by using a BroadcastReceiver.
+- Added comprehensive Updater Laboratory simulation tools and unified chronological event logs to Developer Options.
+- Refactored index exports and added post-download certificate check robustness.
+
 ## 3.7.36
 
 ### Fixed

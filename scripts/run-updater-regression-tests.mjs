@@ -39,7 +39,7 @@ const mockAppInstaller = {
   },
   verifyApkSha256: async () => ({ matches: true }),
   getLastInstallResult: async () => ({ statusCode: 0, statusMessage: 'Success' }),
-  getInstalledAppInfo: async () => ({ versionName: '3.7.8', versionCode: 8 }), // local version code matches split[2] (8)
+  getInstalledAppInfo: async () => ({ versionName: '3.7.8', versionCode: 8, signingSha256: 'mock_sha_256', packageName: 'com.chordex.app' }),
   isInstallActive: async () => ({ active: false }),
   clearInstallerLogHistory: async () => {},
   appendLog: async () => {},
@@ -50,7 +50,45 @@ const mockAppInstaller = {
     androidVersion: '14',
     sdkInt: 34,
     canRequestPackageInstalls: true
-  })
+  }),
+  addListener: (event, cb) => {
+    return { remove: async () => {} };
+  },
+  inspectApk: async ({ filePath }) => {
+    return {
+      packageName: 'com.chordex.app',
+      versionName: '3.7.37',
+      versionCode: 164,
+      minSdk: 26,
+      targetSdk: 34,
+      isValidApk: true,
+      isUniversalApk: true,
+      signingSha256: 'mock_sha_256'
+    };
+  },
+  readFirstBytes: async ({ filePath, byteCount }) => {
+    return { bytes: '504B0304' };
+  },
+  getPackageInstallerDetails: async () => {
+    return {
+      sessionId: 1,
+      sessionState: 'ACTIVE',
+      pendingIntentCreated: true,
+      intentSenderCreated: true,
+      intentFired: true,
+      confirmationIntentReceived: true,
+      confirmationIntentStarted: true,
+      lastStatusCode: 0,
+      lastStatusMessage: 'Success',
+      lastStatusTimestamp: Date.now()
+    };
+  },
+  getInstallerLogHistory: async () => {
+    return { logs: '[]' };
+  },
+  canRequestPackageInstalls: async () => {
+    return { value: true };
+  }
 };
 
 globalThis.Capacitor = {
