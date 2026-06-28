@@ -46,7 +46,9 @@ graph TD
 ## 4. Native ↔ React Bridge
 Communication between the React frontend and the native Android wrapper is facilitated by Capacitor plugins:
 -   **TypeScript to Native**: Calls `AppInstaller.installApk`, `AppInstaller.installApkDirect`, `AppInstaller.downloadApk`, or `AppInstaller.getInstalledAppInfo`.
--   **Native to TypeScript**: Fires listener events like `apkDownloadProgress` sending progress status objects (`{ progress: number }`) during background downloads.
+-   **Native to TypeScript**: Fires listener events:
+    -   `apkDownloadProgress`: Sends progress status objects (`{ progress: number }`) during downloads.
+    -   `onInstallStatusChanged`: Real-time PackageInstaller broadcast and session callback events (`{ status: number, message: string, progress?: number }`).
 
 ---
 
@@ -57,13 +59,16 @@ Communication between the React frontend and the native Android wrapper is facil
 ---
 
 ## 6. Handoff Flow (PackageInstaller ↔ PendingIntent ↔ BroadcastReceiver)
-1.  **Session Setup**: `AppInstallerPlugin` creates a `PackageInstaller.Session` using `SessionParams` (enforcing dynamic downgrade permission lookup via reflection).
+1.  **Session Setup & Callback**: `AppInstallerPlugin` creates a `PackageInstaller.Session` and registers a `SessionCallback` on the main loop. This callback intercepts session active and progress change events in real time.
 2.  **APK Write**: Streams the APK file from cache into the session output stream.
 3.  **Handoff Intent**: Registers a `PendingIntent` referencing the `InstallReceiver` class.
 4.  **OS Commit**: Calls `session.commit(statusReceiver)`. The OS suspends execution and overlays the system installer confirmation dialog.
-5.  **Broadcast Response**: `InstallReceiver` receives `ACTION_INSTALL_STATUS` from the OS.
-    -   **Success**: Logs success status, schedules a reload, and reboots the application.
-    -   **Failure**: Appends native log details, updates shared preferences, and fails the session, triggering the frontend auto-retry.
+5.  **Broadcast Response & Session monitoring**:
+    -   **Pending Action (-1)**: Broadcast fires when the confirmation prompt shows. React transitions to `WAITING_FOR_ANDROID_CONFIRMATION`.
+    -   **Session Active (-2)**: SessionCallback fires when the user presses "Update". React transitions to `INSTALLING` (spinner shown) and writes the update success local storage flags (`studio:showUpdateSuccess` and `studio:appliedUpdateVersion`).
+    -   **Session Progress (-3)**: SessionCallback tracks system copy progress.
+    -   **Success (0)**: `InstallReceiver` logs success status. The OS terminates the process.
+    -   **Failure (3 / others)**: Clears all local storage success flags and transitions React back to `failed`.
 
 ---
 
@@ -89,3 +94,11 @@ To ensure users are never trapped without an update path, the system includes a 
 - **Update Failure Screen**: A third action button, `Download from GitHub` (visually distinct outlined button with a GitHub icon), is rendered below the Retry and Cancel actions on both the progress screen and the failure dialog.
 - **Recovery Mode**: The primary manual action is updated to `Download Latest Release`, prioritizing the official GitHub signed APK.
 - **Confirmation Sheet**: Before launching the browser, a confirmation sheet is displayed to explain that the APK is published on the official repository, ensuring a safe, guided recovery experience.
+
+---
+
+## 8. Startup Sequence and Simplified Intro
+1.  **Redesigned Intro Overlay**: The planets animation is replaced by a minimal, lightweight Studio logo fade and scale keyframe animation. No canvases, physics, or particle loops are run, keeping the main thread free for React bootstrapping.
+2.  **Linear State Transitions**: The state machine advances linearly, with each state entered exactly once and exited exactly once:
+    `BOOT` → `PREPARE` → `INITIALIZE` → `INTRO_RUNNING` → `LAYOUT_READY` → `ANIMATION_READY` → `INTRO_FINISHED` → `HUB_VISIBLE` → `READY`.
+3.  **Done Success Screen Check**: On first launch of the updated version, the success screen displays with a "Done" button. Only when the user taps "Done" is the version logged to `studio:installedVersions` and `studio:appliedVersions` in local storage, preventing early "Studio is up to date" assertions.
