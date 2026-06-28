@@ -1,6 +1,5 @@
 ### Added
-- Installation UX improvements.
-- Persistent installation stage.
-- Improved PackageInstaller handoff.
-- Recovery reminder persistence.
-- Continue Installation improvements.
+- Startup pipeline optimization.
+- Startup performance improvements.
+- False black-screen detection fixes.
+- Diagnostics reliability improvements.

@@ -728,10 +728,29 @@ export function useOtaUpdate() {
     };
     stateListeners.add(listener);
 
-    void checkAndCleanCache();
+    const initUpdater = () => {
+      console.log('[OTA] Running delayed updater startup (Phase 3)...');
+      void checkAndCleanCache();
+      if (globalOtaState.updateState === 'idle') {
+        void checkForUpdate();
+      }
+    };
 
-    if (globalOtaState.updateState === 'idle') {
-      void checkForUpdate();
+    let introTimer: any = null;
+    if (typeof window !== 'undefined') {
+      if ((window as any).__introDone || sessionStorage.getItem('studio-intro-shown') === 'true') {
+        initUpdater();
+      } else {
+        const handleIntroDone = () => {
+          if (introTimer) clearTimeout(introTimer);
+          window.removeEventListener('studio-intro-done', handleIntroDone);
+          initUpdater();
+        };
+        window.addEventListener('studio-intro-done', handleIntroDone);
+        introTimer = setTimeout(handleIntroDone, 3000);
+      }
+    } else {
+      initUpdater();
     }
 
     const runCheck = () => {
@@ -793,6 +812,7 @@ export function useOtaUpdate() {
         window.removeEventListener('online', onFocus);
       }
       if (pollTimer) clearTimeout(pollTimer);
+      if (introTimer) clearTimeout(introTimer);
       if (nativeListener) void nativeListener.remove().catch(() => {});
     };
   }, []);

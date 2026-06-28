@@ -12,6 +12,14 @@ Conventions:
 - Bullets start with `- ` and use plain English a non-technical user
   can parse. Keep each line short — the modal's text area is narrow.
 
+## 3.7.12
+
+### Added
+- Startup pipeline optimization.
+- Startup performance improvements.
+- False black-screen detection fixes.
+- Diagnostics reliability improvements.
+
 ## 3.7.11
 
 ### Added

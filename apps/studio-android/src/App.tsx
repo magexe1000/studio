@@ -604,6 +604,10 @@ function captureTimelineCheckpoint(captureId: number, key: string) {
 }
 
 function logLifecycleEvent(name: string, event: 'mount' | 'unmount') {
+  if (!isDebugModeEnabled) {
+    console.log(`[Lifecycle] ${name} ${event}`);
+    return;
+  }
   try {
     const timestamp = Date.now();
     const appMode = useChordStore.getState().settings.appMode || 'hub';
@@ -668,6 +672,7 @@ function LifecycleTracker({ name }: { name: string }) {
 
 function TolgeeSuspenseFallback() {
   useEffect(() => {
+    if (!isDebugModeEnabled) return;
     const errorLog = {
       timestamp: Date.now(),
       type: 'SUSPENSE_FALLBACK_RENDERED',
@@ -978,28 +983,7 @@ export default function App() {
     });
   }, []);
 
-  // Startup crash / force-close detector
-  useEffect(() => {
-    try {
-      const inProgress = localStorage.getItem('studio_navigation_in_progress') === 'true';
-      if (inProgress) {
-        // App was force-closed or crashed during returnToStudioHub navigation
-        const currentTimelineStr = localStorage.getItem('studio_current_navigation_timeline');
-        if (currentTimelineStr) {
-          const timeline = JSON.parse(currentTimelineStr);
-          timeline.result = 'failed';
-          timeline.reason = 'APP_FORCE_CLOSED';
-          localStorage.setItem('studio_current_navigation_timeline', JSON.stringify(timeline));
-          localStorage.setItem('studio_last_failed_navigation_timeline', JSON.stringify(timeline));
-          localStorage.setItem('studio_failed_navigation_unviewed', 'true');
-        }
-        localStorage.setItem('studio_navigation_in_progress', 'false');
-        console.warn('[Failsafe] Detected force-close/crash during return-to-hub navigation. Forensic timeline marked.');
-      }
-    } catch (e) {
-      console.error('Failed to run boot crash/force-close check', e);
-    }
-  }, []);
+
 
   const [exitToast, setExitToast] = useState(false);
   const exitToastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -1660,17 +1644,6 @@ export default function App() {
     // Force app mode classes on mount
     document.documentElement.classList.add('app-route');
     document.documentElement.classList.remove('landing-route');
-
-    // Startup recovery invariant: Reset update state to idle unless Android confirms an active installation
-    const checkStartupInvariants = async () => {
-      try {
-        const { enforceStartupRecovery } = await import('@workspace/studio-core');
-        await enforceStartupRecovery();
-      } catch (err) {
-        console.error('[Startup Invariant] Failed to check updater state:', err);
-      }
-    };
-    void checkStartupInvariants();
     
     const intro = document.getElementById('intro');
     if (intro && (window as any).__introReturnedEarly) {
@@ -1683,6 +1656,111 @@ export default function App() {
       (window as any).__introDone = true;
       window.dispatchEvent(new Event('studio-intro-done'));
     }
+  }, []);
+
+  // Staged Startup Scheduler (Phases 1-4 implementation)
+  useEffect(() => {
+    let active = true;
+    let fallbackTimer: any = null;
+
+    const runPhase3 = async () => {
+      if (!active) return;
+      console.log('[Startup Pipeline] Entering Phase 3: Post-paint heavy checks...');
+
+      // 1. Log Hub visible timing
+      if (typeof window !== 'undefined' && (window as any).__bootTimings) {
+        (window as any).__bootTimings.hubVisible = performance.now();
+        console.log("[LivexBoot] Hub fully visible: " + (window as any).__bootTimings.hubVisible.toFixed(2) + "ms");
+
+        // Performance budget checks (Issue 5)
+        const timings = (window as any).__bootTimings;
+        const bootstrapTime = timings.reactMounted - timings.reactBootstrapStart;
+        const paintTime = timings.firstPaint;
+        const visibleTime = timings.hubVisible;
+
+        // Log if they exceed budgets
+        if (bootstrapTime > 250) {
+          console.warn(`[Perf Budget] React bootstrap exceeded budget: ${bootstrapTime.toFixed(1)}ms (Target: < 250 ms)`);
+        }
+        if (paintTime > 700) {
+          console.warn(`[Perf Budget] First Paint exceeded budget: ${paintTime.toFixed(1)}ms (Target: < 700 ms)`);
+        }
+        if (visibleTime > 1200) {
+          console.warn(`[Perf Budget] Hub Visible exceeded budget: ${visibleTime.toFixed(1)}ms (Target: < 1200 ms)`);
+        }
+      }
+
+      // 2. Startup crash / force-close detector
+      try {
+        const inProgress = localStorage.getItem('studio_navigation_in_progress') === 'true';
+        if (inProgress) {
+          const currentTimelineStr = localStorage.getItem('studio_current_navigation_timeline');
+          if (currentTimelineStr) {
+            const timeline = JSON.parse(currentTimelineStr);
+            timeline.result = 'failed';
+            timeline.reason = 'APP_FORCE_CLOSED';
+            localStorage.setItem('studio_current_navigation_timeline', JSON.stringify(timeline));
+            localStorage.setItem('studio_last_failed_navigation_timeline', JSON.stringify(timeline));
+            localStorage.setItem('studio_failed_navigation_unviewed', 'true');
+          }
+          localStorage.setItem('studio_navigation_in_progress', 'false');
+          console.warn('[Failsafe] Detected force-close/crash during return-to-hub navigation.');
+        }
+      } catch (e) {
+        console.error('Failed to run boot crash/force-close check:', e);
+      }
+
+      // 3. Startup recovery invariant (Issue 4)
+      try {
+        const { enforceStartupRecovery } = await import('@workspace/studio-core');
+        await enforceStartupRecovery();
+      } catch (err) {
+        console.error('[Startup Invariant] Failed to check updater state:', err);
+      }
+
+      // Defer Phase 4 (Idle work) to requestIdleCallback or 1.5s timeout
+      const runPhase4 = () => {
+        if (!active) return;
+        console.log('[Startup Pipeline] Entering Phase 4: Background validation & cleanup...');
+        
+        // Background validation and statistics
+        try {
+          const diagnosticsLog = localStorage.getItem('studio_visual_repaints_log') || '[]';
+          const list = JSON.parse(diagnosticsLog);
+          if (list.length > 10) {
+            localStorage.setItem('studio_visual_repaints_log', JSON.stringify(list.slice(-10)));
+          }
+        } catch (_) {}
+      };
+
+      if (typeof window !== 'undefined' && 'requestIdleCallback' in window) {
+        (window as any).requestIdleCallback(runPhase4);
+      } else {
+        setTimeout(runPhase4, 1500);
+      }
+    };
+
+    // Wait for studio-intro-done event or fallback timeout of 2.5 seconds
+    const handleIntroDone = () => {
+      if (fallbackTimer) clearTimeout(fallbackTimer);
+      window.removeEventListener('studio-intro-done', handleIntroDone);
+      runPhase3();
+    };
+
+    if (typeof window !== 'undefined') {
+      if ((window as any).__introDone || sessionStorage.getItem('studio-intro-shown') === 'true') {
+        runPhase3();
+      } else {
+        window.addEventListener('studio-intro-done', handleIntroDone);
+        fallbackTimer = setTimeout(handleIntroDone, 2500);
+      }
+    }
+
+    return () => {
+      active = false;
+      if (fallbackTimer) clearTimeout(fallbackTimer);
+      window.removeEventListener('studio-intro-done', handleIntroDone);
+    };
   }, []);
 
   const [accountState, setAccountState] = useState<AccountState>({ phase: 'unknown' });
@@ -2109,7 +2187,7 @@ export default function App() {
     } catch (_) {}
   }, []);
 
-  // 500ms return-to-hub black screen watchdog detector
+  // 500ms return-to-hub black screen watchdog detector with grace checking and consecutive validation passes
   useEffect(() => {
     if (appMode !== 'hub') {
       return () => {};
@@ -2128,10 +2206,122 @@ export default function App() {
       localStorage.setItem('studio_black_screen_diagnostics', JSON.stringify(diag));
     } catch (_) {}
 
-    const timer = setTimeout(() => {
-      const statePayload = (window as any).__captureBlackScreenState?.();
-      if (!statePayload) return;
+    let consecutiveFailures = 0;
+    const maxRetries = 3;
+    const checkInterval = 500;
+    let timer: any = null;
 
+    const runWatchdogVerdict = (finalBlocked: boolean, finalReason: string, paintData?: any) => {
+      if (finalBlocked) {
+        diag.failedReturns++;
+        diag.blackScreenDetections++;
+        diag.lastBlocker = finalReason;
+        diag.lastPayload = paintData ? { ...statePayload, paintVerification: paintData } : statePayload;
+        
+        console.error('BLACK_SCREEN_DETECTED', finalReason, statePayload);
+        
+        diag.history.push({
+          time: Date.now(),
+          reason: finalReason,
+          payload: paintData ? { ...statePayload, paintVerification: paintData } : statePayload
+        });
+
+        try {
+          localStorage.setItem('studio_black_screen_diagnostics', JSON.stringify(diag));
+        } catch (_) {}
+
+        // Failsafe: auto open the emergency debug overlay
+        if (typeof (window as any).__openEmergencyOverlay === 'function') {
+          (window as any).__openEmergencyOverlay();
+        }
+
+        if (finalReason === 'HUB_ROOT_MISSING') {
+          console.warn('[Failsafe] HUB_ROOT_MISSING detected! Running deterministic Hub remount.');
+          const actualFrom = previousAppModeRef.current || 'none';
+          flushSync(() => {
+            setHubRenderKey(k => k + 1);
+            setTransitionActive(false);
+            lastActiveAppRef.current = 'chords';
+            useChordStore.getState().updateSettings({ appMode: 'hub' });
+          });
+          (window as any).__navigationTraceHistory = (window as any).__navigationTraceHistory || [];
+          (window as any).__navigationTraceHistory.push({
+            fromApp: actualFrom,
+            toApp: 'hub',
+            timestamp: Date.now(),
+            transitionDuration: 0,
+            lockState: false,
+            recoveredViaFailsafe: true
+          });
+          recordNavigation({
+            fromApp: actualFrom,
+            toApp: 'hub',
+            hubMounted: true,
+            activeAppAfterTransition: 'hub',
+            transitionLockState: false,
+            fallbackRendered: false,
+            recoveredViaFailsafe: true
+          } as any);
+        }
+      }
+
+      // Resolve the forensic capture matching the current return attempt
+      const lastCapId = (window as any).__lastForensicCaptureId;
+      try {
+        localStorage.setItem('studio_navigation_in_progress', 'false');
+      } catch (_) {}
+
+      if (lastCapId) {
+        try {
+          const currentTimelineStr = localStorage.getItem('studio_current_navigation_timeline');
+          let timeline = currentTimelineStr ? JSON.parse(currentTimelineStr) : null;
+          if (timeline && timeline.id === lastCapId) {
+            timeline.result = finalBlocked ? 'failed' : 'success';
+            timeline.reason = finalBlocked ? finalReason : '';
+            if (paintData) {
+              timeline.watchdogPaintVerification = paintData;
+            }
+            localStorage.setItem('studio_current_navigation_timeline', JSON.stringify(timeline));
+            
+            if (finalBlocked) {
+              localStorage.setItem('studio_last_failed_navigation_timeline', JSON.stringify(timeline));
+              localStorage.setItem('studio_failed_navigation_unviewed', 'true');
+            }
+          }
+
+          const listStr = localStorage.getItem('studio_forensic_captures') || '[]';
+          const list = JSON.parse(listStr);
+          const index = list.findIndex((c: any) => c.id === lastCapId);
+          if (index !== -1) {
+            list[index].result = finalBlocked ? 'failed' : 'success';
+            list[index].reason = finalBlocked ? finalReason : '';
+            if (paintData) {
+              list[index].watchdogPaintVerification = paintData;
+            }
+            localStorage.setItem('studio_forensic_captures', JSON.stringify(list));
+            
+            // Also store individual last successful or failed capture
+            if (finalBlocked) {
+              localStorage.setItem('studio_forensic_last_failed', JSON.stringify(list[index]));
+            } else {
+              localStorage.setItem('studio_forensic_last_successful', JSON.stringify(list[index]));
+            }
+          }
+        } catch (e) {
+          console.error('Forensics: Error updating capture result', e);
+        }
+      }
+    };
+
+    let statePayload: any = null;
+
+    const runCheckPass = () => {
+      statePayload = (window as any).__captureBlackScreenState?.();
+      if (!statePayload) {
+        runWatchdogVerdict(false, 'Capture state not ready');
+        return;
+      }
+      
       const hubVisible = statePayload.hub.visible;
       const hubOpacity = parseFloat(statePayload.hub.opacity);
       const topmostCenter = statePayload.topmostElements.center;
@@ -2180,24 +2370,6 @@ export default function App() {
       if (!statePayload.hubActuallyPainted) {
         isBlocked = true;
         reason = 'HUB_ROOT_MISSING';
-        console.error('HUB_ROOT_MISSING', statePayload);
-
-        // Immediately capture detailed state separately as HUB_ROOT_MISSING_CAPTURE
-        const missingCapture = {
-          timestamp: Date.now(),
-          reactTreeState: 'crashed_or_unmounted',
-          mountedComponents: statePayload.mountedComponents,
-          navigationHistory: (window as any).__navigationTraceHistory || [],
-          stableKey: statePayload.stableKey,
-          activeSubApp: statePayload.activeSubApp,
-          previousApp: previousAppModeRef.current || 'none',
-          transitionState: statePayload.transitionActive,
-          fullPayload: statePayload
-        };
-        (window as any).HUB_ROOT_MISSING_CAPTURE = missingCapture;
-        try {
-          localStorage.setItem('HUB_ROOT_MISSING_CAPTURE', JSON.stringify(missingCapture));
-        } catch (_) {}
       } else if (!statePayload.hub.mounted) {
         isBlocked = true;
         reason = 'Hub not mounted';
@@ -2221,109 +2393,37 @@ export default function App() {
         }
       }
 
-      const runWatchdogVerdict = (finalBlocked: boolean, finalReason: string, paintData?: any) => {
+      // Check grace conditions:
+      const transitionActive = (window as any).studioTransitionActive || (window as any).__navigationInProgress === true || statePayload.transitionActive;
+      const hasLoading = !!document.querySelector('.smart-loading, .fallback-skeleton, .studio-accent-loading, .app-loading-screen, #loading-screen');
+      const hasOverlay = !!document.querySelector('.modal, .overlay, .backdrop, .dialog, .chordex-overlay, [role="dialog"]');
+      const hasSuspense = !!document.querySelector('.tolgee-loading, [data-testid="suspense-fallback"]');
+      
+      const gracePeriodActive = transitionActive || hasLoading || hasOverlay || hasSuspense;
+
+      if (gracePeriodActive) {
+        console.log(`[Watchdog] Black screen check bypassed. Reason: Grace conditions active (Transition: ${transitionActive}, Loading: ${hasLoading}, Overlay: ${hasOverlay}, Suspense: ${hasSuspense})`);
+        consecutiveFailures = 0;
+        timer = setTimeout(runCheckPass, checkInterval);
+        return;
+      }
+
+      const evaluateVerdict = (finalBlocked: boolean, finalReason: string, paintData?: any) => {
         if (finalBlocked) {
-          diag.failedReturns++;
-          diag.blackScreenDetections++;
-          diag.lastBlocker = finalReason;
-          diag.lastPayload = paintData ? { ...statePayload, paintVerification: paintData } : statePayload;
-          
-          console.error('BLACK_SCREEN_DETECTED', finalReason, statePayload);
-          
-          diag.history.push({
-            time: Date.now(),
-            reason: finalReason,
-            payload: paintData ? { ...statePayload, paintVerification: paintData } : statePayload
-          });
-
-          try {
-            localStorage.setItem('studio_black_screen_diagnostics', JSON.stringify(diag));
-          } catch (_) {}
-
-          // Failsafe: auto open the emergency debug overlay
-          if (typeof (window as any).__openEmergencyOverlay === 'function') {
-            (window as any).__openEmergencyOverlay();
+          consecutiveFailures++;
+          console.warn(`[Watchdog] Compositor freeze pass #${consecutiveFailures} detected. Reason: ${finalReason}`);
+          if (consecutiveFailures >= maxRetries) {
+            console.error(`[Watchdog] Compositor freeze confirmed after ${maxRetries} consecutive failures.`);
+            runWatchdogVerdict(true, finalReason, paintData);
+          } else {
+            timer = setTimeout(runCheckPass, checkInterval);
           }
-
-          if (finalReason === 'HUB_ROOT_MISSING') {
-            console.warn('[Failsafe] HUB_ROOT_MISSING detected! Running deterministic Hub remount.');
-            const actualFrom = previousAppModeRef.current || 'none';
-            flushSync(() => {
-              setHubRenderKey(k => k + 1);
-              setTransitionActive(false);
-              lastActiveAppRef.current = 'chords';
-              useChordStore.getState().updateSettings({ appMode: 'hub' });
-            });
-            (window as any).__navigationTraceHistory = (window as any).__navigationTraceHistory || [];
-            (window as any).__navigationTraceHistory.push({
-              fromApp: actualFrom,
-              toApp: 'hub',
-              timestamp: Date.now(),
-              transitionDuration: 0,
-              lockState: false,
-              recoveredViaFailsafe: true
-            });
-            recordNavigation({
-              fromApp: actualFrom,
-              toApp: 'hub',
-              hubMounted: true,
-              activeAppAfterTransition: 'hub',
-              transitionLockState: false,
-              fallbackRendered: false,
-              recoveredViaFailsafe: true
-            } as any);
-          }
-        }
-
-        // Resolve the forensic capture matching the current return attempt
-        const lastCapId = (window as any).__lastForensicCaptureId;
-        try {
-          localStorage.setItem('studio_navigation_in_progress', 'false');
-        } catch (_) {}
-
-        if (lastCapId) {
-          try {
-            const currentTimelineStr = localStorage.getItem('studio_current_navigation_timeline');
-            let timeline = currentTimelineStr ? JSON.parse(currentTimelineStr) : null;
-            if (timeline && timeline.id === lastCapId) {
-              timeline.result = finalBlocked ? 'failed' : 'success';
-              timeline.reason = finalBlocked ? finalReason : '';
-              if (paintData) {
-                timeline.watchdogPaintVerification = paintData;
-              }
-              localStorage.setItem('studio_current_navigation_timeline', JSON.stringify(timeline));
-              
-              if (finalBlocked) {
-                localStorage.setItem('studio_last_failed_navigation_timeline', JSON.stringify(timeline));
-                localStorage.setItem('studio_failed_navigation_unviewed', 'true');
-              }
-            }
-
-            const listStr = localStorage.getItem('studio_forensic_captures') || '[]';
-            const list = JSON.parse(listStr);
-            const index = list.findIndex((c: any) => c.id === lastCapId);
-            if (index !== -1) {
-              list[index].result = finalBlocked ? 'failed' : 'success';
-              list[index].reason = finalBlocked ? finalReason : '';
-              if (paintData) {
-                list[index].watchdogPaintVerification = paintData;
-              }
-              localStorage.setItem('studio_forensic_captures', JSON.stringify(list));
-              
-              // Also store individual last successful or failed capture
-              if (finalBlocked) {
-                localStorage.setItem('studio_forensic_last_failed', JSON.stringify(list[index]));
-              } else {
-                localStorage.setItem('studio_forensic_last_successful', JSON.stringify(list[index]));
-              }
-            }
-          } catch (e) {
-            console.error('Forensics: Error updating capture result', e);
-          }
+        } else {
+          consecutiveFailures = 0;
+          runWatchdogVerdict(false, '', paintData);
         }
       };
 
-      // Perform paint verification to check if the screen is visually black even though DOM says it's visible
       if (!isBlocked) {
         runPaintVerification().then(paintData => {
           const isVisuallyBlack = paintData.paintState === 'visually_black';
@@ -2331,18 +2431,20 @@ export default function App() {
           const visuallyBlackAndDomExists = isVisuallyBlack && domExists;
           
           if (visuallyBlackAndDomExists) {
-            runWatchdogVerdict(true, 'COMPOSITOR_FREEZE', paintData);
+            evaluateVerdict(true, 'COMPOSITOR_FREEZE', paintData);
           } else {
-            runWatchdogVerdict(false, '', paintData);
+            evaluateVerdict(false, '', paintData);
           }
         }).catch(err => {
           console.error('Watchdog paint verification failed:', err);
-          runWatchdogVerdict(false, '');
+          evaluateVerdict(false, '');
         });
       } else {
-        runWatchdogVerdict(isBlocked, reason);
+        evaluateVerdict(isBlocked, reason);
       }
-    }, 1200);
+    };
+
+    timer = setTimeout(runCheckPass, 1200);
 
     return () => clearTimeout(timer);
   }, [appMode]);
