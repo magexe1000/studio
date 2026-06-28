@@ -26,7 +26,7 @@ import { useMemo } from 'react';
 import { Capacitor } from '@capacitor/core';
 
 /** Canonical semver string used by the OTA comparator. */
-export const NATIVE_VERSION = '3.7.34';
+export const NATIVE_VERSION = '3.7.35';
 export const WEB_VERSION = '4.0.0';
 export const APP_VERSION = Capacitor.isNativePlatform() ? NATIVE_VERSION : WEB_VERSION;
 
@@ -38,7 +38,7 @@ export const APP_VERSION_LABEL = `${APP_VERSION_TAG} ${APP_VERSION}`;
 
 /** Release date for the CURRENT bundle, shown alongside the version pill
  *  in the changelog sheet. ISO-8601 (`YYYY-MM-DD`). */
-export const APP_VERSION_DATE = '2026-06-28'; // 3.7.34
+export const APP_VERSION_DATE = '2026-06-28'; // 3.7.35
 // Note: keep ISO-8601. Bump together with APP_VERSION on each release.
 
 export const APP_COMMIT_SHA = import.meta.env.VITE_GIT_COMMIT_SHA || 'efd2b1a3';
@@ -59,9 +59,10 @@ export interface ChangelogSection {
 
 export const APP_CHANGELOG_SECTIONS: ChangelogSection[] = [
   {
-    heading: "Fixed",
+    heading: "Added",
     items: [
-      "Restored native PackageInstaller session flow with corrected activity lifecycle management to prevent premature dismissal of the system confirmation dialog.",
+      "Release validation build for v3.7.35.",
+      "No functional or behavioral changes.",
     ],
   },
 ];
@@ -71,7 +72,8 @@ export const APP_CHANGELOG_SECTIONS_NATIVE: ChangelogSection[] = [
   {
     heading: "What's New",
     items: [
-      "Restored native PackageInstaller session flow with corrected activity lifecycle management to prevent premature dismissal of the system confirmation dialog.",
+      "Release validation build for v3.7.35.",
+      "No functional or behavioral changes.",
     ],
   },
 ];
