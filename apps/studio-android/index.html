@@ -247,79 +247,13 @@
         }
       };
 
-      // ── Simple, clean, lightweight GPU-friendly startup fade ───────────
-      (function () {
-        var intro = document.getElementById('intro');
-        var center = document.getElementById('intro-center');
-        if (window.__introReturnedEarly || !intro || !center || window.getComputedStyle(intro).display === 'none') {
-          window.__introReturnedEarly = true;
-          try {
-            if (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.AppInstaller) {
-              window.Capacitor.Plugins.AppInstaller.notifyAppReady();
-            }
-          } catch (e) {}
-          return;
-        }
-
-        // 1. Transition immediately to INTRO_RUNNING
-        if (window.__bootTimings && window.__bootTimings.introStart === -1) {
-          window.__bootTimings.introStart = performance.now();
-        }
-        window.__transitionStartupState('INTRO_RUNNING');
-        try {
-          if (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.AppInstaller) {
-            window.Capacitor.Plugins.AppInstaller.notifyAppReady();
-          }
-        } catch (e) {}
-
-        // 2. Wait for React to mount, up to a hard safety limit
-        var startTime = performance.now();
-        var INTRO_ANIM_TIME = 750; // milliseconds
-        
-        function checkReadyToDismiss() {
-          var elapsed = performance.now() - startTime;
-          var rootEl = document.getElementById('root');
-          var mounted = !!(rootEl && rootEl.children && rootEl.children.length > 0);
-          
-          if (elapsed >= INTRO_ANIM_TIME && (mounted || elapsed >= 3000)) {
-            dismissIntro();
-          } else {
-            setTimeout(checkReadyToDismiss, 30);
-          }
-        }
-        
-        setTimeout(checkReadyToDismiss, 200);
-
-        var dismissed = false;
-        function dismissIntro() {
-          if (dismissed) return;
-          dismissed = true;
-
-          // Dispatch event to React that intro is completed
-          window.dispatchEvent(new Event('studio-intro-done'));
-
-          // Transition states linearly
-          window.__transitionStartupState('LAYOUT_READY');
-          window.__transitionStartupState('ANIMATION_READY');
-          window.__transitionStartupState('INTRO_FINISHED');
-          window.__transitionStartupState('HUB_VISIBLE');
-
-          if (window.__bootTimings) {
-            window.__bootTimings.hubVisible = performance.now();
-            console.log("[LivexBoot] Hub visible to user at: " + window.__bootTimings.hubVisible.toFixed(2) + "ms");
-          }
-          try {
-            sessionStorage.setItem('studio-intro-shown', 'true');
-          } catch (e) {}
-
-          intro.style.opacity = '0';
-          setTimeout(function() {
-            intro.classList.add('dismissed');
-            if (intro.parentNode) intro.parentNode.removeChild(intro);
-            window.__transitionStartupState('READY');
-          }, 300);
-        }
-      })();
+      window.__bootTimings = {
+        reactBootstrapStart: -1,
+        reactMounted: -1,
+        firstPaint: -1,
+        hubVisible: -1,
+        introStart: -1
+      };
     </script>
     <script>
       // ── Web Auto-Updater ────────────────────────────────────────────────

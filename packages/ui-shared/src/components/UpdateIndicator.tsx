@@ -1,4 +1,4 @@
-import { useOtaUpdate, type StructuredReleaseNotes, otaDiagnostics, otaDebugLogs, APP_VERSION_LABEL, compareSemver, normalizeSemver, applyUpdate, isNative, fadeToBlackAndReload, useChordStore, isAppInstallerAvailable } from '@workspace/studio-core';
+import { useOtaUpdate, type StructuredReleaseNotes, otaDiagnostics, otaDebugLogs, APP_VERSION_LABEL, compareSemver, normalizeSemver, applyUpdate, isNative, fadeToBlackAndReload, useChordStore, isAppInstallerAvailable, AppInstaller } from '@workspace/studio-core';
 import { applyUpdateDirect, shareDownloadedApk, getDiagnosticsReport } from '@workspace/studio-core';
 /**
  * Floating "update available" indicator — top of the Hub.
@@ -232,62 +232,53 @@ export default function UpdateIndicator({
   }, []);
 
   useEffect(() => {
-    const appliedVer = localStorage.getItem('studio:appliedUpdateVersion');
-    const showSuccess = localStorage.getItem('studio:showUpdateSuccess');
-    if (appliedVer && showSuccess === 'true') {
-      setSuccessVersion(appliedVer);
-      setOpen(true);
-    }
+    let active = true;
+    const checkAuthSuccess = async () => {
+      try {
+        if (isNative()) {
+          // 1. Get the last native installation result
+          const lastResult = await AppInstaller.getLastInstallResult();
+          console.log('[OTA Success Check] Last native install result:', lastResult);
+          
+          if (lastResult.statusCode === 0) { // PackageInstaller success
+            // 2. Get the currently running native app info
+            const currentInfo = await AppInstaller.getInstalledAppInfo();
+            console.log('[OTA Success Check] Running native app info:', currentInfo);
+            
+            // 3. Verify it matches the expected version from triggerInstallation
+            const expectedCode = lastResult.expectedVersionCode ?? 0;
+            const expectedName = lastResult.expectedVersionName ?? '';
+            const codeMatches = expectedCode > 0 && currentInfo.versionCode === expectedCode;
+            const nameMatches = expectedName !== '' && currentInfo.versionName === expectedName;
+            
+            if (codeMatches || nameMatches) {
+              console.log('[OTA Success Check] Authoritative match succeeded!');
+              if (active) {
+                setSuccessVersion(currentInfo.versionName);
+                setOpen(true);
+                // Clear the logs and result so we don't show the success modal again on next boot
+                await AppInstaller.clearInstallerLogHistory();
+              }
+            } else {
+              console.log('[OTA Success Check] Expected version code/name does not match current native info.');
+            }
+          }
+        }
+      } catch (err) {
+        console.warn('[OTA Success Check] Auth success check failed:', err);
+      }
+    };
+    checkAuthSuccess();
+    return () => {
+      active = false;
+    };
   }, []);
 
   useEffect(() => {
-    let active = true;
-    let listener: any = null;
-    let timeoutTimer: any = null;
-    let didGoBackground = false;
-    
-    const isInstallingOrInstalled = ['installing', 'installed'].includes(ota.updateState);
-    
-    if (open && isInstallingOrInstalled && !installFailedReason && !successVersion) {
-      console.log('[Updater Handoff] Monitoring installer handoff...');
-      
-      import('@capacitor/app').then(async ({ App }) => {
-        if (!active) return;
-        listener = await App.addListener('appStateChange', (s) => {
-          if (!active) return;
-          console.log('[Updater Handoff] App state changed:', s.isActive);
-          if (!s.isActive) {
-            didGoBackground = true;
-            if (timeoutTimer) clearTimeout(timeoutTimer);
-          } else {
-            // Returned to foreground. Check if version actually updated
-            if (didGoBackground) {
-              console.log('[Updater Handoff] App resumed. Version checking...');
-              setTimeout(() => {
-                if (active) {
-                  setInstallFailedReason('The installation prompt was cancelled or did not complete.');
-                }
-              }, 500);
-            }
-          }
-        });
-      }).catch(err => console.warn('Failed to load App plugin:', err));
-      
-      // 8-second safety timeout: if the app never goes to the background, installer failed to launch
-      timeoutTimer = setTimeout(() => {
-        if (active && !didGoBackground) {
-          console.warn('[Updater Handoff] 8s timeout reached. App never went to background.');
-          setInstallFailedReason('The system installer could not be launched.');
-        }
-      }, 8000);
+    if (ota.updateState === 'failed' && ota.error) {
+      setInstallFailedReason(ota.error);
     }
-    
-    return () => {
-      active = false;
-      if (listener) listener.remove();
-      if (timeoutTimer) clearTimeout(timeoutTimer);
-    };
-  }, [open, ota.updateState, installFailedReason, successVersion]);
+  }, [ota.updateState, ota.error]);
 
   // Auto-minimize disabled per user request so the banner remains fully visible.
 
@@ -1827,26 +1818,11 @@ function UpdateModal({
             type="button"
             onClick={async () => {
               try {
-                if (successVersion) {
-                  try {
-                    for (const key of ['studio:installedVersions', 'studio:appliedVersions']) {
-                      const val = localStorage.getItem(key);
-                      const list = val ? JSON.parse(val) : [];
-                      if (!list.includes(successVersion)) {
-                        list.push(successVersion);
-                        localStorage.setItem(key, JSON.stringify(list));
-                      }
-                    }
-                  } catch (e) {
-                    console.warn('[OTA] Failed to save installed versions on Done:', e);
-                  }
-                }
-                localStorage.removeItem('studio:showUpdateSuccess');
-                localStorage.removeItem('studio:appliedUpdateVersion');
                 setSuccessVersion(null);
                 setOpen(false);
                 ota.dismissUpdate();
                 if (isNative()) {
+                  await AppInstaller.clearInstallerLogHistory();
                   const { App: CapApp } = await import('@capacitor/app');
                   await CapApp.exitApp();
                 }

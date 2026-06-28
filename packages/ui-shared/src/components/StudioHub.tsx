@@ -2742,6 +2742,11 @@ function HubSettings({
   const handleClearApplied = () => {
     localStorage.removeItem('studio:appliedVersions');
     localStorage.removeItem('studio:appliedUpdateVersion');
+    if (isNative()) {
+      import('@workspace/studio-core').then(({ AppInstaller }) => {
+        AppInstaller.clearInstallerLogHistory();
+      }).catch(err => console.error(err));
+    }
     showDevToast('Applied versions cleared.');
   };
 
@@ -4060,6 +4065,11 @@ User Agent: [Automatically Generated]
           localStorage.removeItem('studio:downloadedApkPath');
           localStorage.removeItem('studio:downloadedBundleId');
           localStorage.removeItem('studio:downloadedVersions');
+          if (isNative()) {
+            import('@workspace/studio-core').then(({ AppInstaller }) => {
+              AppInstaller.clearInstallerLogHistory();
+            }).catch(err => console.error(err));
+          }
           showDevToast('Update state fully reset.');
         });
       };

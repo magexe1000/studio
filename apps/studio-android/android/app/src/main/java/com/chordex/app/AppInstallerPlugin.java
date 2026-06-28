@@ -322,6 +322,8 @@ public class AppInstallerPlugin extends Plugin {
             result.put("statusMessage", prefs.getString("last_status_message", ""));
             result.put("packageName", prefs.getString("last_other_package", ""));
             result.put("timestamp", prefs.getLong("last_status_timestamp", 0));
+            result.put("expectedVersionCode", prefs.getLong("expected_version_code", 0));
+            result.put("expectedVersionName", prefs.getString("expected_version_name", ""));
             call.resolve(result);
         } catch (Exception e) {
             call.reject("Failed to read last install result: " + e.getMessage());
@@ -349,6 +351,9 @@ public class AppInstallerPlugin extends Plugin {
                 .putString("installer_log_history", "[]")
                 .putInt("last_status_code", -999)
                 .putString("last_status_message", "")
+                .putString("last_other_package", "")
+                .putLong("expected_version_code", 0)
+                .putString("expected_version_name", "")
                 .apply();
             call.resolve();
         } catch (Exception e) {
@@ -678,6 +683,19 @@ public class AppInstallerPlugin extends Plugin {
         int callId = nextCallId();
         logNativeInstrumentation(context, "triggerInstallation", callId, "ENTER", "file=" + file.getAbsolutePath() + " (total calls: " + triggerInstallationCallCount + ")");
         try {
+            PackageManager pm = context.getPackageManager();
+            PackageInfo archiveInfo = pm.getPackageArchiveInfo(file.getAbsolutePath(), 0);
+            long expectedVersionCode = 0;
+            String expectedVersionName = "";
+            if (archiveInfo != null) {
+                expectedVersionName = archiveInfo.versionName != null ? archiveInfo.versionName : "";
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+                    expectedVersionCode = archiveInfo.getLongVersionCode();
+                } else {
+                    expectedVersionCode = archiveInfo.versionCode;
+                }
+            }
+
             // Reset previous results and store session start time in prefs
             SharedPreferences prefs = context.getSharedPreferences(InstallReceiver.PREFS_NAME, Context.MODE_PRIVATE);
             prefs.edit()
@@ -686,6 +704,8 @@ public class AppInstallerPlugin extends Plugin {
                 .putString("last_status_message", "installation_in_progress")
                 .putString("last_other_package", "")
                 .putLong("last_status_timestamp", System.currentTimeMillis())
+                .putLong("expected_version_code", expectedVersionCode)
+                .putString("expected_version_name", expectedVersionName)
                 .apply();
 
             // Check for INSTALL_PACKAGES permission on Android 8.0+
@@ -732,50 +752,6 @@ public class AppInstallerPlugin extends Plugin {
                 sessionId = packageInstaller.createSession(params);
                 logNativeInstrumentation(context, "triggerInstallation", callId, "STEP", "Session.create() success. sessionId=" + sessionId);
                 InstallReceiver.appendLog(context, "PackageInstaller Session Created", 0, "Session ID: " + sessionId, null, null);
-                
-                final int targetSessionId = sessionId;
-                final PackageInstaller finalPackageInstaller = packageInstaller;
-                final PackageInstaller.SessionCallback callback = new PackageInstaller.SessionCallback() {
-                    @Override
-                    public void onCreated(int id) {}
-                    @Override
-                    public void onBadgingChanged(int id) {}
-                    @Override
-                    public void onActiveChanged(int id, boolean active) {
-                        if (id == targetSessionId && active) {
-                            Log.d("AppInstallerPlugin", "Session active: " + id);
-                            if (instance != null) {
-                                JSObject data = new JSObject();
-                                data.put("status", -2); // installing start
-                                data.put("message", "installing_start");
-                                instance.emitInstallStatus(data);
-                            }
-                        }
-                    }
-                    @Override
-                    public void onProgressChanged(int id, float progress) {
-                        if (id == targetSessionId) {
-                            Log.d("AppInstallerPlugin", "Session progress: " + id + " progress: " + progress);
-                            if (instance != null) {
-                                JSObject data = new JSObject();
-                                data.put("status", -3); // installing progress
-                                data.put("message", "installing_progress");
-                                data.put("progress", progress);
-                                instance.emitInstallStatus(data);
-                            }
-                        }
-                    }
-                    @Override
-                    public void onFinished(int id, boolean success) {
-                        if (id == targetSessionId) {
-                            Log.d("AppInstallerPlugin", "Session finished: " + id + " success: " + success);
-                            try {
-                                finalPackageInstaller.unregisterSessionCallback(this);
-                            } catch (Exception ignored) {}
-                        }
-                    }
-                };
-                packageInstaller.registerSessionCallback(callback, new android.os.Handler(android.os.Looper.getMainLooper()));
             } catch (Exception e) {
                 throw new Exception("[Session creation] Failed to create PackageInstaller session: " + e.getMessage(), e);
             }
@@ -850,6 +826,51 @@ public class AppInstallerPlugin extends Plugin {
                 session.close();
                 logNativeInstrumentation(context, "triggerInstallation", callId, "STEP", "Session.commit() finished and session closed");
                 InstallReceiver.appendLog(context, "Session Commit Finished", 0, "Session committed and closed", null, null);
+
+                // Register session callback ONLY AFTER commit to avoid early onActiveChanged during write phase!
+                final int targetSessionId = sessionId;
+                final PackageInstaller finalPackageInstaller = packageInstaller;
+                final PackageInstaller.SessionCallback callback = new PackageInstaller.SessionCallback() {
+                    @Override
+                    public void onCreated(int id) {}
+                    @Override
+                    public void onBadgingChanged(int id) {}
+                    @Override
+                    public void onActiveChanged(int id, boolean active) {
+                        if (id == targetSessionId && active) {
+                            Log.d("AppInstallerPlugin", "Session active: " + id);
+                            if (instance != null) {
+                                JSObject data = new JSObject();
+                                data.put("status", -2); // installing start
+                                data.put("message", "installing_start");
+                                instance.emitInstallStatus(data);
+                            }
+                        }
+                    }
+                    @Override
+                    public void onProgressChanged(int id, float progress) {
+                        if (id == targetSessionId) {
+                            Log.d("AppInstallerPlugin", "Session progress: " + id + " progress: " + progress);
+                            if (instance != null) {
+                                JSObject data = new JSObject();
+                                data.put("status", -3); // installing progress
+                                data.put("message", "installing_progress");
+                                data.put("progress", progress);
+                                instance.emitInstallStatus(data);
+                            }
+                        }
+                    }
+                    @Override
+                    public void onFinished(int id, boolean success) {
+                        if (id == targetSessionId) {
+                            Log.d("AppInstallerPlugin", "Session finished: " + id + " success: " + success);
+                            try {
+                                finalPackageInstaller.unregisterSessionCallback(this);
+                            } catch (Exception ignored) {}
+                        }
+                    }
+                };
+                packageInstaller.registerSessionCallback(callback, new android.os.Handler(android.os.Looper.getMainLooper()));
             } catch (Exception e) {
                 try { session.close(); } catch (Exception ignored) {}
                 throw new Exception("[Installation handoff] Failed to commit session " + sessionId + ": " + e.getMessage(), e);

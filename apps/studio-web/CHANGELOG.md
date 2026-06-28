@@ -12,6 +12,43 @@ Conventions:
 - Bullets start with `- ` and use plain English a non-technical user
   can parse. Keep each line short — the modal's text area is narrow.
 
+## 3.7.21
+
+### Added
+- Authoritative Android-driven PackageInstaller success verification.
+- Completely passive splash screen and linear React-owned startup transitions.
+- Eliminated redundant startup transitions and late installer-handoff background listeners.
+
+## 3.7.20
+
+### Added
+- Authoritative PackageInstaller success verification to prevent early up-to-date states.
+- Completely redesigned startup flow with lightweight logo fade-scale animation.
+- Optimized startup path with zero frame stalls and strictly linear transition states.
+
+## 3.7.19
+
+### Added
+- Authoritative PackageInstaller success verification to prevent early up-to-date states.
+- Completely redesigned startup flow with lightweight logo fade-scale animation.
+- Optimized startup path with zero frame stalls and strictly linear transition states.
+
+## 3.7.18
+
+### Added
+- Startup state machine stabilization with linear transitions.
+- Updater native bridge status events synchronization.
+- Manual dismissible success screen with clean process exit.
+- Performance budget checks and zero warnings validation.
+
+## 3.7.17
+
+### Added
+- Updater transaction consistency to prevent impossible execution paths.
+- Eligibility pipeline version code validation fixes.
+- State machine validation and granular verification states.
+- Diagnostic error reporting improvements.
+
 ## 3.7.16
 
 ### Added

@@ -264,8 +264,6 @@ export function checkForUpdate(isManual = false): Promise<CentralizedOtaState> {
 
       const natVer = await getNativeVersion();
       const natVerCode = await getNativeVersionCode();
-      const appliedList = getStoredList('studio:appliedVersions');
-      const installedList = getStoredList('studio:installedVersions');
       const dismissedList = getStoredList('studio:dismissedVersions');
       const notifiedList = getStoredList('studio:notifiedVersions');
       const laterVersion = getSessionItem('studio:laterUpdateVersion');
@@ -364,15 +362,8 @@ export function checkForUpdate(isManual = false): Promise<CentralizedOtaState> {
       otaDebugLogs.updateDecisionReason = `Remote version ${remote.version} vs local version ${APP_VERSION}`;
 
       if (comp.updateAvailable) {
-        const hasBeenApplied = appliedList.includes(remote.version);
-        const hasBeenInstalled = installedList.includes(remote.version);
         const isDismissed = dismissedList.includes(remote.version);
         const isLater = laterVersion === remote.version;
-
-        if (hasBeenInstalled) {
-          transitionToState('idle', 'Already installed');
-          return globalOtaState;
-        }
 
         if (!isManual && (isDismissed || isLater)) {
           console.log(`[OTA] Skipping auto-prompt for version ${remote.version} (user dismissed/later).`);
@@ -715,8 +706,6 @@ export function applyUpdate(trigger?: string): Promise<void> {
               transitionToState('waiting_for_confirmation', 'Native prompt displayed');
               updateGlobalState({ statusText: 'System confirmation dialog is showing...' });
             } else if (status === -2) { // installing_start
-              localStorage.setItem('studio:appliedUpdateVersion', remoteVersion);
-              localStorage.setItem('studio:showUpdateSuccess', 'true');
               transitionToState('installing', 'PackageInstaller session active');
               updateGlobalState({ statusText: 'Installing update...' });
             } else if (status === -3) { // installing_progress
@@ -726,13 +715,9 @@ export function applyUpdate(trigger?: string): Promise<void> {
               transitionToState('installed', 'PackageInstaller success');
               resolvePromise();
             } else if (status === 3) { // STATUS_FAILURE_ABORTED (User cancelled)
-              localStorage.removeItem('studio:appliedUpdateVersion');
-              localStorage.removeItem('studio:showUpdateSuccess');
               transitionToState('failed', 'User cancelled installation');
               rejectPromise(new Error('Installation cancelled by user.'));
             } else {
-              localStorage.removeItem('studio:appliedUpdateVersion');
-              localStorage.removeItem('studio:showUpdateSuccess');
               transitionToState('failed', `Install failed: ${message || `code ${status}`}`);
               rejectPromise(new Error(message || `PackageInstaller error code ${status}`));
             }
@@ -769,8 +754,6 @@ export function applyUpdate(trigger?: string): Promise<void> {
       otaDebugLogs.lastExceptionStackTrace = errStack;
       otaDebugLogs.installerLaunchStatus = 'FAILED';
       await populateDiagnostics(err, 'APK installation failed');
-      localStorage.removeItem('studio:appliedUpdateVersion');
-      localStorage.removeItem('studio:showUpdateSuccess');
 
       if (globalOtaState.updateState !== 'signature_mismatch' && globalOtaState.updateState !== 'versionCode_low') {
         transitionToState('install_failed', 'PackageInstaller exception');

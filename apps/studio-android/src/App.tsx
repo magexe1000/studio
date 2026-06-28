@@ -748,9 +748,8 @@ export default function App() {
 
       // Enforce strict sequencing
       const isSequential = nextIndex === currentIndex + 1;
-      const isDocumentedBypass = current === 'INITIALIZE' && nextState === 'READY';
 
-      if (!isSequential && !isDocumentedBypass) {
+      if (!isSequential) {
         console.warn(`[Startup State Machine Warning] Rejected transition from ${current} to ${nextState}. Current order position is ${currentIndex}, next position is ${nextIndex}.`);
         return current;
       }
@@ -761,21 +760,7 @@ export default function App() {
   }, []);
 
   useEffect(() => {
-    // 1. Advance to INITIALIZE synchronously first
-    transitionStartupState('PREPARE');
-    transitionStartupState('INITIALIZE');
-
-    // 2. Register the real window transition listener
     (window as any).__realTransitionStartupState = transitionStartupState;
-
-    // 3. Flush the early boot queue (e.g. INTRO_RUNNING)
-    const pending = (window as any).__pendingStartupStates || [];
-    (window as any).__pendingStartupStates = [];
-    pending.forEach((state: StartupState) => {
-      console.log(`[Startup State Machine] Flushing queued state: ${state}`);
-      transitionStartupState(state);
-    });
-
     return () => {
       delete (window as any).__realTransitionStartupState;
     };
@@ -1707,30 +1692,48 @@ export default function App() {
     // Force app mode classes on mount
     document.documentElement.classList.add('app-route');
     document.documentElement.classList.remove('landing-route');
-    
-    const intro = document.getElementById('intro');
-    if (intro && (window as any).__introReturnedEarly) {
-      intro.style.transition = 'opacity 500ms ease-out';
-      intro.style.opacity = '0';
-      setTimeout(() => {
-        intro.classList.add('dismissed');
-        if (intro.parentNode) intro.parentNode.removeChild(intro);
-      }, 550);
-      (window as any).__introDone = true;
-      window.dispatchEvent(new Event('studio-intro-done'));
-      transitionStartupState('READY');
-    }
-  }, [transitionStartupState]);
 
-  // Staged Startup Scheduler (Bypass check)
-  useEffect(() => {
-    if (typeof window !== 'undefined') {
-      const skipped = (window as any).__introReturnedEarly || (window as any).__introDone || sessionStorage.getItem('studio-intro-shown') === 'true';
-      if (skipped) {
-        console.log('[Startup State Machine] Intro is skipped. Transitioning directly to READY.');
-        transitionStartupState('READY');
+    // 1. App Initialization / React Bootstrap
+    transitionStartupState('PREPARE');
+    transitionStartupState('INITIALIZE');
+
+    // Notify native splash screen
+    try {
+      if ((window as any).Capacitor && (window as any).Capacitor.Plugins && (window as any).Capacitor.Plugins.AppInstaller) {
+        (window as any).Capacitor.Plugins.AppInstaller.notifyAppReady();
       }
-    }
+    } catch (e) {}
+
+    // 2. Root Layout Ready
+    transitionStartupState('INTRO_RUNNING');
+    transitionStartupState('LAYOUT_READY');
+
+    // 3. First Render Complete -> requestAnimationFrame
+    requestAnimationFrame(() => {
+      // First frame
+      requestAnimationFrame(() => {
+        // Second frame (guarantees paint complete)
+        transitionStartupState('ANIMATION_READY');
+        transitionStartupState('INTRO_FINISHED');
+
+        const intro = document.getElementById('intro');
+        if (intro) {
+          intro.style.transition = 'opacity 300ms cubic-bezier(0.22, 1, 0.36, 1)';
+          intro.style.opacity = '0';
+          setTimeout(() => {
+            intro.classList.add('dismissed');
+            if (intro.parentNode) {
+              intro.parentNode.removeChild(intro);
+            }
+            transitionStartupState('HUB_VISIBLE');
+            transitionStartupState('READY');
+          }, 300);
+        } else {
+          transitionStartupState('HUB_VISIBLE');
+          transitionStartupState('READY');
+        }
+      });
+    });
   }, [transitionStartupState]);
 
   useEffect(() => {

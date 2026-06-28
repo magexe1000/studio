@@ -14,7 +14,7 @@ export interface AppInstallerPlugin {
   installApkDirect(options: { filePath: string }): Promise<void>;
   downloadAndInstallApk(options: { url: string; fileName?: string }): Promise<void>;
   downloadApk(options: { url: string; fileName?: string }): Promise<{ filePath: string }>;
-  getLastInstallResult(): Promise<{ statusCode: number; statusMessage: string; packageName: string; timestamp: number }>;
+  getLastInstallResult(): Promise<{ statusCode: number; statusMessage: string; packageName: string; timestamp: number; expectedVersionCode?: number; expectedVersionName?: string }>;
   getInstallerLogHistory(): Promise<{ logs: string }>;
   clearInstallerLogHistory(): Promise<void>;
   appendLog(options: { stage: string; status?: number; message?: string; packageName?: string; exceptionStack?: string }): Promise<void>;
