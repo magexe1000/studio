@@ -1,6 +1,7 @@
-import { spawnSync } from 'child_process';
+import { spawnSync, execSync } from 'child_process';
 
 const delay = ms => new Promise(resolve => setTimeout(resolve, ms));
+const currentCommit = execSync('git rev-parse --short HEAD', { encoding: 'utf8' }).trim();
 
 async function verifyAll() {
   const backoffs = [10000, 30000, 60000, 120000, 180000];
@@ -13,7 +14,7 @@ async function verifyAll() {
       fetch('https://studio-30f44.web.app/app-release.json').then(async r => {
         if (!r.ok) return { name: 'app-release.json', ok: false, error: `HTTP ${r.status}` };
         const data = await r.json();
-        const valid = data.version === '3.7.26' && data.versionCode === 153 && data.signatures === '900cf259185c81100cda8bb08571fa23552e9789131cf07a8f4056e4d4129206';
+        const valid = data.version === '3.7.27' && data.versionCode === 154 && data.signatures === '900cf259185c81100cda8bb08571fa23552e9789131cf07a8f4056e4d4129206';
         return { name: 'app-release.json', ok: valid, data };
       }).catch(e => ({ name: 'app-release.json', ok: false, error: e.message })),
       
@@ -21,24 +22,24 @@ async function verifyAll() {
       fetch('https://studio-30f44.web.app/version.json').then(async r => {
         if (!r.ok) return { name: 'version.json', ok: false, error: `HTTP ${r.status}` };
         const data = await r.json();
-        const valid = data.platform === 'web' && typeof data.version === 'string' && data.commit === 'f633bb42';
+        const valid = data.platform === 'web' && typeof data.version === 'string' && data.commit === currentCommit;
         return { name: 'version.json', ok: valid, data };
       }).catch(e => ({ name: 'version.json', ok: false, error: e.message })),
       
       // 3. Check GitHub Release assets via gh CLI
       Promise.resolve().then(() => {
-        const ghResult = spawnSync('gh', ['release', 'view', 'v3.7.26', '--json', 'assets'], { encoding: 'utf8' });
+        const ghResult = spawnSync('gh', ['release', 'view', 'v3.7.27', '--json', 'assets'], { encoding: 'utf8' });
         if (ghResult.status !== 0) return { name: 'gh-release', ok: false, error: ghResult.stderr };
         const assets = JSON.parse(ghResult.stdout).assets;
-        const hasApk = assets.some(a => a.name === 'studio-3.7.26.apk');
-        const hasSha = assets.some(a => a.name === 'studio-3.7.26.sha256');
+        const hasApk = assets.some(a => a.name === 'studio-3.7.27.apk');
+        const hasSha = assets.some(a => a.name === 'studio-3.7.27.sha256');
         return { name: 'gh-release', ok: hasApk && hasSha, assets };
       }).catch(e => ({ name: 'gh-release', ok: false, error: e.message })),
       
       // 4. Fetch latest APK redirect
       fetch('https://studio-30f44.web.app/apk/studio-latest.apk', { method: 'HEAD', redirect: 'manual' }).then(r => {
         const loc = r.headers.get('location') || '';
-        const ok = loc.includes('studio-3.7.26.apk');
+        const ok = loc.includes('studio-3.7.27.apk');
         return { name: 'latest-apk-redirect', ok, location: loc };
       }).catch(e => ({ name: 'latest-apk-redirect', ok: false, error: e.message }))
     ]);
