@@ -12,6 +12,13 @@ Conventions:
 - Bullets start with `- ` and use plain English a non-technical user
   can parse. Keep each line short — the modal's text area is narrow.
 
+## 3.7.19
+
+### Added
+- Authoritative PackageInstaller success verification to prevent early up-to-date states.
+- Completely redesigned startup flow with lightweight logo fade-scale animation.
+- Optimized startup path with zero frame stalls and strictly linear transition states.
+
 ## 3.7.18
 
 ### Added

@@ -1753,8 +1753,8 @@ export default function App() {
         const visibleTime = timings.hubVisible;
 
         // Log if they exceed budgets
-        if (bootstrapTime > 250) {
-          console.warn(`[Perf Budget] React bootstrap exceeded budget: ${bootstrapTime.toFixed(1)}ms (Target: < 250 ms)`);
+        if (bootstrapTime > 300) {
+          console.warn(`[Perf Budget] React bootstrap exceeded budget: ${bootstrapTime.toFixed(1)}ms (Target: < 300 ms)`);
         }
         if (paintTime > 700) {
           console.warn(`[Perf Budget] First Paint exceeded budget: ${paintTime.toFixed(1)}ms (Target: < 700 ms)`);

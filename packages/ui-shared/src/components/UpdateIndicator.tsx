@@ -1827,6 +1827,20 @@ function UpdateModal({
             type="button"
             onClick={async () => {
               try {
+                if (successVersion) {
+                  try {
+                    for (const key of ['studio:installedVersions', 'studio:appliedVersions']) {
+                      const val = localStorage.getItem(key);
+                      const list = val ? JSON.parse(val) : [];
+                      if (!list.includes(successVersion)) {
+                        list.push(successVersion);
+                        localStorage.setItem(key, JSON.stringify(list));
+                      }
+                    }
+                  } catch (e) {
+                    console.warn('[OTA] Failed to save installed versions on Done:', e);
+                  }
+                }
                 localStorage.removeItem('studio:showUpdateSuccess');
                 localStorage.removeItem('studio:appliedUpdateVersion');
                 setSuccessVersion(null);

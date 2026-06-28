@@ -682,10 +682,6 @@ export function applyUpdate(trigger?: string): Promise<void> {
   }
 
   transitionToState('waiting_for_confirmation', 'applyUpdate start');
-  localStorage.setItem('studio:appliedUpdateVersion', remoteVersion);
-  localStorage.setItem('studio:showUpdateSuccess', 'true');
-  addToStoredList('studio:installedVersions', remoteVersion);
-  addToStoredList('studio:appliedVersions', remoteVersion);
   logActivity('apk_install', `Installing APK system update (v${remoteVersion})`, 'Studio');
 
   activeApplyPromise = (async () => {
@@ -719,6 +715,8 @@ export function applyUpdate(trigger?: string): Promise<void> {
               transitionToState('waiting_for_confirmation', 'Native prompt displayed');
               updateGlobalState({ statusText: 'System confirmation dialog is showing...' });
             } else if (status === -2) { // installing_start
+              localStorage.setItem('studio:appliedUpdateVersion', remoteVersion);
+              localStorage.setItem('studio:showUpdateSuccess', 'true');
               transitionToState('installing', 'PackageInstaller session active');
               updateGlobalState({ statusText: 'Installing update...' });
             } else if (status === -3) { // installing_progress
@@ -771,6 +769,8 @@ export function applyUpdate(trigger?: string): Promise<void> {
       otaDebugLogs.lastExceptionStackTrace = errStack;
       otaDebugLogs.installerLaunchStatus = 'FAILED';
       await populateDiagnostics(err, 'APK installation failed');
+      localStorage.removeItem('studio:appliedUpdateVersion');
+      localStorage.removeItem('studio:showUpdateSuccess');
 
       if (globalOtaState.updateState !== 'signature_mismatch' && globalOtaState.updateState !== 'versionCode_low') {
         transitionToState('install_failed', 'PackageInstaller exception');

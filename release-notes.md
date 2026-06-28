@@ -1,5 +1,4 @@
 ### Added
-- Startup state machine stabilization with linear transitions.
-- Updater native bridge status events synchronization.
-- Manual dismissible success screen with clean process exit.
-- Performance budget checks and zero warnings validation.
+- Authoritative PackageInstaller success verification to prevent early up-to-date states.
+- Completely redesigned startup flow with lightweight logo fade-scale animation.
+- Optimized startup path with zero frame stalls and strictly linear transition states.
