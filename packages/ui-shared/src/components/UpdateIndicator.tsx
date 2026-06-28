@@ -719,9 +719,7 @@ function UpdateModal({
   const handleStartUpdate = async () => {
     try {
       await ota.downloadUpdate('UpdateIndicator: UpdateModal');
-      if (!isApkFlow) {
-        await ota.applyUpdate('UpdateIndicator: UpdateModal');
-      }
+      await ota.applyUpdate('UpdateIndicator: UpdateModal');
     } catch (err) {
       console.error('[UpdateIndicator] Start update failed:', err);
     }
@@ -955,6 +953,7 @@ function UpdateModal({
 
     case 'installing':
     case 'installedOrReady':
+    case 'installed':
       iconName = 'sync';
       iconColor = purpleFrom;
       showSpinner = true;
@@ -2028,6 +2027,7 @@ function UpdateModal({
     'waitingForUserInstallConfirmation',
     'installing',
     'installedOrReady',
+    'installed',
     'failed'
   ].includes(state);
 
@@ -2088,6 +2088,7 @@ function UpdateModal({
         accentTo={purpleTo}
         statusText={description}
         actionButtons={actionButtons}
+        updateState={state}
       />
     );
   }

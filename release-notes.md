@@ -1,5 +1,5 @@
 ### Added
-- Startup pipeline optimization.
-- Startup performance improvements.
-- False black-screen detection fixes.
-- Diagnostics reliability improvements.
+- Fullscreen updater experience restored.
+- Dedicated installing UI state.
+- Post-refactor stability validation.
+- Startup pipeline and performance validation.

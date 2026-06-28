@@ -57,6 +57,7 @@ interface StudioUpdateScreenProps {
   accentTo: string;
   statusText?: React.ReactNode;
   actionButtons?: React.ReactNode;
+  updateState: string;
 }
 
 export default function StudioUpdateScreen({
@@ -65,9 +66,17 @@ export default function StudioUpdateScreen({
   accentTo,
   statusText,
   actionButtons,
+  updateState,
 }: StudioUpdateScreenProps) {
   const pct = Math.round(progress * 100);
   const isDone = pct >= 100;
+  const isInstallingState = [
+    'readyForInstallPrompt',
+    'waitingForUserInstallConfirmation',
+    'installing',
+    'installedOrReady',
+    'installed'
+  ].includes(updateState) || pct >= 100;
 
   // Shuffled pool — stable across re-renders via useState initializer
   const [messages] = useState<string[]>(() => shuffle(MESSAGE_POOL));
@@ -144,38 +153,69 @@ export default function StudioUpdateScreen({
             textAlign: 'center',
           }}
         >
-          {/* ── Percentage: large, bold, centered ── */}
-          <div
-            style={{
+          {/* ── Percentage or Installing Spinner ── */}
+          {isInstallingState ? (
+            <div style={{
               display: 'flex',
-              alignItems: 'baseline',
+              flexDirection: 'column',
+              alignItems: 'center',
               justifyContent: 'center',
-              fontFamily: 'Manrope, sans-serif',
-              fontWeight: 900,
-              fontSize: '5.2rem',
-              lineHeight: 1,
-              letterSpacing: '-0.04em',
-              color: 'var(--c-text-primary)',
-            }}
-          >
-            <StudioCountUpPercentage value={progress} />
-            <span
+              height: 120,
+              marginBottom: 10
+            }}>
+              <motion.div
+                animate={{ rotate: 360 }}
+                transition={{ repeat: Infinity, duration: 1.8, ease: "linear" }}
+                style={{
+                  width: 64,
+                  height: 64,
+                  borderRadius: '50%',
+                  border: `4px solid color-mix(in srgb, ${accentFrom} 20%, transparent)`,
+                  borderTop: `4px solid ${accentFrom}`,
+                  boxShadow: `0 0 20px color-mix(in srgb, ${accentFrom} 25%, transparent)`,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}
+              >
+                <span className="material-symbols-outlined" style={{ fontSize: 32, color: accentFrom }}>
+                  system_update
+                </span>
+              </motion.div>
+            </div>
+          ) : (
+            <div
               style={{
+                display: 'flex',
+                alignItems: 'baseline',
+                justifyContent: 'center',
                 fontFamily: 'Manrope, sans-serif',
-                fontWeight: 800,
-                fontSize: '2.4rem',
-                opacity: 0.8,
-                marginLeft: 2,
+                fontWeight: 900,
+                fontSize: '5.2rem',
+                lineHeight: 1,
+                letterSpacing: '-0.04em',
+                color: 'var(--c-text-primary)',
               }}
             >
-              %
-            </span>
-          </div>
+              <StudioCountUpPercentage value={progress} />
+              <span
+                style={{
+                  fontFamily: 'Manrope, sans-serif',
+                  fontWeight: 800,
+                  fontSize: '2.4rem',
+                  opacity: 0.8,
+                  marginLeft: 2,
+                }}
+              >
+                %
+              </span>
+            </div>
+          )}
 
           {/* ── Progress bar ── */}
           <div style={{ width: '100%', marginTop: 4, marginBottom: 4 }}>
             <StudioProgressBar
-              value={progress * 100}
+              value={isInstallingState ? 100 : progress * 100}
               accentFrom={accentFrom}
               accentTo={accentTo}
               height={6}
@@ -184,7 +224,7 @@ export default function StudioUpdateScreen({
 
           {/* ── Status message ── */}
           <motion.div
-            key={typeof displayMsg === 'string' ? displayMsg : 'rich-status'}
+            key={isInstallingState ? 'installing-msg' : (typeof displayMsg === 'string' ? displayMsg : 'rich-status')}
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.42, ease: [0.4, 0, 0.2, 1] }}
@@ -199,8 +239,25 @@ export default function StudioUpdateScreen({
               opacity: 0.9,
             }}
           >
-            {displayMsg}
+            {isInstallingState ? 'Installing update...' : displayMsg}
           </motion.div>
+
+          {isInstallingState && (
+            <motion.p
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 0.8 }}
+              transition={{ delay: 0.2, duration: 0.4 }}
+              style={{
+                margin: '2px 0 0',
+                fontFamily: 'Inter, sans-serif',
+                fontSize: 13,
+                color: 'var(--c-text-secondary)',
+                lineHeight: 1.5,
+              }}
+            >
+              Please follow the Android installation prompts.
+            </motion.p>
+          )}
 
           {/* ── Action buttons ── */}
           {actionButtons}
