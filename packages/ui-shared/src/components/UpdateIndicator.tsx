@@ -173,6 +173,8 @@ export default function UpdateIndicator({
   const ota = useOtaUpdate();
   const [phase, setPhase] = useState<Phase>(readInitialPhase);
   const [open, setOpen] = useState(false);
+  const [successVersion, setSuccessVersion] = useState<string | null>(null);
+  const [installFailedReason, setInstallFailedReason] = useState<string | null>(null);
   const [entered, setEntered] = useState(false);
   const [laterVersion, setLaterVersion] = useState<string | null>(readLaterVersion);
 
@@ -232,18 +234,21 @@ export default function UpdateIndicator({
   useEffect(() => {
     const appliedVer = localStorage.getItem('studio:appliedUpdateVersion');
     const showSuccess = localStorage.getItem('studio:showUpdateSuccess');
+    let timer: any = null;
     if (appliedVer && showSuccess === 'true') {
       localStorage.removeItem('studio:showUpdateSuccess');
       localStorage.removeItem('studio:appliedUpdateVersion');
       setSuccessVersion(appliedVer);
       setOpen(true);
-      const timer = setTimeout(() => {
+      timer = setTimeout(() => {
         setSuccessVersion(null);
         setOpen(false);
         ota.dismissUpdate();
       }, 1800);
-      return () => clearTimeout(timer);
     }
+    return () => {
+      if (timer) clearTimeout(timer);
+    };
   }, []);
 
   useEffect(() => {
@@ -380,6 +385,10 @@ export default function UpdateIndicator({
             ota.dismissUpdate();
           }
         }}
+        successVersion={successVersion}
+        setSuccessVersion={setSuccessVersion}
+        installFailedReason={installFailedReason}
+        setInstallFailedReason={setInstallFailedReason}
       />
     );
   }
@@ -683,6 +692,10 @@ export default function UpdateIndicator({
               ota.recordDismissal(ota.remoteVersion);
             }
           }}
+          successVersion={successVersion}
+          setSuccessVersion={setSuccessVersion}
+          installFailedReason={installFailedReason}
+          setInstallFailedReason={setInstallFailedReason}
         />
       )}
 
@@ -719,6 +732,10 @@ function UpdateModal({
   accentTo,
   onClose,
   onLater,
+  successVersion,
+  setSuccessVersion,
+  installFailedReason,
+  setInstallFailedReason,
 }: {
   fromLabel: string;
   toVersion: string;
@@ -728,14 +745,82 @@ function UpdateModal({
   accentTo: string;
   onClose: () => void;
   onLater: () => void;
+  successVersion: string | null;
+  setSuccessVersion: (v: string | null) => void;
+  installFailedReason: string | null;
+  setInstallFailedReason: (v: string | null) => void;
 }) {
   const ota = useOtaUpdate();
-  const [successVersion, setSuccessVersion] = useState<string | null>(null);
-  const [installFailedReason, setInstallFailedReason] = useState<string | null>(null);
   const [permissionBlocked, setPermissionBlocked] = useState(false);
   const [diagnosticsOpen, setDiagnosticsOpen] = useState(false);
   const [linkCopied, setLinkCopied] = useState(false);
   const [showGitHubConfirm, setShowGitHubConfirm] = useState(false);
+
+  const getDiagnosticsText = () => {
+    return [
+      '=== STUDIO UPDATE DIAGNOSTICS ===',
+      `Failure Timestamp: ${otaDiagnostics.timestamp || 'N/A'}`,
+      `Device Model/Manufacturer: ${otaDiagnostics.deviceModel || 'N/A'}`,
+      `Android Version: ${otaDiagnostics.androidVersion || 'N/A'}`,
+      `Permission State: ${otaDiagnostics.permissionState || 'N/A'}`,
+      `Exception Message: ${otaDiagnostics.exceptionMessage || 'N/A'}`,
+      `Failure Reason & Stack Trace:`,
+      otaDiagnostics.failureReason || 'N/A',
+      `Download URL Used: ${otaDiagnostics.downloadUrl || 'N/A'}`,
+      `APK Path: ${otaDiagnostics.apkPath || 'N/A'}`,
+      `File Size: ${otaDiagnostics.fileSize || 'N/A'}`,
+      `SHA-256 Expected: ${otaDiagnostics.shaExpected || 'N/A'}`,
+      `SHA-256 Calculated: ${otaDiagnostics.shaCalculated || 'N/A'}`,
+      `Installer Result: ${otaDiagnostics.installerResult || 'N/A'}`,
+      '',
+      '=== COMPREHENSIVE DEBUG LOGS ===',
+      `App Version (APP_VERSION): ${otaDebugLogs.appVersion}`,
+      `APK Version (Wrapper): ${otaDebugLogs.nativeApkVersion || 'N/A'}`,
+      `Update System: APK only`,
+      `OTA System: disabled`,
+      `AppInstaller Available: ${otaDebugLogs.appInstallerAvailable}`,
+      `downloadApk Available: ${otaDebugLogs.downloadApkAvailable}`,
+      `verifyApkSha256 Available: ${otaDebugLogs.verifyApkSha256Available}`,
+      `installApk Available: ${otaDebugLogs.installApkAvailable}`,
+      `openInstallPermissionSettings Available: ${otaDebugLogs.openInstallPermissionSettingsAvailable}`,
+      `Registered Capacitor Plugins: ${otaDebugLogs.registeredPlugins}`,
+      `Plugin Method Check: ${otaDebugLogs.pluginMethodCheck}`,
+      `Fetched version.json: ${otaDebugLogs.fetchedVersionJson || 'N/A'}`,
+      `Fetched app-release.json: ${otaDebugLogs.fetchedAppReleaseJson || 'N/A'}`,
+      `Update Type: ${otaDebugLogs.updateType || 'N/A'}`,
+      `Download Status: ${otaDebugLogs.downloadStatus || 'N/A'}`,
+      `SHA Verification Status: ${otaDebugLogs.shaVerification || 'N/A'}`,
+      `File Details: ${otaDebugLogs.fileDetails || 'N/A'}`,
+      `Install Error / Log: ${otaDebugLogs.installError || 'N/A'}`,
+      `Installer Launch Status: ${otaDebugLogs.installerLaunchStatus || 'N/A'}`,
+      `Last Exception Stack Trace:`,
+      otaDebugLogs.lastExceptionStackTrace || 'N/A',
+      '',
+      '=== ELIGIBILITY DETAILS ===',
+      `Installed package: ${otaDebugLogs.installedPackageName || 'N/A'}`,
+      `Installed versionName: ${otaDebugLogs.installedVersionName || 'N/A'}`,
+      `Installed versionCode: ${otaDebugLogs.installedVersionCode || 'N/A'}`,
+      `Installed signing SHA-256: ${otaDebugLogs.installedSigningSha256 || 'N/A'}`,
+      `Installed debuggable: ${otaDebugLogs.installedDebuggable !== null ? otaDebugLogs.installedDebuggable : 'N/A'}`,
+      '',
+      `Downloaded package: ${otaDebugLogs.downloadedPackageName || 'N/A'}`,
+      `Downloaded versionName: ${otaDebugLogs.downloadedVersionName || 'N/A'}`,
+      `Downloaded versionCode: ${otaDebugLogs.downloadedVersionCode || 'N/A'}`,
+      `Downloaded signing SHA-256: ${otaDebugLogs.downloadedSigningSha256 || 'N/A'}`,
+      `Downloaded debuggable: ${otaDebugLogs.downloadedDebuggable !== null ? otaDebugLogs.downloadedDebuggable : 'N/A'}`,
+      `Downloaded isValidApk: ${otaDebugLogs.downloadedIsValidApk !== null ? otaDebugLogs.downloadedIsValidApk : 'N/A'}`,
+      `Downloaded isUniversalApk: ${otaDebugLogs.downloadedIsUniversalApk !== null ? otaDebugLogs.downloadedIsUniversalApk : 'N/A'}`,
+      `Downloaded size: ${otaDebugLogs.downloadedApkSize || 'N/A'}`,
+      '',
+      `Eligibility package match: ${otaDebugLogs.eligibilityPackageNameMatch !== null ? otaDebugLogs.eligibilityPackageNameMatch : 'N/A'}`,
+      `Eligibility signing match: ${otaDebugLogs.eligibilitySigningMatch !== null ? otaDebugLogs.eligibilitySigningMatch : 'N/A'}`,
+      `Eligibility versionCode higher: ${otaDebugLogs.eligibilityVersionCodeHigher !== null ? otaDebugLogs.eligibilityVersionCodeHigher : 'N/A'}`,
+      `Eligibility release build: ${otaDebugLogs.eligibilityReleaseBuild !== null ? otaDebugLogs.eligibilityReleaseBuild : 'N/A'}`,
+      `Eligibility valid APK: ${otaDebugLogs.eligibilityValidApk !== null ? otaDebugLogs.eligibilityValidApk : 'N/A'}`,
+      `Eligibility final install: ${otaDebugLogs.eligibilityFinalInstall || 'N/A'}`,
+      `Eligibility reason: ${otaDebugLogs.eligibilityReason || 'N/A'}`
+    ].join('\n');
+  };
 
   const isApkFlow = ota.updateType === 'apk' || ota.updateType === 'both';
 
@@ -1432,71 +1517,7 @@ function UpdateModal({
       );
     }
 
-    const getDiagnosticsText = () => {
-      return [
-        '=== STUDIO UPDATE DIAGNOSTICS ===',
-        `Failure Timestamp: ${otaDiagnostics.timestamp || 'N/A'}`,
-        `Device Model/Manufacturer: ${otaDiagnostics.deviceModel || 'N/A'}`,
-        `Android Version: ${otaDiagnostics.androidVersion || 'N/A'}`,
-        `Permission State: ${otaDiagnostics.permissionState || 'N/A'}`,
-        `Exception Message: ${otaDiagnostics.exceptionMessage || 'N/A'}`,
-        `Failure Reason & Stack Trace:`,
-        otaDiagnostics.failureReason || 'N/A',
-        `Download URL Used: ${otaDiagnostics.downloadUrl || 'N/A'}`,
-        `APK Path: ${otaDiagnostics.apkPath || 'N/A'}`,
-        `File Size: ${otaDiagnostics.fileSize || 'N/A'}`,
-        `SHA-256 Expected: ${otaDiagnostics.shaExpected || 'N/A'}`,
-        `SHA-256 Calculated: ${otaDiagnostics.shaCalculated || 'N/A'}`,
-        `Installer Result: ${otaDiagnostics.installerResult || 'N/A'}`,
-        '',
-        '=== COMPREHENSIVE DEBUG LOGS ===',
-        `App Version (APP_VERSION): ${otaDebugLogs.appVersion}`,
-        `APK Version (Wrapper): ${otaDebugLogs.nativeApkVersion || 'N/A'}`,
-        `Update System: APK only`,
-        `OTA System: disabled`,
-        `AppInstaller Available: ${otaDebugLogs.appInstallerAvailable}`,
-        `downloadApk Available: ${otaDebugLogs.downloadApkAvailable}`,
-        `verifyApkSha256 Available: ${otaDebugLogs.verifyApkSha256Available}`,
-        `installApk Available: ${otaDebugLogs.installApkAvailable}`,
-        `openInstallPermissionSettings Available: ${otaDebugLogs.openInstallPermissionSettingsAvailable}`,
-        `Registered Capacitor Plugins: ${otaDebugLogs.registeredPlugins}`,
-        `Plugin Method Check: ${otaDebugLogs.pluginMethodCheck}`,
-        `Fetched version.json: ${otaDebugLogs.fetchedVersionJson || 'N/A'}`,
-        `Fetched app-release.json: ${otaDebugLogs.fetchedAppReleaseJson || 'N/A'}`,
-        `Update Type: ${otaDebugLogs.updateType || 'N/A'}`,
-        `Download Status: ${otaDebugLogs.downloadStatus || 'N/A'}`,
-        `SHA Verification Status: ${otaDebugLogs.shaVerification || 'N/A'}`,
-        `File Details: ${otaDebugLogs.fileDetails || 'N/A'}`,
-        `Install Error / Log: ${otaDebugLogs.installError || 'N/A'}`,
-        `Installer Launch Status: ${otaDebugLogs.installerLaunchStatus || 'N/A'}`,
-        `Last Exception Stack Trace:`,
-        otaDebugLogs.lastExceptionStackTrace || 'N/A',
-        '',
-        '=== ELIGIBILITY DETAILS ===',
-        `Installed package: ${otaDebugLogs.installedPackageName || 'N/A'}`,
-        `Installed versionName: ${otaDebugLogs.installedVersionName || 'N/A'}`,
-        `Installed versionCode: ${otaDebugLogs.installedVersionCode || 'N/A'}`,
-        `Installed signing SHA-256: ${otaDebugLogs.installedSigningSha256 || 'N/A'}`,
-        `Installed debuggable: ${otaDebugLogs.installedDebuggable !== null ? otaDebugLogs.installedDebuggable : 'N/A'}`,
-        '',
-        `Downloaded package: ${otaDebugLogs.downloadedPackageName || 'N/A'}`,
-        `Downloaded versionName: ${otaDebugLogs.downloadedVersionName || 'N/A'}`,
-        `Downloaded versionCode: ${otaDebugLogs.downloadedVersionCode || 'N/A'}`,
-        `Downloaded signing SHA-256: ${otaDebugLogs.downloadedSigningSha256 || 'N/A'}`,
-        `Downloaded debuggable: ${otaDebugLogs.downloadedDebuggable !== null ? otaDebugLogs.downloadedDebuggable : 'N/A'}`,
-        `Downloaded isValidApk: ${otaDebugLogs.downloadedIsValidApk !== null ? otaDebugLogs.downloadedIsValidApk : 'N/A'}`,
-        `Downloaded isUniversalApk: ${otaDebugLogs.downloadedIsUniversalApk !== null ? otaDebugLogs.downloadedIsUniversalApk : 'N/A'}`,
-        `Downloaded size: ${otaDebugLogs.downloadedApkSize || 'N/A'}`,
-        '',
-        `Eligibility package match: ${otaDebugLogs.eligibilityPackageNameMatch !== null ? otaDebugLogs.eligibilityPackageNameMatch : 'N/A'}`,
-        `Eligibility signing match: ${otaDebugLogs.eligibilitySigningMatch !== null ? otaDebugLogs.eligibilitySigningMatch : 'N/A'}`,
-        `Eligibility versionCode higher: ${otaDebugLogs.eligibilityVersionCodeHigher !== null ? otaDebugLogs.eligibilityVersionCodeHigher : 'N/A'}`,
-        `Eligibility release build: ${otaDebugLogs.eligibilityReleaseBuild !== null ? otaDebugLogs.eligibilityReleaseBuild : 'N/A'}`,
-        `Eligibility valid APK: ${otaDebugLogs.eligibilityValidApk !== null ? otaDebugLogs.eligibilityValidApk : 'N/A'}`,
-        `Eligibility final install: ${otaDebugLogs.eligibilityFinalInstall || 'N/A'}`,
-        `Eligibility reason: ${otaDebugLogs.eligibilityReason || 'N/A'}`
-      ].join('\n');
-    };
+
 
     if (state === 'signature_mismatch') {
       const copyDiagnostics = async () => {
