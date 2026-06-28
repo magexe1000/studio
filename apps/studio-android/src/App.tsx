@@ -1643,6 +1643,18 @@ export default function App() {
     // Force app mode classes on mount
     document.documentElement.classList.add('app-route');
     document.documentElement.classList.remove('landing-route');
+    
+    const intro = document.getElementById('intro');
+    if (intro && (window as any).__introReturnedEarly) {
+      intro.style.transition = 'opacity 500ms ease-out';
+      intro.style.opacity = '0';
+      setTimeout(() => {
+        intro.classList.add('dismissed');
+        if (intro.parentNode) intro.parentNode.removeChild(intro);
+      }, 550);
+      (window as any).__introDone = true;
+      window.dispatchEvent(new Event('studio-intro-done'));
+    }
   }, []);
 
   // Staged Startup Scheduler (Phases 1-4 implementation)
@@ -1730,7 +1742,7 @@ export default function App() {
     const handleIntroDone = () => {
       if (fallbackTimer) clearTimeout(fallbackTimer);
       window.removeEventListener('studio-intro-done', handleIntroDone);
-      runPhase3();
+      setTimeout(runPhase3, 1000);
     };
 
     if (typeof window !== 'undefined') {
@@ -1738,7 +1750,7 @@ export default function App() {
         runPhase3();
       } else {
         window.addEventListener('studio-intro-done', handleIntroDone);
-        fallbackTimer = setTimeout(handleIntroDone, 2000);
+        fallbackTimer = setTimeout(handleIntroDone, 2500);
       }
     }
 

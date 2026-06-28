@@ -26,7 +26,7 @@ import { useMemo } from 'react';
 import { Capacitor } from '@capacitor/core';
 
 /** Canonical semver string used by the OTA comparator. */
-export const NATIVE_VERSION = '3.7.23';
+export const NATIVE_VERSION = '3.7.24';
 export const WEB_VERSION = '4.0.0';
 export const APP_VERSION = Capacitor.isNativePlatform() ? NATIVE_VERSION : WEB_VERSION;
 
@@ -38,7 +38,7 @@ export const APP_VERSION_LABEL = `${APP_VERSION_TAG} ${APP_VERSION}`;
 
 /** Release date for the CURRENT bundle, shown alongside the version pill
  *  in the changelog sheet. ISO-8601 (`YYYY-MM-DD`). */
-export const APP_VERSION_DATE = '2026-06-28'; // 3.7.23
+export const APP_VERSION_DATE = '2026-06-28'; // 3.7.24
 // Note: keep ISO-8601. Bump together with APP_VERSION on each release.
 
 export const APP_COMMIT_SHA = import.meta.env.VITE_GIT_COMMIT_SHA || 'efd2b1a3';
@@ -61,8 +61,8 @@ export const APP_CHANGELOG_SECTIONS: ChangelogSection[] = [
   {
     heading: "Added",
     items: [
-      "Restored original splash screen dismissal behavior to synchronize with the React Hub mount.",
-      "Eliminated the black screen regression by keeping the splash screen active until the Hub is painted.",
+      "Restored full orbits and flight settle splash intro animation from the stable version 3.7.15.",
+      "Fixed black screen startup regression by coordinating early-exit and mount checks.",
       "All updater, offline recovery, and signature checking functionality preserved.",
     ],
   },
@@ -73,8 +73,8 @@ export const APP_CHANGELOG_SECTIONS_NATIVE: ChangelogSection[] = [
   {
     heading: "What's New",
     items: [
-      "Restored original splash screen dismissal behavior to synchronize with the React Hub mount.",
-      "Eliminated the black screen regression by keeping the splash screen active until the Hub is painted.",
+      "Restored full orbits and flight settle splash intro animation from the stable version 3.7.15.",
+      "Fixed black screen startup regression by coordinating early-exit and mount checks.",
       "All updater, offline recovery, and signature checking functionality preserved.",
     ],
   },

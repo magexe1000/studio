@@ -12,6 +12,13 @@ Conventions:
 - Bullets start with `- ` and use plain English a non-technical user
   can parse. Keep each line short — the modal's text area is narrow.
 
+## 3.7.24
+
+### Added
+- Restored full orbits and flight settle splash intro animation from the stable version 3.7.15.
+- Fixed black screen startup regression by coordinating early-exit and mount checks.
+- All updater, offline recovery, and signature checking functionality preserved.
+
 ## 3.7.23
 
 ### Added
