@@ -26,7 +26,7 @@ import { useMemo } from 'react';
 import { Capacitor } from '@capacitor/core';
 
 /** Canonical semver string used by the OTA comparator. */
-export const NATIVE_VERSION = '3.7.13';
+export const NATIVE_VERSION = '3.7.14';
 export const WEB_VERSION = '4.0.0';
 export const APP_VERSION = Capacitor.isNativePlatform() ? NATIVE_VERSION : WEB_VERSION;
 
@@ -61,10 +61,10 @@ export const APP_CHANGELOG_SECTIONS: ChangelogSection[] = [
   {
     heading: "Added",
     items: [
-      "Fullscreen updater experience restored.",
-      "Dedicated installing UI state.",
-      "Post-refactor stability validation.",
-      "Startup pipeline and performance validation.",
+      "Fullscreen updater UI locking and spinner integration.",
+      "Dedicated installing progress screen overlay.",
+      "Complete production end-to-end update validation.",
+      "Architectural and regression suite audits.",
     ],
   },
 ];

@@ -12,6 +12,14 @@ Conventions:
 - Bullets start with `- ` and use plain English a non-technical user
   can parse. Keep each line short — the modal's text area is narrow.
 
+## 3.7.14
+
+### Added
+- Fullscreen updater UI locking and spinner integration.
+- Dedicated installing progress screen overlay.
+- Complete production end-to-end update validation.
+- Architectural and regression suite audits.
+
 ## 3.7.13
 
 ### Added
