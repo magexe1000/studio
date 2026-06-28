@@ -26,7 +26,7 @@ import { useMemo } from 'react';
 import { Capacitor } from '@capacitor/core';
 
 /** Canonical semver string used by the OTA comparator. */
-export const NATIVE_VERSION = '3.7.27';
+export const NATIVE_VERSION = '3.7.28';
 export const WEB_VERSION = '4.0.0';
 export const APP_VERSION = Capacitor.isNativePlatform() ? NATIVE_VERSION : WEB_VERSION;
 
@@ -38,7 +38,7 @@ export const APP_VERSION_LABEL = `${APP_VERSION_TAG} ${APP_VERSION}`;
 
 /** Release date for the CURRENT bundle, shown alongside the version pill
  *  in the changelog sheet. ISO-8601 (`YYYY-MM-DD`). */
-export const APP_VERSION_DATE = '2026-06-28'; // 3.7.27
+export const APP_VERSION_DATE = '2026-06-28'; // 3.7.28
 // Note: keep ISO-8601. Bump together with APP_VERSION on each release.
 
 export const APP_COMMIT_SHA = import.meta.env.VITE_GIT_COMMIT_SHA || 'efd2b1a3';
@@ -61,8 +61,9 @@ export const APP_CHANGELOG_SECTIONS: ChangelogSection[] = [
   {
     heading: "Added",
     items: [
-      "Release validation build for v3.7.27.",
-      "No functional, updater, startup, or UI behavior changes.",
+      "Fixed critical bug where pressing the Update button incorrectly entered the 'Studio is up to date' path.",
+      "Blocked background update checks from running when the installer is busy or in an active installation state.",
+      "Enforced that the only valid transition from UPDATE_AVAILABLE is to DOWNLOADING in the state machine.",
     ],
   },
 ];
@@ -72,8 +73,9 @@ export const APP_CHANGELOG_SECTIONS_NATIVE: ChangelogSection[] = [
   {
     heading: "What's New",
     items: [
-      "Release validation build for v3.7.27.",
-      "No functional, updater, startup, or UI behavior changes.",
+      "Fixed critical bug where pressing the Update button incorrectly entered the 'Studio is up to date' path.",
+      "Blocked background update checks from running when the installer is busy or in an active installation state.",
+      "Enforced that the only valid transition from UPDATE_AVAILABLE is to DOWNLOADING in the state machine.",
     ],
   },
 ];

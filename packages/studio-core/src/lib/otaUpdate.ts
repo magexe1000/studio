@@ -225,6 +225,32 @@ function resetLastCheckedTime() {
 const MIN_AUTO_CHECK_INTERVAL_MS = 15 * 60 * 1000;
 
 export function checkForUpdate(isManual = false): Promise<CentralizedOtaState> {
+  const current = globalOtaState.updateState;
+  
+  // Do NOT run a check if we are in the middle of downloading, verifying, or installing.
+  const isBusy = [
+    'downloading',
+    'verifying',
+    'verifying_sha',
+    'verifying_eligibility',
+    'ready_to_install',
+    'waiting_for_confirmation',
+    'installing',
+    'installed',
+  ].includes(current);
+
+  if (isBusy) {
+    console.log(`[OTA] Skipping checkForUpdate: installer is currently busy (state: ${current})`);
+    return Promise.resolve(globalOtaState);
+  }
+
+  // If it's a background/automatic check (not manual), and we already have an update available
+  // or a failed state, do NOT run the check to avoid wiping out the user-facing state.
+  if (!isManual && current !== 'idle') {
+    console.log(`[OTA] Skipping background checkForUpdate: current state is ${current}`);
+    return Promise.resolve(globalOtaState);
+  }
+
   const checkId = ++latestCheckId;
   const callId = nextJsCallId();
   console.log(`[INSTRUMENTATION] checkForUpdate ENTER Call #${callId} (isManual=${isManual}, checkId=${checkId})`);

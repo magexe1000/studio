@@ -12,6 +12,13 @@ Conventions:
 - Bullets start with `- ` and use plain English a non-technical user
   can parse. Keep each line short — the modal's text area is narrow.
 
+## 3.7.28
+
+### Added
+- Fixed critical bug where pressing the Update button incorrectly entered the 'Studio is up to date' path.
+- Blocked background update checks from running when the installer is busy or in an active installation state.
+- Enforced that the only valid transition from UPDATE_AVAILABLE is to DOWNLOADING in the state machine.
+
 ## 3.7.27
 
 ### Added
