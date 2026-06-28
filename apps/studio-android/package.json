@@ -1,6 +1,6 @@
 {
   "name": "@workspace/studio-android",
-  "version": "3.7.37",
+  "version": "3.7.38",
   "private": true,
   "type": "module",
   "scripts": {

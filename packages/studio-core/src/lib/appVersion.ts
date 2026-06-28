@@ -26,7 +26,7 @@ import { useMemo } from 'react';
 import { Capacitor } from '@capacitor/core';
 
 /** Canonical semver string used by the OTA comparator. */
-export const NATIVE_VERSION = '3.7.37';
+export const NATIVE_VERSION = '3.7.38';
 export const WEB_VERSION = '4.0.0';
 export const APP_VERSION = Capacitor.isNativePlatform() ? NATIVE_VERSION : WEB_VERSION;
 
@@ -38,7 +38,7 @@ export const APP_VERSION_LABEL = `${APP_VERSION_TAG} ${APP_VERSION}`;
 
 /** Release date for the CURRENT bundle, shown alongside the version pill
  *  in the changelog sheet. ISO-8601 (`YYYY-MM-DD`). */
-export const APP_VERSION_DATE = '2026-06-28'; // 3.7.37
+export const APP_VERSION_DATE = '2026-06-28'; // 3.7.38
 // Note: keep ISO-8601. Bump together with APP_VERSION on each release.
 
 export const APP_COMMIT_SHA = import.meta.env.VITE_GIT_COMMIT_SHA || 'efd2b1a3';
@@ -59,10 +59,12 @@ export interface ChangelogSection {
 
 export const APP_CHANGELOG_SECTIONS: ChangelogSection[] = [
   {
-    heading: "Fixed",
+    heading: "Added",
     items: [
-      "Permanently fixed PackageInstaller by using BroadcastReceiver targeting InstallReceiver to launch system confirmation dialogs, preventing background activity blocks on Android 14+.",
-      "Added Updater Laboratory simulation controls and a comprehensive Diagnostics dashboard to Developer Options.",
+      "Overhauled the Updater Laboratory UI in Developer Options by replacing all checkbox-style controls with dedicated button commands.",
+      "Added simulation actions for injecting SHA-256 validation failures, signature conflicts, and download network timeouts directly into the real updater pipeline.",
+      "Implemented a live, auto-scrolling execution console panel displaying unified chronological events (JS, native, state transitions).",
+      "Created advanced engineering tools to replay installations, inspect APK manifests, recalculate SHA checksums, and export diagnostic logs.",
     ],
   },
 ];

@@ -26,6 +26,7 @@ import {
   NavigationEntry,
   updaterSimulation,
   triggerSimulatedStatus,
+  addJsLog,
   jsLogs,
   nativeLogs,
   stateTimeline,
@@ -349,11 +350,21 @@ export default function DevToolsDashboard({ accent, onBack }: Props) {
 
   const [diagExceptionCollapsed, setDiagExceptionCollapsed] = useState(true);
   const [stateHistoryCollapsed, setStateHistoryCollapsed] = useState(true);
+  const [buttonStates, setButtonStates] = useState<Record<string, 'idle' | 'running' | 'success' | 'failure'>>({});
+  const consoleEndRef = useRef<HTMLDivElement>(null);
 
   const [nativeInstallerDetails, setNativeInstallerDetails] = useState<any>(null);
   const [nativeDeviceInfo, setNativeDeviceInfo] = useState<any>(null);
   const [localApkDetails, setLocalApkDetails] = useState<any>(null);
   const [nativeLogsList, setNativeLogsList] = useState<any[]>([]);
+  const [simUpdateCount, setSimUpdateCount] = useState(0);
+  const triggerSimRender = () => setSimUpdateCount(prev => prev + 1);
+
+  useEffect(() => {
+    if (updaterTabMode === 'laboratory') {
+      consoleEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    }
+  }, [simUpdateCount, updaterTabMode]);
 
   useEffect(() => {
     if (subView !== 'updater') return;
@@ -702,9 +713,6 @@ export default function DevToolsDashboard({ accent, onBack }: Props) {
       </div>
     </div>
   );
-  // Force re-render on simulation state changes
-  const [simUpdateCount, setSimUpdateCount] = useState(0);
-  const triggerSimRender = () => setSimUpdateCount(prev => prev + 1);
 
   // Render Inline Updater Diagnostics & Laboratory View
   const renderUpdaterView = () => {
@@ -712,6 +720,130 @@ export default function DevToolsDashboard({ accent, onBack }: Props) {
       navigator.clipboard.writeText(text)
         .then(() => showToast(`${label} copied to clipboard!`))
         .catch(() => showToast('Copy failed.'));
+    };
+
+    const executeLabAction = async (actionId: string, actionName: string, fn: () => Promise<any>) => {
+      setButtonStates(prev => ({ ...prev, [actionId]: 'running' }));
+      addJsLog(`[Action Started] ${actionName}`);
+      triggerSimRender();
+      const start = Date.now();
+      try {
+        const res = await fn();
+        const duration = Date.now() - start;
+        setButtonStates(prev => ({ ...prev, [actionId]: 'success' }));
+        addJsLog(`[Action Success] ${actionName} completed in ${duration}ms. Result: ${typeof res === 'object' ? JSON.stringify(res) : String(res || 'OK')}`);
+        triggerSimRender();
+        showToast(`${actionName} Succeeded`);
+        setTimeout(() => {
+          setButtonStates(prev => ({ ...prev, [actionId]: 'idle' }));
+          triggerSimRender();
+        }, 2000);
+      } catch (err: any) {
+        const duration = Date.now() - start;
+        setButtonStates(prev => ({ ...prev, [actionId]: 'failure' }));
+        addJsLog(`[Action Failure] ${actionName} failed after ${duration}ms. Error: ${err?.message || err}`);
+        triggerSimRender();
+        showToast(`${actionName} Failed: ${err?.message || err}`);
+        setTimeout(() => {
+          setButtonStates(prev => ({ ...prev, [actionId]: 'idle' }));
+          triggerSimRender();
+        }, 3000);
+      }
+    };
+
+    const renderLabButton = (label: string, actionId: string, onClick: () => Promise<any> | any, variant: 'primary' | 'success' | 'warning' | 'danger' | 'info' | 'secondary' = 'secondary', disabled = false) => {
+      const state = buttonStates[actionId] || 'idle';
+      
+      let bg = 'rgba(255, 255, 255, 0.05)';
+      let border = '1px solid rgba(255, 255, 255, 0.08)';
+      let color = 'rgba(255, 255, 255, 0.85)';
+      let icon = '';
+      
+      if (state === 'running') {
+        bg = 'rgba(59, 130, 246, 0.2)';
+        border = '1px solid #3b82f6';
+        color = '#60a5fa';
+        icon = 'sync';
+      } else if (state === 'success') {
+        bg = 'rgba(16, 185, 129, 0.2)';
+        border = '1px solid #10b981';
+        color = '#34d399';
+        icon = 'check_circle';
+      } else if (state === 'failure') {
+        bg = 'rgba(239, 68, 68, 0.2)';
+        border = '1px solid #ef4444';
+        color = '#f87171';
+        icon = 'error';
+      } else {
+        if (variant === 'primary') {
+          bg = 'rgba(59, 130, 246, 0.12)';
+          border = '1px solid rgba(59, 130, 246, 0.25)';
+          color = '#93c5fd';
+        } else if (variant === 'success') {
+          bg = 'rgba(16, 185, 129, 0.12)';
+          border = '1px solid rgba(16, 185, 129, 0.25)';
+          color = '#6ee7b7';
+        } else if (variant === 'warning') {
+          bg = 'rgba(245, 158, 11, 0.12)';
+          border = '1px solid rgba(245, 158, 11, 0.25)';
+          color = '#fde047';
+        } else if (variant === 'danger') {
+          bg = 'rgba(239, 68, 68, 0.12)';
+          border = '1px solid rgba(239, 68, 68, 0.25)';
+          color = '#fca5a5';
+        } else if (variant === 'info') {
+          bg = 'rgba(6, 182, 212, 0.12)';
+          border = '1px solid rgba(6, 182, 212, 0.25)';
+          color = '#67e8f9';
+        }
+      }
+
+      return (
+        <button
+          key={actionId}
+          disabled={disabled || state === 'running'}
+          onClick={() => {
+            const result = onClick();
+            if (result && typeof result.then === 'function') {
+              executeLabAction(actionId, label, () => result);
+            } else {
+              executeLabAction(actionId, label, async () => result);
+            }
+          }}
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: 6,
+            padding: '8px 10px',
+            borderRadius: 8,
+            background: bg,
+            border: border,
+            color: color,
+            fontWeight: 700,
+            fontFamily: 'Manrope',
+            fontSize: '11px',
+            cursor: disabled ? 'not-allowed' : 'pointer',
+            transition: 'all 0.15s ease',
+            opacity: disabled ? 0.4 : 1,
+            minHeight: '36px',
+          }}
+        >
+          {icon && (
+            <span 
+              className="material-symbols-outlined" 
+              style={{ 
+                fontSize: 14, 
+                animation: icon === 'sync' ? 'spin 1s linear infinite' : 'none',
+                display: 'inline-block'
+              }}
+            >
+              {icon}
+            </span>
+          )}
+          {label}
+        </button>
+      );
     };
 
     const unifiedTimeline = getUnifiedTimeline();
@@ -962,374 +1094,419 @@ export default function DevToolsDashboard({ accent, onBack }: Props) {
         )}
 
         {updaterTabMode === 'laboratory' ? (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-            {/* 1. Update Simulation */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+            <style>{`
+              @keyframes spin {
+                from { transform: rotate(0deg); }
+                to { transform: rotate(360deg); }
+              }
+            `}</style>
+
+            {/* SECTION 1: Real Production Actions */}
+            <div style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.05)', borderRadius: 12, padding: 12 }}>
+              <div style={{ fontSize: 13, fontWeight: 800, marginBottom: 10, color: '#10b981', display: 'flex', alignItems: 'center', gap: 6 }}>
+                <span className="material-symbols-outlined" style={{ fontSize: 18 }}>play_circle</span>
+                Production Pipeline Execution
+              </div>
+              <p style={{ margin: '0 0 10px', fontSize: 11, color: 'rgba(255,255,255,0.4)', lineHeight: 1.45 }}>
+                Run the actual production pipelines. These use real native functions, perform file operations, verify signatures, and trigger the system installer.
+              </p>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+                {renderLabButton('Trigger Download', 'download', async () => {
+                  await downloadUpdate('Updater Lab');
+                }, 'success')}
+                {renderLabButton('Trigger Install', 'install', async () => {
+                  await applyUpdate('Updater Lab');
+                }, 'primary')}
+                {renderLabButton('Run Production Flow', 'prodFlow', async () => {
+                  const checkRes = await checkForUpdate(true);
+                  if (checkRes.updateAvailable) {
+                    await downloadUpdate('Prod Flow');
+                    await applyUpdate('Prod Flow');
+                  } else {
+                    showToast('No update available to install.');
+                  }
+                }, 'success')}
+                {renderLabButton('Run Full Pipeline', 'fullPipeline', async () => {
+                  await checkForUpdate(true);
+                  await downloadUpdate('Full Pipeline');
+                  await applyUpdate('Full Pipeline');
+                }, 'primary')}
+              </div>
+            </div>
+
+            {/* SECTION 2: Update Simulation Controls */}
             <div style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.05)', borderRadius: 12, padding: 12 }}>
               <div style={{ fontSize: 13, fontWeight: 800, marginBottom: 10, color: '#a855f7', display: 'flex', alignItems: 'center', gap: 6 }}>
                 <span className="material-symbols-outlined" style={{ fontSize: 18 }}>science</span>
-                Update Simulation
+                Update State Simulation
               </div>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
-                  <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 11, cursor: 'pointer' }}>
-                    <input
-                      type="checkbox"
-                      checked={updaterSimulation.forceUpdateAvailable}
-                      onChange={() => {
-                        updaterSimulation.forceUpdateAvailable = !updaterSimulation.forceUpdateAvailable;
-                        if (updaterSimulation.forceUpdateAvailable) {
-                          updaterSimulation.forceNoUpdate = false;
-                          updaterSimulation.forceDowngrade = false;
-                        }
-                        triggerSimRender();
-                      }}
-                    />
-                    Force Update (v3.7.99)
-                  </label>
-                  <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 11, cursor: 'pointer' }}>
-                    <input
-                      type="checkbox"
-                      checked={updaterSimulation.forceNoUpdate}
-                      onChange={() => {
-                        updaterSimulation.forceNoUpdate = !updaterSimulation.forceNoUpdate;
-                        if (updaterSimulation.forceNoUpdate) {
-                          updaterSimulation.forceUpdateAvailable = false;
-                          updaterSimulation.forceDowngrade = false;
-                        }
-                        triggerSimRender();
-                      }}
-                    />
-                    Force No Update
-                  </label>
-                  <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 11, cursor: 'pointer' }}>
-                    <input
-                      type="checkbox"
-                      checked={updaterSimulation.forceDowngrade}
-                      onChange={() => {
-                        updaterSimulation.forceDowngrade = !updaterSimulation.forceDowngrade;
-                        if (updaterSimulation.forceDowngrade) {
-                          updaterSimulation.forceUpdateAvailable = false;
-                          updaterSimulation.forceNoUpdate = false;
-                        }
-                        triggerSimRender();
-                      }}
-                    />
-                    Force Downgrade (v3.7.10)
-                  </label>
-                  <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 11, cursor: 'pointer' }}>
-                    <input
-                      type="checkbox"
-                      checked={updaterSimulation.forceMetadataFailure}
-                      onChange={() => {
-                        updaterSimulation.forceMetadataFailure = !updaterSimulation.forceMetadataFailure;
-                        triggerSimRender();
-                      }}
-                    />
-                    Force Meta Failure
-                  </label>
-                </div>
-
-                <div style={{ borderTop: '1px solid rgba(255,255,255,0.05)', marginTop: 4, paddingTop: 6, display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
-                  <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 11, cursor: 'pointer' }}>
-                    <input
-                      type="checkbox"
-                      checked={updaterSimulation.forceMandatoryUpdate}
-                      onChange={() => {
-                        updaterSimulation.forceMandatoryUpdate = !updaterSimulation.forceMandatoryUpdate;
-                        if (updaterSimulation.forceMandatoryUpdate) updaterSimulation.forceOptionalUpdate = false;
-                        triggerSimRender();
-                      }}
-                    />
-                    Force Mandatory
-                  </label>
-                  <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 11, cursor: 'pointer' }}>
-                    <input
-                      type="checkbox"
-                      checked={updaterSimulation.forceOptionalUpdate}
-                      onChange={() => {
-                        updaterSimulation.forceOptionalUpdate = !updaterSimulation.forceOptionalUpdate;
-                        if (updaterSimulation.forceOptionalUpdate) updaterSimulation.forceMandatoryUpdate = false;
-                        triggerSimRender();
-                      }}
-                    />
-                    Force Optional
-                  </label>
-                  <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 11, cursor: 'pointer' }}>
-                    <input
-                      type="checkbox"
-                      checked={updaterSimulation.forceApkUpdate}
-                      onChange={() => {
-                        updaterSimulation.forceApkUpdate = !updaterSimulation.forceApkUpdate;
-                        if (updaterSimulation.forceApkUpdate) updaterSimulation.forceOtaUpdate = false;
-                        triggerSimRender();
-                      }}
-                    />
-                    Force APK Update
-                  </label>
-                  <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 11, cursor: 'pointer' }}>
-                    <input
-                      type="checkbox"
-                      checked={updaterSimulation.forceOtaUpdate}
-                      onChange={() => {
-                        updaterSimulation.forceOtaUpdate = !updaterSimulation.forceOtaUpdate;
-                        if (updaterSimulation.forceOtaUpdate) updaterSimulation.forceApkUpdate = false;
-                        triggerSimRender();
-                      }}
-                    />
-                    Force OTA Update
-                  </label>
-                </div>
-              </div>
-            </div>
-
-            {/* 2. Download & File Overrides */}
-            <div style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.05)', borderRadius: 12, padding: 12 }}>
-              <div style={{ fontSize: 13, fontWeight: 800, marginBottom: 10, color: '#10b981', display: 'flex', alignItems: 'center', gap: 6 }}>
-                <span className="material-symbols-outlined" style={{ fontSize: 18 }}>download</span>
-                Download & File Verification Simulation
-              </div>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginBottom: 10 }}>
-                <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 11, cursor: 'pointer' }}>
-                  <input
-                    type="checkbox"
-                    checked={updaterSimulation.simulateDownload}
-                    onChange={() => {
-                      updaterSimulation.simulateDownload = !updaterSimulation.simulateDownload;
-                      triggerSimRender();
-                    }}
-                  />
-                  Mock Progress (Web)
-                </label>
-                <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 11, cursor: 'pointer' }}>
-                  <input
-                    type="checkbox"
-                    checked={updaterSimulation.forceDownloadFailure}
-                    onChange={() => {
-                      updaterSimulation.forceDownloadFailure = !updaterSimulation.forceDownloadFailure;
-                      if (updaterSimulation.forceDownloadFailure) {
-                        updaterSimulation.forceDownloadTimeout = false;
-                      }
-                      triggerSimRender();
-                    }}
-                  />
-                  Inject Download Fail
-                </label>
-                <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 11, cursor: 'pointer' }}>
-                  <input
-                    type="checkbox"
-                    checked={updaterSimulation.forceDownloadTimeout}
-                    onChange={() => {
-                      updaterSimulation.forceDownloadTimeout = !updaterSimulation.forceDownloadTimeout;
-                      if (updaterSimulation.forceDownloadTimeout) {
-                        updaterSimulation.forceDownloadFailure = false;
-                      }
-                      triggerSimRender();
-                    }}
-                  />
-                  Inject Conn Timeout
-                </label>
-                <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 11, cursor: 'pointer' }}>
-                  <input
-                    type="checkbox"
-                    checked={updaterSimulation.forceShaFailure}
-                    onChange={() => {
-                      updaterSimulation.forceShaFailure = !updaterSimulation.forceShaFailure;
-                      triggerSimRender();
-                    }}
-                  />
-                  Inject SHA Checksum Fail
-                </label>
-                <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 11, cursor: 'pointer' }}>
-                  <input
-                    type="checkbox"
-                    checked={updaterSimulation.forceSignatureMismatch}
-                    onChange={() => {
-                      updaterSimulation.forceSignatureMismatch = !updaterSimulation.forceSignatureMismatch;
-                      if (updaterSimulation.forceSignatureMismatch) {
-                        updaterSimulation.forceInvalidApk = false;
-                      }
-                      triggerSimRender();
-                    }}
-                  />
-                  Force Signature Conflict
-                </label>
-                <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 11, cursor: 'pointer' }}>
-                  <input
-                    type="checkbox"
-                    checked={updaterSimulation.forceInvalidApk}
-                    onChange={() => {
-                      updaterSimulation.forceInvalidApk = !updaterSimulation.forceInvalidApk;
-                      if (updaterSimulation.forceInvalidApk) {
-                        updaterSimulation.forceSignatureMismatch = false;
-                      }
-                      triggerSimRender();
-                    }}
-                  />
-                  Force Invalid APK
-                </label>
-                <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 11, cursor: 'pointer' }}>
-                  <input
-                    type="checkbox"
-                    checked={updaterSimulation.forceRecoveryMode}
-                    onChange={() => {
-                      updaterSimulation.forceRecoveryMode = !updaterSimulation.forceRecoveryMode;
-                      triggerSimRender();
-                    }}
-                  />
-                  Force Recovery Mode
-                </label>
-                <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 11, cursor: 'pointer' }}>
-                  <input
-                    type="checkbox"
-                    checked={updaterSimulation.forceCachedApk}
-                    onChange={() => {
-                      updaterSimulation.forceCachedApk = !updaterSimulation.forceCachedApk;
-                      triggerSimRender();
-                    }}
-                  />
-                  Force Valid Cached APK
-                </label>
-                <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 11, cursor: 'pointer' }}>
-                  <input
-                    type="checkbox"
-                    checked={updaterSimulation.forceResumeDownload}
-                    onChange={() => {
-                      updaterSimulation.forceResumeDownload = !updaterSimulation.forceResumeDownload;
-                      triggerSimRender();
-                    }}
-                  />
-                  Force Resume Mode
-                </label>
-              </div>
-              <div style={{ display: 'flex', gap: 6 }}>
-                <button
-                  onClick={async () => {
-                    showToast('Checking for updates...');
-                    const res = await checkForUpdate(true);
-                    showToast(`Check result: ${res.updateState}`);
-                  }}
-                  style={{ flex: 1, padding: '8px', borderRadius: 8, background: '#3b82f6', color: '#fff', border: 'none', fontWeight: 700, fontSize: 11, cursor: 'pointer' }}
-                >
-                  Reload Metadata
-                </button>
-                <button
-                  onClick={async () => {
-                    showToast('Starting download...');
-                    try {
-                      await downloadUpdate('DevTools Lab');
-                      showToast('Download check completed.');
-                    } catch (e: any) {
-                      showToast(`Download failed: ${e.message}`);
-                    }
-                  }}
-                  style={{ flex: 1, padding: '8px', borderRadius: 8, background: '#10b981', color: '#fff', border: 'none', fontWeight: 700, fontSize: 11, cursor: 'pointer' }}
-                >
-                  Trigger Download
-                </button>
-                <button
-                  onClick={async () => {
-                    showToast('Triggering install...');
-                    try {
-                      await applyUpdate('DevTools Lab');
-                      showToast('Install complete.');
-                    } catch (e: any) {
-                      showToast(`Install failed: ${e.message}`);
-                    }
-                  }}
-                  style={{ flex: 1, padding: '8px', borderRadius: 8, background: '#a855f7', color: '#fff', border: 'none', fontWeight: 700, fontSize: 11, cursor: 'pointer' }}
-                >
-                  Trigger Install
-                </button>
-              </div>
-            </div>
-
-            {/* 3. PackageInstaller Native Mocking */}
-            <div style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.05)', borderRadius: 12, padding: 12 }}>
-              <div style={{ fontSize: 13, fontWeight: 800, marginBottom: 6, color: '#eab308', display: 'flex', alignItems: 'center', gap: 6 }}>
-                <span className="material-symbols-outlined" style={{ fontSize: 18 }}>terminal</span>
-                Mock Native Status Responses
-              </div>
-              <p style={{ margin: '0 0 10px', fontSize: 11, color: 'rgba(255,255,255,0.4)', lineHeight: 1.4 }}>
-                Simulate the native callback outcome that Android sends back to JavaScript when installation begins:
+              <p style={{ margin: '0 0 10px', fontSize: 11, color: 'rgba(255,255,255,0.4)', lineHeight: 1.45 }}>
+                Force metadata outcomes on check. Clicking these sets the mock variables and executes `checkForUpdate` immediately to shift the state machine.
               </p>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginBottom: 10 }}>
-                <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 11, cursor: 'pointer' }}>
-                  <input
-                    type="radio"
-                    name="nativeMock"
-                    checked={updaterSimulation.forceInstallSuccess}
-                    onChange={() => {
-                      updaterSimulation.forceInstallSuccess = true;
-                      updaterSimulation.forceInstallFailure = false;
-                      updaterSimulation.forceUserCancel = false;
-                      updaterSimulation.forcePendingUserAction = false;
-                      triggerSimRender();
-                    }}
-                  />
-                  Force Success (0)
-                </label>
-                <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 11, cursor: 'pointer' }}>
-                  <input
-                    type="radio"
-                    name="nativeMock"
-                    checked={updaterSimulation.forceInstallFailure}
-                    onChange={() => {
-                      updaterSimulation.forceInstallSuccess = false;
-                      updaterSimulation.forceInstallFailure = true;
-                      updaterSimulation.forceUserCancel = false;
-                      updaterSimulation.forcePendingUserAction = false;
-                      triggerSimRender();
-                    }}
-                  />
-                  Force Fail (1)
-                </label>
-                <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 11, cursor: 'pointer' }}>
-                  <input
-                    type="radio"
-                    name="nativeMock"
-                    checked={updaterSimulation.forceUserCancel}
-                    onChange={() => {
-                      updaterSimulation.forceInstallSuccess = false;
-                      updaterSimulation.forceInstallFailure = false;
-                      updaterSimulation.forceUserCancel = true;
-                      updaterSimulation.forcePendingUserAction = false;
-                      triggerSimRender();
-                    }}
-                  />
-                  Force Cancel (3)
-                </label>
-                <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 11, cursor: 'pointer' }}>
-                  <input
-                    type="radio"
-                    name="nativeMock"
-                    checked={updaterSimulation.forcePendingUserAction}
-                    onChange={() => {
-                      updaterSimulation.forceInstallSuccess = false;
-                      updaterSimulation.forceInstallFailure = false;
-                      updaterSimulation.forceUserCancel = false;
-                      updaterSimulation.forcePendingUserAction = true;
-                      triggerSimRender();
-                    }}
-                  />
-                  Force Pending User
-                </label>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+                {renderLabButton('Force Update Available', 'forceAvail', async () => {
+                  updaterSimulation.forceUpdateAvailable = true;
+                  updaterSimulation.forceNoUpdate = false;
+                  updaterSimulation.forceDowngrade = false;
+                  await checkForUpdate(true);
+                }, 'info')}
+                {renderLabButton('Force No Update', 'forceNoUpdate', async () => {
+                  updaterSimulation.forceUpdateAvailable = false;
+                  updaterSimulation.forceNoUpdate = true;
+                  updaterSimulation.forceDowngrade = false;
+                  await checkForUpdate(true);
+                }, 'info')}
+                {renderLabButton('Force Downgrade (v3.7.10)', 'forceDown', async () => {
+                  updaterSimulation.forceUpdateAvailable = false;
+                  updaterSimulation.forceNoUpdate = false;
+                  updaterSimulation.forceDowngrade = true;
+                  await checkForUpdate(true);
+                }, 'info')}
+                {renderLabButton('Force Metadata Failure', 'forceMetaFail', async () => {
+                  updaterSimulation.forceMetadataFailure = true;
+                  await checkForUpdate(true);
+                }, 'danger')}
+                {renderLabButton('Force Mandatory', 'forceMandatory', async () => {
+                  updaterSimulation.forceMandatoryUpdate = true;
+                  updaterSimulation.forceOptionalUpdate = false;
+                  await checkForUpdate(true);
+                }, 'secondary')}
+                {renderLabButton('Force Optional', 'forceOptional', async () => {
+                  updaterSimulation.forceOptionalUpdate = true;
+                  updaterSimulation.forceMandatoryUpdate = false;
+                  await checkForUpdate(true);
+                }, 'secondary')}
+                {renderLabButton('Force APK Update', 'forceApk', async () => {
+                  updaterSimulation.forceApkUpdate = true;
+                  updaterSimulation.forceOtaUpdate = false;
+                  await checkForUpdate(true);
+                }, 'secondary')}
+                {renderLabButton('Force OTA Update', 'forceOta', async () => {
+                  updaterSimulation.forceOtaUpdate = true;
+                  updaterSimulation.forceApkUpdate = false;
+                  await checkForUpdate(true);
+                }, 'secondary')}
               </div>
-              <button
-                onClick={() => {
+            </div>
+
+            {/* SECTION 3: Failure & Recovery Injections */}
+            <div style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.05)', borderRadius: 12, padding: 12 }}>
+              <div style={{ fontSize: 13, fontWeight: 800, marginBottom: 10, color: '#f59e0b', display: 'flex', alignItems: 'center', gap: 6 }}>
+                <span className="material-symbols-outlined" style={{ fontSize: 18 }}>bug_report</span>
+                Failure & Recovery Injections
+              </div>
+              <p style={{ margin: '0 0 10px', fontSize: 11, color: 'rgba(255,255,255,0.4)', lineHeight: 1.45 }}>
+                Simulate failure states during download, verification, or recovery to test self-healing paths in the real updater pipeline.
+              </p>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+                {renderLabButton('Inject Download Failure', 'injectDownFail', () => {
+                  updaterSimulation.forceDownloadFailure = true;
+                  updaterSimulation.forceDownloadTimeout = false;
+                }, 'danger')}
+                {renderLabButton('Inject Connection Timeout', 'injectTimeout', () => {
+                  updaterSimulation.forceDownloadTimeout = true;
+                  updaterSimulation.forceDownloadFailure = false;
+                }, 'danger')}
+                {renderLabButton('Inject SHA Failure', 'injectShaFail', () => {
+                  updaterSimulation.forceShaFailure = true;
+                }, 'danger')}
+                {renderLabButton('Inject Signature Conflict', 'injectSigConflict', () => {
+                  updaterSimulation.forceSignatureMismatch = true;
+                }, 'danger')}
+                {renderLabButton('Inject Invalid APK', 'injectInvalidApk', () => {
+                  updaterSimulation.forceInvalidApk = true;
+                }, 'danger')}
+                {renderLabButton('Force Recovery Mode', 'forceRecovery', async () => {
+                  updaterSimulation.forceRecoveryMode = true;
+                  await checkForUpdate(true);
+                }, 'warning')}
+                {renderLabButton('Force Valid Cached APK', 'forceCached', () => {
+                  updaterSimulation.forceCachedApk = true;
+                }, 'warning')}
+                {renderLabButton('Force Resume Mode', 'forceResume', () => {
+                  updaterSimulation.forceResumeDownload = true;
+                }, 'warning')}
+                {renderLabButton('Clear All Simulations', 'clearSims', async () => {
+                  updaterSimulation.forceUpdateAvailable = false;
+                  updaterSimulation.forceNoUpdate = false;
+                  updaterSimulation.forceDowngrade = false;
+                  updaterSimulation.forceMandatoryUpdate = false;
+                  updaterSimulation.forceOptionalUpdate = false;
+                  updaterSimulation.forceApkUpdate = false;
+                  updaterSimulation.forceOtaUpdate = false;
+                  updaterSimulation.forceMetadataFailure = false;
+                  updaterSimulation.forceShaFailure = false;
+                  updaterSimulation.forceSignatureMismatch = false;
+                  updaterSimulation.forceInvalidApk = false;
+                  updaterSimulation.forceDownloadFailure = false;
+                  updaterSimulation.forceDownloadTimeout = false;
+                  updaterSimulation.forceRecoveryMode = false;
+                  updaterSimulation.forceCachedApk = false;
+                  updaterSimulation.forceResumeDownload = false;
                   updaterSimulation.forceInstallSuccess = false;
                   updaterSimulation.forceInstallFailure = false;
                   updaterSimulation.forceUserCancel = false;
                   updaterSimulation.forcePendingUserAction = false;
-                  triggerSimRender();
-                  showToast('Native simulation overrides cleared.');
-                }}
-                style={{ width: '100%', padding: '6px', borderRadius: 6, background: 'rgba(255,255,255,0.06)', color: '#fff', border: 'none', fontSize: 10, fontWeight: 700, cursor: 'pointer' }}
-              >
-                Clear Mock Overrides
-              </button>
+                  await checkForUpdate(true);
+                }, 'primary')}
+              </div>
             </div>
 
-            {/* 4. Reset controls */}
+            {/* SECTION 4: PackageInstaller Native Mocking */}
+            <div style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.05)', borderRadius: 12, padding: 12 }}>
+              <div style={{ fontSize: 13, fontWeight: 800, marginBottom: 10, color: '#f97316', display: 'flex', alignItems: 'center', gap: 6 }}>
+                <span className="material-symbols-outlined" style={{ fontSize: 18 }}>terminal</span>
+                PackageInstaller Native Mocks
+              </div>
+              <p style={{ margin: '0 0 10px', fontSize: 11, color: 'rgba(255,255,255,0.4)', lineHeight: 1.45 }}>
+                Simulate native PackageInstaller callbacks sent from Android OS to JS during the session install flow.
+              </p>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+                {renderLabButton('Force Pending User', 'mockPending', () => {
+                  updaterSimulation.forceInstallSuccess = false;
+                  updaterSimulation.forceInstallFailure = false;
+                  updaterSimulation.forceUserCancel = false;
+                  updaterSimulation.forcePendingUserAction = true;
+                  triggerSimulatedStatus(-1, 'STATUS_PENDING_USER_ACTION');
+                }, 'warning')}
+                {renderLabButton('Force Success (0)', 'mockSuccess', () => {
+                  updaterSimulation.forceInstallSuccess = true;
+                  updaterSimulation.forceInstallFailure = false;
+                  updaterSimulation.forceUserCancel = false;
+                  updaterSimulation.forcePendingUserAction = false;
+                  triggerSimulatedStatus(0, 'STATUS_SUCCESS');
+                }, 'success')}
+                {renderLabButton('Force Fail (1)', 'mockFail', () => {
+                  updaterSimulation.forceInstallSuccess = false;
+                  updaterSimulation.forceInstallFailure = true;
+                  updaterSimulation.forceUserCancel = false;
+                  updaterSimulation.forcePendingUserAction = false;
+                  triggerSimulatedStatus(1, 'STATUS_FAILURE');
+                }, 'danger')}
+                {renderLabButton('Force Cancel (3)', 'mockCancel', () => {
+                  updaterSimulation.forceInstallSuccess = false;
+                  updaterSimulation.forceInstallFailure = false;
+                  updaterSimulation.forceUserCancel = true;
+                  updaterSimulation.forcePendingUserAction = false;
+                  triggerSimulatedStatus(3, 'STATUS_FAILURE_ABORTED');
+                }, 'danger')}
+              </div>
+            </div>
+
+            {/* SECTION 5: Advanced Engineering Tools */}
+            <div style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.05)', borderRadius: 12, padding: 12 }}>
+              <div style={{ fontSize: 13, fontWeight: 800, marginBottom: 10, color: '#06b6d4', display: 'flex', alignItems: 'center', gap: 6 }}>
+                <span className="material-symbols-outlined" style={{ fontSize: 18 }}>build</span>
+                Advanced Engineering Tools
+              </div>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+                {renderLabButton('Replay Last Install', 'replayInstall', async () => {
+                  const lastPath = localStorage.getItem('studio:downloadedApkPath') || '';
+                  if (!lastPath) throw new Error('No downloaded APK path found in storage.');
+                  await applyUpdate('Replay Last Installation');
+                }, 'info')}
+                {renderLabButton('Replay Last Failure', 'replayFail', () => {
+                  const err = otaDebugLogs.installError || localStorage.getItem('studio:lastError') || 'No recorded failures';
+                  addJsLog(`[Replay Failure] Last error: ${err}`);
+                }, 'info')}
+                {renderLabButton('Open Cached APK', 'openApk', async () => {
+                  const lastPath = localStorage.getItem('studio:downloadedApkPath') || '';
+                  if (!lastPath) throw new Error('No downloaded APK path found.');
+                  if (isNative()) {
+                    const { Share } = await import('@capacitor/share');
+                    await Share.share({ title: 'Cached APK', url: lastPath.startsWith('file://') ? lastPath : `file://${lastPath}` });
+                  } else {
+                    addJsLog(`[Open Cached APK] Mock browser path: ${lastPath}`);
+                  }
+                }, 'info')}
+                {renderLabButton('Inspect Downloaded APK', 'inspectApk', async () => {
+                  const lastPath = localStorage.getItem('studio:downloadedApkPath') || '';
+                  if (!lastPath) throw new Error('No downloaded APK path found.');
+                  if (isNative()) {
+                    const details = await AppInstaller.inspectApk({ filePath: lastPath });
+                    addJsLog(`[Inspect APK] Result: ${JSON.stringify(details)}`);
+                    setLocalApkDetails(details);
+                  } else {
+                    addJsLog('[Inspect APK] Mock environment: verified valid com.chordex.app APK.');
+                  }
+                }, 'info')}
+                {renderLabButton('Verify SHA Again', 'verifyShaAgain', async () => {
+                  const lastPath = localStorage.getItem('studio:downloadedApkPath') || '';
+                  if (!lastPath) throw new Error('No downloaded APK path found.');
+                  if (isNative()) {
+                    const expected = globalOtaState.apkSha256 || 'unknown';
+                    const result = await AppInstaller.verifyApkSha256({ filePath: lastPath, expectedHash: expected });
+                    addJsLog(`[Verify SHA] Expected: ${expected}. Matches: ${result.matches}`);
+                  } else {
+                    addJsLog('[Verify SHA] Mock environment: SHA matches expected hash.');
+                  }
+                }, 'info')}
+                {renderLabButton('Re-run Eligibility', 'runEligAgain', async () => {
+                  const lastPath = localStorage.getItem('studio:downloadedApkPath') || '';
+                  if (!lastPath) throw new Error('No downloaded APK path found.');
+                  if (isNative()) {
+                    const { runEligibilityCheck } = await import('@workspace/studio-core');
+                    const ok = await runEligibilityCheck(lastPath, false);
+                    addJsLog(`[Re-run Eligibility] Result: ${ok}`);
+                  } else {
+                    addJsLog('[Re-run Eligibility] Mock environment: Eligibility Passed.');
+                  }
+                }, 'info')}
+                {renderLabButton('Launch Install Intent', 'launchIntent', async () => {
+                  const lastPath = localStorage.getItem('studio:downloadedApkPath') || '';
+                  if (!lastPath) throw new Error('No downloaded APK path found.');
+                  if (isNative()) {
+                    await AppInstaller.installApkDirect({ filePath: lastPath });
+                  } else {
+                    addJsLog('[Launch Install Intent] Mock intent launch.');
+                  }
+                }, 'info')}
+                {renderLabButton('Restart Session', 'restartSession', async () => {
+                  await AppInstaller.clearInstallerLogHistory();
+                  resetOtaUpdateState();
+                  addJsLog('[Restart Session] Active installer sessions and JS states reset.');
+                }, 'info')}
+              </div>
+            </div>
+
+            {/* SECTION 6: Clipboard Exporters */}
+            <div style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.05)', borderRadius: 12, padding: 12 }}>
+              <div style={{ fontSize: 13, fontWeight: 800, marginBottom: 10, color: '#ec4899', display: 'flex', alignItems: 'center', gap: 6 }}>
+                <span className="material-symbols-outlined" style={{ fontSize: 18 }}>content_copy</span>
+                Clipboard Exporters
+              </div>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+                {renderLabButton('Export Native Logs', 'expNatLogs', async () => {
+                  let txt = '=== NATIVE LOGS ===\n';
+                  nativeLogs.forEach(log => {
+                    txt += `[${new Date(log.timestamp).toLocaleTimeString()}] ${log.message}\n`;
+                  });
+                  await handleCopyText(txt, 'Native Logs');
+                }, 'secondary')}
+                {renderLabButton('Export JS Logs', 'expJsLogs', async () => {
+                  let txt = '=== JS LOGS ===\n';
+                  jsLogs.forEach(log => {
+                    txt += `[${new Date(log.timestamp).toLocaleTimeString()}] ${log.message}\n`;
+                  });
+                  await handleCopyText(txt, 'JS Logs');
+                }, 'secondary')}
+                {renderLabButton('Export Timeline', 'expTimeline', async () => {
+                  let txt = `=== UNIFIED TIMELINE ===\n`;
+                  unifiedTimeline.forEach(e => {
+                    const timeStr = new Date(e.time).toLocaleTimeString();
+                    txt += `[${timeStr}] [${e.type.toUpperCase()}] ${e.text} ${e.details ? ` - ${e.details}` : ''}\n`;
+                  });
+                  await handleCopyText(txt, 'Timeline');
+                }, 'secondary')}
+                {renderLabButton('Export Diagnostics', 'expDiag', async () => {
+                  await handleCopyText(JSON.stringify(otaDiagnostics, null, 2), 'Diagnostics');
+                }, 'secondary')}
+                {renderLabButton('Copy Engineering Report', 'expReport', async () => {
+                  await exportEngineeringReport();
+                }, 'secondary')}
+                {renderLabButton('Copy PackageInstaller Events', 'expPkgInst', async () => {
+                  let txt = '=== PACKAGE INSTALLER EVENTS ===\n';
+                  nativeLogsList.forEach(log => {
+                    txt += `[${log.stage}] Status: ${log.status} - Message: ${log.message}\n`;
+                  });
+                  await handleCopyText(txt, 'PackageInstaller Events');
+                }, 'secondary')}
+                {renderLabButton('Copy Activity Lifecycle', 'expLifecycle', async () => {
+                  let txt = '=== ACTIVITY LIFECYCLE TIMELINE ===\n';
+                  activityLifecycleTimeline.forEach(a => {
+                    txt += `[${new Date(a.timestamp).toLocaleTimeString()}] Stage: ${a.stage}\n`;
+                  });
+                  await handleCopyText(txt, 'Activity Lifecycle');
+                }, 'secondary')}
+                {renderLabButton('Copy State Machine', 'expStateMach', async () => {
+                  let txt = '=== STATE MACHINE TRANSITIONS ===\n';
+                  transitionHistory.forEach(t => {
+                    txt += `[${new Date(t.timestamp).toLocaleTimeString()}] ${t.from} -> ${t.to} (${t.reason})\n`;
+                  });
+                  await handleCopyText(txt, 'State Machine Transitions');
+                }, 'secondary')}
+                {renderLabButton('Copy Current Metadata', 'expMeta', async () => {
+                  await handleCopyText(JSON.stringify(globalOtaState, null, 2), 'Current Metadata');
+                }, 'secondary')}
+                {renderLabButton('Copy APK Metadata', 'expApkMeta', async () => {
+                  await handleCopyText(JSON.stringify(localApkDetails || {}, null, 2), 'APK Metadata');
+                }, 'secondary')}
+                {renderLabButton('Copy Device Information', 'expDeviceInfo', async () => {
+                  await handleCopyText(JSON.stringify(nativeDeviceInfo || {}, null, 2), 'Device Information');
+                }, 'secondary')}
+                {renderLabButton('Copy Full Timeline', 'expFullTimeline', async () => {
+                  let txt = `=== FULL UNIFIED TIMELINE ===\n`;
+                  unifiedTimeline.forEach(e => {
+                    const timeStr = new Date(e.time).toLocaleTimeString();
+                    txt += `[${timeStr}] [${e.type.toUpperCase()}] ${e.text} ${e.details ? ` - ${e.details}` : ''}\n`;
+                  });
+                  await handleCopyText(txt, 'Full Timeline');
+                }, 'secondary')}
+              </div>
+            </div>
+
+            {/* SECTION 7: Live Execution Console */}
+            <div style={{ background: 'rgba(0,0,0,0.4)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 12, padding: 12, display: 'flex', flexDirection: 'column', gap: 8 }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid rgba(255,255,255,0.08)', paddingBottom: 6 }}>
+                <div style={{ fontSize: 12, fontWeight: 800, color: '#38bdf8', display: 'flex', alignItems: 'center', gap: 6 }}>
+                  <span className="material-symbols-outlined" style={{ fontSize: 16 }}>terminal</span>
+                  Live Execution Console
+                </div>
+                <div style={{ display: 'flex', gap: 6 }}>
+                  <button
+                    onClick={() => {
+                      jsLogs.length = 0;
+                      nativeLogsList.length = 0;
+                      stateTimeline.length = 0;
+                      triggerSimRender();
+                      showToast('Console cleared.');
+                    }}
+                    style={{ padding: '4px 8px', borderRadius: 4, background: 'rgba(255,255,255,0.06)', color: 'rgba(255,255,255,0.6)', border: 'none', fontSize: 10, fontWeight: 700, cursor: 'pointer' }}
+                  >
+                    Clear
+                  </button>
+                  <button
+                    onClick={() => {
+                      let txt = `=== LIVE CONSOLE LOGS ===\n`;
+                      getUnifiedTimeline().forEach(e => {
+                        const timeStr = new Date(e.time).toLocaleTimeString();
+                        txt += `[${timeStr}] [${e.type.toUpperCase()}] ${e.text} ${e.details ? ` - ${e.details}` : ''}\n`;
+                      });
+                      navigator.clipboard.writeText(txt).then(() => showToast('Logs copied!'));
+                    }}
+                    style={{ padding: '4px 8px', borderRadius: 4, background: 'rgba(255,255,255,0.06)', color: 'rgba(255,255,255,0.6)', border: 'none', fontSize: 10, fontWeight: 700, cursor: 'pointer' }}
+                  >
+                    Copy Logs
+                  </button>
+                </div>
+              </div>
+              <div style={{ maxHeight: 200, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 4, paddingRight: 4 }}>
+                {unifiedTimeline.length === 0 ? (
+                  <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.3)', fontStyle: 'italic', padding: '10px 0' }}>
+                    Console idle. Execute an action to begin stream.
+                  </div>
+                ) : (
+                  unifiedTimeline.map((e, idx) => {
+                    const timeStr = new Date(e.time).toLocaleTimeString();
+                    let color = '#34d399'; // js
+                    if (e.type === 'native') color = '#fbbf24';
+                    if (e.type === 'state') color = '#60a5fa';
+                    return (
+                      <div key={idx} style={{ fontFamily: 'monospace', fontSize: 9.5, borderBottom: '1px solid rgba(255,255,255,0.02)', paddingBottom: 2, textAlign: 'left' }}>
+                        <span style={{ color: 'rgba(255,255,255,0.3)' }}>[{timeStr}]</span>{' '}
+                        <span style={{ color, fontWeight: 700 }}>[{e.type.toUpperCase()}]</span>{' '}
+                        <span style={{ color: '#fff' }}>{e.text}</span>
+                        {e.details && <span style={{ color: 'rgba(255,255,255,0.4)', marginLeft: 6 }}>({e.details})</span>}
+                      </div>
+                    );
+                  })
+                )}
+                <div ref={consoleEndRef} />
+              </div>
+            </div>
+
+            {/* Section 8: Reset controls */}
             <div style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.05)', borderRadius: 12, padding: 12 }}>
               <div style={{ fontSize: 13, fontWeight: 800, marginBottom: 10, color: '#ef4444', display: 'flex', alignItems: 'center', gap: 6 }}>
                 <span className="material-symbols-outlined" style={{ fontSize: 18 }}>restart_alt</span>
