@@ -34,23 +34,17 @@ async function runStartupRegressionTests() {
     assert.ok(!content.includes('dismissIntro'), 'Active dismissIntro() timing logic still present in index.html');
   });
 
-  // Test 2: App.tsx Startup State Machine Sequencing
-  assertTest('App.tsx linear startup state machine check', () => {
+  // Test 2: App.tsx Startup State Machine Removal & Decoupled Loader
+  assertTest('App.tsx startup state machine removal check', () => {
     const appPath = path.join(repoRoot, 'apps/studio-android/src/App.tsx');
     const content = fs.readFileSync(appPath, 'utf8');
 
-    // Assert that App.tsx transitioned through the linear states on mount
-    assert.ok(content.includes("transitionStartupState('PREPARE')"), 'Missing state PREPARE transition');
-    assert.ok(content.includes("transitionStartupState('INITIALIZE')"), 'Missing state INITIALIZE transition');
-    assert.ok(content.includes("transitionStartupState('INTRO_RUNNING')"), 'Missing state INTRO_RUNNING transition');
-    assert.ok(content.includes("transitionStartupState('LAYOUT_READY')"), 'Missing state LAYOUT_READY transition');
-    assert.ok(content.includes("transitionStartupState('ANIMATION_READY')"), 'Missing state ANIMATION_READY transition');
-    assert.ok(content.includes("transitionStartupState('INTRO_FINISHED')"), 'Missing state INTRO_FINISHED transition');
-    assert.ok(content.includes("transitionStartupState('HUB_VISIBLE')"), 'Missing state HUB_VISIBLE transition');
-    assert.ok(content.includes("transitionStartupState('READY')"), 'Missing state READY transition');
+    // Assert that transitionStartupState and startupState are NOT present
+    assert.ok(!content.includes('transitionStartupState'), 'React startup state machine transition function transitionStartupState is still present in App.tsx');
+    assert.ok(!content.includes('startupState'), 'startupState state variable is still present in App.tsx');
 
-    // Assert that there are no unsafe setTimeout timers or loops driving the state
-    assert.ok(!content.includes('studio-intro-shown'), 'Unsafe sessionStorage introduction bypass is still active in App.tsx');
+    // Assert that React listens to the studio-intro-done event
+    assert.ok(content.includes('studio-intro-done'), 'App.tsx is not listening to the studio-intro-done event to trigger preflight checks');
   });
 
   // Test 3: Authoritative Success Model Check

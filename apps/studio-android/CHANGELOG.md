@@ -12,6 +12,13 @@ Conventions:
 - Bullets start with `- ` and use plain English a non-technical user
   can parse. Keep each line short — the modal's text area is narrow.
 
+## 3.7.22
+
+### Added
+- Rollback of the React startup state machine to restore the stable architecture of version 3.7.15.
+- All startup overlay lifecycle coordination moved into a simple self-contained inline script.
+- All updater enhancements (native success checks, recovery centers, signature verification) preserved.
+
 ## 3.7.21
 
 ### Added

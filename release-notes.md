@@ -1,4 +1,4 @@
 ### Added
-- Authoritative Android-driven PackageInstaller success verification.
-- Completely passive splash screen and linear React-owned startup transitions.
-- Eliminated redundant startup transitions and late installer-handoff background listeners.
+- Rollback of the React startup state machine to restore the stable architecture of version 3.7.15.
+- All startup overlay lifecycle coordination moved into a simple self-contained inline script.
+- All updater enhancements (native success checks, recovery centers, signature verification) preserved.

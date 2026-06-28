@@ -237,23 +237,65 @@
     <div id="root"></div>
 
     <script>
-      window.__pendingStartupStates = [];
-      window.__transitionStartupState = function(state) {
-        if (window.__realTransitionStartupState) {
-          window.__realTransitionStartupState(state);
-        } else {
-          console.log("[Startup State Machine] Queueing early state: " + state);
-          window.__pendingStartupStates.push(state);
-        }
-      };
+      (function() {
+        var intro = document.getElementById('intro');
+        if (!intro) return;
 
-      window.__bootTimings = {
-        reactBootstrapStart: -1,
-        reactMounted: -1,
-        firstPaint: -1,
-        hubVisible: -1,
-        introStart: -1
-      };
+        var path = window.location.pathname;
+        var isApp = path === '/app' || path.startsWith('/app/') || path === '/' || path === '/index.html';
+        var alreadyShown = false;
+        try {
+          alreadyShown = !!sessionStorage.getItem('studio-intro-shown');
+        } catch (e) {}
+
+        // Check appMode to skip intro on cold boot to a sub-app directly
+        var appMode = 'hub';
+        try {
+          var raw = localStorage.getItem('chord-explorer-storage-v3');
+          if (raw) {
+            var parsed = JSON.parse(raw);
+            if (parsed && parsed.state && parsed.state.settings) {
+              appMode = parsed.state.settings.appMode || 'hub';
+            }
+          }
+        } catch (e) {}
+
+        if (alreadyShown || !isApp || appMode !== 'hub') {
+          intro.style.display = 'none';
+          window.__introDone = true;
+          try {
+            if (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.AppInstaller) {
+              window.Capacitor.Plugins.AppInstaller.notifyAppReady();
+            }
+          } catch (e) {}
+          window.dispatchEvent(new Event('studio-intro-done'));
+          return;
+        }
+
+        window.__introDone = false;
+        // Let the CSS logo animation run for 750ms
+        setTimeout(function() {
+          window.__introDone = true;
+          try {
+            if (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.AppInstaller) {
+              window.Capacitor.Plugins.AppInstaller.notifyAppReady();
+            }
+          } catch (e) {}
+          window.dispatchEvent(new Event('studio-intro-done'));
+
+          intro.style.transition = 'opacity 300ms cubic-bezier(0.22, 1, 0.36, 1)';
+          intro.style.opacity = '0';
+          setTimeout(function() {
+            intro.classList.add('dismissed');
+            if (intro.parentNode) {
+              intro.parentNode.removeChild(intro);
+            }
+            try {
+              sessionStorage.setItem('studio-intro-shown', 'true');
+            } catch (e) {}
+          }, 300);
+        }, 750);
+      })();
     </script>
     <script>
       // ── Web Auto-Updater ────────────────────────────────────────────────

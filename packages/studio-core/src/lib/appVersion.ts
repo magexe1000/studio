@@ -26,7 +26,7 @@ import { useMemo } from 'react';
 import { Capacitor } from '@capacitor/core';
 
 /** Canonical semver string used by the OTA comparator. */
-export const NATIVE_VERSION = '3.7.21';
+export const NATIVE_VERSION = '3.7.22';
 export const WEB_VERSION = '4.0.0';
 export const APP_VERSION = Capacitor.isNativePlatform() ? NATIVE_VERSION : WEB_VERSION;
 
@@ -38,7 +38,7 @@ export const APP_VERSION_LABEL = `${APP_VERSION_TAG} ${APP_VERSION}`;
 
 /** Release date for the CURRENT bundle, shown alongside the version pill
  *  in the changelog sheet. ISO-8601 (`YYYY-MM-DD`). */
-export const APP_VERSION_DATE = '2026-06-28'; // 3.7.17
+export const APP_VERSION_DATE = '2026-06-28'; // 3.7.22
 // Note: keep ISO-8601. Bump together with APP_VERSION on each release.
 
 export const APP_COMMIT_SHA = import.meta.env.VITE_GIT_COMMIT_SHA || 'efd2b1a3';
@@ -61,9 +61,9 @@ export const APP_CHANGELOG_SECTIONS: ChangelogSection[] = [
   {
     heading: "Added",
     items: [
-      "Authoritative Android-driven PackageInstaller success verification.",
-      "Completely passive splash screen and linear React-owned startup transitions.",
-      "Eliminated redundant startup transitions and late installer-handoff background listeners.",
+      "Rollback of the React startup state machine to restore the stable architecture of version 3.7.15.",
+      "All startup overlay lifecycle coordination moved into a simple self-contained inline script.",
+      "All updater enhancements (native success checks, recovery centers, signature verification) preserved.",
     ],
   },
 ];
@@ -73,9 +73,9 @@ export const APP_CHANGELOG_SECTIONS_NATIVE: ChangelogSection[] = [
   {
     heading: "What's New",
     items: [
-      "Authoritative PackageInstaller success verification to prevent early up-to-date states.",
-      "Completely redesigned startup flow with lightweight logo fade-scale animation.",
-      "Optimized startup path with zero frame stalls and strictly linear transition states.",
+      "Rollback of the React startup state machine to restore the stable architecture of version 3.7.15.",
+      "All startup overlay lifecycle coordination moved into a simple self-contained inline script.",
+      "All updater enhancements (native success checks, recovery centers, signature verification) preserved.",
     ],
   },
 ];

@@ -711,60 +711,11 @@ function TolgeeSuspenseFallback() {
     </div>
   );
 }
-type StartupState =
-  | 'BOOT'
-  | 'PREPARE'
-  | 'INITIALIZE'
-  | 'LAYOUT_READY'
-  | 'ANIMATION_READY'
-  | 'INTRO_RUNNING'
-  | 'INTRO_FINISHED'
-  | 'HUB_VISIBLE'
-  | 'READY';
-
 export default function App() {
   const { activePanel, settings, setActivePanel, activePresetId, updateSettings } = useChordStore();
   const { preferences } = useStudioPreferences();
   const [hubRenderKey, setHubRenderKey] = useState(0);
   const [showHub, setShowHub] = useState(true);
-
-  const [startupState, setStartupState] = useState<StartupState>('BOOT');
-
-  const transitionStartupState = useCallback((nextState: StartupState) => {
-    setStartupState(current => {
-      const stateOrder: StartupState[] = [
-        'BOOT',
-        'PREPARE',
-        'INITIALIZE',
-        'INTRO_RUNNING',
-        'LAYOUT_READY',
-        'ANIMATION_READY',
-        'INTRO_FINISHED',
-        'HUB_VISIBLE',
-        'READY'
-      ];
-      const currentIndex = stateOrder.indexOf(current);
-      const nextIndex = stateOrder.indexOf(nextState);
-
-      // Enforce strict sequencing
-      const isSequential = nextIndex === currentIndex + 1;
-
-      if (!isSequential) {
-        console.warn(`[Startup State Machine Warning] Rejected transition from ${current} to ${nextState}. Current order position is ${currentIndex}, next position is ${nextIndex}.`);
-        return current;
-      }
-
-      console.log(`[Startup State Machine] State transitioning: ${current} -> ${nextState}`);
-      return nextState;
-    });
-  }, []);
-
-  useEffect(() => {
-    (window as any).__realTransitionStartupState = transitionStartupState;
-    return () => {
-      delete (window as any).__realTransitionStartupState;
-    };
-  }, [transitionStartupState]);
 
   const runForceWebViewRepaint = useCallback(() => {
     console.warn('[Diagnostics] Force WebView Repaint triggered.');
@@ -1692,54 +1643,13 @@ export default function App() {
     // Force app mode classes on mount
     document.documentElement.classList.add('app-route');
     document.documentElement.classList.remove('landing-route');
+  }, []);
 
-    // 1. App Initialization / React Bootstrap
-    transitionStartupState('PREPARE');
-    transitionStartupState('INITIALIZE');
-
-    // Notify native splash screen
-    try {
-      if ((window as any).Capacitor && (window as any).Capacitor.Plugins && (window as any).Capacitor.Plugins.AppInstaller) {
-        (window as any).Capacitor.Plugins.AppInstaller.notifyAppReady();
-      }
-    } catch (e) {}
-
-    // 2. Root Layout Ready
-    transitionStartupState('INTRO_RUNNING');
-    transitionStartupState('LAYOUT_READY');
-
-    // 3. First Render Complete -> requestAnimationFrame
-    requestAnimationFrame(() => {
-      // First frame
-      requestAnimationFrame(() => {
-        // Second frame (guarantees paint complete)
-        transitionStartupState('ANIMATION_READY');
-        transitionStartupState('INTRO_FINISHED');
-
-        const intro = document.getElementById('intro');
-        if (intro) {
-          intro.style.transition = 'opacity 300ms cubic-bezier(0.22, 1, 0.36, 1)';
-          intro.style.opacity = '0';
-          setTimeout(() => {
-            intro.classList.add('dismissed');
-            if (intro.parentNode) {
-              intro.parentNode.removeChild(intro);
-            }
-            transitionStartupState('HUB_VISIBLE');
-            transitionStartupState('READY');
-          }, 300);
-        } else {
-          transitionStartupState('HUB_VISIBLE');
-          transitionStartupState('READY');
-        }
-      });
-    });
-  }, [transitionStartupState]);
-
+  // Staged Startup Scheduler (Phases 1-4 implementation)
   useEffect(() => {
-    if (startupState !== 'READY') return;
-
     let active = true;
+    let fallbackTimer: any = null;
+
     const runPhase3 = async () => {
       if (!active) return;
       console.log('[Startup Pipeline] Entering Phase 3: Post-paint heavy checks...');
@@ -1817,12 +1727,27 @@ export default function App() {
       }
     };
 
-    runPhase3();
+    const handleIntroDone = () => {
+      if (fallbackTimer) clearTimeout(fallbackTimer);
+      window.removeEventListener('studio-intro-done', handleIntroDone);
+      runPhase3();
+    };
+
+    if (typeof window !== 'undefined') {
+      if ((window as any).__introDone || sessionStorage.getItem('studio-intro-shown') === 'true') {
+        runPhase3();
+      } else {
+        window.addEventListener('studio-intro-done', handleIntroDone);
+        fallbackTimer = setTimeout(handleIntroDone, 2000);
+      }
+    }
 
     return () => {
       active = false;
+      if (fallbackTimer) clearTimeout(fallbackTimer);
+      window.removeEventListener('studio-intro-done', handleIntroDone);
     };
-  }, [startupState]);
+  }, []);
 
   const [accountState, setAccountState] = useState<AccountState>({ phase: 'unknown' });
   const [session, setSession] = useState<any>(null);
