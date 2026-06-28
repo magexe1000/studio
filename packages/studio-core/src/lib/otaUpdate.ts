@@ -28,6 +28,7 @@ import { verifyFileIntegrity } from './updater/integrityVerification';
 import { runEligibilityCheck } from './updater/eligibilityVerification';
 import { triggerNativeInstall, processLastInstallResult } from './updater/installer';
 import { runSignatureMismatchRecovery, isRecovering, setIsRecovering } from './updater/recovery';
+import { updaterSimulation, setSimulateStatusCallback, addJsLog } from './updater/updaterSimulation';
 import { validateLocalApk, deleteLocalApk, getLocalApkPath, recordDismissal, shouldShowRecoveryReminder } from './updater/cacheManager';
 import {
   otaDebugLogs,
@@ -279,7 +280,6 @@ export function checkForUpdate(isManual = false): Promise<CentralizedOtaState> {
     removeSessionItem('studio:autoOpenedUpdateVersion');
   }
 
-import { updaterSimulation, setSimulateStatusCallback, addJsLog } from './updater/updaterSimulation';
 
   activeCheckIsManual = isManual;
   activeCheckPromise = (async () => {
