@@ -681,7 +681,7 @@ export function applyUpdate(trigger?: string): Promise<void> {
     return Promise.reject(err);
   }
 
-  transitionToState('installing', 'applyUpdate start');
+  transitionToState('waiting_for_confirmation', 'applyUpdate start');
   localStorage.setItem('studio:appliedUpdateVersion', remoteVersion);
   localStorage.setItem('studio:showUpdateSuccess', 'true');
   addToStoredList('studio:installedVersions', remoteVersion);
@@ -689,13 +689,14 @@ export function applyUpdate(trigger?: string): Promise<void> {
   logActivity('apk_install', `Installing APK system update (v${remoteVersion})`, 'Studio');
 
   activeApplyPromise = (async () => {
+    let nativeListener: any = null;
     try {
       const filePath = localStorage.getItem('studio:downloadedApkPath');
       if (!filePath) {
         throw new Error('No downloaded APK path found.');
       }
 
-      updateGlobalState({ statusText: 'Installing update...' });
+      updateGlobalState({ statusText: 'Preparing installation...' });
       const isEligible = await runEligibilityCheck(filePath);
       if (!isEligible) {
         if (otaDebugLogs.eligibilityReason === 'signature_mismatch' && !isRecovering) {
@@ -705,26 +706,61 @@ export function applyUpdate(trigger?: string): Promise<void> {
         throw new Error('[Eligibility Check] Validation failed: ' + (otaDebugLogs.eligibilityReason || 'unknown'));
       }
 
+      // Register listener to monitor native PackageInstaller status events
+      const { AppInstaller } = await import('./apkDownloader');
+      const statusPromise = new Promise<void>(async (resolvePromise, rejectPromise) => {
+        try {
+          nativeListener = await (AppInstaller as any).addListener('onInstallStatusChanged', (eventData: any) => {
+            const status = eventData.status;
+            const message = eventData.message;
+            console.log('[OTA UPDATE] onInstallStatusChanged:', eventData);
+
+            if (status === -1) { // STATUS_PENDING_USER_ACTION
+              transitionToState('waiting_for_confirmation', 'Native prompt displayed');
+              updateGlobalState({ statusText: 'System confirmation dialog is showing...' });
+            } else if (status === -2) { // installing_start
+              transitionToState('installing', 'PackageInstaller session active');
+              updateGlobalState({ statusText: 'Installing update...' });
+            } else if (status === -3) { // installing_progress
+              const progressPct = Math.round((eventData.progress || 0) * 100);
+              updateGlobalState({ statusText: `Installing... (${progressPct}%)` });
+            } else if (status === 0) { // STATUS_SUCCESS
+              transitionToState('installed', 'PackageInstaller success');
+              resolvePromise();
+            } else if (status === 3) { // STATUS_FAILURE_ABORTED (User cancelled)
+              localStorage.removeItem('studio:appliedUpdateVersion');
+              localStorage.removeItem('studio:showUpdateSuccess');
+              transitionToState('failed', 'User cancelled installation');
+              rejectPromise(new Error('Installation cancelled by user.'));
+            } else {
+              localStorage.removeItem('studio:appliedUpdateVersion');
+              localStorage.removeItem('studio:showUpdateSuccess');
+              transitionToState('failed', `Install failed: ${message || `code ${status}`}`);
+              rejectPromise(new Error(message || `PackageInstaller error code ${status}`));
+            }
+          });
+        } catch (e) {
+          console.warn('Failed to register native status listener:', e);
+        }
+      });
+
       otaDebugLogs.installError += `\nAPK is eligible. Launching APK installer intent for file: ${filePath}`;
       updateGlobalState({ statusText: 'Waiting for Android...' });
-      await new Promise((resolve) => setTimeout(resolve, 800));
 
-      updateGlobalState({ statusText: 'Installing...' });
       void logProgressStage('Session committed', 'Handing over to PackageInstaller');
       await triggerNativeInstall(filePath);
       void logProgressStage('Waiting for Android confirmation', 'Waiting for system confirmation dialog to overlay');
-      
+
       otaDebugLogs.installError += `\nAPK installer intent launched successfully!`;
       otaDebugLogs.installerLaunchStatus = 'SUCCESS';
       otaDebugLogs.lastExceptionStackTrace = 'None';
       otaDebugLogs.finalPathExecuted = 'APK installer launched';
-      
-      updateGlobalState({ statusText: 'Finalizing...' });
-      await new Promise((resolve) => setTimeout(resolve, 600));
-      transitionToState('installed', 'APK installer launched');
-      
-      console.log(`[INSTRUMENTATION] applyUpdate EXIT Call #${callId} (Resolved: Installer intent launched)`);
-      void logProgressStage('[INSTRUMENTATION] applyUpdate EXIT', `Call #${callId} resolved (Installer intent launched)`);
+
+      // Await statusPromise to resolve, reject, or be killed on update reload
+      await statusPromise;
+
+      console.log(`[INSTRUMENTATION] applyUpdate EXIT Call #${callId} (Resolved: Installer completed)`);
+      void logProgressStage('[INSTRUMENTATION] applyUpdate EXIT', `Call #${callId} resolved (Installer completed)`);
     } catch (err) {
       console.error(`[INSTRUMENTATION] applyUpdate EXIT Call #${callId} error:`, err);
       void logProgressStage('[INSTRUMENTATION] applyUpdate EXIT', `Call #${callId} failed err=${err instanceof Error ? err.message : String(err)}`);
@@ -743,6 +779,11 @@ export function applyUpdate(trigger?: string): Promise<void> {
       }
       throw err;
     } finally {
+      if (nativeListener) {
+        try {
+          await nativeListener.remove();
+        } catch (_) {}
+      }
       activeApplyPromise = null;
     }
   })();

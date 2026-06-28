@@ -736,9 +736,9 @@ export default function App() {
         'BOOT',
         'PREPARE',
         'INITIALIZE',
+        'INTRO_RUNNING',
         'LAYOUT_READY',
         'ANIMATION_READY',
-        'INTRO_RUNNING',
         'INTRO_FINISHED',
         'HUB_VISIBLE',
         'READY'
@@ -746,8 +746,12 @@ export default function App() {
       const currentIndex = stateOrder.indexOf(current);
       const nextIndex = stateOrder.indexOf(nextState);
 
-      if (nextIndex <= currentIndex) {
-        console.warn(`[Startup State Machine] Ignored invalid state transition/rollback attempt: ${current} -> ${nextState}`);
+      // Enforce strict sequencing
+      const isSequential = nextIndex === currentIndex + 1;
+      const isDocumentedBypass = current === 'INITIALIZE' && nextState === 'READY';
+
+      if (!isSequential && !isDocumentedBypass) {
+        console.warn(`[Startup State Machine Warning] Rejected transition from ${current} to ${nextState}. Current order position is ${currentIndex}, next position is ${nextIndex}.`);
         return current;
       }
 
@@ -757,8 +761,14 @@ export default function App() {
   }, []);
 
   useEffect(() => {
+    // 1. Advance to INITIALIZE synchronously first
+    transitionStartupState('PREPARE');
+    transitionStartupState('INITIALIZE');
+
+    // 2. Register the real window transition listener
     (window as any).__realTransitionStartupState = transitionStartupState;
 
+    // 3. Flush the early boot queue (e.g. INTRO_RUNNING)
     const pending = (window as any).__pendingStartupStates || [];
     (window as any).__pendingStartupStates = [];
     pending.forEach((state: StartupState) => {
@@ -1712,20 +1722,13 @@ export default function App() {
     }
   }, [transitionStartupState]);
 
-  // Staged Startup Scheduler (Phases 1-4 implementation)
+  // Staged Startup Scheduler (Bypass check)
   useEffect(() => {
-    transitionStartupState('PREPARE');
-    transitionStartupState('INITIALIZE');
-
     if (typeof window !== 'undefined') {
-      if ((window as any).__introDone || sessionStorage.getItem('studio-intro-shown') === 'true') {
+      const skipped = (window as any).__introReturnedEarly || (window as any).__introDone || sessionStorage.getItem('studio-intro-shown') === 'true';
+      if (skipped) {
+        console.log('[Startup State Machine] Intro is skipped. Transitioning directly to READY.');
         transitionStartupState('READY');
-      } else {
-        const timer = setTimeout(() => {
-          console.warn('[Startup State Machine] Safety Timeout reached! Forcing READY state.');
-          transitionStartupState('READY');
-        }, 3500);
-        return () => clearTimeout(timer);
       }
     }
   }, [transitionStartupState]);

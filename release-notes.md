@@ -1,5 +1,5 @@
 ### Added
-- Updater transaction consistency to prevent impossible execution paths.
-- Eligibility pipeline version code validation fixes.
-- State machine validation and granular verification states.
-- Diagnostic error reporting improvements.
+- Startup state machine stabilization with linear transitions.
+- Updater native bridge status events synchronization.
+- Manual dismissible success screen with clean process exit.
+- Performance budget checks and zero warnings validation.

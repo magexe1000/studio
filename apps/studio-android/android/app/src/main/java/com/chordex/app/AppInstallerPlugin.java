@@ -61,6 +61,13 @@ import android.util.Log;
 // The Studio OTA/APK update flow depends on this native bridge to function.
 public class AppInstallerPlugin extends Plugin {
 
+    public static AppInstallerPlugin instance = null;
+
+    @Override
+    public void load() {
+        instance = this;
+    }
+
     private static int callIdCounter = 0;
     
     public static int downloadApkCallCount = 0;
@@ -721,6 +728,50 @@ public class AppInstallerPlugin extends Plugin {
                 sessionId = packageInstaller.createSession(params);
                 logNativeInstrumentation(context, "triggerInstallation", callId, "STEP", "Session.create() success. sessionId=" + sessionId);
                 InstallReceiver.appendLog(context, "PackageInstaller Session Created", 0, "Session ID: " + sessionId, null, null);
+                
+                final int targetSessionId = sessionId;
+                final PackageInstaller finalPackageInstaller = packageInstaller;
+                final PackageInstaller.SessionCallback callback = new PackageInstaller.SessionCallback() {
+                    @Override
+                    public void onCreated(int id) {}
+                    @Override
+                    public void onBadgingChanged(int id) {}
+                    @Override
+                    public void onActiveChanged(int id, boolean active) {
+                        if (id == targetSessionId && active) {
+                            Log.d("AppInstallerPlugin", "Session active: " + id);
+                            if (instance != null) {
+                                JSObject data = new JSObject();
+                                data.put("status", -2); // installing start
+                                data.put("message", "installing_start");
+                                instance.notifyListeners("onInstallStatusChanged", data);
+                            }
+                        }
+                    }
+                    @Override
+                    public void onProgressChanged(int id, float progress) {
+                        if (id == targetSessionId) {
+                            Log.d("AppInstallerPlugin", "Session progress: " + id + " progress: " + progress);
+                            if (instance != null) {
+                                JSObject data = new JSObject();
+                                data.put("status", -3); // installing progress
+                                data.put("message", "installing_progress");
+                                data.put("progress", progress);
+                                instance.notifyListeners("onInstallStatusChanged", data);
+                            }
+                        }
+                    }
+                    @Override
+                    public void onFinished(int id, boolean success) {
+                        if (id == targetSessionId) {
+                            Log.d("AppInstallerPlugin", "Session finished: " + id + " success: " + success);
+                            try {
+                                finalPackageInstaller.unregisterSessionCallback(this);
+                            } catch (Exception ignored) {}
+                        }
+                    }
+                };
+                packageInstaller.registerSessionCallback(callback, new android.os.Handler(android.os.Looper.getMainLooper()));
             } catch (Exception e) {
                 throw new Exception("[Session creation] Failed to create PackageInstaller session: " + e.getMessage(), e);
             }

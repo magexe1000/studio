@@ -234,21 +234,10 @@ export default function UpdateIndicator({
   useEffect(() => {
     const appliedVer = localStorage.getItem('studio:appliedUpdateVersion');
     const showSuccess = localStorage.getItem('studio:showUpdateSuccess');
-    let timer: any = null;
     if (appliedVer && showSuccess === 'true') {
-      localStorage.removeItem('studio:showUpdateSuccess');
-      localStorage.removeItem('studio:appliedUpdateVersion');
       setSuccessVersion(appliedVer);
       setOpen(true);
-      timer = setTimeout(() => {
-        setSuccessVersion(null);
-        setOpen(false);
-        ota.dismissUpdate();
-      }, 1800);
     }
-    return () => {
-      if (timer) clearTimeout(timer);
-    };
   }, []);
 
   useEffect(() => {
@@ -934,7 +923,7 @@ function UpdateModal({
       state = 'available';
     }
   } else if (state === 'waiting_for_confirmation') {
-    state = 'available';
+    state = 'waitingForUserInstallConfirmation';
   } else if (ota.updateState === 'ready_to_install') {
     state = 'readyForInstallPrompt';
   } else if (ota.updateState === 'completed') {
@@ -1083,8 +1072,8 @@ function UpdateModal({
       iconName = 'check_circle';
       iconColor = '#22c55e';
       title = 'App updated successfully';
-      description = `Studio has been updated to version ${successVersion || '3.7.15'}.`;
-      showButtons = false;
+      description = `Studio has been updated to version ${successVersion || '3.7.18'}.`;
+      showButtons = true;
       showSpinner = false;
       break;
 
@@ -1826,6 +1815,34 @@ function UpdateModal({
             style={tertiaryButtonStyle}
           >
             Cancel
+          </button>
+        </div>
+      );
+    }
+
+    if (state === 'update_success') {
+      return (
+        <div style={{ marginTop: 18, width: '100%' }}>
+          <button
+            type="button"
+            onClick={async () => {
+              try {
+                localStorage.removeItem('studio:showUpdateSuccess');
+                localStorage.removeItem('studio:appliedUpdateVersion');
+                setSuccessVersion(null);
+                setOpen(false);
+                ota.dismissUpdate();
+                if (isNative()) {
+                  const { App: CapApp } = await import('@capacitor/app');
+                  await CapApp.exitApp();
+                }
+              } catch (err) {
+                console.error('[UpdateIndicator] Done click failed:', err);
+              }
+            }}
+            style={{ ...primaryButtonStyle, width: '100%' }}
+          >
+            Done
           </button>
         </div>
       );

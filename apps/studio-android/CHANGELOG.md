@@ -12,6 +12,14 @@ Conventions:
 - Bullets start with `- ` and use plain English a non-technical user
   can parse. Keep each line short — the modal's text area is narrow.
 
+## 3.7.18
+
+### Added
+- Startup state machine stabilization with linear transitions.
+- Updater native bridge status events synchronization.
+- Manual dismissible success screen with clean process exit.
+- Performance budget checks and zero warnings validation.
+
 ## 3.7.17
 
 ### Added

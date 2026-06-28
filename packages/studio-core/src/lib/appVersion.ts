@@ -26,7 +26,7 @@ import { useMemo } from 'react';
 import { Capacitor } from '@capacitor/core';
 
 /** Canonical semver string used by the OTA comparator. */
-export const NATIVE_VERSION = '3.7.17';
+export const NATIVE_VERSION = '3.7.18';
 export const WEB_VERSION = '4.0.0';
 export const APP_VERSION = Capacitor.isNativePlatform() ? NATIVE_VERSION : WEB_VERSION;
 
@@ -73,10 +73,10 @@ export const APP_CHANGELOG_SECTIONS_NATIVE: ChangelogSection[] = [
   {
     heading: "What's New",
     items: [
-      "Updater transaction consistency to prevent impossible execution paths.",
-      "Eligibility pipeline version code validation fixes.",
-      "State machine validation and granular verification states.",
-      "Diagnostic error reporting improvements.",
+      "Startup state machine stabilization with linear transitions.",
+      "Updater native bridge status events synchronization.",
+      "Manual dismissible success screen with clean process exit.",
+      "Performance budget checks and zero warnings validation.",
     ],
   },
 ];

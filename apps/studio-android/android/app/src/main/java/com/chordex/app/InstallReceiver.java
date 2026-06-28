@@ -110,6 +110,14 @@ public class InstallReceiver extends BroadcastReceiver {
             editor.putLong("last_status_timestamp", System.currentTimeMillis());
             editor.apply();
             
+            if (AppInstallerPlugin.instance != null) {
+                com.getcapacitor.JSObject eventData = new com.getcapacitor.JSObject();
+                eventData.put("status", status);
+                eventData.put("message", message != null ? message : "");
+                eventData.put("packageName", otherPackageName != null ? otherPackageName : "");
+                AppInstallerPlugin.instance.notifyListeners("onInstallStatusChanged", eventData);
+            }
+            
             appendLog(context, "Broadcast Received", status, message, otherPackageName, null);
             appendLog(context, "IntentSender Delivered", status, message, otherPackageName, null);
             
