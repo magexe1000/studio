@@ -711,12 +711,65 @@ function TolgeeSuspenseFallback() {
     </div>
   );
 }
+type StartupState =
+  | 'BOOT'
+  | 'PREPARE'
+  | 'INITIALIZE'
+  | 'LAYOUT_READY'
+  | 'ANIMATION_READY'
+  | 'INTRO_RUNNING'
+  | 'INTRO_FINISHED'
+  | 'HUB_VISIBLE'
+  | 'READY';
 
 export default function App() {
   const { activePanel, settings, setActivePanel, activePresetId, updateSettings } = useChordStore();
   const { preferences } = useStudioPreferences();
   const [hubRenderKey, setHubRenderKey] = useState(0);
   const [showHub, setShowHub] = useState(true);
+
+  const [startupState, setStartupState] = useState<StartupState>('BOOT');
+
+  const transitionStartupState = useCallback((nextState: StartupState) => {
+    setStartupState(current => {
+      const stateOrder: StartupState[] = [
+        'BOOT',
+        'PREPARE',
+        'INITIALIZE',
+        'LAYOUT_READY',
+        'ANIMATION_READY',
+        'INTRO_RUNNING',
+        'INTRO_FINISHED',
+        'HUB_VISIBLE',
+        'READY'
+      ];
+      const currentIndex = stateOrder.indexOf(current);
+      const nextIndex = stateOrder.indexOf(nextState);
+
+      if (nextIndex <= currentIndex) {
+        console.warn(`[Startup State Machine] Ignored invalid state transition/rollback attempt: ${current} -> ${nextState}`);
+        return current;
+      }
+
+      console.log(`[Startup State Machine] State transitioning: ${current} -> ${nextState}`);
+      return nextState;
+    });
+  }, []);
+
+  useEffect(() => {
+    (window as any).__realTransitionStartupState = transitionStartupState;
+
+    const pending = (window as any).__pendingStartupStates || [];
+    (window as any).__pendingStartupStates = [];
+    pending.forEach((state: StartupState) => {
+      console.log(`[Startup State Machine] Flushing queued state: ${state}`);
+      transitionStartupState(state);
+    });
+
+    return () => {
+      delete (window as any).__realTransitionStartupState;
+    };
+  }, [transitionStartupState]);
 
   const runForceWebViewRepaint = useCallback(() => {
     console.warn('[Diagnostics] Force WebView Repaint triggered.');
@@ -1655,14 +1708,32 @@ export default function App() {
       }, 550);
       (window as any).__introDone = true;
       window.dispatchEvent(new Event('studio-intro-done'));
+      transitionStartupState('READY');
     }
-  }, []);
+  }, [transitionStartupState]);
 
   // Staged Startup Scheduler (Phases 1-4 implementation)
   useEffect(() => {
-    let active = true;
-    let fallbackTimer: any = null;
+    transitionStartupState('PREPARE');
+    transitionStartupState('INITIALIZE');
 
+    if (typeof window !== 'undefined') {
+      if ((window as any).__introDone || sessionStorage.getItem('studio-intro-shown') === 'true') {
+        transitionStartupState('READY');
+      } else {
+        const timer = setTimeout(() => {
+          console.warn('[Startup State Machine] Safety Timeout reached! Forcing READY state.');
+          transitionStartupState('READY');
+        }, 3500);
+        return () => clearTimeout(timer);
+      }
+    }
+  }, [transitionStartupState]);
+
+  useEffect(() => {
+    if (startupState !== 'READY') return;
+
+    let active = true;
     const runPhase3 = async () => {
       if (!active) return;
       console.log('[Startup Pipeline] Entering Phase 3: Post-paint heavy checks...');
@@ -1740,28 +1811,12 @@ export default function App() {
       }
     };
 
-    // Wait for studio-intro-done event or fallback timeout of 2.5 seconds
-    const handleIntroDone = () => {
-      if (fallbackTimer) clearTimeout(fallbackTimer);
-      window.removeEventListener('studio-intro-done', handleIntroDone);
-      setTimeout(runPhase3, 1000);
-    };
-
-    if (typeof window !== 'undefined') {
-      if ((window as any).__introDone || sessionStorage.getItem('studio-intro-shown') === 'true') {
-        runPhase3();
-      } else {
-        window.addEventListener('studio-intro-done', handleIntroDone);
-        fallbackTimer = setTimeout(handleIntroDone, 2500);
-      }
-    }
+    runPhase3();
 
     return () => {
       active = false;
-      if (fallbackTimer) clearTimeout(fallbackTimer);
-      window.removeEventListener('studio-intro-done', handleIntroDone);
     };
-  }, []);
+  }, [startupState]);
 
   const [accountState, setAccountState] = useState<AccountState>({ phase: 'unknown' });
   const [session, setSession] = useState<any>(null);

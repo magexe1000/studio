@@ -358,6 +358,16 @@
     <div id="root"></div>
 
     <script>
+      window.__pendingStartupStates = [];
+      window.__transitionStartupState = function(state) {
+        if (window.__realTransitionStartupState) {
+          window.__realTransitionStartupState(state);
+        } else {
+          console.log("[Startup State Machine] Queueing early state: " + state);
+          window.__pendingStartupStates.push(state);
+        }
+      };
+
       // ── Pro intro with measured-target settle ───────────────────────────
       (function () {
         var intro    = document.getElementById('intro');
@@ -404,18 +414,18 @@
         var STEP  = 360 / N;
 
         // Speed profile (deg/ms): smooth → dramatic accel → settle
-        var BASE_OMEGA   = 360 / 8500;
-        var PEAK_OMEGA   = 360 / 900;
-        var ACCEL_START  = 600;
-        var ACCEL_END    = 1200;
+        var BASE_OMEGA   = 360 / 3000;
+        var PEAK_OMEGA   = 360 / 600;
+        var ACCEL_START  = 100;
+        var ACCEL_END    = 500;
 
         // Settle starts when targets are known AND minimum spin time elapsed.
         // Falls back to t=3000 if React hasn't mounted yet.
-        var SETTLE_DURATION = 1000;  // ms to lerp from orbit → target
-        var FADE_OVERLAP    = 550;   // intro fade starts this many ms before settle ends
-        var FADE_DURATION   = 900;   // long crossfade so hub reveals gradually
-        var MIN_SPIN_TIME   = 1200;  // don't settle before this
-        var MAX_WAIT_TIME   = 2600;  // hard cap — settle even without targets
+        var SETTLE_DURATION = 450;   // ms to lerp from orbit → target
+        var FADE_OVERLAP    = 200;   // intro fade starts this many ms before settle ends
+        var FADE_DURATION   = 350;   // fast crossfade so hub reveals immediately
+        var MIN_SPIN_TIME   = 400;   // don't settle before this
+        var MAX_WAIT_TIME   = 1200;  // hard cap — settle even without targets
 
         // Default fallback targets (relative to viewport center) if measurement fails
         function fallbackTargets() {
@@ -514,6 +524,11 @@
           if (window.__bootTimings && window.__bootTimings.introStart === -1) {
             window.__bootTimings.introStart = performance.now();
             console.log("[LivexBoot] Intro planets first frame painted at: " + window.__bootTimings.introStart.toFixed(2) + "ms");
+            if (window.__transitionStartupState) {
+              window.__transitionStartupState('INTRO_RUNNING');
+            } else {
+              window.__pendingStartupState = 'INTRO_RUNNING';
+            }
             try {
               if (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.AppInstaller) {
                 window.Capacitor.Plugins.AppInstaller.notifyAppReady();
@@ -539,10 +554,22 @@
                 targets = measured;
                 logoOffY = getLogoOffsetY(); // Compute once on transition start
                 settleStartTime = now;
+                if (window.__transitionStartupState) {
+                  window.__transitionStartupState('LAYOUT_READY');
+                  window.__transitionStartupState('ANIMATION_READY');
+                } else {
+                  window.__pendingStartupState = 'ANIMATION_READY';
+                }
               } else if (t >= MAX_WAIT_TIME) {
                 targets = fallbackTargets();
                 logoOffY = getLogoOffsetY(); // Compute once on transition start
                 settleStartTime = now;
+                if (window.__transitionStartupState) {
+                  window.__transitionStartupState('LAYOUT_READY');
+                  window.__transitionStartupState('ANIMATION_READY');
+                } else {
+                  window.__pendingStartupState = 'ANIMATION_READY';
+                }
               }
             }
           }
@@ -624,6 +651,11 @@
           // Signal React the intro is finishing — StudioTitleReveal can now
           // start its sweep animation so the title appears as the hub reveals.
           window.dispatchEvent(new Event('studio-intro-done'));
+          if (window.__transitionStartupState) {
+            window.__transitionStartupState('INTRO_FINISHED');
+          } else {
+            window.__pendingStartupState = 'INTRO_FINISHED';
+          }
           if (!reactMounted()) {
             // Wait for React then fade
             var startedAt = performance.now();
@@ -640,6 +672,11 @@
         function doFade() {
           if (dismissed) return;
           dismissed = true;
+          if (window.__transitionStartupState) {
+            window.__transitionStartupState('HUB_VISIBLE');
+          } else {
+            window.__pendingStartupState = 'HUB_VISIBLE';
+          }
           if (window.__bootTimings) {
             window.__bootTimings.hubVisible = performance.now();
             console.log("[LivexBoot] Hub fully visible to user at: " + window.__bootTimings.hubVisible.toFixed(2) + "ms");
@@ -659,6 +696,11 @@
           setTimeout(function () {
             intro.classList.add('dismissed');
             if (intro.parentNode) intro.parentNode.removeChild(intro);
+            if (window.__transitionStartupState) {
+              window.__transitionStartupState('READY');
+            } else {
+              window.__pendingStartupState = 'READY';
+            }
           }, FADE_DURATION + 50);
         }
         // Hard safety

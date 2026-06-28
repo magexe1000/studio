@@ -26,7 +26,7 @@ import { useMemo } from 'react';
 import { Capacitor } from '@capacitor/core';
 
 /** Canonical semver string used by the OTA comparator. */
-export const NATIVE_VERSION = '3.7.15';
+export const NATIVE_VERSION = '3.7.16';
 export const WEB_VERSION = '4.0.0';
 export const APP_VERSION = Capacitor.isNativePlatform() ? NATIVE_VERSION : WEB_VERSION;
 
@@ -61,9 +61,9 @@ export const APP_CHANGELOG_SECTIONS: ChangelogSection[] = [
   {
     heading: "Added",
     items: [
-      "Staged updater installation progress screen flow.",
-      "Background resume detection and failed-state recovery options.",
-      "Enriched compositor watchdog telemetry with deep diagnostics.",
+      "Deterministic startup state machine to prevent visual layout shifts.",
+      "Fast intro animation settle timings fitting strict performance budgets.",
+      "Auto-recovery safety net for the startup overlay rendering.",
     ],
   },
 ];

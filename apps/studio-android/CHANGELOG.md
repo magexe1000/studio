@@ -12,6 +12,13 @@ Conventions:
 - Bullets start with `- ` and use plain English a non-technical user
   can parse. Keep each line short — the modal's text area is narrow.
 
+## 3.7.16
+
+### Added
+- Deterministic startup state machine to prevent visual layout shifts.
+- Fast intro animation settle timings fitting strict performance budgets.
+- Auto-recovery safety net for the startup overlay rendering.
+
 ## 3.7.15
 
 ### Added

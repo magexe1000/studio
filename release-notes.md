@@ -1,4 +1,4 @@
 ### Added
-- Staged updater installation progress screen flow.
-- Background resume detection and failed-state recovery options.
-- Enriched compositor watchdog telemetry with deep diagnostics.
+- Deterministic startup state machine to prevent visual layout shifts.
+- Fast intro animation settle timings fitting strict performance budgets.
+- Auto-recovery safety net for the startup overlay rendering.

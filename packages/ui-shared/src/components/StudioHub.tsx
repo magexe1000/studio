@@ -517,60 +517,6 @@ export default function StudioHub() {
     [greetName, lang],
   );
 
-  if (!introFinished) {
-    return (
-      <div
-        data-livex-hub-root="true"
-        style={{
-          position: 'relative',
-          height: '100dvh',
-          overflow: 'hidden',
-          background: 'var(--app-bg)',
-          display: 'flex',
-          flexDirection: 'column',
-          alignItems: 'center',
-          paddingTop: 'env(safe-area-inset-top)',
-          fontFamily: 'Manrope, sans-serif',
-        }}
-      >
-        <div style={{ flex: 1, width: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '0 20px' }}>
-          {/* Logo area */}
-          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', paddingTop: 'clamp(36px, 7vh, 56px)' }}>
-            <div data-intro-target="studio" style={{ width: 56, height: 56 }} />
-            <div style={{ height: 28, marginTop: 10 }} />
-          </div>
-
-          {/* Combined welcome + apps card */}
-          <div style={{
-            width: '100%', maxWidth: 380,
-            marginTop: 'clamp(28px, 6vh, 48px)',
-            background: 'var(--app-surface)',
-            borderRadius: 24,
-            border: '1px solid rgba(128,128,128,0.07)',
-            display: 'flex',
-            flexDirection: 'column',
-            padding: '22px 22px 14px',
-            boxSizing: 'border-box'
-          }}>
-            {/* Welcome header placeholder */}
-            <div style={{ height: 48 }} />
-            {/* Divider */}
-            <div style={{ height: 1, background: 'rgba(128,128,128,0.08)', margin: '12px 0' }} />
-            {/* App rows placeholders */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-              {['chords', 'drums', 'stage', 'groovex', 'vocalex'].map((app) => (
-                <div key={app} style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '13px 18px', boxSizing: 'border-box' }}>
-                  <div data-intro-target={app} style={{ width: 42, height: 42, borderRadius: 12 }} />
-                  <div style={{ flex: 1, height: 20 }} />
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
   return (
     <div
       data-livex-hub-root="true"
@@ -588,6 +534,7 @@ export default function StudioHub() {
         transition: zooming
           ? 'transform 285ms cubic-bezier(0.4,0,1,1), opacity 210ms ease-in, background-color 700ms cubic-bezier(0.4,0,0.2,1)'
           : 'transform 285ms cubic-bezier(0.16, 1, 0.3, 1), opacity 285ms ease-out, background-color 700ms cubic-bezier(0.4,0,0.2,1)',
+        pointerEvents: introFinished ? 'auto' : 'none',
       }}
     >
 
@@ -600,7 +547,7 @@ export default function StudioHub() {
 
 
             {/* Logo area */}
-            <div className="spring-in" style={{
+            <div className={introFinished ? 'spring-in' : ''} style={{
               display: 'flex', flexDirection: 'column', alignItems: 'center',
               paddingTop: 'clamp(36px, 7vh, 56px)',
             }}>
@@ -619,7 +566,9 @@ export default function StudioHub() {
               wrapStyle={{
                 width: '100%', maxWidth: 380,
                 marginTop: 'clamp(28px, 6vh, 48px)',
-                animation: 'spring-in 400ms 80ms cubic-bezier(0.34,1.56,0.64,1) both, gb-spin 14s linear infinite',
+                animation: introFinished
+                  ? 'spring-in 400ms 80ms cubic-bezier(0.34,1.56,0.64,1) both, gb-spin 14s linear infinite'
+                  : 'gb-spin 14s linear infinite',
               }}
               innerStyle={{
                 overflow: 'hidden',
@@ -638,7 +587,11 @@ export default function StudioHub() {
                     encryptedClassName="text-[var(--accent-from)] opacity-60 font-mono"
                   />
                 </p>
-                <p style={{ fontSize: 14, color: 'var(--c-text-secondary)', margin: '5px 0 0', fontWeight: 500 }}>
+                <p style={{
+                  fontSize: 14, color: 'var(--c-text-secondary)', margin: '5px 0 0', fontWeight: 500,
+                  opacity: introFinished ? 1 : 0,
+                  transition: 'opacity 300ms ease'
+                }}>
                   {subtitle}
                 </p>
               </div>
@@ -1027,7 +980,7 @@ export default function StudioHub() {
       </div>
 
       {/* ── Bottom nav ── */}
-      {!isWebDesktop && <HubNav tab={tab} setTab={setTab} accent={accent} />}
+      {!isWebDesktop && <HubNav tab={tab} setTab={setTab} accent={accent} introFinished={introFinished} />}
 
       {/* UpdateIndicator is now hoisted to AppShell so it appears on
           every screen, not just the Hub. */}
@@ -5135,10 +5088,11 @@ function useHubNavItems(): { id: HubTab; icon: string; label: string }[] {
   ];
 }
 
-function HubNav({ tab, setTab, accent }: {
+function HubNav({ tab, setTab, accent, introFinished = true }: {
   tab: HubTab;
   setTab: (t: HubTab) => void;
   accent: { from: string; to: string; mid: string };
+  introFinished?: boolean;
 }) {
   const { settings } = useChordStore();
   const HUB_NAV_ITEMS = useHubNavItems();
@@ -5242,9 +5196,9 @@ function HubNav({ tab, setTab, accent }: {
           : '0 12px 48px rgba(0,0,0,0.50), 0 1.5px 0 rgba(255,255,255,0.08) inset',
         zIndex: 50,
         overflow: 'hidden',
-        pointerEvents: (navHidden || navCollapsed) ? 'none' : 'auto',
-        transform: getSharedNavTransform(navHidden, navCollapsed, entered),
-        opacity: getSharedNavOpacity(navHidden, navCollapsed, entered),
+        pointerEvents: (navHidden || navCollapsed || !introFinished) ? 'none' : 'auto',
+        transform: getSharedNavTransform(navHidden, navCollapsed, entered && introFinished),
+        opacity: getSharedNavOpacity(navHidden, navCollapsed, entered && introFinished),
         willChange: 'transform, opacity',
         transition: SHARED_NAV_TRANSITION,
         backdropFilter: 'blur(20px)',
