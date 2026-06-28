@@ -12,6 +12,13 @@ Conventions:
 - Bullets start with `- ` and use plain English a non-technical user
   can parse. Keep each line short — the modal's text area is narrow.
 
+## 3.7.25
+
+### Added
+- Replaced the planets orbits intro animation with a premium minimalist centered logo fade-scale transition.
+- Preserved 100% of the startup event model, reactMounted checks, and Capacitor AppInstaller integration.
+- All updater and offline recovery features remain fully operational.
+
 ## 3.7.24
 
 ### Added

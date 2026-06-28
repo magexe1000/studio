@@ -190,26 +190,18 @@
 
       #intro-glow {
         position: absolute; top: 50%; left: 50%;
-        width: 420px; height: 420px;
-        margin: -210px 0 0 -210px;
+        width: 400px; height: 400px;
+        transform: translate(-50%, -50%) scale(0.9);
         background: var(--intro-glow-gradient);
         border-radius: 50%;
         filter: blur(8px);
         pointer-events: none;
+        opacity: 0;
+        animation: glow-fade-in 850ms cubic-bezier(0.22, 1, 0.36, 1) forwards;
       }
-
-      #intro-stars {
-        position: absolute; inset: 0;
-        background-image:
-          radial-gradient(1px 1px at 12% 18%, var(--intro-star-color), transparent 50%),
-          radial-gradient(1px 1px at 78% 22%, var(--intro-star-color-weak), transparent 50%),
-          radial-gradient(1.5px 1.5px at 30% 78%, var(--intro-star-color-mid), transparent 50%),
-          radial-gradient(1px 1px at 88% 70%, var(--intro-star-color), transparent 50%),
-          radial-gradient(1px 1px at 55% 8%,  var(--intro-star-color-weak), transparent 50%),
-          radial-gradient(1px 1px at 8% 60%,  var(--intro-star-color-weak), transparent 50%),
-          radial-gradient(1.5px 1.5px at 65% 92%, var(--intro-star-color-mid), transparent 50%),
-          radial-gradient(1px 1px at 42% 38%, var(--intro-star-color-weak), transparent 50%);
-        opacity: var(--intro-star-opacity);
+      @keyframes glow-fade-in {
+        0% { opacity: 0; transform: translate(-50%, -50%) scale(0.9); }
+        100% { opacity: 1; transform: translate(-50%, -50%) scale(1.0); }
       }
 
       #intro-center {
@@ -218,14 +210,14 @@
         gap: 8px;
         z-index: 1;
         will-change: transform;
-        transform: translate(-50%, -50%) scale(1);
+        transform: translate(-50%, -50%) scale(0.92);
         opacity: 0;
-        animation: center-fade-in 1000ms 300ms cubic-bezier(0.22, 1, 0.36, 1) forwards;
+        animation: center-fade-in 800ms cubic-bezier(0.22, 1, 0.36, 1) forwards;
         color: var(--intro-color);
       }
       @keyframes center-fade-in {
-        from { opacity: 0; transform: translate(-50%, -50%) scale(0.85); filter: blur(4px); }
-        to { opacity: 1; transform: translate(-50%, -50%) scale(1); filter: blur(0); }
+        0% { opacity: 0; transform: translate(-50%, -50%) scale(0.92); filter: blur(4px); }
+        100% { opacity: 1; transform: translate(-50%, -50%) scale(1.0); filter: blur(0); }
       }
       #intro-center .logo {
         width: 96px; height: 96px;
@@ -242,35 +234,14 @@
         letter-spacing: 0.08em; margin: 0; text-transform: uppercase;
       }
 
-      /* Orbiter — pure color icon, no pill */
-      .orbiter {
-        position: absolute;
-        top: 50%;
-        left: 50%;
-        margin-left: -22px;
-        margin-top: -22px;
-        width: 44px; height: 44px;
-        display: flex; align-items: center; justify-content: center;
-        will-change: transform, opacity;
-        opacity: 0;
-        animation: orb-fade-in 800ms 500ms cubic-bezier(0.22, 1, 0.36, 1) forwards;
-        color: var(--intro-color);
-      }
-      @keyframes orb-fade-in { from { opacity: 0; } to { opacity: 1; } }
-      .orbiter > svg {
-        width: 30px; height: 30px;
-        filter: var(--intro-orb-shadow);
-      }
-
       @media (prefers-reduced-motion: reduce) {
         #intro *, #intro { animation: none !important; transition: opacity 200ms linear !important; }
-        .orbiter, #intro-center { opacity: 1 !important; }
+        #intro-center { opacity: 1 !important; transform: translate(-50%, -50%) scale(1) !important; }
       }
-    </style>
+      </style>
   </head>
   <body>
     <div id="intro" aria-hidden="true">
-      <div id="intro-stars"></div>
       <div id="intro-glow"></div>
       <div id="intro-center" data-intro-id="studio">
         <div class="logo">
@@ -283,76 +254,6 @@
         </div>
         <p class="title">Livex</p>
         <p class="sub">by Mag</p>
-      </div>
-
-      <!-- 5 real app logos, inlined from ChordexLogo.tsx -->
-
-      <!-- Chordex: fretboard with 3 strings + chord dots -->
-      <div class="orbiter" data-intro-id="chords">
-        <svg viewBox="0 0 13 17" fill="none" preserveAspectRatio="xMidYMid meet" style="width:26px;height:34px;">
-          <rect x="0.5" y="0.5" width="12" height="2.5" rx="1" fill="currentColor"/>
-          <line x1="2.5"  y1="3" x2="2.5"  y2="16.5" stroke="currentColor" stroke-width="0.9" stroke-opacity="0.45"/>
-          <line x1="6.5"  y1="3" x2="6.5"  y2="16.5" stroke="currentColor" stroke-width="0.9" stroke-opacity="0.45"/>
-          <line x1="10.5" y1="3" x2="10.5" y2="16.5" stroke="currentColor" stroke-width="0.9" stroke-opacity="0.45"/>
-          <line x1="0.5" y1="8"  x2="12.5" y2="8"  stroke="currentColor" stroke-width="0.7" stroke-opacity="0.35"/>
-          <line x1="0.5" y1="13" x2="12.5" y2="13" stroke="currentColor" stroke-width="0.7" stroke-opacity="0.35"/>
-          <circle cx="2.5"  cy="5.5"  r="2.1" fill="currentColor"/>
-          <circle cx="10.5" cy="5.5"  r="2.1" fill="currentColor"/>
-          <circle cx="6.5"  cy="10.5" r="2.1" fill="currentColor"/>
-        </svg>
-      </div>
-
-      <!-- Drumex: snare drum top-down -->
-      <div class="orbiter" data-intro-id="drums">
-        <svg viewBox="0 0 16 16" fill="none">
-          <circle cx="8" cy="8" r="7" stroke="currentColor" stroke-width="1.6"/>
-          <circle cx="8" cy="8" r="4.8" stroke="currentColor" stroke-width="0.85" stroke-opacity="0.55"/>
-          <circle cx="8" cy="2" r="0.95" fill="currentColor"/>
-          <circle cx="13.196" cy="5" r="0.95" fill="currentColor"/>
-          <circle cx="13.196" cy="11" r="0.95" fill="currentColor"/>
-          <circle cx="8" cy="14" r="0.95" fill="currentColor"/>
-          <circle cx="2.804" cy="11" r="0.95" fill="currentColor"/>
-          <circle cx="2.804" cy="5" r="0.95" fill="currentColor"/>
-          <circle cx="8" cy="8" r="1.4" fill="currentColor"/>
-        </svg>
-      </div>
-
-      <!-- Stagex: stage with 2 speakers + mic stand -->
-      <div class="orbiter" data-intro-id="stage">
-        <svg viewBox="0 0 16 16" fill="none">
-          <rect x="1" y="10" width="14" height="2.5" rx="1" fill="currentColor" fill-opacity="0.95"/>
-          <rect x="1" y="4" width="3.5" height="5.5" rx="0.8" stroke="currentColor" stroke-width="1.1"/>
-          <circle cx="2.75" cy="6.2" r="0.8" fill="currentColor"/>
-          <circle cx="2.75" cy="8.1" r="0.55" fill="currentColor" fill-opacity="0.7"/>
-          <rect x="11.5" y="4" width="3.5" height="5.5" rx="0.8" stroke="currentColor" stroke-width="1.1"/>
-          <circle cx="13.25" cy="6.2" r="0.8" fill="currentColor"/>
-          <circle cx="13.25" cy="8.1" r="0.55" fill="currentColor" fill-opacity="0.7"/>
-          <line x1="8" y1="4" x2="8" y2="9.5" stroke="currentColor" stroke-width="1.1" stroke-linecap="round"/>
-          <circle cx="8" cy="3.2" r="1.2" fill="currentColor"/>
-        </svg>
-      </div>
-
-      <!-- Groovex: concentric circles with crosshairs -->
-      <div class="orbiter" data-intro-id="groovex">
-        <svg viewBox="0 0 16 16" fill="none">
-          <circle cx="8" cy="8" r="7" stroke="currentColor" stroke-width="1.5"/>
-          <circle cx="8" cy="8" r="3" stroke="currentColor" stroke-width="1.2"/>
-          <circle cx="8" cy="8" r="1" fill="currentColor"/>
-          <line x1="8" y1="1" x2="8" y2="5" stroke="currentColor" stroke-width="0.8" stroke-opacity="0.6"/>
-          <line x1="8" y1="11" x2="8" y2="15" stroke="currentColor" stroke-width="0.8" stroke-opacity="0.6"/>
-          <line x1="1" y1="8" x2="5" y2="8" stroke="currentColor" stroke-width="0.8" stroke-opacity="0.6"/>
-          <line x1="11" y1="8" x2="15" y2="8" stroke="currentColor" stroke-width="0.8" stroke-opacity="0.6"/>
-        </svg>
-      </div>
-
-      <!-- Vocalex: microphone with cradle + stand -->
-      <div class="orbiter" data-intro-id="vocalex">
-        <svg viewBox="0 0 16 16" fill="none">
-          <rect x="6.5" y="2" width="3" height="8" rx="1.5" stroke="currentColor" stroke-width="1.4"/>
-          <path d="M4 8.5C4 11.26 5.79 13 8 13C10.21 13 12 11.26 12 8.5" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" fill="none"/>
-          <line x1="8" y1="13" x2="8" y2="14" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/>
-          <line x1="6" y1="14" x2="10" y2="14" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/>
-        </svg>
       </div>
     </div>
     <div id="root"></div>
@@ -376,66 +277,27 @@
         var cachedWidth = window.innerWidth || 360;
         var cachedHeight = window.innerHeight || 640;
 
-        // Pre-query DOM elements once to avoid querying them inside the animation frame loop
+        // Pre-query DOM elements once
         var logoEl   = center.querySelector('.logo');
         var titleEl  = center.querySelector('.title');
         var subEl    = center.querySelector('.sub');
 
-        // Fade in is no-op because opacity starts at 1
+        var SETTLE_DURATION = 500;  // ms to scale/translate logo to Hub target
+        var FADE_OVERLAP    = 250;  // intro fade starts this many ms before settle ends
+        var FADE_DURATION   = 500;  // smooth reveal of the hub
+        var MIN_PLAY_TIME   = 800;   // minimum animation duration for logo to bloom
+        var MAX_WAIT_TIME   = 2200;  // hard cap safety limit
 
-
-
-        var orbiterEls = intro.querySelectorAll('.orbiter');
-        if (orbiterEls.length === 0) return;
-
-        // Map each intro icon to its hub data-intro-target counterpart.
-        var orbiters = [];
-        orbiterEls.forEach(function (el) {
-          orbiters.push({ el: el, key: el.getAttribute('data-intro-id') });
-        });
-        var N = orbiters.length;
-
-        // Geometry — elliptical tilted orbit for 3D feel
-        var RX    = 132;
-        var RY    = 38;
-        var TILT  = -28 * Math.PI / 180;
-        var COS_T = Math.cos(TILT);
-        var SIN_T = Math.sin(TILT);
-        var STEP  = 360 / N;
-
-        // Speed profile (deg/ms): smooth → dramatic accel → settle
-        var BASE_OMEGA   = 360 / 8500;
-        var PEAK_OMEGA   = 360 / 900;
-        var ACCEL_START  = 600;
-        var ACCEL_END    = 1200;
-
-        // Settle starts when targets are known AND minimum spin time elapsed.
-        // Falls back to t=3000 if React hasn't mounted yet.
-        var SETTLE_DURATION = 1000;  // ms to lerp from orbit → target
-        var FADE_OVERLAP    = 550;   // intro fade starts this many ms before settle ends
-        var FADE_DURATION   = 900;   // long crossfade so hub reveals gradually
-        var MIN_SPIN_TIME   = 1200;  // don't settle before this
-        var MAX_WAIT_TIME   = 2600;  // hard cap — settle even without targets
-
-        // Default fallback targets (relative to viewport center) if measurement fails
+        // Default fallback targets if measurement fails
         function fallbackTargets() {
           var W = Math.max(cachedWidth, 320);
           var H = Math.max(cachedHeight, 480);
-          var x = -(W / 2) + 64;
-          var y0 = -(H / 2) + 240;
-          var gap = Math.min(76, (H * 0.5) / (N + 1));
-          var ts = [];
-          for (var i = 0; i < N; i++) {
-            ts.push({ x: x, y: y0 + i * gap, scale: 0.55 });
-          }
           return {
-            orbiters: ts,
-            center:   { x: 0, y: -(H / 2) + 130, scale: 0.55 },
+            center: { x: 0, y: -(H / 2) + 130, scale: 0.55 }
           };
         }
 
-        // Measure actual hub icon positions from data-intro-target elements.
-        // Returns null if not all targets are present or layout size is invalid.
+        // Measure actual hub logo target position
         function measureTargets() {
           var W = cachedWidth;
           var H = cachedHeight;
@@ -445,59 +307,36 @@
           if (!centerEl) return null;
           var cr = centerEl.getBoundingClientRect();
           if (cr.width === 0) return null;
-          var centerTarget = {
-            x: (cr.left + cr.width / 2) - cxV,
-            y: (cr.top  + cr.height / 2) - cyV,
-            scale: cr.width / 96,  // intro center logo is 96px
+          return {
+            center: {
+              x: (cr.left + cr.width / 2) - cxV,
+              y: (cr.top  + cr.height / 2) - cyV,
+              scale: cr.width / 96
+            }
           };
-          var orbiterTargets = [];
-          for (var i = 0; i < orbiters.length; i++) {
-            var key = orbiters[i].key;
-            var t = document.querySelector('[data-intro-target="' + key + '"]');
-            if (!t) return null;
-            var r = t.getBoundingClientRect();
-            if (r.width === 0) return null;
-            orbiterTargets.push({
-              x: (r.left + r.width / 2) - cxV,
-              y: (r.top  + r.height / 2) - cyV,
-              scale: r.width / 44,  // intro orbiter container is 44px
-            });
-          }
-          return { orbiters: orbiterTargets, center: centerTarget };
         }
 
-        // Measure vertical offset of the logo's center relative to the
-        // #intro-center container's center.
         var logoOffY = 0;
         function getLogoOffsetY() {
           if (!logoEl || !center) return 0;
           var lr = logoEl.getBoundingClientRect();
           var cr = center.getBoundingClientRect();
-          if (cr.height === 0) return 0;  // not laid out yet
+          if (cr.height === 0) return 0;
           return (lr.top + lr.height / 2) - (cr.top + cr.height / 2);
         }
 
         function easeInOutCubic(t) {
           return t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
         }
-        function easeInQuad(t) { return t * t; }
 
         var start  = performance.now();
-        var angle  = 0;
         var lastT  = start;
         var stopped = false;
-        var settleStartTime = -1;     // when settle actually began
+        var settleStartTime = -1;
         var targets = null;
         var fadeStarted = false;
         var dismissed = false;
         var lastMeasureTime = 0;
-
-        function omegaAt(t) {
-          if (t <= ACCEL_START) return BASE_OMEGA;
-          if (t >= ACCEL_END)   return PEAK_OMEGA;
-          var p = (t - ACCEL_START) / (ACCEL_END - ACCEL_START);
-          return BASE_OMEGA + (PEAK_OMEGA - BASE_OMEGA) * easeInQuad(p);
-        }
 
         function reactMounted() {
           var r = document.getElementById('root');
@@ -509,11 +348,10 @@
           var t  = now - start;
           var dt = now - lastT;
           lastT  = now;
-          angle  = (angle + omegaAt(t) * dt) % 360;
 
           if (window.__bootTimings && window.__bootTimings.introStart === -1) {
             window.__bootTimings.introStart = performance.now();
-            console.log("[LivexBoot] Intro planets first frame painted at: " + window.__bootTimings.introStart.toFixed(2) + "ms");
+            console.log("[LivexBoot] Intro minimalist logo first frame painted at: " + window.__bootTimings.introStart.toFixed(2) + "ms");
             try {
               if (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.AppInstaller) {
                 window.Capacitor.Plugins.AppInstaller.notifyAppReady();
@@ -530,18 +368,18 @@
             console.warn("[Perf] Startup animation freeze point: t=" + t.toFixed(0) + "ms, duration=" + dt.toFixed(0) + "ms");
           }
 
-          // Decide whether to start settling (throttling layout queries)
-          if (settleStartTime < 0 && t >= MIN_SPIN_TIME) {
+          // Decide whether to start settling
+          if (settleStartTime < 0 && t >= MIN_PLAY_TIME) {
             if (now - lastMeasureTime > 150) {
               lastMeasureTime = now;
               var measured = measureTargets();
               if (measured) {
                 targets = measured;
-                logoOffY = getLogoOffsetY(); // Compute once on transition start
+                logoOffY = getLogoOffsetY();
                 settleStartTime = now;
               } else if (t >= MAX_WAIT_TIME) {
                 targets = fallbackTargets();
-                logoOffY = getLogoOffsetY(); // Compute once on transition start
+                logoOffY = getLogoOffsetY();
                 settleStartTime = now;
               }
             }
@@ -555,63 +393,24 @@
           }
           var sE = easeInOutCubic(sP);
 
-          // Premium visual expansion drift for the first 800ms
-          var drift = 1.0;
-          if (t < 800) {
-            drift = easeInOutCubic(t / 800) * 0.6 + 0.4;
-          }
-
-          for (var k = 0; k < orbiters.length; k++) {
-            var el = orbiters[k].el;
-            var a = (angle + k * STEP) % 360;
-            if (a < 0) a += 360;
-            var rad = a * Math.PI / 180;
-            var x0 = RX * drift * Math.cos(rad);
-            var y0 = RY * drift * Math.sin(rad);
-            var xT = x0 * COS_T - y0 * SIN_T;
-            var yT = x0 * SIN_T + y0 * COS_T;
-
-            var front      = a < 180;
-            var orbitScale = front ? 1.10 : 0.85;
-            var z          = front ? 3 : 0;
-
-            var fx, fy, fs;
-            if (targets) {
-              var tgt = targets.orbiters[k];
-              fx = xT + (tgt.x - xT) * sE;
-              fy = yT + (tgt.y - yT) * sE;
-              fs = orbitScale + (tgt.scale - orbitScale) * sE;
-            } else {
-              fx = xT; fy = yT; fs = orbitScale;
-            }
-            el.style.zIndex    = sE > 0.5 ? 1 : z;
-            el.style.transform = 'translate(' + fx.toFixed(2) + 'px,' + fy.toFixed(2) + 'px) scale(' + fs.toFixed(3) + ')';
-          }
-
-          // Center logo follows — compensate for logo offset within the
-          // container so the LOGO (not the container) lands on the hub target.
+          // Center logo transition
           if (targets) {
             var ct = targets.center;
             var ccs = 1 + (ct.scale - 1) * sE;
             var ccx = ct.x * sE;
             var ccy = (ct.y - logoOffY * ccs) * sE;
             center.style.transform = 'translate(-50%, -50%) translate(' + ccx.toFixed(2) + 'px,' + ccy.toFixed(2) + 'px) scale(' + ccs.toFixed(3) + ')';
-            // Fade out title/sub during settle so only the logo "lands"
             if (titleEl) titleEl.style.opacity = String(1 - sE);
             if (subEl)   subEl.style.opacity   = String(1 - sE);
           }
 
-          // Start crossfade slightly before settle completes so the intro
-          // icons appear to BECOME the hub icons rather than swap.
+          // Start crossfade slightly before settle completes
           if (!fadeStarted && settleStartTime > 0 && (now - settleStartTime) >= (SETTLE_DURATION - FADE_OVERLAP)) {
             fadeStarted = true;
-            // Only start the fade when React is mounted (so the hub is there
-            // to crossfade INTO). Otherwise wait briefly.
             startFade();
           }
 
           if (sP >= 1 && fadeStarted) {
-            // Settle done; rAF loop ends after fade dismisses
             stopped = true;
             return;
           }
@@ -621,11 +420,8 @@
 
         function startFade() {
           if (dismissed) return;
-          // Signal React the intro is finishing — StudioTitleReveal can now
-          // start its sweep animation so the title appears as the hub reveals.
           window.dispatchEvent(new Event('studio-intro-done'));
           if (!reactMounted()) {
-            // Wait for React then fade
             var startedAt = performance.now();
             var iv = setInterval(function () {
               if (reactMounted() || performance.now() - startedAt > 3000) {
@@ -637,6 +433,7 @@
           }
           doFade();
         }
+
         function doFade() {
           if (dismissed) return;
           dismissed = true;
@@ -651,9 +448,6 @@
           try {
             sessionStorage.setItem('studio-intro-shown', 'true');
           } catch (e) {}
-          // Apply a long, smooth ease-out transition for the crossfade into the hub.
-          // cubic-bezier(0.22,1,0.36,1) starts quickly then eases very gently at the
-          // end — this makes the hub "breathe in" rather than snap into view.
           intro.style.transition = 'opacity ' + FADE_DURATION + 'ms cubic-bezier(0.22,1,0.36,1)';
           intro.style.opacity = '0';
           setTimeout(function () {
@@ -661,11 +455,9 @@
             if (intro.parentNode) intro.parentNode.removeChild(intro);
           }, FADE_DURATION + 50);
         }
-        // Hard safety
         setTimeout(doFade, 10000);
       })();
-    </script>
-    <script>
+      
       // ── Web Auto-Updater ────────────────────────────────────────────────
       // On web (non-Capacitor), silently reload if the server has a newer
       // version than what this HTML was built with. This fixes browsers

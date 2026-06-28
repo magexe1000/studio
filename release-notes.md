@@ -1,4 +1,4 @@
 ### Added
-- Restored full orbits and flight settle splash intro animation from the stable version 3.7.15.
-- Fixed black screen startup regression by coordinating early-exit and mount checks.
-- All updater, offline recovery, and signature checking functionality preserved.
+- Replaced the planets orbits intro animation with a premium minimalist centered logo fade-scale transition.
+- Preserved 100% of the startup event model, reactMounted checks, and Capacitor AppInstaller integration.
+- All updater and offline recovery features remain fully operational.
