@@ -25,7 +25,7 @@
 import { useMemo } from 'react';
 import { Capacitor } from '@capacitor/core';
 
-export const NATIVE_VERSION = '3.7.43';
+export const NATIVE_VERSION = '3.7.44';
 export const WEB_VERSION = '4.0.0';
 export const APP_VERSION = Capacitor.isNativePlatform() ? NATIVE_VERSION : WEB_VERSION;
 
@@ -37,7 +37,7 @@ export const APP_VERSION_LABEL = `${APP_VERSION_TAG} ${APP_VERSION}`;
 
 /** Release date for the CURRENT bundle, shown alongside the version pill
  *  in the changelog sheet. ISO-8601 (`YYYY-MM-DD`). */
-export const APP_VERSION_DATE = '2026-06-29'; // 3.7.43
+export const APP_VERSION_DATE = '2026-06-29'; // 3.7.44
 // Note: keep ISO-8601. Bump together with APP_VERSION on each release.
 
 export const APP_COMMIT_SHA = import.meta.env.VITE_GIT_COMMIT_SHA || 'efd2b1a3';
@@ -60,9 +60,8 @@ export const APP_CHANGELOG_SECTIONS: ChangelogSection[] = [
   {
     heading: "Fixed",
     items: [
-      "Completely eliminated minified React errors from the Engineering Lab and DevTools by implementing an automatic inline React error decoder.",
-      "Upgraded the global Error Boundary to capture full component Fiber contexts, including props, states, and hook dependency stacks.",
-      "Prevented potential TypeError rendering crashes during initial Hub load by adding a robust translation fallback for the settings namespace.",
+      "Fixed a Rules of Hooks violation in the DevToolsDashboard component by hoisting the conditional unifiedTimeline useMemo hook to the top level.",
+      "Enabled source maps for production and release builds to support exact symbolication of component crash contexts and stack traces.",
     ],
   },
 ];

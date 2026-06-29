@@ -611,6 +611,66 @@ export default function DevToolsDashboard({ accent, onBack }: Props) {
     });
   }, [events, eventModuleFilter]);
 
+  const getUnifiedTimeline = () => {
+    const list: Array<{ time: number; type: 'js' | 'native' | 'state'; text: string; details?: string }> = [];
+    
+    jsLogs.forEach(log => {
+      list.push({ time: log.timestamp, type: 'js', text: log.message });
+    });
+
+    nativeLogsList.forEach(log => {
+      const time = log.timestamp || Date.now();
+      list.push({
+        time,
+        type: 'native',
+        text: log.stage || 'Native Step',
+        details: `${log.message || ''} ${log.explanation || ''}`
+      });
+    });
+
+    stateTimeline.forEach(t => {
+      list.push({
+        time: t.timestamp,
+        type: 'state',
+        text: `State Transition: ${t.state}`,
+        details: `Reason: ${t.reason}`
+      });
+    });
+    list.sort((a, b) => a.time - b.time);
+    return list;
+  };
+
+  const unifiedTimeline = useMemo(() => getUnifiedTimeline(), [nativeLogsList, versionUpdates]);
+
+  const filteredTimeline = useMemo(() => {
+    let list = unifiedTimeline;
+
+    if (logFilterMode === 'js') {
+      list = list.filter(e => e.type === 'js');
+    } else if (logFilterMode === 'native') {
+      list = list.filter(e => e.type === 'native');
+    } else if (logFilterMode === 'state') {
+      list = list.filter(e => e.type === 'state');
+    } else if (logFilterMode === 'errors') {
+      list = list.filter(e => e.text.toLowerCase().includes('error') || e.text.toLowerCase().includes('fail') || (e.details && (e.details.toLowerCase().includes('error') || e.details.toLowerCase().includes('fail'))));
+    } else if (logFilterMode === 'warnings') {
+      list = list.filter(e => e.text.toLowerCase().includes('warn') || (e.details && e.details.toLowerCase().includes('warn')));
+    } else if (logFilterMode === 'pkg_installer') {
+      list = list.filter(e => e.text.toLowerCase().includes('packageinstaller') || e.type === 'native' || (e.details && e.details.toLowerCase().includes('packageinstaller')));
+    } else if (logFilterMode === 'lifecycle') {
+      list = list.filter(e => e.text.toLowerCase().includes('lifecycle') || e.text.toLowerCase().includes('activity') || e.text.toLowerCase().includes('pause') || e.text.toLowerCase().includes('resume'));
+    } else if (logFilterMode === 'state_machine') {
+      list = list.filter(e => e.type === 'state' || e.text.toLowerCase().includes('transition'));
+    }
+
+    if (logSearchQuery.trim() !== '') {
+      const query = logSearchQuery.toLowerCase();
+      list = list.filter(e => e.text.toLowerCase().includes(query) || (e.details && e.details.toLowerCase().includes(query)));
+    }
+
+    return list;
+  }, [unifiedTimeline, logFilterMode, logSearchQuery]);
+
   // Copy Diagnostics
   const handleCopyDiagnostics = () => {
     const dump = {
@@ -1118,65 +1178,7 @@ export default function DevToolsDashboard({ accent, onBack }: Props) {
       );
     };
 
-    const unifiedTimeline = getUnifiedTimeline();
 
-    function getUnifiedTimeline() {
-      const list: Array<{ time: number; type: 'js' | 'native' | 'state'; text: string; details?: string }> = [];
-      
-      jsLogs.forEach(log => {
-        list.push({ time: log.timestamp, type: 'js', text: log.message });
-      });
-
-      nativeLogsList.forEach(log => {
-        const time = log.timestamp || Date.now();
-        list.push({
-          time,
-          type: 'native',
-          text: log.stage || 'Native Step',
-          details: `${log.message || ''} ${log.explanation || ''}`
-        });
-      });
-
-      stateTimeline.forEach(t => {
-        list.push({
-          time: t.timestamp,
-          type: 'state',
-          text: `State Transition: ${t.state}`,
-          details: `Reason: ${t.reason}`
-        });
-      });
-      list.sort((a, b) => a.time - b.time);
-      return list;
-    }
-
-    const filteredTimeline = useMemo(() => {
-      let list = unifiedTimeline;
-
-      if (logFilterMode === 'js') {
-        list = list.filter(e => e.type === 'js');
-      } else if (logFilterMode === 'native') {
-        list = list.filter(e => e.type === 'native');
-      } else if (logFilterMode === 'state') {
-        list = list.filter(e => e.type === 'state');
-      } else if (logFilterMode === 'errors') {
-        list = list.filter(e => e.text.toLowerCase().includes('error') || e.text.toLowerCase().includes('fail') || (e.details && (e.details.toLowerCase().includes('error') || e.details.toLowerCase().includes('fail'))));
-      } else if (logFilterMode === 'warnings') {
-        list = list.filter(e => e.text.toLowerCase().includes('warn') || (e.details && e.details.toLowerCase().includes('warn')));
-      } else if (logFilterMode === 'pkg_installer') {
-        list = list.filter(e => e.text.toLowerCase().includes('packageinstaller') || e.type === 'native' || (e.details && e.details.toLowerCase().includes('packageinstaller')));
-      } else if (logFilterMode === 'lifecycle') {
-        list = list.filter(e => e.text.toLowerCase().includes('lifecycle') || e.text.toLowerCase().includes('activity') || e.text.toLowerCase().includes('pause') || e.text.toLowerCase().includes('resume'));
-      } else if (logFilterMode === 'state_machine') {
-        list = list.filter(e => e.type === 'state' || e.text.toLowerCase().includes('transition'));
-      }
-
-      if (logSearchQuery.trim() !== '') {
-        const query = logSearchQuery.toLowerCase();
-        list = list.filter(e => e.text.toLowerCase().includes(query) || (e.details && e.details.toLowerCase().includes(query)));
-      }
-
-      return list;
-    }, [unifiedTimeline, logSearchQuery, logFilterMode]);
 
     const exportTimelineMarkdown = () => {
       let md = `# Unified Chronological Timeline\n\n| Type | Timestamp | Event / Details |\n|---|---|---|\n`;
