@@ -326,11 +326,14 @@ export function checkForUpdate(isManual = false, trigger = 'unknown', reason = '
   logDetailedJsTrace('checkForUpdate', 'otaUpdate.ts', 326, `Entering checkForUpdate Call #${callId}`, { prevState: globalOtaState.updateState, reason: `Trigger: ${trigger} | Reason: ${reason}` });
 
   if (activeCheckPromise) {
-    if (isManual) {
+    if (!activeCheckIsManual && isManual) {
+      logDetailedJsTrace('checkForUpdate', 'otaUpdate.ts', 330, `Obsoleting background check in favor of manual check Call #${callId}`, { prevState: globalOtaState.updateState });
+      activeCheckPromise = null;
       activeCheckIsManual = true;
+    } else {
+      logDetailedJsTrace('checkForUpdate', 'otaUpdate.ts', 333, `Exiting checkForUpdate Call #${callId} early (reusing activeCheckPromise)`, { prevState: globalOtaState.updateState });
+      return activeCheckPromise;
     }
-    logDetailedJsTrace('checkForUpdate', 'otaUpdate.ts', 333, `Exiting checkForUpdate Call #${callId} early (reusing activeCheckPromise)`, { prevState: globalOtaState.updateState });
-    return activeCheckPromise;
   }
 
   const checkId = ++latestCheckId;
