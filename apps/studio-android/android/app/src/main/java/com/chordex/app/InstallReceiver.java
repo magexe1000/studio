@@ -129,34 +129,44 @@ public class InstallReceiver extends BroadcastReceiver {
                 Intent confirmIntent = intent.getParcelableExtra(Intent.EXTRA_INTENT);
                 if (confirmIntent != null) {
                     prefs.edit().putBoolean("confirmation_intent_received", true).apply();
-                    confirmIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                    AppInstallerPlugin.pendingConfirmIntent = confirmIntent;
                     try {
-                        if (android.os.Build.VERSION.SDK_INT >= 34) {
-                            android.app.ActivityOptions options = android.app.ActivityOptions.makeBasic();
-                            options.setPendingIntentBackgroundActivityStartMode(
-                                    android.app.ActivityOptions.MODE_BACKGROUND_ACTIVITY_START_ALLOWED);
-                            context.startActivity(confirmIntent, options.toBundle());
+                        if (AppInstallerPlugin.instance != null && AppInstallerPlugin.instance.getActivity() != null) {
+                            android.app.Activity activity = AppInstallerPlugin.instance.getActivity();
+                            Log.d(TAG, "[INSTRUMENTATION] [NATIVE] Starting confirmation intent from MainActivity context");
+                            activity.startActivity(confirmIntent);
                             prefs.edit().putBoolean("confirmation_intent_started", true).apply();
-                            Log.d(TAG, "[INSTRUMENTATION] [NATIVE] Started confirmation intent from BroadcastReceiver on Android 14+ with background start mode allowed");
                         } else {
-                            context.startActivity(confirmIntent);
-                            prefs.edit().putBoolean("confirmation_intent_started", true).apply();
-                            Log.d(TAG, "[INSTRUMENTATION] [NATIVE] Started confirmation intent from BroadcastReceiver");
+                            Log.w(TAG, "[INSTRUMENTATION] [NATIVE] MainActivity is not active or instance is null. Falling back to context.startActivity");
+                            confirmIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                            if (android.os.Build.VERSION.SDK_INT >= 34) {
+                                android.app.ActivityOptions options = android.app.ActivityOptions.makeBasic();
+                                options.setPendingIntentBackgroundActivityStartMode(
+                                        android.app.ActivityOptions.MODE_BACKGROUND_ACTIVITY_START_ALLOWED);
+                                context.startActivity(confirmIntent, options.toBundle());
+                                prefs.edit().putBoolean("confirmation_intent_started", true).apply();
+                            } else {
+                                context.startActivity(confirmIntent);
+                                prefs.edit().putBoolean("confirmation_intent_started", true).apply();
+                            }
                         }
                     } catch (Exception e) {
-                        Log.e(TAG, "[INSTRUMENTATION] [NATIVE] Failed to start confirmation intent from BroadcastReceiver", e);
+                        Log.e(TAG, "[INSTRUMENTATION] [NATIVE] Failed to start confirmation intent", e);
                         appendLog(context, "Install Failure", status, "Failed to start confirmation intent: " + e.getMessage(), otherPackageName, null);
                     }
                 } else {
                     Log.e(TAG, "[INSTRUMENTATION] [NATIVE] confirmIntent is null");
                 }
-            } else if (status == PackageInstaller.STATUS_SUCCESS) {
-                appendLog(context, "User Accepted", status, "User accepted installation", otherPackageName, null);
-                appendLog(context, "Install Success", status, "Update installation complete", otherPackageName, null);
-            } else if (status == PackageInstaller.STATUS_FAILURE_ABORTED) {
-                appendLog(context, "User Cancelled", status, "User cancelled installation", otherPackageName, null);
             } else {
-                appendLog(context, "Install Failure", status, "PackageInstaller reported failure: " + message, otherPackageName, null);
+                AppInstallerPlugin.pendingConfirmIntent = null;
+                if (status == PackageInstaller.STATUS_SUCCESS) {
+                    appendLog(context, "User Accepted", status, "User accepted installation", otherPackageName, null);
+                    appendLog(context, "Install Success", status, "Update installation complete", otherPackageName, null);
+                } else if (status == PackageInstaller.STATUS_FAILURE_ABORTED) {
+                    appendLog(context, "User Cancelled", status, "User cancelled installation", otherPackageName, null);
+                } else {
+                    appendLog(context, "Install Failure", status, "PackageInstaller reported failure: " + message, otherPackageName, null);
+                }
             }
         }
         appendLog(context, "[INSTRUMENTATION] InstallReceiver.onReceive", 0, "Call #" + callId + " EXIT", null, null);

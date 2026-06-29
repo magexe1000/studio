@@ -188,7 +188,15 @@ export async function enforceStartupRecovery() {
 
     const result = await AppInstaller.getLastInstallResult();
     if (result.statusCode !== -999) {
-      console.log('[OTA DEBUG] enforceStartupRecovery: Pending install result exists (code ' + result.statusCode + '). Deferring cleanup to UI.');
+      console.log('[OTA DEBUG] enforceStartupRecovery: Pending install result exists (code ' + result.statusCode + ').');
+      const processed = processLastInstallResult(result);
+      if (processed) {
+        updateGlobalState({
+          updateState: (processed.category === 'cancelled' ? 'failed' : processed.category) as OtaUpdateState,
+          error: processed.errMsg,
+          statusText: processed.errMsg
+        });
+      }
       return;
     }
 
@@ -440,7 +448,7 @@ export function checkForUpdate(isManual = false): Promise<CentralizedOtaState> {
             await populateDiagnostics(null, 'PackageInstaller failure detected');
 
             updateGlobalState({
-              updateState: processed.category as OtaUpdateState,
+              updateState: (processed.category === 'cancelled' ? 'failed' : processed.category) as OtaUpdateState,
               error: processed.errMsg
             });
             return globalOtaState;

@@ -58,6 +58,28 @@ export interface AppInstallerPlugin {
   }>;
   readFirstBytes(options: { filePath: string; count?: number }): Promise<{ hex: string; ascii: string }>;
   isInstallActive(): Promise<{ active: boolean; sessionId: number }>;
+  getExtendedDiagnostics(): Promise<{
+    sessionId: number;
+    sessionState: string;
+    pendingIntentCreated: boolean;
+    intentSenderCreated: boolean;
+    intentFired: boolean;
+    confirmationIntentReceived: boolean;
+    confirmationIntentStarted: boolean;
+    installationActive: boolean;
+    sessionStartTime: number;
+    sessionCreatedTime: number;
+    sessionCommitTime: number;
+    lastStatusCode: number;
+    lastStatusMessage: string;
+    lastOtherPackage: string;
+    lastStatusTimestamp: number;
+    expectedVersionCode: number;
+    expectedVersionName: string;
+    pendingConfirmIntentExists: boolean;
+    activeSessionsCount: number;
+    hasInstallPermission: boolean;
+  }>;
 }
 
 export const AppInstaller = registerPlugin<AppInstallerPlugin>('AppInstaller');

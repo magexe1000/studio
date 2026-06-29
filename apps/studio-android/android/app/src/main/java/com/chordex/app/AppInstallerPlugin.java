@@ -62,6 +62,18 @@ import android.util.Log;
 public class AppInstallerPlugin extends Plugin {
 
     public static AppInstallerPlugin instance = null;
+    public static Intent pendingConfirmIntent = null;
+
+    public static void resumePendingInstall(android.app.Activity activity) {
+        if (pendingConfirmIntent != null) {
+            try {
+                android.util.Log.i("AppInstallerPlugin", "[INSTRUMENTATION] [NATIVE] Relaunching pending confirmation intent from MainActivity.onResume()");
+                activity.startActivity(pendingConfirmIntent);
+            } catch (Exception e) {
+                android.util.Log.e("AppInstallerPlugin", "[INSTRUMENTATION] [NATIVE] Failed to relaunch pending confirmation intent", e);
+            }
+        }
+    }
 
     @Override
     public void load() {
@@ -407,6 +419,51 @@ public class AppInstallerPlugin extends Plugin {
             call.resolve(result);
         } catch (Exception e) {
             call.reject("Failed to read last install result: " + e.getMessage());
+        }
+    }
+
+    @PluginMethod
+    public void getExtendedDiagnostics(PluginCall call) {
+        try {
+            Context context = getContext();
+            SharedPreferences prefs = context.getSharedPreferences(InstallReceiver.PREFS_NAME, Context.MODE_PRIVATE);
+            JSObject result = new JSObject();
+            
+            PackageInstaller packageInstaller = context.getPackageManager().getPackageInstaller();
+            java.util.List<PackageInstaller.SessionInfo> sessions = packageInstaller.getMySessions();
+            int activeSessionsCount = sessions != null ? sessions.size() : 0;
+            
+            result.put("sessionId", prefs.getInt("session_id", -1));
+            result.put("sessionState", prefs.getString("session_state", "none"));
+            result.put("pendingIntentCreated", prefs.getBoolean("pending_intent_created", false));
+            result.put("intentSenderCreated", prefs.getBoolean("intent_sender_created", false));
+            result.put("intentFired", prefs.getBoolean("intent_fired", false));
+            result.put("confirmationIntentReceived", prefs.getBoolean("confirmation_intent_received", false));
+            result.put("confirmationIntentStarted", prefs.getBoolean("confirmation_intent_started", false));
+            result.put("installationActive", prefs.getBoolean("installation_active", false));
+            result.put("sessionStartTime", prefs.getLong("session_start_time", 0));
+            result.put("sessionCreatedTime", prefs.getLong("session_created_time", 0));
+            result.put("sessionCommitTime", prefs.getLong("session_commit_time", 0));
+            result.put("lastStatusCode", prefs.getInt("last_status_code", -999));
+            result.put("lastStatusMessage", prefs.getString("last_status_message", ""));
+            result.put("lastOtherPackage", prefs.getString("last_other_package", ""));
+            result.put("lastStatusTimestamp", prefs.getLong("last_status_timestamp", 0));
+            result.put("expectedVersionCode", prefs.getLong("expected_version_code", 0));
+            result.put("expectedVersionName", prefs.getString("expected_version_name", ""));
+            result.put("pendingConfirmIntentExists", pendingConfirmIntent != null);
+            result.put("activeSessionsCount", activeSessionsCount);
+            
+            boolean hasInstallPerm = false;
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                hasInstallPerm = context.getPackageManager().canRequestPackageInstalls();
+            } else {
+                hasInstallPerm = true;
+            }
+            result.put("hasInstallPermission", hasInstallPerm);
+            
+            call.resolve(result);
+        } catch (Exception e) {
+            call.reject("Failed to get extended diagnostics: " + e.getMessage(), e);
         }
     }
 

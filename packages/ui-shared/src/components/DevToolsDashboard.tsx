@@ -379,7 +379,10 @@ export default function DevToolsDashboard({ accent, onBack }: Props) {
           if (active) setNativeDeviceInfo(dev);
 
           // 2. Get PackageInstaller Details
-          if (typeof (AppInstaller as any).getPackageInstallerDetails === 'function') {
+          if (typeof AppInstaller.getExtendedDiagnostics === 'function') {
+            const det = await AppInstaller.getExtendedDiagnostics();
+            if (active) setNativeInstallerDetails(det);
+          } else if (typeof (AppInstaller as any).getPackageInstallerDetails === 'function') {
             const det = await (AppInstaller as any).getPackageInstallerDetails();
             if (active) setNativeInstallerDetails(det);
           }
@@ -1111,7 +1114,7 @@ export default function DevToolsDashboard({ accent, onBack }: Props) {
               <p style={{ margin: '0 0 10px', fontSize: 11, color: 'rgba(255,255,255,0.4)', lineHeight: 1.45 }}>
                 Run the actual production pipelines. These use real native functions, perform file operations, verify signatures, and trigger the system installer.
               </p>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: 8 }}>
                 {renderLabButton('Trigger Download', 'download', async () => {
                   await downloadUpdate('Updater Lab');
                 }, 'success')}
@@ -1144,7 +1147,7 @@ export default function DevToolsDashboard({ accent, onBack }: Props) {
               <p style={{ margin: '0 0 10px', fontSize: 11, color: 'rgba(255,255,255,0.4)', lineHeight: 1.45 }}>
                 Force metadata outcomes on check. Clicking these sets the mock variables and executes `checkForUpdate` immediately to shift the state machine.
               </p>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: 8 }}>
                 {renderLabButton('Force Update Available', 'forceAvail', async () => {
                   updaterSimulation.forceUpdateAvailable = true;
                   updaterSimulation.forceNoUpdate = false;
@@ -1199,7 +1202,7 @@ export default function DevToolsDashboard({ accent, onBack }: Props) {
               <p style={{ margin: '0 0 10px', fontSize: 11, color: 'rgba(255,255,255,0.4)', lineHeight: 1.45 }}>
                 Simulate failure states during download, verification, or recovery to test self-healing paths in the real updater pipeline.
               </p>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: 8 }}>
                 {renderLabButton('Inject Download Failure', 'injectDownFail', () => {
                   updaterSimulation.forceDownloadFailure = true;
                   updaterSimulation.forceDownloadTimeout = false;
@@ -1262,7 +1265,7 @@ export default function DevToolsDashboard({ accent, onBack }: Props) {
               <p style={{ margin: '0 0 10px', fontSize: 11, color: 'rgba(255,255,255,0.4)', lineHeight: 1.45 }}>
                 Simulate native PackageInstaller callbacks sent from Android OS to JS during the session install flow.
               </p>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: 8 }}>
                 {renderLabButton('Force Pending User', 'mockPending', () => {
                   updaterSimulation.forceInstallSuccess = false;
                   updaterSimulation.forceInstallFailure = false;
@@ -1300,7 +1303,7 @@ export default function DevToolsDashboard({ accent, onBack }: Props) {
                 <span className="material-symbols-outlined" style={{ fontSize: 18 }}>build</span>
                 Advanced Engineering Tools
               </div>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: 8 }}>
                 {renderLabButton('Replay Last Install', 'replayInstall', async () => {
                   const lastPath = localStorage.getItem('studio:downloadedApkPath') || '';
                   if (!lastPath) throw new Error('No downloaded APK path found in storage.');
@@ -1376,7 +1379,7 @@ export default function DevToolsDashboard({ accent, onBack }: Props) {
                 <span className="material-symbols-outlined" style={{ fontSize: 18 }}>content_copy</span>
                 Clipboard Exporters
               </div>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: 8 }}>
                 {renderLabButton('Export Native Logs', 'expNatLogs', async () => {
                   let txt = '=== NATIVE LOGS ===\n';
                   nativeLogs.forEach(log => {
@@ -1493,7 +1496,7 @@ export default function DevToolsDashboard({ accent, onBack }: Props) {
                     if (e.type === 'native') color = '#fbbf24';
                     if (e.type === 'state') color = '#60a5fa';
                     return (
-                      <div key={idx} style={{ fontFamily: 'monospace', fontSize: 9.5, borderBottom: '1px solid rgba(255,255,255,0.02)', paddingBottom: 2, textAlign: 'left' }}>
+                      <div key={idx} style={{ fontFamily: 'monospace', fontSize: 9.5, borderBottom: '1px solid rgba(255,255,255,0.02)', paddingBottom: 2, textAlign: 'left', wordBreak: 'break-all', whiteSpace: 'pre-wrap' }}>
                         <span style={{ color: 'rgba(255,255,255,0.3)' }}>[{timeStr}]</span>{' '}
                         <span style={{ color, fontWeight: 700 }}>[{e.type.toUpperCase()}]</span>{' '}
                         <span style={{ color: '#fff' }}>{e.text}</span>
@@ -1512,7 +1515,7 @@ export default function DevToolsDashboard({ accent, onBack }: Props) {
                 <span className="material-symbols-outlined" style={{ fontSize: 18 }}>restart_alt</span>
                 Reset & Diagnostics Clears
               </div>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 6 }}>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: 6 }}>
                 <button
                   onClick={() => {
                     resetOtaUpdateState();
@@ -1604,6 +1607,10 @@ export default function DevToolsDashboard({ accent, onBack }: Props) {
                 <DiagnosticField label="Last Received Status" value={nativeInstallerDetails?.lastStatusCode !== undefined && nativeInstallerDetails.lastStatusCode !== -999 ? String(nativeInstallerDetails.lastStatusCode) : 'None'} />
                 <DiagnosticField label="Last Received Message" value={nativeInstallerDetails?.lastStatusMessage || 'N/A'} />
                 <DiagnosticField label="Last Callback Timestamp" value={nativeInstallerDetails?.lastStatusTimestamp ? new Date(nativeInstallerDetails.lastStatusTimestamp).toLocaleTimeString() : 'N/A'} />
+                <DiagnosticField label="Pending Confirmation Intent" value={nativeInstallerDetails?.pendingConfirmIntentExists ? 'EXISTS' : 'NONE'} />
+                <DiagnosticField label="Active Sessions Count" value={nativeInstallerDetails?.activeSessionsCount !== undefined ? String(nativeInstallerDetails.activeSessionsCount) : 'N/A'} />
+                <DiagnosticField label="Has Install Permission" value={nativeInstallerDetails?.hasInstallPermission ? 'YES' : 'NO'} />
+                <DiagnosticField label="Installation Active (Prefs)" value={nativeInstallerDetails?.installationActive ? 'YES' : 'NO'} />
               </div>
             </div>
 
@@ -1707,7 +1714,7 @@ export default function DevToolsDashboard({ accent, onBack }: Props) {
                 <span className="material-symbols-outlined" style={{ fontSize: 18 }}>ios_share</span>
                 Export Engineering Report
               </div>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 6 }}>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: 6 }}>
                 <button
                   onClick={exportEngineeringReport}
                   style={{ padding: '8px', borderRadius: 8, background: '#f59e0b', color: '#fff', border: 'none', fontWeight: 700, fontSize: 11, cursor: 'pointer' }}
@@ -2438,7 +2445,7 @@ export default function DevToolsDashboard({ accent, onBack }: Props) {
 
         <div style={{ background: '#181820', borderRadius: 12, border: '1px solid rgba(255,255,255,0.08)', padding: 12, display: 'flex', flexDirection: 'column', gap: 10 }}>
           <span style={{ fontSize: 12, fontWeight: 700, color: '#f59e0b' }}>Black Screen Diagnostics</span>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, fontSize: 11 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: 8, fontSize: 11 }}>
             <div>Return Attempts: <strong>{diag.returnAttempts}</strong></div>
             <div>Failed Returns: <strong>{diag.failedReturns}</strong></div>
             <div>Detections: <strong>{diag.blackScreenDetections}</strong></div>
@@ -3015,7 +3022,7 @@ export default function DevToolsDashboard({ accent, onBack }: Props) {
 
             <div style={{
               display: 'grid',
-              gridTemplateColumns: '1fr 1fr',
+              gridTemplateColumns: 'repeat(2, minmax(0, 1fr))',
               gap: '8px 16px',
               fontSize: '12px'
             }}>
@@ -3084,7 +3091,8 @@ export default function DevToolsDashboard({ accent, onBack }: Props) {
       height: '100%',
       background: '#000000',
       color: '#f4f4f5',
-      fontFamily: 'Manrope, sans-serif'
+      fontFamily: 'Manrope, sans-serif',
+      overflowX: 'hidden'
     }}>
       {subView === 'dashboard' && (
         <>
@@ -3181,7 +3189,7 @@ export default function DevToolsDashboard({ accent, onBack }: Props) {
             border: '1px solid rgba(255,255,255,0.06)',
             borderRadius: '16px',
             display: 'grid',
-            gridTemplateColumns: 'repeat(3, 1fr)',
+            gridTemplateColumns: 'repeat(3, minmax(0, 1fr))',
             gap: '10px 8px',
             fontSize: '11px',
             flexShrink: 0

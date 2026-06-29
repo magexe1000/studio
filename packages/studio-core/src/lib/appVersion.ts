@@ -26,7 +26,7 @@ import { useMemo } from 'react';
 import { Capacitor } from '@capacitor/core';
 
 /** Canonical semver string used by the OTA comparator. */
-export const NATIVE_VERSION = '3.7.38';
+export const NATIVE_VERSION = '3.7.39';
 export const WEB_VERSION = '4.0.0';
 export const APP_VERSION = Capacitor.isNativePlatform() ? NATIVE_VERSION : WEB_VERSION;
 
@@ -59,12 +59,12 @@ export interface ChangelogSection {
 
 export const APP_CHANGELOG_SECTIONS: ChangelogSection[] = [
   {
-    heading: "Added",
+    heading: "Fixed",
     items: [
-      "Overhauled the Updater Laboratory UI in Developer Options by replacing all checkbox-style controls with dedicated button commands.",
-      "Added simulation actions for injecting SHA-256 validation failures, signature conflicts, and download network timeouts directly into the real updater pipeline.",
-      "Implemented a live, auto-scrolling execution console panel displaying unified chronological events (JS, native, state transitions).",
-      "Created advanced engineering tools to replay installations, inspect APK manifests, recalculate SHA checksums, and export diagnostic logs.",
+      "Fixed Android 14+ background PackageInstaller confirmation dialog launch block by routing confirmation intents through the active foreground MainActivity.",
+      "Added automatic re-prompt resume logic on app resume to restore blocked confirmation screens.",
+      "Enforced strict installation locks in the JS updater to prevent background polling or resume events from resetting the update state.",
+      "Fixed horizontal layout shifting in DevTools tabs and resolved GSAP animation console warnings.",
     ],
   },
 ];
