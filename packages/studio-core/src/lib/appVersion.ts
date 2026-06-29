@@ -26,7 +26,7 @@ import { useMemo } from 'react';
 import { Capacitor } from '@capacitor/core';
 
 /** Canonical semver string used by the OTA comparator. */
-export const NATIVE_VERSION = '3.7.39';
+export const NATIVE_VERSION = '3.7.40';
 export const WEB_VERSION = '4.0.0';
 export const APP_VERSION = Capacitor.isNativePlatform() ? NATIVE_VERSION : WEB_VERSION;
 
@@ -61,9 +61,9 @@ export const APP_CHANGELOG_SECTIONS: ChangelogSection[] = [
   {
     heading: "Fixed",
     items: [
-      "Fixed Android 14+ background PackageInstaller confirmation dialog launch block by routing confirmation intents through the active foreground MainActivity.",
-      "Added automatic re-prompt resume logic on app resume to restore blocked confirmation screens.",
-      "Enforced strict installation locks in the JS updater to prevent background polling or resume events from resetting the update state.",
+      "Fixed Android 14+ background PackageInstaller confirmation dialog launch block by routing the session callback through a Broadcast PendingIntent targeting InstallReceiver.",
+      "Prevented duplicate update checks by implementing a synchronous promise-reuse lock in checkForUpdate.",
+      "Enhanced native and JS updater tracing to log full stack traces, threads, callers, and timestamps.",
       "Fixed horizontal layout shifting in DevTools tabs and resolved GSAP animation console warnings.",
     ],
   },

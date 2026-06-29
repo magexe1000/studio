@@ -103,7 +103,6 @@ export function stopWatchdog() {
 import { recordStateTransition, addJsLog, transitionHistory, rejectedTransitions } from './updaterSimulation';
 
 export function transitionToState(state: OtaUpdateState, reason: string) {
-  console.log(`[OTA STATE] Transitioning to: ${state}. Reason: ${reason}`);
   addJsLog(`State Transition: ${globalOtaState.updateState} -> ${state}. Reason: ${reason}`);
   recordStateTransition(state, reason);
   stopWatchdog();
@@ -155,6 +154,26 @@ export function transitionToState(state: OtaUpdateState, reason: string) {
     state = 'idle';
   }
 
+  let caller = 'Unknown';
+  let stackTrace = 'N/A';
+  try {
+    const stack = new Error().stack;
+    if (stack) {
+      stackTrace = stack;
+      const lines = stack.split('\n');
+      if (lines.length > 2) {
+        caller = lines[2].trim();
+      }
+    }
+  } catch {
+    /* ignore */
+  }
+
+  console.log(`[INSTRUMENTATION] [JS_STATE] Transition: ${current} -> ${state} | Reason: ${reason} | Caller: ${caller} | Thread: Main JS Thread | Stack: ${stackTrace}`);
+  if (state === 'idle') {
+    console.log(`[INSTRUMENTATION] [JS_STATE_IDLE_EXPLANATION] State transitioned to IDLE. Previous State: ${current} | Reason: ${reason} | Caller: ${caller}`);
+  }
+
   // Calculate duration of previous state
   const prevEntry = transitionHistory[transitionHistory.length - 1];
   if (prevEntry) {
@@ -167,7 +186,10 @@ export function transitionToState(state: OtaUpdateState, reason: string) {
     reason: reason,
     timestamp: now,
     durationMs: 0,
-    invalid: !isValid
+    invalid: !isValid,
+    caller: caller,
+    stackTrace: stackTrace,
+    thread: 'Main JS Thread'
   });
 
   // Setup watchdog timers for transient states

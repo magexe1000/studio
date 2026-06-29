@@ -18,6 +18,10 @@ export interface AppInstallerPlugin {
   getInstallerLogHistory(): Promise<{ logs: string }>;
   clearInstallerLogHistory(): Promise<void>;
   appendLog(options: { stage: string; status?: number; message?: string; packageName?: string; exceptionStack?: string }): Promise<void>;
+  resumePendingInstall(): Promise<void>;
+  resumePackageInstallerSession(): Promise<void>;
+  recreateActivity(): Promise<void>;
+  killProcess(): Promise<void>;
   checkPermissions(): Promise<any>;
   requestPermissions(options?: { aliases?: string[] }): Promise<any>;
   getSharedFile(): Promise<{ none?: boolean; type?: 'json' | 'audio'; data?: string; fileName?: string }>;

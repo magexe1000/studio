@@ -73,6 +73,9 @@ export const transitionHistory: {
   timestamp: number;
   durationMs: number;
   invalid: boolean;
+  caller: string;
+  stackTrace: string;
+  thread: string;
 }[] = [];
 
 export const rejectedTransitions: {

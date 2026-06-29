@@ -88,7 +88,11 @@ const mockAppInstaller = {
   },
   canRequestPackageInstalls: async () => {
     return { value: true };
-  }
+  },
+  resumePendingInstall: async () => {},
+  resumePackageInstallerSession: async () => {},
+  recreateActivity: async () => {},
+  killProcess: async () => {}
 };
 
 globalThis.Capacitor = {

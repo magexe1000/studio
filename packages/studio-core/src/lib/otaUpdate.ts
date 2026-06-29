@@ -233,7 +233,7 @@ function resetLastCheckedTime() {
 }
 const MIN_AUTO_CHECK_INTERVAL_MS = 15 * 60 * 1000;
 
-export function checkForUpdate(isManual = false): Promise<CentralizedOtaState> {
+export function checkForUpdate(isManual = false, trigger = 'unknown', reason = 'unknown'): Promise<CentralizedOtaState> {
   const current = globalOtaState.updateState;
   
   // Do NOT run a check if we are in the middle of downloading, verifying, or installing.
@@ -260,20 +260,34 @@ export function checkForUpdate(isManual = false): Promise<CentralizedOtaState> {
     return Promise.resolve(globalOtaState);
   }
 
-  const checkId = ++latestCheckId;
   const callId = nextJsCallId();
-  console.log(`[INSTRUMENTATION] checkForUpdate ENTER Call #${callId} (isManual=${isManual}, checkId=${checkId})`);
-  void logProgressStage('[INSTRUMENTATION] checkForUpdate ENTER', `Call #${callId} isManual=${isManual}`);
+
+  let callerInfo = 'Unknown';
+  try {
+    const stack = new Error().stack;
+    if (stack) {
+      const lines = stack.split('\n');
+      if (lines.length > 2) {
+        callerInfo = lines[2].trim();
+      }
+    }
+  } catch {
+    /* ignore */
+  }
+
+  console.log(`[INSTRUMENTATION] checkForUpdate ENTER Call #${callId} (isManual=${isManual}, trigger=${trigger}, reason=${reason}, caller=${callerInfo})`);
+  void logProgressStage('[INSTRUMENTATION] checkForUpdate ENTER', `Call #${callId} isManual=${isManual} trigger=${trigger} reason=${reason} caller=${callerInfo}`);
 
   if (activeCheckPromise) {
-    if (!activeCheckIsManual && isManual) {
-      console.log(`[OTA] Obsoleting background check (checkId=${checkId - 1}) in favor of manual check (checkId=${checkId})`);
-      activeCheckPromise = null;
-    } else {
-      console.log(`[INSTRUMENTATION] checkForUpdate EXIT Call #${callId} (Early return: reusing activeCheckPromise)`);
-      return activeCheckPromise;
+    if (isManual) {
+      activeCheckIsManual = true;
     }
+    console.log(`[INSTRUMENTATION] checkForUpdate EXIT Call #${callId} (Early return: reusing activeCheckPromise)`);
+    return activeCheckPromise;
   }
+
+  const checkId = ++latestCheckId;
+  console.log(`[INSTRUMENTATION] checkForUpdate STARTING NEW CHECK Call #${callId} (checkId=${checkId})`);
 
   if (!isManual) {
     const now = Date.now();
@@ -289,8 +303,8 @@ export function checkForUpdate(isManual = false): Promise<CentralizedOtaState> {
   }
 
 
-  activeCheckIsManual = isManual;
   activeCheckPromise = (async () => {
+    const startTime = Date.now();
     transitionToState('checking', 'checkForUpdate start');
     try {
       if (updaterSimulation.forceMetadataFailure) {
@@ -451,6 +465,8 @@ export function checkForUpdate(isManual = false): Promise<CentralizedOtaState> {
               updateState: (processed.category === 'cancelled' ? 'failed' : processed.category) as OtaUpdateState,
               error: processed.errMsg
             });
+            const duration = Date.now() - startTime;
+            console.log(`[INSTRUMENTATION] checkForUpdate EXIT Call #${callId} duration=${duration}ms resolvedState=${globalOtaState.updateState}`);
             return globalOtaState;
           }
         } catch (err) {
@@ -465,6 +481,8 @@ export function checkForUpdate(isManual = false): Promise<CentralizedOtaState> {
         } else {
           transitionToState('idle', 'Auto-check completed: no remote metadata');
         }
+        const duration = Date.now() - startTime;
+        console.log(`[INSTRUMENTATION] checkForUpdate EXIT Call #${callId} duration=${duration}ms resolvedState=${globalOtaState.updateState}`);
         return globalOtaState;
       }
 
@@ -491,6 +509,8 @@ export function checkForUpdate(isManual = false): Promise<CentralizedOtaState> {
           });
           await checkAndCleanCache();
           transitionToState('idle', 'User dismissed/later');
+          const duration = Date.now() - startTime;
+          console.log(`[INSTRUMENTATION] checkForUpdate EXIT Call #${callId} duration=${duration}ms resolvedState=${globalOtaState.updateState}`);
           return globalOtaState;
         }
 
@@ -513,12 +533,14 @@ export function checkForUpdate(isManual = false): Promise<CentralizedOtaState> {
         transitionToState('idle', 'App is up to date');
       }
 
-      console.log(`[INSTRUMENTATION] checkForUpdate EXIT Call #${callId} resolvedState=${globalOtaState.updateState}`);
-      void logProgressStage('[INSTRUMENTATION] checkForUpdate EXIT', `Call #${callId} resolvedState=${globalOtaState.updateState}`);
+      const duration = Date.now() - startTime;
+      console.log(`[INSTRUMENTATION] checkForUpdate EXIT Call #${callId} duration=${duration}ms resolvedState=${globalOtaState.updateState}`);
+      void logProgressStage('[INSTRUMENTATION] checkForUpdate EXIT', `Call #${callId} resolvedState=${globalOtaState.updateState} duration=${duration}ms`);
       return globalOtaState;
     } catch (err) {
-      console.error(`[INSTRUMENTATION] checkForUpdate EXIT Call #${callId} error:`, err);
-      void logProgressStage('[INSTRUMENTATION] checkForUpdate EXIT', `Call #${callId} failed err=${err instanceof Error ? err.message : String(err)}`);
+      const duration = Date.now() - startTime;
+      console.error(`[INSTRUMENTATION] checkForUpdate EXIT Call #${callId} duration=${duration}ms error:`, err);
+      void logProgressStage('[INSTRUMENTATION] checkForUpdate EXIT', `Call #${callId} failed err=${err instanceof Error ? err.message : String(err)} duration=${duration}ms`);
       console.error('[OTA] Update check failed:', err);
       if (isManual) {
         updateGlobalState({ error: 'Unable to contact the update server.' });
@@ -530,6 +552,7 @@ export function checkForUpdate(isManual = false): Promise<CentralizedOtaState> {
     } finally {
       if (checkId === latestCheckId) {
         activeCheckPromise = null;
+        activeCheckIsManual = false;
         lastCheckedTime = Date.now();
       }
     }
@@ -1014,14 +1037,93 @@ export function markUpdateSeen(): void {
   }
 }
 
+let isOtaInitialized = false;
+
+function initializeGlobalOtaListeners() {
+  if (isOtaInitialized) return;
+  isOtaInitialized = true;
+  console.log('[OTA] Initializing global listeners and background polling...');
+
+  const getAutoCheck = () => {
+    try {
+      return useChordStore.getState().settings.otaAutoCheck ?? true;
+    } catch {
+      return true;
+    }
+  };
+
+  const runCheck = (trigger: string, reason: string) => {
+    if (!getAutoCheck()) return;
+    void checkForUpdate(false, trigger, reason);
+  };
+
+  const initUpdater = () => {
+    console.log('[OTA] Running delayed updater startup (Phase 3)...');
+    void checkAndCleanCache();
+    if (globalOtaState.updateState === 'idle') {
+      void checkForUpdate(false, 'startup', 'App init check');
+    }
+  };
+
+  let introTimer: any = null;
+  if (typeof window !== 'undefined') {
+    if ((window as any).__introDone || sessionStorage.getItem('studio-intro-shown') === 'true') {
+      initUpdater();
+    } else {
+      const handleIntroDone = () => {
+        if (introTimer) clearTimeout(introTimer);
+        window.removeEventListener('studio-intro-done', handleIntroDone);
+        setTimeout(initUpdater, 1000);
+      };
+      window.addEventListener('studio-intro-done', handleIntroDone);
+      introTimer = setTimeout(handleIntroDone, 3000);
+    }
+  } else {
+    initUpdater();
+  }
+
+  const onVisibility = () => {
+    if (typeof document !== 'undefined' && document.visibilityState === 'visible') {
+      runCheck('lifecycle_visibility', 'visibilitychange visible');
+    }
+  };
+  const onFocus = () => { runCheck('lifecycle_focus', 'window focus'); };
+
+  if (typeof document !== 'undefined') {
+    document.addEventListener('visibilitychange', onVisibility);
+  }
+  if (typeof window !== 'undefined') {
+    window.addEventListener('focus', onFocus);
+    window.addEventListener('pageshow', onFocus);
+    window.addEventListener('online', onFocus);
+  }
+
+  if (isNative()) {
+    void (async () => {
+      try {
+        const { App } = await import('@capacitor/app');
+        await App.addListener('appStateChange', (s) => {
+          if (s.isActive) runCheck('lifecycle_appstate', 'native app active');
+        });
+      } catch {
+        /* plugin unavailable */
+      }
+    })();
+  }
+
+  const schedulePoll = () => {
+    setTimeout(async () => {
+      if (typeof document === 'undefined' || document.visibilityState === 'visible') {
+        runCheck('polling', 'periodic foreground poll');
+      }
+      schedulePoll();
+    }, FOREGROUND_POLL_MS);
+  };
+  schedulePoll();
+}
+
 export function useOtaUpdate() {
   const [state, setState] = useState<CentralizedOtaState>(globalOtaState);
-  const autoCheck = useChordStore((s) => s.settings.otaAutoCheck ?? true);
-  const autoCheckRef = useRef(autoCheck);
-
-  useEffect(() => {
-    autoCheckRef.current = autoCheck;
-  }, [autoCheck]);
 
   useEffect(() => {
     const listener = (newState: CentralizedOtaState) => {
@@ -1029,92 +1131,12 @@ export function useOtaUpdate() {
     };
     stateListeners.add(listener);
 
-    const initUpdater = () => {
-      console.log('[OTA] Running delayed updater startup (Phase 3)...');
-      void checkAndCleanCache();
-      if (globalOtaState.updateState === 'idle') {
-        void checkForUpdate();
-      }
-    };
-
-    let introTimer: any = null;
-    if (typeof window !== 'undefined') {
-      if ((window as any).__introDone || sessionStorage.getItem('studio-intro-shown') === 'true') {
-        initUpdater();
-      } else {
-        const handleIntroDone = () => {
-          if (introTimer) clearTimeout(introTimer);
-          window.removeEventListener('studio-intro-done', handleIntroDone);
-          setTimeout(initUpdater, 1000);
-        };
-        window.addEventListener('studio-intro-done', handleIntroDone);
-        introTimer = setTimeout(handleIntroDone, 3000);
-      }
-    } else {
-      initUpdater();
-    }
-
-    const runCheck = () => {
-      if (!autoCheckRef.current) return;
-      void checkForUpdate();
-    };
-
-    const onVisibility = () => {
-      if (typeof document !== 'undefined' && document.visibilityState === 'visible') {
-        runCheck();
-      }
-    };
-    const onFocus = () => { runCheck(); };
-
-    if (typeof document !== 'undefined') {
-      document.addEventListener('visibilitychange', onVisibility);
-    }
-    if (typeof window !== 'undefined') {
-      window.addEventListener('focus', onFocus);
-      window.addEventListener('pageshow', onFocus);
-      window.addEventListener('online', onFocus);
-    }
-
-    let nativeListener: { remove: () => Promise<void> } | undefined;
-    if (isNative()) {
-      void (async () => {
-        try {
-          const { App } = await import('@capacitor/app');
-          nativeListener = await App.addListener('appStateChange', (s) => {
-            if (s.isActive) runCheck();
-          });
-        } catch {
-          /* plugin unavailable */
-        }
-      })();
-    }
-
-    let pollTimer: ReturnType<typeof setTimeout> | null = null;
-    const schedulePoll = () => {
-      pollTimer = setTimeout(async () => {
-        if (typeof document === 'undefined' || document.visibilityState === 'visible') {
-          runCheck();
-        }
-        if (stateListeners.has(listener)) schedulePoll();
-      }, FOREGROUND_POLL_MS);
-    };
-    schedulePoll();
+    initializeGlobalOtaListeners();
 
     void nativeSet(NATIVE_PREFS.OTA_INSTALLED, APP_VERSION);
 
     return () => {
       stateListeners.delete(listener);
-      if (typeof document !== 'undefined') {
-        document.removeEventListener('visibilitychange', onVisibility);
-      }
-      if (typeof window !== 'undefined') {
-        window.removeEventListener('focus', onFocus);
-        window.removeEventListener('pageshow', onFocus);
-        window.removeEventListener('online', onFocus);
-      }
-      if (pollTimer) clearTimeout(pollTimer);
-      if (introTimer) clearTimeout(introTimer);
-      if (nativeListener) void nativeListener.remove().catch(() => {});
     };
   }, []);
 
@@ -1122,7 +1144,7 @@ export function useOtaUpdate() {
     if (typeof window !== 'undefined') {
       window.dispatchEvent(new CustomEvent('studio:open-update-dialog'));
     }
-    const res = await checkForUpdate(true);
+    const res = await checkForUpdate(true, 'settings_manual', 'user manual checkNow');
     return res;
   };
 

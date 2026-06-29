@@ -102,6 +102,7 @@ public class MainActivity extends BridgeActivity {
             processIncomingFile(sharedFileUriToProcess);
             sharedFileUriToProcess = null;
         }
+        handlePackageInstallerIntent(getIntent());
     }
 
     @Override
@@ -131,6 +132,16 @@ public class MainActivity extends BridgeActivity {
 
         if (targetUri != null) {
             processIncomingFile(targetUri);
+        }
+        handlePackageInstallerIntent(intent);
+    }
+
+    private void handlePackageInstallerIntent(Intent intent) {
+        if (intent == null) return;
+        String action = intent.getAction();
+        if ("com.chordex.app.SESSION_API_PACKAGE_INSTALLED".equals(action)) {
+            android.util.Log.i("MainActivity", "[INSTRUMENTATION] [NATIVE] Intercepted PackageInstaller intent in MainActivity: action=" + action);
+            new InstallReceiver().onReceive(this, intent);
         }
     }
 

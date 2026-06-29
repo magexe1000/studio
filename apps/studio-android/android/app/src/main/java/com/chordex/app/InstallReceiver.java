@@ -131,13 +131,26 @@ public class InstallReceiver extends BroadcastReceiver {
                     prefs.edit().putBoolean("confirmation_intent_received", true).apply();
                     AppInstallerPlugin.pendingConfirmIntent = confirmIntent;
                     try {
-                        if (AppInstallerPlugin.instance != null && AppInstallerPlugin.instance.getActivity() != null) {
-                            android.app.Activity activity = AppInstallerPlugin.instance.getActivity();
-                            Log.d(TAG, "[INSTRUMENTATION] [NATIVE] Starting confirmation intent from MainActivity context");
-                            activity.startActivity(confirmIntent);
+                        android.app.Activity activity = null;
+                        if (context instanceof android.app.Activity) {
+                            activity = (android.app.Activity) context;
+                        } else if (AppInstallerPlugin.instance != null && AppInstallerPlugin.instance.getActivity() != null) {
+                            activity = AppInstallerPlugin.instance.getActivity();
+                        }
+
+                        if (activity != null) {
+                            Log.d(TAG, "[INSTRUMENTATION] [NATIVE] Starting confirmation intent from active Activity context");
+                            if (android.os.Build.VERSION.SDK_INT >= 34) {
+                                android.app.ActivityOptions options = android.app.ActivityOptions.makeBasic();
+                                options.setPendingIntentBackgroundActivityStartMode(
+                                        android.app.ActivityOptions.MODE_BACKGROUND_ACTIVITY_START_ALLOWED);
+                                activity.startActivity(confirmIntent, options.toBundle());
+                            } else {
+                                activity.startActivity(confirmIntent);
+                            }
                             prefs.edit().putBoolean("confirmation_intent_started", true).apply();
                         } else {
-                            Log.w(TAG, "[INSTRUMENTATION] [NATIVE] MainActivity is not active or instance is null. Falling back to context.startActivity");
+                            Log.w(TAG, "[INSTRUMENTATION] [NATIVE] Activity context is null. Falling back to context.startActivity");
                             confirmIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
                             if (android.os.Build.VERSION.SDK_INT >= 34) {
                                 android.app.ActivityOptions options = android.app.ActivityOptions.makeBasic();

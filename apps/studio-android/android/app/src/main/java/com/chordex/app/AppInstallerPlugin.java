@@ -105,10 +105,43 @@ public class AppInstallerPlugin extends Plugin {
     public static void logNativeInstrumentation(Context context, String methodName, int callId, String event, String details) {
         String threadName = Thread.currentThread().getName();
         long threadId = Thread.currentThread().getId();
-        String message = String.format("[%s] Call #%d [Thread: %s (id: %d)] Details: %s", event, callId, threadName, threadId, details);
+        
+        String callerClass = "UnknownClass";
+        String callerMethod = "UnknownMethod";
+        String fileName = "UnknownFile";
+        int lineNumber = -1;
+        String stackTraceStr = "";
+        
+        try {
+            StackTraceElement[] elements = Thread.currentThread().getStackTrace();
+            for (int i = 2; i < elements.length; i++) {
+                StackTraceElement el = elements[i];
+                String cn = el.getClassName();
+                if (!cn.equals("com.chordex.app.AppInstallerPlugin") || (!el.getMethodName().equals("logNativeInstrumentation"))) {
+                    callerClass = cn;
+                    callerMethod = el.getMethodName();
+                    fileName = el.getFileName();
+                    lineNumber = el.getLineNumber();
+                    break;
+                }
+            }
+            
+            StringBuilder sb = new StringBuilder();
+            for (int i = 2; i < Math.min(elements.length, 12); i++) {
+                sb.append("\n\tat ").append(elements[i].toString());
+            }
+            stackTraceStr = sb.toString();
+        } catch (Exception ignored) {}
+        
+        long now = System.currentTimeMillis();
+        String message = String.format(
+            "[%s] Call #%d | Time: %d | Thread: %s (id: %d) | Caller: %s.%s(%s:%d) | Details: %s | Stack: %s",
+            event, callId, now, threadName, threadId, callerClass, callerMethod, fileName, lineNumber, details, stackTraceStr
+        );
+        
         Log.d("INSTRUMENTATION", "NATIVE: " + methodName + " " + message);
         if (context != null) {
-            InstallReceiver.appendLog(context, "[INSTRUMENTATION] " + methodName, 0, message, context.getPackageName(), null);
+            InstallReceiver.appendLog(context, "[INSTRUMENTATION] " + methodName, 0, message, context.getPackageName(), stackTraceStr);
         }
     }
 
@@ -515,6 +548,105 @@ public class AppInstallerPlugin extends Plugin {
             call.resolve();
         } catch (Exception e) {
             call.reject("Failed to append log: " + e.getMessage());
+        }
+    }
+
+    @PluginMethod
+    public void resumePendingInstall(PluginCall call) {
+        try {
+            if (pendingConfirmIntent != null) {
+                android.app.Activity activity = getActivity();
+                if (activity != null) {
+                    android.util.Log.i("AppInstallerPlugin", "[INSTRUMENTATION] [NATIVE] Relaunching pending confirmation intent via PluginMethod");
+                    if (android.os.Build.VERSION.SDK_INT >= 34) {
+                        android.app.ActivityOptions options = android.app.ActivityOptions.makeBasic();
+                        options.setPendingIntentBackgroundActivityStartMode(
+                                android.app.ActivityOptions.MODE_BACKGROUND_ACTIVITY_START_ALLOWED);
+                        activity.startActivity(pendingConfirmIntent, options.toBundle());
+                    } else {
+                        activity.startActivity(pendingConfirmIntent);
+                    }
+                    call.resolve();
+                } else {
+                    call.reject("MainActivity activity context is null");
+                }
+            } else {
+                call.reject("No pending confirmation intent exists");
+            }
+        } catch (Exception e) {
+            call.reject("Failed to resume pending install: " + e.getMessage(), e);
+        }
+    }
+
+    @PluginMethod
+    public void resumePackageInstallerSession(PluginCall call) {
+        try {
+            Context context = getContext();
+            SharedPreferences prefs = context.getSharedPreferences(InstallReceiver.PREFS_NAME, Context.MODE_PRIVATE);
+            int sessionId = prefs.getInt("session_id", -1);
+            if (sessionId == -1) {
+                call.reject("No active session ID stored in preferences");
+                return;
+            }
+            
+            PackageInstaller packageInstaller = context.getPackageManager().getPackageInstaller();
+            PackageInstaller.SessionInfo info = packageInstaller.getSessionInfo(sessionId);
+            if (info == null) {
+                call.reject("Session ID " + sessionId + " not found or already closed in PackageInstaller");
+                return;
+            }
+            
+            if (pendingConfirmIntent != null) {
+                android.app.Activity activity = getActivity();
+                if (activity != null) {
+                    if (android.os.Build.VERSION.SDK_INT >= 34) {
+                        android.app.ActivityOptions options = android.app.ActivityOptions.makeBasic();
+                        options.setPendingIntentBackgroundActivityStartMode(
+                                android.app.ActivityOptions.MODE_BACKGROUND_ACTIVITY_START_ALLOWED);
+                        activity.startActivity(pendingConfirmIntent, options.toBundle());
+                    } else {
+                        activity.startActivity(pendingConfirmIntent);
+                    }
+                    call.resolve();
+                } else {
+                    call.reject("Activity context is null");
+                }
+            } else {
+                call.resolve(); // Session is active in OS but no intent saved
+            }
+        } catch (Exception e) {
+            call.reject("Failed to resume session: " + e.getMessage(), e);
+        }
+    }
+
+    @PluginMethod
+    public void recreateActivity(PluginCall call) {
+        try {
+            final android.app.Activity activity = getActivity();
+            if (activity != null) {
+                activity.runOnUiThread(new Runnable() {
+                    @Override
+                    public void run() {
+                        activity.recreate();
+                    }
+                });
+                call.resolve();
+            } else {
+                call.reject("Activity context is null");
+            }
+        } catch (Exception e) {
+            call.reject("Failed to recreate activity: " + e.getMessage());
+        }
+    }
+
+    @PluginMethod
+    public void killProcess(PluginCall call) {
+        try {
+            android.util.Log.i("AppInstallerPlugin", "Killing app process via System.exit(0)");
+            System.exit(0);
+            call.resolve();
+        } catch (Exception e) {
+            call.reject("Failed to kill process: " + e.getMessage());
         }
     }
 
@@ -950,6 +1082,7 @@ public class AppInstallerPlugin extends Plugin {
             PendingIntent pendingIntent;
             try {
                 Intent intent = new Intent(context, InstallReceiver.class);
+                intent.setPackage(context.getPackageName());
                 intent.setAction("com.chordex.app.SESSION_API_PACKAGE_INSTALLED");
                 
                 int pendingFlags = PendingIntent.FLAG_UPDATE_CURRENT;

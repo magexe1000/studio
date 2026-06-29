@@ -4179,8 +4179,8 @@ User Agent: [Automatically Generated]
 
           <SettingsSectionLabel>2. Update System</SettingsSectionLabel>
           <div style={cardStyle}>
-            <DevButtonRow label="Check For Updates" desc="Run default foreground query" actionLabel="Check" actionId="check-normal" onPress={() => wrapAction('check-normal', async () => { await checkForUpdate(false); })} />
-            <DevButtonRow label="Force Update Check" desc="Bypass all skip & check intervals" actionLabel="Force Check" actionId="check-force" onPress={() => wrapAction('check-force', async () => { await checkForUpdate(true); })} />
+            <DevButtonRow label="Check For Updates" desc="Run default foreground query" actionLabel="Check" actionId="check-normal" onPress={() => wrapAction('check-normal', async () => { await checkForUpdate(false, 'developer_settings', 'Check For Updates button tapped'); })} />
+            <DevButtonRow label="Force Update Check" desc="Bypass all skip & check intervals" actionLabel="Force Check" actionId="check-force" onPress={() => wrapAction('check-force', async () => { await checkForUpdate(true, 'developer_settings', 'Force Update Check button tapped'); })} />
             <DevButtonRow label="Clear Update Cache" desc="Delete downloaded APK files & paths" actionLabel="Clear" actionId="clear-cache" onPress={handleClearUpdateCacheAction} isDestructive />
             <DevButtonRow label="Clear Dismissed Versions" desc="Reset choices for skipped versions" actionLabel="Clear" actionId="clear-dismissed" onPress={handleClearDismissedAction} />
             <DevButtonRow label="Clear Applied Versions" desc="Reset installed update database" actionLabel="Clear" actionId="clear-applied" onPress={handleClearAppliedAction} />
