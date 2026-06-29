@@ -1,4 +1,4 @@
 ### Fixed
-- Fixed Android 14+ background PackageInstaller confirmation dialog block by launching the confirmation intent using the BroadcastReceiver context with FLAG_ACTIVITY_NEW_TASK.
-- Permanently resolved the background activity launch (BAL) restriction on newer Android versions.
-- Fully instrumented the updater pipeline with detailed native and JS telemetry logs.
+- Completely eliminated minified React errors from the Engineering Lab and DevTools by implementing an automatic inline React error decoder.
+- Upgraded the global Error Boundary to capture full component Fiber contexts, including props, states, and hook dependency stacks.
+- Prevented potential TypeError rendering crashes during initial Hub load by adding a robust translation fallback for the settings namespace.

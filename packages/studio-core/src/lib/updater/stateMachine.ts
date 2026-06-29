@@ -171,6 +171,9 @@ export function transitionToState(state: OtaUpdateState, reason: string) {
     /* ignore */
   }
 
+  if (typeof window !== 'undefined') {
+    (window as any).__lastOtaTransition = `${current} -> ${state} (${reason})`;
+  }
   console.log(`[INSTRUMENTATION] [JS_STATE] Transition: ${current} -> ${state} | Reason: ${reason} | Caller: ${caller} | Thread: Main JS Thread | Stack: ${stackTrace}`);
   if (state === 'idle') {
     console.log(`[INSTRUMENTATION] [JS_STATE_IDLE_EXPLANATION] State transitioned to IDLE. Previous State: ${current} | Reason: ${reason} | Caller: ${caller}`);

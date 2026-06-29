@@ -1,5 +1,5 @@
 import React, { Component, ErrorInfo, ReactNode } from 'react';
-import { useChordStore } from '@workspace/studio-core';
+import { useChordStore, globalOtaState } from '@workspace/studio-core';
 
 const CHARS = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
 const CHAR_MAP: Record<string, number> = {};
@@ -189,6 +189,166 @@ async function symbolicateStack(stack: string): Promise<string> {
   return resultLines.join("\n");
 }
 
+export function decodeReactError(code: string): { message: string; cause: string; fix: string } | null {
+  if (code === '300') {
+    return {
+      message: "Rendered fewer hooks than expected. This occurs when the order of Hook calls changes between renders (e.g. conditional early return before a Hook).",
+      cause: "React's internal hook counter detected that fewer hooks were called during the current render compared to the previous render. This usually happens when a hook is placed after a conditional early return statement, or inside an 'if' block that became false.",
+      fix: "Ensure all hooks (useState, useEffect, useMemo, useCallback, etc.) are called unconditionally at the very top level of your component, before any conditional logic or early returns."
+    };
+  }
+  if (code === '310') {
+    return {
+      message: "Rendered more hooks than during the previous render. This occurs when the order of Hook calls changes between renders.",
+      cause: "React's internal hook counter detected that more hooks were called during the current render compared to the previous render. This typically happens when a hook is placed inside a conditional block or a loop that was skipped in a previous render but executed in the current one.",
+      fix: "Ensure all hooks (useState, useEffect, useMemo, useCallback, etc.) are called unconditionally at the very top level of your component. Never call hooks inside loops, conditions, or nested functions."
+    };
+  }
+  return null;
+}
+
+function safeStringify(obj: any, maxDepth = 3): string {
+  const seen = new WeakSet();
+  function serializer(key: string, value: any, depth = 0): any {
+    if (depth > maxDepth) return '[Max Depth Reached]';
+    if (value !== null && typeof value === 'object') {
+      if (seen.has(value)) {
+        return '[Circular]';
+      }
+      seen.add(value);
+      const newObj: any = Array.isArray(value) ? [] : {};
+      for (const k in value) {
+        try {
+          newObj[k] = serializer(k, value[k], depth + 1);
+        } catch (_) {
+          newObj[k] = '[Unreadable]';
+        }
+      }
+      seen.delete(value);
+      return newObj;
+    }
+    if (typeof value === 'function') {
+      return `[Function: ${value.name || 'anonymous'}]`;
+    }
+    return value;
+  }
+  try {
+    return JSON.stringify(serializer('', obj), null, 2);
+  } catch (_) {
+    return '[Serialization Failed]';
+  }
+}
+
+function parseComponentFrame(frameStr: string) {
+  const match = /in\s+([^\s(]+)\s+\(at\s+([^)]+?):(\d+)(?::(\d+))?\)/.exec(frameStr);
+  if (match) {
+    return {
+      componentName: match[1],
+      filePath: match[2],
+      line: parseInt(match[3], 10),
+      column: match[4] ? parseInt(match[4], 10) : null
+    };
+  }
+  return null;
+}
+
+function extractFiberDiagnostics(boundaryFiber: any, componentStack: string) {
+  if (!boundaryFiber) return null;
+
+  const topComponentMatch = /in\s+([^\s(]+)/.exec(componentStack);
+  const topComponentName = topComponentMatch ? topComponentMatch[1] : null;
+
+  let matchedFiber: any = null;
+
+  function traverse(fiber: any) {
+    if (!fiber || matchedFiber) return;
+
+    let name = '';
+    if (typeof fiber.type === 'function') {
+      name = fiber.type.name || fiber.type.displayName || '';
+    } else if (fiber.type && typeof fiber.type === 'object') {
+      name = fiber.type.displayName || fiber.type.name || '';
+    }
+
+    if (name && topComponentName && name === topComponentName) {
+      matchedFiber = fiber;
+      return;
+    }
+
+    let child = fiber.child;
+    while (child) {
+      traverse(child);
+      child = child.sibling;
+    }
+  }
+
+  traverse(boundaryFiber);
+
+  if (!matchedFiber) {
+    function findFirstComponent(fiber: any): any {
+      if (!fiber) return null;
+      if (typeof fiber.type === 'function' || (fiber.type && typeof fiber.type === 'object')) {
+        return fiber;
+      }
+      let child = fiber.child;
+      while (child) {
+        const found = findFirstComponent(child);
+        if (found) return found;
+        child = child.sibling;
+      }
+      return null;
+    }
+    matchedFiber = findFirstComponent(boundaryFiber);
+  }
+
+  if (!matchedFiber) return null;
+
+  const props = matchedFiber.memoizedProps;
+  const rawState = matchedFiber.memoizedState;
+
+  const hooks: any[] = [];
+  let isFunctional = false;
+  
+  if (rawState && typeof rawState === 'object' && 'memoizedState' in rawState) {
+    isFunctional = true;
+    let currentHook = rawState;
+    let index = 0;
+    while (currentHook) {
+      let hookType = 'unknown';
+      let deps: any = null;
+      let val: any = currentHook.memoizedState;
+
+      if (Array.isArray(val) && val.length === 2 && Array.isArray(val[1])) {
+        deps = val[1];
+        val = val[0];
+        hookType = 'useMemo / useCallback';
+      } else if (val && typeof val === 'object' && 'create' in val && 'deps' in val) {
+        deps = val.deps;
+        val = '[Effect Function]';
+        hookType = 'useEffect / useLayoutEffect';
+      } else {
+        hookType = 'useState / useReducer / useRef';
+      }
+
+      hooks.push({
+        index,
+        type: hookType,
+        value: val,
+        dependencies: deps
+      });
+      currentHook = currentHook.next;
+      index++;
+    }
+  }
+
+  return {
+    componentName: topComponentName || matchedFiber.type?.name || 'Unknown',
+    props,
+    state: isFunctional ? null : rawState,
+    hooks: hooks.length > 0 ? hooks : null
+  };
+}
+
 async function generateSymbolicatedReport(logEntry: any): Promise<string> {
   const errorInfo = parseReactErrorCode(logEntry.message);
   
@@ -196,7 +356,61 @@ async function generateSymbolicatedReport(logEntry: any): Promise<string> {
   try {
     symbolicatedStack = await symbolicateStack(logEntry.stack);
   } catch (_) {}
-  
+
+  let symbolicatedComponentStack = logEntry.componentStack;
+  try {
+    symbolicatedComponentStack = await symbolicateStack(logEntry.componentStack);
+  } catch (_) {}
+
+  let exactComponent = 'Unknown';
+  let exactFile = 'Unknown';
+  let exactLine = 'Unknown';
+  let exactColumn = 'Unknown';
+
+  if (symbolicatedComponentStack) {
+    const lines = symbolicatedComponentStack.split('\n');
+    for (const line of lines) {
+      const parsedFrame = parseComponentFrame(line);
+      if (parsedFrame) {
+        exactComponent = parsedFrame.componentName;
+        exactFile = parsedFrame.filePath;
+        exactLine = String(parsedFrame.line);
+        exactColumn = parsedFrame.column ? String(parsedFrame.column) : 'N/A';
+        break;
+      }
+    }
+  }
+
+  const decoded = decodeReactError(errorInfo.code || '');
+  let decodedSection = '';
+  if (decoded) {
+    decodedSection = `
+=== DECODED REACT ERROR EXPLANATION ===
+Message: ${decoded.message}
+Potential Cause: ${decoded.cause}
+Recommended Fix: ${decoded.fix}
+=======================================`;
+  }
+
+  let propsStr = 'N/A';
+  let stateStr = 'N/A';
+  let hooksStr = 'N/A';
+
+  if (logEntry.fiberDiagnostics) {
+    const fd = logEntry.fiberDiagnostics;
+    if (fd.props) propsStr = safeStringify(fd.props);
+    if (fd.state) stateStr = safeStringify(fd.state);
+    if (fd.hooks) {
+      hooksStr = fd.hooks.map((h: any) => {
+        let hStr = `  Hook #${h.index} (${h.type}):\n    Value: ${safeStringify(h.value, 1).replace(/\\n/g, '\n    ')}`;
+        if (h.dependencies) {
+          hStr += `\n    Dependencies: ${safeStringify(h.dependencies, 1).replace(/\\n/g, '\n    ')}`;
+        }
+        return hStr;
+      }).join('\n\n');
+    }
+  }
+
   return `=== SYMBOLICATED REACT ERROR REPORT ===
 Timestamp: ${new Date(logEntry.timestamp).toISOString()}
 App Mode: ${logEntry.appMode}
@@ -206,6 +420,26 @@ Checkpoint Stage: ${logEntry.checkpointStage}
 Return In Progress: ${logEntry.returnInProgress}
 Watchdog Running: ${logEntry.watchdogRunning}
 Last Navigation Action: ${logEntry.lastNavigationAction}
+Last OTA Transition: ${logEntry.lastOtaTransition || 'N/A'}
+Current Updater State: ${logEntry.currentUpdaterState || 'N/A'}
+
+=== EXPLICIT DIAGNOSTIC DETAILS ===
+Exact Component: ${exactComponent}
+Exact TSX File: ${exactFile}
+Exact Line: ${exactLine}
+Exact Column: ${exactColumn}
+===================================${decodedSection}
+
+=== COMPONENT FIBER CONTEXT ===
+Props:
+${propsStr}
+
+State:
+${stateStr}
+
+Hooks Stack:
+${hooksStr}
+================================
 
 React Error Code: ${errorInfo.code || 'N/A'}
 React Error URL: ${errorInfo.url || 'N/A'}
@@ -217,7 +451,7 @@ Symbolicated Stack Trace:
 ${symbolicatedStack}
 
 Component Stack:
-${logEntry.componentStack}
+${symbolicatedComponentStack}
 ========================================`;
 }
 
@@ -307,6 +541,19 @@ export class ErrorBoundary extends Component<Props, State> {
 
       const shouldSuppress = returnInProgress && !isDevMode;
 
+      const hostFiber = (this as any)._reactInternals || (this as any)._reactInternalFiber;
+      const fiberDiag = extractFiberDiagnostics(hostFiber, errorInfo?.componentStack || '');
+
+      let currentUpdaterState = 'unknown';
+      try {
+        currentUpdaterState = globalOtaState.updateState;
+      } catch (_) {}
+
+      let lastOtaTransition = 'none';
+      if (typeof window !== 'undefined') {
+        lastOtaTransition = (window as any).__lastOtaTransition || 'none';
+      }
+
       const logEntry = {
         timestamp: this.errorTimestamp,
         message: error?.message || '',
@@ -323,7 +570,10 @@ export class ErrorBoundary extends Component<Props, State> {
         returnInProgress,
         watchdogRunning,
         suppressed: shouldSuppress,
-        recovered: false
+        recovered: false,
+        currentUpdaterState,
+        lastOtaTransition,
+        fiberDiagnostics: fiberDiag
       };
 
       try {

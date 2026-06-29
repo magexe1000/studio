@@ -44,6 +44,8 @@ import {
   AppInstaller
 } from '@workspace/studio-core';
 
+import { decodeReactError } from './ErrorBoundary';
+
 interface Props {
   accent: { from: string; mid?: string; to: string };
   onBack: () => void;
@@ -3018,6 +3020,44 @@ export default function DevToolsDashboard({ accent, onBack }: Props) {
               <span style={{ background: '#ef4444', color: '#fff', fontSize: 9, fontWeight: 900, padding: '2px 6px', borderRadius: 4 }}>{err.module.toUpperCase()}</span>
             </div>
             <div style={{ fontSize: 13, fontWeight: 700, color: '#fca5a5', fontFamily: 'monospace', marginBottom: 8 }}>{err.message}</div>
+            {(() => {
+              const codeMatch = /Minified React error #(\d+)/i.exec(err.message);
+              if (codeMatch) {
+                const code = codeMatch[1];
+                const decoded = decodeReactError(code);
+                if (decoded) {
+                  return (
+                    <div style={{ marginTop: 8, marginBottom: 8, padding: 10, background: 'rgba(59, 91, 219, 0.08)', border: '1px solid rgba(59, 91, 219, 0.2)', borderRadius: 8, fontSize: 11, color: '#d2d6dc', lineHeight: 1.4, textAlign: 'left' }}>
+                      <div style={{ fontWeight: 800, color: '#748ffc', marginBottom: 4 }}>Decoded React Error #${code}:</div>
+                      <div style={{ fontStyle: 'italic', marginBottom: 6 }}>{decoded.message}</div>
+                      <div style={{ marginBottom: 6 }}><strong style={{ color: '#a5b4fc' }}>Potential Cause:</strong> {decoded.cause}</div>
+                      <div style={{ marginBottom: 8 }}><strong style={{ color: '#a5b4fc' }}>Recommended Fix:</strong> {decoded.fix}</div>
+                      <button
+                        onClick={() => {
+                          const explanation = `=== DECODED REACT ERROR #${code} ===\nMessage: ${decoded.message}\n\nPotential Cause: ${decoded.cause}\n\nRecommended Fix: ${decoded.fix}`;
+                          navigator.clipboard.writeText(explanation);
+                          alert("React error explanation copied to clipboard!");
+                        }}
+                        style={{
+                          background: 'rgba(59, 91, 219, 0.2)',
+                          border: '1px solid rgba(59, 91, 219, 0.4)',
+                          color: '#9eb2ff',
+                          borderRadius: 6,
+                          fontSize: 10,
+                          padding: '4px 8px',
+                          cursor: 'pointer',
+                          fontFamily: 'Manrope',
+                          fontWeight: 700
+                        }}
+                      >
+                        Copy Decoded Explanation
+                      </button>
+                    </div>
+                  );
+                }
+              }
+              return null;
+            })()}
             {err.stack && (
               <pre style={{ margin: 0, padding: 8, background: 'rgba(0,0,0,0.3)', borderRadius: 6, fontSize: 10, fontFamily: 'monospace', color: 'rgba(255,255,255,0.6)', overflowX: 'auto', whiteSpace: 'pre-wrap', maxHeight: 150, overflowY: 'auto' }}>
                 {err.stack}

@@ -42,9 +42,23 @@ function buildTranslations(lang: string): Translations {
   const hub = (merged.hub as Record<string, unknown>) ?? {};
   const acct = (hub.accountSection as Record<string, unknown>) ?? {};
   const studioSets = (hub.studioSettings as Record<string, unknown>) ?? {};
+  const settings = (merged.settings as Record<string, unknown>) ?? {};
+  const sections = (settings.sections as Record<string, unknown>) ?? {};
+  const rows = (settings.rows as Record<string, unknown>) ?? {};
+  const colors = (settings.colors as Record<string, unknown>) ?? {};
+  const langOpts = (settings.language as Record<string, unknown>) ?? {};
+  const about = (settings.about as Record<string, unknown>) ?? {};
 
   return {
     ...merged,
+    settings: {
+      ...settings,
+      sections: { ...sections },
+      rows: { ...rows },
+      colors: { ...colors },
+      language: { ...langOpts },
+      about: { ...about },
+    },
     library: {
       ...((merged.library as Record<string, unknown>) ?? {}),
       results: (n: number) => tr('library.results', { count: n }),

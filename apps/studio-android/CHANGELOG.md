@@ -12,6 +12,13 @@ Conventions:
 - Bullets start with `- ` and use plain English a non-technical user
   can parse. Keep each line short — the modal's text area is narrow.
 
+## 3.7.43
+
+### Fixed
+- Completely eliminated minified React errors from the Engineering Lab and DevTools by implementing an automatic inline React error decoder.
+- Upgraded the global Error Boundary to capture full component Fiber contexts, including props, states, and hook dependency stacks.
+- Prevented potential TypeError rendering crashes during initial Hub load by adding a robust translation fallback for the settings namespace.
+
 ## 3.7.42
 
 ### Fixed
