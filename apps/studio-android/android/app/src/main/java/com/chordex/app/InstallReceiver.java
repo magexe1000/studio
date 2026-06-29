@@ -130,39 +130,18 @@ public class InstallReceiver extends BroadcastReceiver {
                 if (confirmIntent != null) {
                     prefs.edit().putBoolean("confirmation_intent_received", true).apply();
                     AppInstallerPlugin.pendingConfirmIntent = confirmIntent;
+                    confirmIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
                     try {
-                        android.app.Activity activity = null;
-                        if (context instanceof android.app.Activity) {
-                            activity = (android.app.Activity) context;
-                        } else if (AppInstallerPlugin.instance != null && AppInstallerPlugin.instance.getActivity() != null) {
-                            activity = AppInstallerPlugin.instance.getActivity();
-                        }
-
-                        if (activity != null) {
-                            Log.d(TAG, "[INSTRUMENTATION] [NATIVE] Starting confirmation intent from active Activity context");
-                            if (android.os.Build.VERSION.SDK_INT >= 34) {
-                                android.app.ActivityOptions options = android.app.ActivityOptions.makeBasic();
-                                options.setPendingIntentBackgroundActivityStartMode(
-                                        android.app.ActivityOptions.MODE_BACKGROUND_ACTIVITY_START_ALLOWED);
-                                activity.startActivity(confirmIntent, options.toBundle());
-                            } else {
-                                activity.startActivity(confirmIntent);
-                            }
-                            prefs.edit().putBoolean("confirmation_intent_started", true).apply();
+                        Log.d(TAG, "[INSTRUMENTATION] [NATIVE] Starting PackageInstaller confirmation intent using BroadcastReceiver context with FLAG_ACTIVITY_NEW_TASK");
+                        if (android.os.Build.VERSION.SDK_INT >= 34) {
+                            android.app.ActivityOptions options = android.app.ActivityOptions.makeBasic();
+                            options.setPendingIntentBackgroundActivityStartMode(
+                                    android.app.ActivityOptions.MODE_BACKGROUND_ACTIVITY_START_ALLOWED);
+                            context.startActivity(confirmIntent, options.toBundle());
                         } else {
-                            Log.w(TAG, "[INSTRUMENTATION] [NATIVE] Activity context is null. Falling back to context.startActivity");
-                            confirmIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-                            if (android.os.Build.VERSION.SDK_INT >= 34) {
-                                android.app.ActivityOptions options = android.app.ActivityOptions.makeBasic();
-                                options.setPendingIntentBackgroundActivityStartMode(
-                                        android.app.ActivityOptions.MODE_BACKGROUND_ACTIVITY_START_ALLOWED);
-                                context.startActivity(confirmIntent, options.toBundle());
-                                prefs.edit().putBoolean("confirmation_intent_started", true).apply();
-                            } else {
-                                context.startActivity(confirmIntent);
-                                prefs.edit().putBoolean("confirmation_intent_started", true).apply();
-                            }
+                            context.startActivity(confirmIntent);
                         }
+                        prefs.edit().putBoolean("confirmation_intent_started", true).apply();
                     } catch (Exception e) {
                         Log.e(TAG, "[INSTRUMENTATION] [NATIVE] Failed to start confirmation intent", e);
                         appendLog(context, "Install Failure", status, "Failed to start confirmation intent: " + e.getMessage(), otherPackageName, null);

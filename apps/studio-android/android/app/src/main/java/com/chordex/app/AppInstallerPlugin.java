@@ -133,10 +133,20 @@ public class AppInstallerPlugin extends Plugin {
             stackTraceStr = sb.toString();
         } catch (Exception ignored) {}
         
+        long sessionId = -1;
+        String sessionState = "N/A";
+        if (context != null) {
+            try {
+                SharedPreferences prefs = context.getSharedPreferences(InstallReceiver.PREFS_NAME, Context.MODE_PRIVATE);
+                sessionId = prefs.getInt("session_id", -1);
+                sessionState = prefs.getString("session_state", "N/A");
+            } catch (Exception ignored) {}
+        }
+        
         long now = System.currentTimeMillis();
         String message = String.format(
-            "[%s] Call #%d | Time: %d | Thread: %s (id: %d) | Caller: %s.%s(%s:%d) | Details: %s | Stack: %s",
-            event, callId, now, threadName, threadId, callerClass, callerMethod, fileName, lineNumber, details, stackTraceStr
+            "[%s] Call #%d | Time: %d | Thread: %s (id: %d) | SessionID: %d | SessionState: %s | Caller: %s.%s(%s:%d) | Details: %s | Stack: %s",
+            event, callId, now, threadName, threadId, sessionId, sessionState, callerClass, callerMethod, fileName, lineNumber, details, stackTraceStr
         );
         
         Log.d("INSTRUMENTATION", "NATIVE: " + methodName + " " + message);

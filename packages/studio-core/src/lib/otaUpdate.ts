@@ -44,6 +44,54 @@ import {
 
 import { detectJustUpdated, writeLastSeen } from './updater/versionManager';
 
+export function logDetailedJsTrace(
+  functionName: string,
+  fileName: string,
+  line: number,
+  details: string,
+  extra?: {
+    durationMs?: number;
+    sessionId?: number | string;
+    prevState?: string;
+    nextState?: string;
+    reason?: string;
+  }
+) {
+  const timestamp = Date.now();
+  const thread = "Main JS Thread";
+  let stackTrace = "N/A";
+  let caller = "Unknown";
+  try {
+    const err = new Error();
+    if (err.stack) {
+      stackTrace = err.stack;
+      const lines = err.stack.split('\n');
+      if (lines.length > 2) {
+        caller = lines[2].trim();
+      }
+    }
+  } catch {}
+
+  const logObj = {
+    timestamp,
+    thread,
+    caller,
+    function: functionName,
+    file: fileName,
+    line,
+    stackTrace,
+    durationMs: extra?.durationMs ?? null,
+    sessionId: extra?.sessionId ?? globalOtaState.sessionId ?? localStorage.getItem('studio:installer_session_id') ?? 'N/A',
+    prevState: extra?.prevState ?? globalOtaState.updateState,
+    nextState: extra?.nextState ?? null,
+    reason: extra?.reason ?? null,
+    details
+  };
+
+  console.log(`[INSTRUMENTATION] [JS_TRACE] ${JSON.stringify(logObj, null, 2)}`);
+  void logProgressStage(`[JS_TRACE] ${functionName}`, `${details} | State: ${globalOtaState.updateState}`);
+}
+
 export {
   globalOtaState,
   otaDebugLogs,
@@ -275,19 +323,18 @@ export function checkForUpdate(isManual = false, trigger = 'unknown', reason = '
     /* ignore */
   }
 
-  console.log(`[INSTRUMENTATION] checkForUpdate ENTER Call #${callId} (isManual=${isManual}, trigger=${trigger}, reason=${reason}, caller=${callerInfo})`);
-  void logProgressStage('[INSTRUMENTATION] checkForUpdate ENTER', `Call #${callId} isManual=${isManual} trigger=${trigger} reason=${reason} caller=${callerInfo}`);
+  logDetailedJsTrace('checkForUpdate', 'otaUpdate.ts', 326, `Entering checkForUpdate Call #${callId}`, { prevState: globalOtaState.updateState, reason: `Trigger: ${trigger} | Reason: ${reason}` });
 
   if (activeCheckPromise) {
     if (isManual) {
       activeCheckIsManual = true;
     }
-    console.log(`[INSTRUMENTATION] checkForUpdate EXIT Call #${callId} (Early return: reusing activeCheckPromise)`);
+    logDetailedJsTrace('checkForUpdate', 'otaUpdate.ts', 333, `Exiting checkForUpdate Call #${callId} early (reusing activeCheckPromise)`, { prevState: globalOtaState.updateState });
     return activeCheckPromise;
   }
 
   const checkId = ++latestCheckId;
-  console.log(`[INSTRUMENTATION] checkForUpdate STARTING NEW CHECK Call #${callId} (checkId=${checkId})`);
+  logDetailedJsTrace('checkForUpdate', 'otaUpdate.ts', 338, `Starting new update check (checkId=${checkId})`, { prevState: globalOtaState.updateState });
 
   if (!isManual) {
     const now = Date.now();
@@ -534,14 +581,11 @@ export function checkForUpdate(isManual = false, trigger = 'unknown', reason = '
       }
 
       const duration = Date.now() - startTime;
-      console.log(`[INSTRUMENTATION] checkForUpdate EXIT Call #${callId} duration=${duration}ms resolvedState=${globalOtaState.updateState}`);
-      void logProgressStage('[INSTRUMENTATION] checkForUpdate EXIT', `Call #${callId} resolvedState=${globalOtaState.updateState} duration=${duration}ms`);
+      logDetailedJsTrace('checkForUpdate', 'otaUpdate.ts', 584, `Exiting checkForUpdate Call #${callId} successfully`, { durationMs: duration, prevState: 'checking', nextState: globalOtaState.updateState });
       return globalOtaState;
     } catch (err) {
       const duration = Date.now() - startTime;
-      console.error(`[INSTRUMENTATION] checkForUpdate EXIT Call #${callId} duration=${duration}ms error:`, err);
-      void logProgressStage('[INSTRUMENTATION] checkForUpdate EXIT', `Call #${callId} failed err=${err instanceof Error ? err.message : String(err)} duration=${duration}ms`);
-      console.error('[OTA] Update check failed:', err);
+      logDetailedJsTrace('checkForUpdate', 'otaUpdate.ts', 589, `Exiting checkForUpdate Call #${callId} with error`, { durationMs: duration, prevState: 'checking', nextState: globalOtaState.updateState, reason: err instanceof Error ? err.message : String(err) });
       if (isManual) {
         updateGlobalState({ error: 'Unable to contact the update server.' });
         transitionToState('failed', 'Manual check exception');
@@ -588,18 +632,16 @@ export async function checkAndCleanCache(): Promise<boolean> {
 
 export function downloadUpdate(trigger?: string): Promise<void> {
   const callId = nextJsCallId();
-  console.log(`[INSTRUMENTATION] downloadUpdate ENTER Call #${callId} (trigger=${trigger})`);
-  void logProgressStage('[INSTRUMENTATION] downloadUpdate ENTER', `Call #${callId} trigger=${trigger}`);
+  logDetailedJsTrace('downloadUpdate', 'otaUpdate.ts', 634, `Entering downloadUpdate Call #${callId}`, { prevState: globalOtaState.updateState, reason: `Trigger: ${trigger}` });
 
   if (activeDownloadPromise) {
-    console.log(`[INSTRUMENTATION] downloadUpdate EXIT Call #${callId} (Early return: activeDownloadPromise is running)`);
-    void logProgressStage('[INSTRUMENTATION] downloadUpdate EXIT', `Call #${callId} early exit (activeDownloadPromise running)`);
+    logDetailedJsTrace('downloadUpdate', 'otaUpdate.ts', 639, `Exiting downloadUpdate Call #${callId} early (activeDownloadPromise running)`, { prevState: globalOtaState.updateState });
     return activeDownloadPromise;
   }
 
   const ver = globalOtaState.remoteVersion;
   if (!ver) {
-    console.log(`[INSTRUMENTATION] downloadUpdate EXIT Call #${callId} (Early return: no remoteVersion)`);
+    logDetailedJsTrace('downloadUpdate', 'otaUpdate.ts', 645, `Exiting downloadUpdate Call #${callId} early (missing remoteVersion)`, { prevState: globalOtaState.updateState });
     return Promise.resolve();
   }
 
@@ -704,12 +746,14 @@ export function downloadUpdate(trigger?: string): Promise<void> {
           if (updaterSimulation.forceResumeDownload) {
             addJsLog('Simulation override: Forcing download resumption mode');
           }
+          logDetailedJsTrace('downloadUpdate', 'otaUpdate.ts', 749, 'Starting APK download from URL: ' + apkUrl);
           filePath = await downloadUpdateApk({
             url: apkUrl,
             version: ver,
             manualApkUrl: (globalOtaState as any).manualApkUrl,
             fallbackApkUrl: (globalOtaState as any).fallbackApkUrl,
           });
+          logDetailedJsTrace('downloadUpdate', 'otaUpdate.ts', 755, 'APK download completed successfully. File path: ' + filePath);
         } catch (dlErr) {
           transitionToState('download_failed', 'APK download execution failed');
           throw dlErr;
@@ -720,6 +764,7 @@ export function downloadUpdate(trigger?: string): Promise<void> {
       void logProgressStage('Download completed', 'Path: ' + filePath);
 
       transitionToState('verifying_sha', 'Verifying checksum');
+      logDetailedJsTrace('downloadUpdate', 'otaUpdate.ts', 764, 'Starting SHA-256 integrity verification. Expected: ' + (globalOtaState as any).apkSha256);
       if (updaterSimulation.forceShaFailure) {
         addJsLog('Simulation override: Injecting SHA checksum failure!');
         transitionToState('sha_failed', 'Simulated checksum failure');
@@ -738,6 +783,7 @@ export function downloadUpdate(trigger?: string): Promise<void> {
         if (expectedHash) {
           try {
             await verifyFileIntegrity(filePath, expectedHash);
+            logDetailedJsTrace('downloadUpdate', 'otaUpdate.ts', 783, 'SHA-256 integrity verification passed');
           } catch (shaErr) {
             transitionToState('sha_failed', 'SHA integrity check failed');
             throw shaErr;
@@ -761,6 +807,7 @@ export function downloadUpdate(trigger?: string): Promise<void> {
       otaDebugLogs.downloadStatus += `\nRunning pre-install eligibility check...`;
       transitionToState('verifying_eligibility', 'Checking eligibility');
       updateGlobalState({ statusText: 'Checking eligibility...' });
+      logDetailedJsTrace('downloadUpdate', 'otaUpdate.ts', 806, 'Starting pre-install eligibility check');
 
       const isEligible = await (async () => {
         if (updaterSimulation.forceSignatureMismatch) {
@@ -775,6 +822,7 @@ export function downloadUpdate(trigger?: string): Promise<void> {
         }
         return await runEligibilityCheck(filePath, isDowngrade);
       })();
+      logDetailedJsTrace('downloadUpdate', 'otaUpdate.ts', 820, 'Pre-install eligibility check completed. Result: ' + isEligible);
 
       if (!isEligible) {
         if (otaDebugLogs.eligibilityReason === 'signature_mismatch' && !isRecovering) {
@@ -794,14 +842,11 @@ export function downloadUpdate(trigger?: string): Promise<void> {
       localStorage.removeItem('studio:downloadedBundleId');
       addToStoredList('studio:downloadedVersions', ver);
 
-      console.log(`[INSTRUMENTATION] downloadUpdate EXIT Call #${callId} Resolved successfully (Paused at ready_to_install, waiting for user click)`);
-      void logProgressStage('[INSTRUMENTATION] downloadUpdate EXIT', `Call #${callId} resolved (Paused at ready_to_install, waiting for user click)`);
+      logDetailedJsTrace('downloadUpdate', 'otaUpdate.ts', 797, `Exiting downloadUpdate Call #${callId} successfully (ready_to_install)`, { prevState: 'verifying_eligibility', nextState: globalOtaState.updateState });
     } catch (err) {
-      console.error(`[INSTRUMENTATION] downloadUpdate EXIT Call #${callId} error:`, err);
-      void logProgressStage('[INSTRUMENTATION] downloadUpdate EXIT', `Call #${callId} failed err=${err instanceof Error ? err.message : String(err)}`);
-      console.error('[OTA] APK download failed:', err);
       const errMsg = err instanceof Error ? err.message : String(err);
       const errStack = (err instanceof Error && err.stack ? err.stack : null);
+      logDetailedJsTrace('downloadUpdate', 'otaUpdate.ts', 800, `Exiting downloadUpdate Call #${callId} with error`, { prevState: globalOtaState.updateState, reason: errMsg });
       otaDebugLogs.installError = `Download/Verify Exception: ${errMsg}\nStack: ${errStack || ''}`;
       otaDebugLogs.lastExceptionStackTrace = errStack;
       otaDebugLogs.installerLaunchStatus = 'FAILED';
@@ -826,19 +871,16 @@ export function downloadUpdate(trigger?: string): Promise<void> {
 
 export function applyUpdate(trigger?: string): Promise<void> {
   const callId = nextJsCallId();
-  console.log(`[INSTRUMENTATION] applyUpdate ENTER Call #${callId} (trigger=${trigger})`);
-  void logProgressStage('[INSTRUMENTATION] applyUpdate ENTER', `Call #${callId} trigger=${trigger}`);
+  logDetailedJsTrace('applyUpdate', 'otaUpdate.ts', 867, `Entering applyUpdate Call #${callId}`, { prevState: globalOtaState.updateState, reason: `Trigger: ${trigger}` });
 
   if (activeApplyPromise) {
-    console.log(`[INSTRUMENTATION] applyUpdate EXIT Call #${callId} (Early return: activeApplyPromise is running)`);
-    void logProgressStage('[INSTRUMENTATION] applyUpdate EXIT', `Call #${callId} early exit (activeApplyPromise running)`);
+    logDetailedJsTrace('applyUpdate', 'otaUpdate.ts', 872, `Exiting applyUpdate Call #${callId} early (activeApplyPromise running)`, { prevState: globalOtaState.updateState });
     return activeApplyPromise;
   }
 
   const remoteVersion = globalOtaState.remoteVersion;
   if (!remoteVersion) {
-    console.log(`[INSTRUMENTATION] applyUpdate EXIT Call #${callId} (Early return: missing remoteVersion)`);
-    void logProgressStage('[INSTRUMENTATION] applyUpdate EXIT', `Call #${callId} early exit (missing remoteVersion)`);
+    logDetailedJsTrace('applyUpdate', 'otaUpdate.ts', 879, `Exiting applyUpdate Call #${callId} early (missing remoteVersion)`, { prevState: globalOtaState.updateState });
     return Promise.resolve();
   }
 
@@ -984,14 +1026,11 @@ export function applyUpdate(trigger?: string): Promise<void> {
       // Await statusPromise to resolve, reject, or be killed on update reload
       await statusPromise;
 
-      console.log(`[INSTRUMENTATION] applyUpdate EXIT Call #${callId} (Resolved: Installer completed)`);
-      void logProgressStage('[INSTRUMENTATION] applyUpdate EXIT', `Call #${callId} resolved (Installer completed)`);
+      logDetailedJsTrace('applyUpdate', 'otaUpdate.ts', 987, `Exiting applyUpdate Call #${callId} successfully (Installer completed)`, { prevState: globalOtaState.updateState });
     } catch (err) {
-      console.error(`[INSTRUMENTATION] applyUpdate EXIT Call #${callId} error:`, err);
-      void logProgressStage('[INSTRUMENTATION] applyUpdate EXIT', `Call #${callId} failed err=${err instanceof Error ? err.message : String(err)}`);
-      console.error('[OTA] PackageInstaller execution failed:', err);
       const errMsg = err instanceof Error ? err.message : String(err);
       const errStack = (err instanceof Error && err.stack ? err.stack : null);
+      logDetailedJsTrace('applyUpdate', 'otaUpdate.ts', 990, `Exiting applyUpdate Call #${callId} with error`, { prevState: globalOtaState.updateState, reason: errMsg });
       otaDebugLogs.installError = `Native Install Exception: ${errMsg}\nStack: ${errStack || ''}`;
       otaDebugLogs.lastExceptionStackTrace = errStack;
       otaDebugLogs.installerLaunchStatus = 'FAILED';

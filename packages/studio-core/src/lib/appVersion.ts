@@ -26,7 +26,7 @@ import { useMemo } from 'react';
 import { Capacitor } from '@capacitor/core';
 
 /** Canonical semver string used by the OTA comparator. */
-export const NATIVE_VERSION = '3.7.40';
+export const NATIVE_VERSION = '3.7.41';
 export const WEB_VERSION = '4.0.0';
 export const APP_VERSION = Capacitor.isNativePlatform() ? NATIVE_VERSION : WEB_VERSION;
 
@@ -38,11 +38,11 @@ export const APP_VERSION_LABEL = `${APP_VERSION_TAG} ${APP_VERSION}`;
 
 /** Release date for the CURRENT bundle, shown alongside the version pill
  *  in the changelog sheet. ISO-8601 (`YYYY-MM-DD`). */
-export const APP_VERSION_DATE = '2026-06-28'; // 3.7.38
+export const APP_VERSION_DATE = '2026-06-29'; // 3.7.41
 // Note: keep ISO-8601. Bump together with APP_VERSION on each release.
 
 export const APP_COMMIT_SHA = import.meta.env.VITE_GIT_COMMIT_SHA || 'efd2b1a3';
-export const APP_BUILD_TIMESTAMP = import.meta.env.VITE_BUILD_TIMESTAMP || '6/28/2026, 6:00:00 PM CST';
+export const APP_BUILD_TIMESTAMP = import.meta.env.VITE_BUILD_TIMESTAMP || '6/29/2026, 6:00:00 PM CST';
 
 /**
  * Changelog for the CURRENT release — shown to the user the first
@@ -61,10 +61,9 @@ export const APP_CHANGELOG_SECTIONS: ChangelogSection[] = [
   {
     heading: "Fixed",
     items: [
-      "Fixed Android 14+ background PackageInstaller confirmation dialog launch block by routing the session callback through a Broadcast PendingIntent targeting InstallReceiver.",
-      "Prevented duplicate update checks by implementing a synchronous promise-reuse lock in checkForUpdate.",
-      "Enhanced native and JS updater tracing to log full stack traces, threads, callers, and timestamps.",
-      "Fixed horizontal layout shifting in DevTools tabs and resolved GSAP animation console warnings.",
+      "Fixed Android 14+ background PackageInstaller confirmation dialog block by launching the confirmation intent using the BroadcastReceiver context with FLAG_ACTIVITY_NEW_TASK.",
+      "Permanently resolved the background activity launch (BAL) restriction on newer Android versions.",
+      "Fully instrumented the updater pipeline with detailed native and JS telemetry logs.",
     ],
   },
 ];
@@ -74,8 +73,8 @@ export const APP_CHANGELOG_SECTIONS_NATIVE: ChangelogSection[] = [
   {
     heading: "What's New",
     items: [
-      "Permanently fixed PackageInstaller by using BroadcastReceiver targeting InstallReceiver to launch system confirmation dialogs, preventing background activity blocks on Android 14+.",
-      "Added Updater Laboratory simulation controls and a comprehensive Diagnostics dashboard to Developer Options."
+      "Fixed PackageInstaller by launching confirmation dialogs from the BroadcastReceiver context, resolving the Android 14+ background activity block.",
+      "Added rich JS and native telemetry tracing across the entire update pipeline.",
     ],
   },
 ];
