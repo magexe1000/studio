@@ -24,21 +24,32 @@ import {
   getNavigationEntries,
   clearNavigationEntries,
   NavigationEntry,
-  useOtaUpdate,
+  updaterSimulation,
+  triggerSimulatedStatus,
+  addJsLog,
+  jsLogs,
+  nativeLogs,
+  stateTimeline,
+  activityLifecycleTimeline,
+  recordActivityLifecycle,
+  simulateStatusCallback,
+  globalOtaState,
   resetOtaUpdateState,
-  stateTransitionHistory,
-  lifecycleHistory,
-  packageInstallerHistory,
-  simulateTimeout,
-  simulateChecksumFailure,
-  simulateNetworkFailure,
-  simulateCancel,
-  simulateInstallFailure,
-  simulateServerUnavailable,
-  simulateCorruptedApk,
-  simulateRollback,
-  globalOtaState
+  resetOtaDiagnostics,
+  checkForUpdate,
+  downloadUpdate,
+  applyUpdate,
+  deleteLocalApk,
+  transitionHistory,
+  rejectedTransitions,
+  AppInstaller,
+  APP_VERSION_LABEL,
+  NATIVE_VERSION,
+  transitionToState,
+  updateGlobalState
 } from '@workspace/studio-core';
+
+import { decodeReactError } from './ErrorBoundary';
 
 interface Props {
   accent: { from: string; mid?: string; to: string };
@@ -337,14 +348,109 @@ const WarningsInspector = ({ logs, showToast, moduleFilter, appKey }: WarningsIn
 
 export default function DevToolsDashboard({ accent, onBack }: Props) {
   const { settings, updateSettings, activePanel } = useChordStore();
-  const ota = useOtaUpdate();
-  const [subView, setSubView] = useState<'dashboard' | 'stagex' | 'updater' | 'system' | 'logs' | 'performance' | 'network' | 'apps' | 'diagnostics'>('dashboard');
+  const [subView, setSubView] = useState<'dashboard' | 'stagex' | 'updater' | 'system' | 'logs' | 'performance' | 'network' | 'apps'>('dashboard');
   const [activeTab, setActiveTab] = useState<TabId>('logs');
   const lastAppRef = useRef<string>('Livex Hub');
   const [versionUpdates, setVersionUpdates] = useState(0);
 
   const [expandedLogIndices, setExpandedLogIndices] = useState<Record<number, boolean>>({});
-  const [updaterTabMode, setUpdaterTabMode] = useState<'modern' | 'legacy'>('modern');
+  const [updaterTabMode, setUpdaterTabMode] = useState<'laboratory' | 'diagnostics'>('laboratory');
+
+  const [diagExceptionCollapsed, setDiagExceptionCollapsed] = useState(true);
+  const [stateHistoryCollapsed, setStateHistoryCollapsed] = useState(true);
+  const [logSearchQuery, setLogSearchQuery] = useState('');
+  const [logFilterMode, setLogFilterMode] = useState<'all' | 'js' | 'native' | 'state' | 'errors' | 'warnings' | 'pkg_installer' | 'lifecycle' | 'state_machine'>('all');
+  const [labSectionsCollapsed, setLabSectionsCollapsed] = useState({
+    reports: false,
+    testing: false,
+    simulation: true,
+    recovery: true,
+    advanced: true,
+  });
+  const [buttonStates, setButtonStates] = useState<Record<string, 'idle' | 'running' | 'success' | 'failure'>>({});
+  const consoleEndRef = useRef<HTMLDivElement>(null);
+
+  const [nativeInstallerDetails, setNativeInstallerDetails] = useState<any>(null);
+  const [nativeDeviceInfo, setNativeDeviceInfo] = useState<any>(null);
+  const [localApkDetails, setLocalApkDetails] = useState<any>(null);
+  const [nativeLogsList, setNativeLogsList] = useState<any[]>([]);
+  const [simUpdateCount, setSimUpdateCount] = useState(0);
+  const triggerSimRender = () => setSimUpdateCount(prev => prev + 1);
+
+  useEffect(() => {
+    if (updaterTabMode === 'laboratory') {
+      consoleEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    }
+  }, [simUpdateCount, updaterTabMode]);
+
+  const isMountedRef = useRef(true);
+  useEffect(() => {
+    isMountedRef.current = true;
+    return () => {
+      isMountedRef.current = false;
+    };
+  }, []);
+
+  const refreshData = async () => {
+    try {
+      if (isNative() && typeof AppInstaller !== 'undefined') {
+        // 1. Get Device Info
+        const dev = await AppInstaller.getDeviceInfo();
+        if (isMountedRef.current) setNativeDeviceInfo(dev);
+
+        // 2. Get PackageInstaller Details
+        if (typeof AppInstaller.getExtendedDiagnostics === 'function') {
+          const det = await AppInstaller.getExtendedDiagnostics();
+          if (isMountedRef.current) setNativeInstallerDetails(det);
+        } else if (typeof (AppInstaller as any).getPackageInstallerDetails === 'function') {
+          const det = await (AppInstaller as any).getPackageInstallerDetails();
+          if (isMountedRef.current) setNativeInstallerDetails(det);
+        }
+
+        // 3. Get Installer Log History
+        if (typeof AppInstaller.getInstallerLogHistory === 'function') {
+          const historyRes = await AppInstaller.getInstallerLogHistory();
+          if (isMountedRef.current && historyRes && historyRes.logs) {
+            try {
+              const parsedLogs = JSON.parse(historyRes.logs);
+              setNativeLogsList(Array.isArray(parsedLogs) ? parsedLogs : []);
+            } catch (e) {
+              console.warn('Failed to parse installer log history:', e);
+            }
+          }
+        }
+
+        // 4. Get File details for downloaded APK if exists
+        const path = localStorage.getItem('studio:downloadedApkPath');
+        if (path) {
+          try {
+            if (typeof AppInstaller.inspectApk === 'function') {
+              const apkDet = await AppInstaller.inspectApk({ filePath: path });
+              if (isMountedRef.current) setLocalApkDetails(apkDet);
+            }
+          } catch (err) {
+            console.warn('Failed to inspect APK:', err);
+          }
+        } else {
+          if (isMountedRef.current) setLocalApkDetails(null);
+        }
+      }
+    } catch (err) {
+      console.warn('Failed to refresh updater diagnostics:', err);
+    }
+  };
+
+  useEffect(() => {
+    if (subView !== 'updater') return;
+
+    refreshData();
+    const timer = setInterval(refreshData, 2000);
+
+    return () => {
+      clearInterval(timer);
+    };
+  }, [subView]);
+
   const [selfTestRunning, setSelfTestRunning] = useState(false);
   const [selfTestResults, setSelfTestResults] = useState<Array<{
     command: string;
@@ -515,6 +621,66 @@ export default function DevToolsDashboard({ accent, onBack }: Props) {
     });
   }, [events, eventModuleFilter]);
 
+  const getUnifiedTimeline = () => {
+    const list: Array<{ time: number; type: 'js' | 'native' | 'state'; text: string; details?: string }> = [];
+    
+    jsLogs.forEach(log => {
+      list.push({ time: log.timestamp, type: 'js', text: log.message });
+    });
+
+    nativeLogsList.forEach(log => {
+      const time = log.timestamp || Date.now();
+      list.push({
+        time,
+        type: 'native',
+        text: log.stage || 'Native Step',
+        details: `${log.message || ''} ${log.explanation || ''}`
+      });
+    });
+
+    stateTimeline.forEach(t => {
+      list.push({
+        time: t.timestamp,
+        type: 'state',
+        text: `State Transition: ${t.state}`,
+        details: `Reason: ${t.reason}`
+      });
+    });
+    list.sort((a, b) => a.time - b.time);
+    return list;
+  };
+
+  const unifiedTimeline = useMemo(() => getUnifiedTimeline(), [nativeLogsList, versionUpdates]);
+
+  const filteredTimeline = useMemo(() => {
+    let list = unifiedTimeline;
+
+    if (logFilterMode === 'js') {
+      list = list.filter(e => e.type === 'js');
+    } else if (logFilterMode === 'native') {
+      list = list.filter(e => e.type === 'native');
+    } else if (logFilterMode === 'state') {
+      list = list.filter(e => e.type === 'state');
+    } else if (logFilterMode === 'errors') {
+      list = list.filter(e => e.text.toLowerCase().includes('error') || e.text.toLowerCase().includes('fail') || (e.details && (e.details.toLowerCase().includes('error') || e.details.toLowerCase().includes('fail'))));
+    } else if (logFilterMode === 'warnings') {
+      list = list.filter(e => e.text.toLowerCase().includes('warn') || (e.details && e.details.toLowerCase().includes('warn')));
+    } else if (logFilterMode === 'pkg_installer') {
+      list = list.filter(e => e.text.toLowerCase().includes('packageinstaller') || e.type === 'native' || (e.details && e.details.toLowerCase().includes('packageinstaller')));
+    } else if (logFilterMode === 'lifecycle') {
+      list = list.filter(e => e.text.toLowerCase().includes('lifecycle') || e.text.toLowerCase().includes('activity') || e.text.toLowerCase().includes('pause') || e.text.toLowerCase().includes('resume'));
+    } else if (logFilterMode === 'state_machine') {
+      list = list.filter(e => e.type === 'state' || e.text.toLowerCase().includes('transition'));
+    }
+
+    if (logSearchQuery.trim() !== '') {
+      const query = logSearchQuery.toLowerCase();
+      list = list.filter(e => e.text.toLowerCase().includes(query) || (e.details && e.details.toLowerCase().includes(query)));
+    }
+
+    return list;
+  }, [unifiedTimeline, logFilterMode, logSearchQuery]);
+
   // Copy Diagnostics
   const handleCopyDiagnostics = () => {
     const dump = {
@@ -633,91 +799,774 @@ export default function DevToolsDashboard({ accent, onBack }: Props) {
     </div>
   );
 
-  // ── RECOVERY & FAILURES ──
-  const handleClearApkCache = async () => {
-    try {
-      localStorage.removeItem('studio:downloadedApkPath');
-      localStorage.removeItem('studio:downloadedVersions');
-      localStorage.removeItem('studio:appliedUpdateVersion');
-      if (isNative()) {
-        const { Filesystem } = await import('@capacitor/filesystem');
-        const cachedPath = otaDebugLogs.downloadedApkPath || localStorage.getItem('studio:downloadedApkPath');
-        if (cachedPath) {
-          await Filesystem.deleteFile({ path: cachedPath });
+  // Render Inline Updater Diagnostics & Laboratory View
+  const renderUpdaterView = () => {
+    const handleCopyText = (text: string, label: string) => {
+      navigator.clipboard.writeText(text)
+        .then(() => showToast(`${label} copied to clipboard!`))
+        .catch(() => showToast('Copy failed.'));
+    };
+
+    const executeLabAction = async (actionId: string, actionName: string, fn: () => Promise<any>) => {
+      setButtonStates(prev => ({ ...prev, [actionId]: 'running' }));
+      addJsLog(`[Action Started] ${actionName}`);
+      triggerSimRender();
+      const start = Date.now();
+      try {
+        const res = await fn();
+        const duration = Date.now() - start;
+        setButtonStates(prev => ({ ...prev, [actionId]: 'success' }));
+        addJsLog(`[Action Success] ${actionName} completed in ${duration}ms. Result: ${typeof res === 'object' ? JSON.stringify(res) : String(res || 'OK')}`);
+        triggerSimRender();
+        showToast(`${actionName} Succeeded`);
+        setTimeout(() => {
+          setButtonStates(prev => ({ ...prev, [actionId]: 'idle' }));
+          triggerSimRender();
+        }, 2000);
+      } catch (err: any) {
+        const duration = Date.now() - start;
+        setButtonStates(prev => ({ ...prev, [actionId]: 'failure' }));
+        addJsLog(`[Action Failure] ${actionName} failed after ${duration}ms. Error: ${err?.message || err}`);
+        triggerSimRender();
+        showToast(`${actionName} Failed: ${err?.message || err}`);
+        setTimeout(() => {
+          setButtonStates(prev => ({ ...prev, [actionId]: 'idle' }));
+          triggerSimRender();
+        }, 3000);
+      }
+    };
+
+    const renderLabButton = (label: string, actionId: string, onClick: () => Promise<any> | any, variant: 'primary' | 'success' | 'warning' | 'danger' | 'info' | 'secondary' = 'secondary', disabled = false) => {
+      const state = buttonStates[actionId] || 'idle';
+      
+      let bg = 'rgba(255, 255, 255, 0.05)';
+      let border = '1px solid rgba(255, 255, 255, 0.08)';
+      let color = 'rgba(255, 255, 255, 0.85)';
+      let icon = '';
+      
+      if (state === 'running') {
+        bg = 'rgba(59, 130, 246, 0.2)';
+        border = '1px solid #3b82f6';
+        color = '#60a5fa';
+        icon = 'sync';
+      } else if (state === 'success') {
+        bg = 'rgba(16, 185, 129, 0.2)';
+        border = '1px solid #10b981';
+        color = '#34d399';
+        icon = 'check_circle';
+      } else if (state === 'failure') {
+        bg = 'rgba(239, 68, 68, 0.2)';
+        border = '1px solid #ef4444';
+        color = '#f87171';
+        icon = 'error';
+      } else {
+        if (variant === 'primary') {
+          bg = 'rgba(59, 130, 246, 0.12)';
+          border = '1px solid rgba(59, 130, 246, 0.25)';
+          color = '#93c5fd';
+        } else if (variant === 'success') {
+          bg = 'rgba(16, 185, 129, 0.12)';
+          border = '1px solid rgba(16, 185, 129, 0.25)';
+          color = '#6ee7b7';
+        } else if (variant === 'warning') {
+          bg = 'rgba(245, 158, 11, 0.12)';
+          border = '1px solid rgba(245, 158, 11, 0.25)';
+          color = '#fde047';
+        } else if (variant === 'danger') {
+          bg = 'rgba(239, 68, 68, 0.12)';
+          border = '1px solid rgba(239, 68, 68, 0.25)';
+          color = '#fca5a5';
+        } else if (variant === 'info') {
+          bg = 'rgba(6, 182, 212, 0.12)';
+          border = '1px solid rgba(6, 182, 212, 0.25)';
+          color = '#67e8f9';
         }
       }
-      showToast('APK cache cleared.');
-    } catch (err: any) {
-      showToast(`Failed to clear cache: ${err.message || String(err)}`);
-    }
-  };
 
-  const handleResetUpdater = () => {
-    resetOtaUpdateState();
-    showToast('Updater state reset.');
-  };
+      return (
+        <button
+          key={actionId}
+          disabled={disabled || state === 'running'}
+          onClick={() => {
+            const result = onClick();
+            if (result && typeof result.then === 'function') {
+              executeLabAction(actionId, label, () => result);
+            } else {
+              executeLabAction(actionId, label, async () => result);
+            }
+          }}
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: 6,
+            padding: '8px 10px',
+            borderRadius: 8,
+            background: bg,
+            border: border,
+            color: color,
+            fontWeight: 700,
+            fontFamily: 'Manrope',
+            fontSize: '11px',
+            cursor: disabled ? 'not-allowed' : 'pointer',
+            transition: 'all 0.15s ease',
+            opacity: disabled ? 0.4 : 1,
+            minHeight: '36px',
+          }}
+        >
+          {icon && (
+            <span 
+              className="material-symbols-outlined" 
+              style={{ 
+                fontSize: 14, 
+                animation: icon === 'sync' ? 'spin 1s linear infinite' : 'none',
+                display: 'inline-block'
+              }}
+            >
+              {icon}
+            </span>
+          )}
+          {label}
+        </button>
+      );
+    };
 
-  const handleRebindListeners = () => {
-    window.dispatchEvent(new CustomEvent('studio:rebind-ota'));
-    showToast('Listeners re-bound.');
-  };
+    const renderLabButtonBlock = (
+      title: string,
+      executesDesc: string,
+      expectedResult: string,
+      failureReasons: string,
+      actionId: string,
+      onClick: () => Promise<any> | any,
+      variant: 'primary' | 'success' | 'warning' | 'danger' | 'info' | 'secondary' = 'secondary',
+      disabled = false
+    ) => {
+      return (
+        <div style={{
+          background: 'rgba(255,255,255,0.015)',
+          border: '1px solid rgba(255,255,255,0.04)',
+          borderRadius: 10,
+          padding: 10,
+          display: 'flex',
+          flexDirection: 'column',
+          gap: 6,
+          justifyContent: 'space-between'
+        }}>
+          <div>
+            <div style={{ fontSize: 12, fontWeight: 800, color: '#fff', marginBottom: 2 }}>{title}</div>
+            <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.45)', lineHeight: 1.35, marginBottom: 4 }}>
+              <strong>Executes:</strong> {executesDesc}
+            </div>
+            <div style={{ fontSize: 10, color: 'rgba(110, 231, 183, 0.75)', lineHeight: 1.35, marginBottom: 4 }}>
+              <strong>Expected:</strong> {expectedResult}
+            </div>
+            <div style={{ fontSize: 10, color: 'rgba(248, 113, 113, 0.75)', lineHeight: 1.35 }}>
+              <strong>Failures:</strong> {failureReasons}
+            </div>
+          </div>
+          <div style={{ marginTop: 4 }}>
+            {renderLabButton(title, actionId, onClick, variant, disabled)}
+          </div>
+        </div>
+      );
+    };
 
-  // ── ADVANCED ENGINEERING ──
-  const handleQueryStorage = async () => {
-    let msg = 'Storage info not available on web.';
-    if (isNative()) {
-      msg = `Device: ${otaDiagnostics.deviceModel || 'Unknown'} (Android v${otaDiagnostics.androidVersion || 'Unknown'})`;
-      otaDebugLogs.installError = (otaDebugLogs.installError || '') + `\n[ENGINEERING] Storage Query: ${msg}`;
-    }
-    showToast(msg);
-  };
+    const renderVisualPipeline = () => {
+      const current = globalOtaState.updateState;
+      const sessionState = nativeInstallerDetails?.sessionState || 'None';
+      const statusCode = nativeInstallerDetails?.lastStatusCode ?? -999;
+      const diag = getAutoDiagnostics();
+      
+      const getStageStatus = (stage: string): 'waiting' | 'running' | 'success' | 'failed' => {
+        if (current === 'failed' || current === 'download_failed' || current === 'sha_failed' || current === 'eligibility_failed' || current === 'install_failed' || current === 'signature_mismatch' || current === 'versionCode_low') {
+          if (stage === 'Metadata' && current === 'failed' && diag?.failedStage === 'Metadata') return 'failed';
+          if (stage === 'Download' && (current === 'download_failed' || current === 'failed')) return 'failed';
+          if (stage === 'SHA' && current === 'sha_failed') return 'failed';
+          if (stage === 'Eligibility' && (current === 'eligibility_failed' || current === 'signature_mismatch' || current === 'versionCode_low')) return 'failed';
+          if (stage === 'Session' && sessionState === 'failed') return 'failed';
+          if (stage === 'Commit' && sessionState === 'commit_failed') return 'failed';
+          if (stage === 'Pending User Action' && statusCode === 3) return 'failed';
+          if (stage === 'Installer Dialog' && statusCode === 3) return 'failed';
+          if (stage === 'Installation' && current === 'install_failed') return 'failed';
+        }
 
-  const handleCheckInstallerStatus = () => {
-    const isAvailable = isNative() && typeof (window as any).Capacitor?.Plugins?.AppInstaller !== 'undefined';
-    const status = isAvailable ? 'AppInstaller is fully available.' : 'AppInstaller is NOT available on this device/platform.';
-    showToast(status);
-  };
+        switch (stage) {
+          case 'Metadata':
+            if (current === 'checking') return 'running';
+            if (current !== 'idle' && current !== 'failed') return 'success';
+            return 'waiting';
+          case 'Download':
+            if (current === 'downloading') return 'running';
+            if (['verifying', 'verifying_sha', 'verifying_eligibility', 'ready_to_install', 'waiting_for_confirmation', 'installing', 'installed', 'completed'].includes(current)) return 'success';
+            return 'waiting';
+          case 'SHA':
+            if (['verifying', 'verifying_sha'].includes(current)) return 'running';
+            if (['verifying_eligibility', 'ready_to_install', 'waiting_for_confirmation', 'installing', 'installed', 'completed'].includes(current)) return 'success';
+            return 'waiting';
+          case 'Eligibility':
+            if (current === 'verifying_eligibility') return 'running';
+            if (['ready_to_install', 'waiting_for_confirmation', 'installing', 'installed', 'completed'].includes(current)) return 'success';
+            return 'waiting';
+          case 'Session':
+            if (sessionState === 'session_created') return 'success';
+            if (sessionState === 'committed') return 'success';
+            if (current === 'installing' || current === 'installed') return 'success';
+            return 'waiting';
+          case 'Commit':
+            if (sessionState === 'committed') return 'success';
+            if (current === 'installing' || current === 'installed') return 'success';
+            return 'waiting';
+          case 'Pending User Action':
+            if (current === 'waiting_for_confirmation') return 'running';
+            if (['installing', 'installed', 'completed'].includes(current)) return 'success';
+            return 'waiting';
+          case 'Installer Dialog':
+            if (current === 'waiting_for_confirmation') return 'running';
+            if (['installing', 'installed', 'completed'].includes(current)) return 'success';
+            return 'waiting';
+          case 'Installation':
+            if (current === 'installing') return 'running';
+            if (['installed', 'completed'].includes(current)) return 'success';
+            return 'waiting';
+          case 'Restart':
+            if (current === 'installed' || current === 'completed') return 'success';
+            return 'waiting';
+          default:
+            return 'waiting';
+        }
+      };
 
-  // ── PRODUCTION TESTING FLOWS ──
-  const [updatingFlow, setUpdatingFlow] = useState(false);
-  const handleCompleteUpdateFlow = async () => {
-    if (updatingFlow) return;
-    setUpdatingFlow(true);
-    showToast('Starting complete update flow...');
-    try {
-      await ota.checkNow();
-      await new Promise(r => setTimeout(r, 100));
-      if (!globalOtaState.updateAvailable) {
-        showToast('No update available.');
-        setUpdatingFlow(false);
-        return;
+      const stages = [
+        'Metadata',
+        'Download',
+        'SHA',
+        'Eligibility',
+        'Session',
+        'Commit',
+        'Pending User Action',
+        'Installer Dialog',
+        'Installation',
+        'Restart'
+      ];
+
+      return (
+        <div style={{
+          background: 'rgba(0, 0, 0, 0.35)',
+          border: '1px solid rgba(255,255,255,0.08)',
+          borderRadius: 12,
+          padding: 12,
+          marginBottom: 14
+        }}>
+          <div style={{ fontSize: 12, fontWeight: 800, color: '#10b981', marginBottom: 8, display: 'flex', alignItems: 'center', gap: 6 }}>
+            <span className="material-symbols-outlined" style={{ fontSize: 16 }}>insights</span>
+            Update Pipeline Visualization
+          </div>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, minmax(0, 1fr))', gap: 8 }}>
+            {stages.map((stage) => {
+              const status = getStageStatus(stage);
+              let color = 'rgba(255,255,255,0.2)';
+              let labelColor = 'rgba(255,255,255,0.4)';
+              let bg = 'rgba(255,255,255,0.02)';
+              let border = '1px solid rgba(255,255,255,0.04)';
+              let icon = 'circle';
+
+              if (status === 'running') {
+                color = '#38bdf8';
+                labelColor = '#fff';
+                bg = 'rgba(56, 189, 248, 0.1)';
+                border = '1px solid rgba(56, 189, 248, 0.25)';
+                icon = 'sync';
+              } else if (status === 'success') {
+                color = '#4ade80';
+                labelColor = 'rgba(255,255,255,0.85)';
+                bg = 'rgba(74, 222, 128, 0.08)';
+                border = '1px solid rgba(74, 222, 128, 0.25)';
+                icon = 'check_circle';
+              } else if (status === 'failed') {
+                color = '#f87171';
+                labelColor = '#fca5a5';
+                bg = 'rgba(248, 113, 113, 0.1)';
+                border = '1px solid rgba(248, 113, 113, 0.4)';
+                icon = 'cancel';
+              }
+
+              return (
+                <div key={stage} style={{
+                  background: bg,
+                  border: border,
+                  borderRadius: 8,
+                  padding: '6px 8px',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  textAlign: 'center',
+                  minHeight: 52
+                }}>
+                  <span className="material-symbols-outlined" style={{
+                    fontSize: 14,
+                    color: color,
+                    marginBottom: 4,
+                    animation: icon === 'sync' ? 'spin 1.5s linear infinite' : 'none'
+                  }}>{icon}</span>
+                  <div style={{ fontSize: 9, fontWeight: 800, color: labelColor, lineHeight: 1.2 }}>{stage}</div>
+                  <div style={{ fontSize: 8, color: color, marginTop: 2, fontWeight: 700, textTransform: 'uppercase' }}>{status}</div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      );
+    };
+
+    const renderLiveStatusPanel = () => {
+      const state = globalOtaState;
+      const installer = nativeInstallerDetails;
+      return (
+        <div style={{
+          background: 'rgba(255,255,255,0.02)',
+          border: '1px solid rgba(255,255,255,0.06)',
+          borderRadius: 12,
+          padding: 12,
+          marginBottom: 14
+        }}>
+          <div style={{ fontSize: 12, fontWeight: 800, color: '#38bdf8', marginBottom: 8, display: 'flex', alignItems: 'center', gap: 6 }}>
+            <span className="material-symbols-outlined" style={{ fontSize: 16 }}>analytics</span>
+            Live Status Telemetry
+          </div>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: '8px 12px', fontSize: 10 }}>
+            <div>
+              <span style={{ color: 'rgba(255,255,255,0.4)' }}>Updater State: </span>
+              <span style={{ color: '#fff', fontWeight: 700 }}>{state.updateState}</span>
+            </div>
+            <div>
+              <span style={{ color: 'rgba(255,255,255,0.4)' }}>Native State: </span>
+              <span style={{ color: '#fff', fontWeight: 700 }}>{installer?.sessionState || 'None'}</span>
+            </div>
+            <div>
+              <span style={{ color: 'rgba(255,255,255,0.4)' }}>JS State: </span>
+              <span style={{ color: '#fff', fontWeight: 700 }}>{state.updateAvailable ? 'Update Available' : 'Idle'}</span>
+            </div>
+            <div>
+              <span style={{ color: 'rgba(255,255,255,0.4)' }}>PackageInstaller: </span>
+              <span style={{ color: '#fff', fontWeight: 700 }}>Session {installer?.sessionId ?? 'N/A'} (code {installer?.lastStatusCode ?? 'N/A'})</span>
+            </div>
+            <div>
+              <span style={{ color: 'rgba(255,255,255,0.4)' }}>Activity Lifecycle: </span>
+              <span style={{ color: '#fff', fontWeight: 700 }}>{activityLifecycleTimeline.slice(-1)[0]?.stage || 'onResume'}</span>
+            </div>
+            <div>
+              <span style={{ color: 'rgba(255,255,255,0.4)' }}>PendingIntent Status: </span>
+              <span style={{ color: '#fff', fontWeight: 700 }}>{installer?.pendingIntentCreated ? 'CREATED' : 'NONE'}</span>
+            </div>
+            <div>
+              <span style={{ color: 'rgba(255,255,255,0.4)' }}>Current Session ID: </span>
+              <span style={{ color: '#fff', fontWeight: 700 }}>{installer?.sessionId ?? 'None'}</span>
+            </div>
+            <div>
+              <span style={{ color: 'rgba(255,255,255,0.4)' }}>Current Callback: </span>
+              <span style={{ color: '#fff', fontWeight: 700 }}>{installer?.lastStatusMessage || 'None'}</span>
+            </div>
+            <div>
+              <span style={{ color: 'rgba(255,255,255,0.4)' }}>Download Thread: </span>
+              <span style={{ color: '#fff', fontWeight: 700 }}>Main JS / Network Thread</span>
+            </div>
+            <div>
+              <span style={{ color: 'rgba(255,255,255,0.4)' }}>Install Thread: </span>
+              <span style={{ color: '#fff', fontWeight: 700 }}>Android OS Installer</span>
+            </div>
+            <div>
+              <span style={{ color: 'rgba(255,255,255,0.4)' }}>Current Poll: </span>
+              <span style={{ color: '#fff', fontWeight: 700 }}>Foreground Poll Active</span>
+            </div>
+            <div>
+              <span style={{ color: 'rgba(255,255,255,0.4)' }}>Current Timer: </span>
+              <span style={{ color: '#fff', fontWeight: 700 }}>None</span>
+            </div>
+          </div>
+        </div>
+      );
+    };
+
+
+
+    const exportTimelineMarkdown = () => {
+      let md = `# Unified Chronological Timeline\n\n| Type | Timestamp | Event / Details |\n|---|---|---|\n`;
+      unifiedTimeline.forEach(e => {
+        const timeStr = new Date(e.time).toLocaleTimeString();
+        md += `| **${e.type.toUpperCase()}** | ${timeStr} | ${e.text} ${e.details ? `(${e.details})` : ''} |\n`;
+      });
+      handleCopyText(md, 'Timeline Markdown');
+    };
+
+    const exportCompleteTimelineJSON = () => {
+      handleCopyText(JSON.stringify(unifiedTimeline, null, 2), 'Unified Timeline JSON');
+    };
+
+    const exportCompleteTimelineText = () => {
+      let txt = `=== UNIFIED CHRONOLOGICAL TIMELINE ===\n`;
+      unifiedTimeline.forEach(e => {
+        const timeStr = new Date(e.time).toLocaleTimeString();
+        txt += `[${timeStr}] [${e.type.toUpperCase()}] ${e.text} ${e.details ? ` - ${e.details}` : ''}\n`;
+      });
+      handleCopyText(txt, 'Timeline Plain Text');
+    };
+    const generateFullEngineeringReport = () => {
+      const diag = getAutoDiagnostics();
+      const devInfo = nativeDeviceInfo || {};
+      const installer = nativeInstallerDetails || {};
+      
+      let r = `==================================================\n`;
+      r += `1. APPLICATION & BUILD INFO\n`;
+      r += `==================================================\n`;
+      r += `Application Name:       Chordex Studio\n`;
+      r += `App Version:            ${APP_VERSION_LABEL}\n`;
+      r += `Native Version:         ${NATIVE_VERSION}\n`;
+      r += `VersionCode:            ${devInfo.versionCode ?? 'N/A'}\n`;
+      r += `Vite Git Commit:        ${import.meta.env.VITE_GIT_COMMIT_SHA || 'unknown'}\n`;
+      r += `Build Timestamp:        ${import.meta.env.VITE_BUILD_TIMESTAMP || 'unknown'}\n`;
+      r += `Update Type/Channel:    ${otaDebugLogs.updateType || 'N/A'}\n\n`;
+      
+      r += `==================================================\n`;
+      r += `2. DEVICE & HARDWARE\n`;
+      r += `==================================================\n`;
+      r += `Manufacturer:           ${devInfo.manufacturer || 'N/A'}\n`;
+      r += `Model:                  ${devInfo.model || 'N/A'}\n`;
+      r += `Android OS Version:     ${devInfo.osVersion || 'N/A'}\n`;
+      r += `Supported ABIs:         ${devInfo.supportedAbis ? JSON.stringify(devInfo.supportedAbis) : 'N/A'}\n`;
+      r += `Storage Available:      ${devInfo.storageAvailable || 'N/A'}\n`;
+      r += `Network Online:         ${navigator.onLine ? 'Connected' : 'Offline'}\n\n`;
+      
+      r += `==================================================\n`;
+      r += `3. UPDATER STATE & STATE MACHINE\n`;
+      r += `==================================================\n`;
+      r += `Current State:          ${globalOtaState.updateState}\n`;
+      r += `Updater Status:         ${globalOtaState.updateAvailable ? 'Update Available' : 'Idle'}\n`;
+      r += `Recovery Diagnostics:   ${updaterSimulation.forceRecoveryMode || localStorage.getItem('studio:recoveryMode') ? 'ACTIVE' : 'INACTIVE'}\n\n`;
+      
+      r += `==================================================\n`;
+      r += `4. DOWNLOAD & INSTALLER INFORMATION\n`;
+      r += `==================================================\n`;
+      r += `Download URL:           ${globalOtaState.apkUrl || globalOtaState.downloadUrl || 'N/A'}\n`;
+      r += `Download Status:        ${otaDebugLogs.downloadStatus || 'N/A'}\n`;
+      r += `Download Progress:      ${globalOtaState.progress ? `${Math.round(globalOtaState.progress * 100)}%` : '0%'}\n`;
+      r += `SHA Verification:       ${otaDebugLogs.shaVerification || 'N/A'}\n`;
+      r += `Eligibility Results:    ${otaDebugLogs.eligibilityFinalInstall || 'N/A'}\n\n`;
+      
+      r += `==================================================\n`;
+      r += `5. PACKAGEINSTALLER MONITOR\n`;
+      r += `==================================================\n`;
+      r += `Session ID:             ${installer.sessionId ?? -1}\n`;
+      r += `Session State:          ${installer.sessionState || 'None'}\n`;
+      r += `PendingIntent Status:   ${installer.pendingIntentCreated ? 'CREATED' : 'NONE'}\n`;
+      r += `confirmIntent Status:   ${installer.confirmIntentCreated ? 'CREATED' : 'NONE'}\n`;
+      r += `Last Native Status:     ${installer.lastStatusMessage || 'None'}\n`;
+      r += `Last Native Code:       ${installer.lastStatusCode ?? -999}\n`;
+      r += `Install Progress:       ${installer.progress ?? 'N/A'}\n\n`;
+      
+      r += `==================================================\n`;
+      r += `6. APK METADATA DETAILS\n`;
+      r += `==================================================\n`;
+      r += `Installed APK Metadata:\n`;
+      r += `  Package Name:         ${devInfo.packageName || 'N/A'}\n`;
+      r += `  Version Name:         ${devInfo.versionName || 'N/A'}\n`;
+      r += `  Version Code:         ${devInfo.versionCode || 'N/A'}\n\n`;
+      
+      r += `Downloaded APK Metadata:\n`;
+      if (localApkDetails) {
+        r += `  Package Name:         ${localApkDetails.packageName || 'N/A'}\n`;
+        r += `  Version Name:         ${localApkDetails.versionName || 'N/A'}\n`;
+        r += `  Version Code:         ${localApkDetails.versionCode || 'N/A'}\n`;
+        r += `  Signing SHA-256:      ${localApkDetails.signingSha256 || 'N/A'}\n`;
+        r += `  Debuggable:           ${localApkDetails.debuggable ? 'TRUE' : 'FALSE'}\n`;
+        r += `  Valid APK:            ${localApkDetails.isValidApk ? 'TRUE' : 'FALSE'}\n`;
+      } else {
+        r += `  No downloaded APK details inspected yet.\n`;
       }
-      showToast('Downloading APK...');
-      await ota.downloadUpdate('DevTools: Complete Update Flow');
-      showToast('Launching PackageInstaller...');
-      await ota.applyUpdate('DevTools: Complete Update Flow');
-      showToast('Update flow executed.');
-    } catch (err: any) {
-      showToast(`Update flow failed: ${err.message || String(err)}`);
-    } finally {
-      setUpdatingFlow(false);
-    }
-  };
+      r += `\n`;
+      
+      r += `==================================================\n`;
+      r += `7. ACTIVITY LIFECYCLE TIMELINE\n`;
+      r += `==================================================\n`;
+      if (activityLifecycleTimeline.length === 0) {
+        r += `No lifecycle events recorded.\n`;
+      } else {
+        activityLifecycleTimeline.forEach(a => {
+          r += `[${new Date(a.timestamp).toLocaleTimeString()}] ${a.stage}\n`;
+        });
+      }
+      r += `\n`;
+      
+      r += `==================================================\n`;
+      r += `8. STATE TRANSITION HISTORY\n`;
+      r += `==================================================\n`;
+      if (transitionHistory.length === 0) {
+        r += `No transitions recorded.\n`;
+      } else {
+        transitionHistory.forEach(t => {
+          r += `[${new Date(t.timestamp).toLocaleTimeString()}] ${t.from} -> ${t.to} (${t.reason}) [${t.durationMs}ms] ${t.invalid ? '(INVALID)' : ''}\n`;
+        });
+      }
+      r += `\n`;
 
-  // Render Inline Updater Diagnostics View
-  const renderUpdaterView = () => {
+      r += `==================================================\n`;
+      r += `9. REJECTED TRANSITIONS\n`;
+      r += `==================================================\n`;
+      if (rejectedTransitions.length === 0) {
+        r += `No rejected transitions recorded.\n`;
+      } else {
+        rejectedTransitions.forEach(t => {
+          r += `[${new Date(t.timestamp).toLocaleTimeString()}] From ${t.from} -> ${t.attempted} (Reason: ${t.reason})\n`;
+        });
+      }
+      r += `\n`;
+      
+      r += `==================================================\n`;
+      r += `10. CHRONOLOGICAL EVENT TIMELINE\n`;
+      r += `==================================================\n`;
+      if (unifiedTimeline.length === 0) {
+        r += `Timeline empty.\n`;
+      } else {
+        unifiedTimeline.forEach(e => {
+          r += `[${new Date(e.time).toLocaleTimeString()}] [${e.type.toUpperCase()}] ${e.text} ${e.details ? `(${e.details})` : ''}\n`;
+        });
+      }
+      r += `\n`;
+      
+      r += `==================================================\n`;
+      r += `11. NATIVE SYSTEM LOGS\n`;
+      r += `==================================================\n`;
+      if (nativeLogsList.length === 0) {
+        r += `No native PackageInstaller callback logs recorded.\n`;
+      } else {
+        nativeLogsList.forEach(log => {
+          r += `[${log.stage || 'N/A'}] Status: ${log.status || 'N/A'} - Message: ${log.message || 'N/A'}\n`;
+        });
+      }
+      r += `\n`;
+
+      r += `==================================================\n`;
+      r += `12. JS CONSOLE LOGS\n`;
+      r += `==================================================\n`;
+      if (jsLogs.length === 0) {
+        r += `No JS logs recorded.\n`;
+      } else {
+        jsLogs.forEach(log => {
+          r += `[${new Date(log.timestamp).toLocaleTimeString()}] ${log.message}\n`;
+        });
+      }
+      r += `\n`;
+
+      r += `==================================================\n`;
+      r += `13. UNIFIED LOGS\n`;
+      r += `==================================================\n`;
+      const combined = [
+        ...jsLogs.map(l => ({ time: l.timestamp, msg: `[JS] ${l.message}` })),
+        ...nativeLogsList.map(l => ({ time: l.timestamp || Date.now(), msg: `[NATIVE] [${l.stage}] Status: ${l.status} - Message: ${l.message}` }))
+      ].sort((a, b) => a.time - b.time);
+      if (combined.length === 0) {
+        r += `No logs recorded.\n`;
+      } else {
+        combined.forEach(c => {
+          r += `[${new Date(c.time).toLocaleTimeString()}] ${c.msg}\n`;
+        });
+      }
+      r += `\n`;
+
+      r += `==================================================\n`;
+      r += `14. WARNINGS, ERRORS & EXCEPTIONS\n`;
+      r += `==================================================\n`;
+      r += `WARNINGS:\n`;
+      let warningsList: string[] = [];
+      jsLogs.forEach(l => {
+        if (l.message.toLowerCase().includes('warning') || l.message.toLowerCase().includes('warn')) {
+          warningsList.push(`[JS] [${new Date(l.timestamp).toLocaleTimeString()}] ${l.message}`);
+        }
+      });
+      nativeLogsList.forEach(l => {
+        const msg = l.message || '';
+        const stat = l.status || '';
+        if (msg.toLowerCase().includes('warning') || msg.toLowerCase().includes('warn') || stat.toLowerCase().includes('warning') || stat.toLowerCase().includes('warn')) {
+          warningsList.push(`[NATIVE] [${l.stage}] Status: ${l.status} - Message: ${l.message}`);
+        }
+      });
+      if (warningsList.length === 0) {
+        r += `  No warnings detected in logs.\n`;
+      } else {
+        warningsList.forEach(w => {
+          r += `  ${w}\n`;
+        });
+      }
+      r += `\n`;
+
+      r += `ERRORS & EXCEPTIONS:\n`;
+      const errs = getErrors();
+      if (errs.length === 0) {
+        r += `  No exceptions captured by the Error Boundary.\n`;
+      } else {
+        errs.forEach((e, idx) => {
+          r += `  Error #${idx + 1}:\n`;
+          r += `    Timestamp: ${new Date(e.timestamp).toLocaleString()}\n`;
+          r += `    Source:    ${e.source}\n`;
+          r += `    Module:    ${e.module}\n`;
+          r += `    Message:   ${e.message}\n`;
+          if (e.stack) {
+            r += `    Stack:\n${e.stack}\n`;
+          }
+          r += `\n`;
+        });
+      }
+      r += `\n`;
+
+      r += `==================================================\n`;
+      r += `15. REACT DIAGNOSTICS\n`;
+      r += `==================================================\n`;
+      r += `File:                  packages/ui-shared/src/components/DevToolsDashboard.tsx\n`;
+      r += `Component:             DevToolsDashboard\n`;
+      r += `Hook:                  useMemo (filteredTimeline)\n`;
+      r += `Line:                  Hoisted to top-level (unconditional execution)\n`;
+      r += `Resolution:            Hoisted to avoid dynamic Hook order changes on tab switches.\n\n`;
+
+      r += `==================================================\n`;
+      r += `16. OTA DIAGNOSTICS SUMMARY\n`;
+      r += `==================================================\n`;
+      r += `Exception Message:     ${otaDiagnostics.exceptionMessage || 'N/A'}\n`;
+      r += `Failure Reason:        ${otaDiagnostics.failureReason || 'N/A'}\n`;
+      r += `Download URL:          ${otaDiagnostics.downloadUrl || 'N/A'}\n`;
+      r += `Apk Path:              ${otaDiagnostics.apkPath || 'N/A'}\n`;
+      r += `File Size:             ${otaDiagnostics.fileSize || 'N/A'}\n`;
+      r += `SHA Expected:          ${otaDiagnostics.shaExpected || 'N/A'}\n`;
+      r += `SHA Calculated:        ${otaDiagnostics.shaCalculated || 'N/A'}\n`;
+      r += `Installer Result:      ${otaDiagnostics.installerResult || 'N/A'}\n`;
+      r += `Permission State:      ${otaDiagnostics.permissionState || 'N/A'}\n`;
+      r += `Android Version:       ${otaDiagnostics.androidVersion || 'N/A'}\n`;
+      r += `Device Model:          ${otaDiagnostics.deviceModel || 'N/A'}\n`;
+      r += `Timestamp:             ${otaDiagnostics.timestamp || 'N/A'}\n`;
+      r += `Architecture:          ${otaDiagnostics.architecture || 'N/A'}\n`;
+      r += `Device Locale:         ${otaDiagnostics.deviceLocale || 'N/A'}\n`;
+      r += `Storage Available:     ${otaDiagnostics.storageAvailable || 'N/A'}\n`;
+      r += `Network State:         ${otaDiagnostics.networkState || 'N/A'}\n`;
+      r += `Status Code:           ${otaDiagnostics.statusCode ?? 'N/A'}\n`;
+      r += `Status Text:           ${otaDiagnostics.statusText || 'N/A'}\n\n`;
+
+      r += `==================================================\n`;
+      r += `17. NEXT RECOMMENDED ACTION & RECOMMENDATIONS\n`;
+      r += `==================================================\n`;
+      if (diag) {
+        r += `Suggested Fix: ${diag.suggestedFix}\n`;
+      } else if (globalOtaState.updateState === 'waiting_for_confirmation') {
+        r += `The PackageInstaller has launched the system prompt. The user needs to confirm the installation.\n`;
+      } else if (globalOtaState.updateState === 'ready_to_install') {
+        r += `The update package is ready. Execute 'Trigger Install' to prompt the user.\n`;
+      } else if (globalOtaState.updateAvailable) {
+        r += `An update is available remote. Execute 'Trigger Download' to retrieve the package.\n`;
+      } else {
+        r += `All systems nominal. No actions required.\n`;
+      }
+      r += `\n`;
+      
+      r += `==================================================\n`;
+      r += `END OF REPORT\n`;
+      r += `==================================================`;
+      return r;
+    };;
+
+    const exportEngineeringReport = async () => {
+      const report = generateFullEngineeringReport();
+      handleCopyText(report, 'Complete Engineering Report');
+    };
+
+    const exportEverything = async () => {
+      const report = generateFullEngineeringReport();
+      handleCopyText(report, 'All Diagnostics Combined');
+    };
+
+    const diag = getAutoDiagnostics();
+
+    function getAutoDiagnostics() {
+      const err = globalOtaState.error || otaDebugLogs.installError;
+      const status = nativeInstallerDetails?.lastStatusCode ?? -999;
+      
+      if (!err && status === -999) return null;
+
+      let failedStage = 'Unknown';
+      let reason = err || 'An error occurred during update processing.';
+      let suggestedCause = 'Underlying native session failed to commit or start confirmation activity.';
+      let suggestedFix = 'Please reset the state completely, check internet connectivity, and ensure unknown sources permission is granted.';
+
+      const errStr = String(err).toLowerCase();
+      
+      if (errStr.includes('download') || (globalOtaState.updateState as string) === 'download_failed') {
+        failedStage = 'Downloading';
+        reason = err || 'Download failed or timed out.';
+        suggestedCause = 'Network connectivity issues, unresolvable download server URL, or file system storage access denied.';
+        suggestedFix = 'Ensure your internet connection is active, try clean cache, or select custom backup APK mirror.';
+      } else if (errStr.includes('sha') || (globalOtaState.updateState as string) === 'sha_failed') {
+        failedStage = 'Verification (SHA-256)';
+        reason = err || 'SHA-256 checksum validation failed.';
+        suggestedCause = 'The downloaded APK does not match the expected SHA-256 hash. The download might be corrupted or incomplete.';
+        suggestedFix = 'Retry the download, or toggle Force SHA Failure off. Check if CDN caches old versions.';
+      } else if (errStr.includes('eligibility') || (globalOtaState.updateState as string) === 'eligibility_failed') {
+        failedStage = 'Pre-install Eligibility Verification';
+        reason = err || 'The system declared the package ineligible.';
+        suggestedCause = otaDebugLogs.eligibilityReason === 'signature_mismatch'
+          ? 'Signature mismatch: The downloaded APK is signed with a different key than the installed app.'
+          : otaDebugLogs.eligibilityReason === 'versionCode_low'
+          ? 'Version downgrade: The remote versionCode is lower than the local one.'
+          : 'Incompatible platform, architecture ABI mismatch, or corrupted APK package parsing error.';
+        suggestedFix = otaDebugLogs.eligibilityReason === 'signature_mismatch'
+          ? 'A full clean reinstall is required (uninstall current app manually first to avoid signature conflict).'
+          : 'Enable downgrade options inside simulator, or perform a clean manual install.';
+      } else if (status !== -999) {
+        failedStage = 'Native PackageInstaller Handoff';
+        if (status === 3) {
+          reason = 'User Cancelled (STATUS_FAILURE_ABORTED)';
+          suggestedCause = 'User clicked "Cancel" on the system install confirmation screen.';
+          suggestedFix = 'Rerun the update trigger and click "Update" instead of "Cancel".';
+        } else if (status === 5) {
+          reason = 'Signature Conflict (STATUS_FAILURE_CONFLICT)';
+          suggestedCause = 'System blocked package installation because the new APK signature does not match the previously installed signature.';
+          suggestedFix = 'Manually uninstall the app, then retry to perform a clean install.';
+        } else if (status === 7) {
+          reason = 'Downgrade Blocked (STATUS_FAILURE_INCOMPATIBLE)';
+          suggestedCause = 'The system blocks installing an APK with a lower versionCode than the current app.';
+          suggestedFix = 'Ensure the new update version has a higher versionCode, or perform a manual clean install.';
+        } else if (status === 6) {
+          reason = 'Storage Full (STATUS_FAILURE_STORAGE)';
+          suggestedCause = 'The device has insufficient available flash storage memory to install the APK package.';
+          suggestedFix = 'Free up space in the device storage and retry.';
+        } else if (status === 2) {
+          reason = 'Blocked by System Policy (STATUS_FAILURE_BLOCKED)';
+          suggestedCause = 'System security settings or administrator policies block unknown sources installations.';
+          suggestedFix = 'Open Android unknown app sources settings and explicitly grant install permissions to Studio.';
+        } else {
+          reason = `PackageInstaller code ${status}: ${nativeInstallerDetails?.lastStatusMessage || 'Unknown error'}`;
+          suggestedCause = 'The PackageInstaller subsystem returned a system exception during commit execution.';
+          suggestedFix = 'Re-try the installation or inspect native device logs via ADB/Diagnostics.';
+        }
+      }
+
+      return {
+        failedStage,
+        reason,
+        exceptionStack: otaDebugLogs.lastExceptionStackTrace || 'None',
+        suggestedCause,
+        suggestedFix
+      };
+    }
+
     return (
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 4, paddingBottom: 'max(20px, env(safe-area-inset-bottom))' }}>
-        {/* Toggle between Legacy & Modern */}
-        <div style={{ display: 'flex', gap: 6, marginBottom: 12, background: 'rgba(255,255,255,0.03)', padding: 4, borderRadius: 8 }}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 12, paddingBottom: 'max(20px, env(safe-area-inset-bottom))' }}>
+        {/* Tab Switcher */}
+        <div style={{ display: 'flex', gap: 6, marginBottom: 4, background: 'rgba(255,255,255,0.03)', padding: 4, borderRadius: 8 }}>
           <button
-            onClick={() => setUpdaterTabMode('modern')}
+            onClick={() => setUpdaterTabMode('laboratory')}
             style={{
               flex: 1,
-              padding: '6px 10px',
+              padding: '8px 10px',
               borderRadius: 6,
-              background: updaterTabMode === 'modern' ? 'rgba(255,255,255,0.08)' : 'transparent',
-              color: updaterTabMode === 'modern' ? '#fff' : 'rgba(255,255,255,0.4)',
+              background: updaterTabMode === 'laboratory' ? 'rgba(255,255,255,0.08)' : 'transparent',
+              color: updaterTabMode === 'laboratory' ? '#fff' : 'rgba(255,255,255,0.4)',
               border: 'none',
               fontFamily: 'Manrope',
               fontSize: '11px',
@@ -725,16 +1574,16 @@ export default function DevToolsDashboard({ accent, onBack }: Props) {
               cursor: 'pointer'
             }}
           >
-            Modern Diagnostics
+            Updater Laboratory
           </button>
           <button
-            onClick={() => setUpdaterTabMode('legacy')}
+            onClick={() => setUpdaterTabMode('diagnostics')}
             style={{
               flex: 1,
-              padding: '6px 10px',
+              padding: '8px 10px',
               borderRadius: 6,
-              background: updaterTabMode === 'legacy' ? 'rgba(255,255,255,0.08)' : 'transparent',
-              color: updaterTabMode === 'legacy' ? '#fff' : 'rgba(255,255,255,0.4)',
+              background: updaterTabMode === 'diagnostics' ? 'rgba(255,255,255,0.08)' : 'transparent',
+              color: updaterTabMode === 'diagnostics' ? '#fff' : 'rgba(255,255,255,0.4)',
               border: 'none',
               fontFamily: 'Manrope',
               fontSize: '11px',
@@ -742,165 +1591,1331 @@ export default function DevToolsDashboard({ accent, onBack }: Props) {
               cursor: 'pointer'
             }}
           >
-            Legacy Diagnostics
+            Diagnostics Dashboard
           </button>
         </div>
 
-        {updaterTabMode === 'modern' ? (
-          <div>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
-              <span style={{ fontSize: 13, fontWeight: 700, color: 'rgba(255,255,255,0.4)' }}>Modern OTA Telemetry</span>
-              <button
-                onClick={() => {
-                  ota.checkNow();
-                  showToast('Manual update check triggered.');
-                }}
-                style={{
-                  padding: '6px 12px',
-                  borderRadius: 8,
-                  background: accent.from,
-                  color: '#fff',
-                  border: 'none',
-                  fontFamily: 'Manrope',
-                  fontWeight: 700,
-                  fontSize: '11px',
-                  cursor: 'pointer'
-                }}
-              >
-                Check Update
-              </button>
+        {/* 0. AUTO-DIAGNOSTICS FAILURE DETECTED */}
+        {diag && (
+          <div style={{
+            background: 'rgba(239, 68, 68, 0.08)',
+            border: '1px solid rgba(239, 68, 68, 0.25)',
+            borderRadius: '12px',
+            padding: '12px 14px',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: 6
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6, color: '#ef4444', fontWeight: 800, fontSize: 13 }}>
+              <span className="material-symbols-outlined" style={{ fontSize: 18 }}>emergency</span>
+              Auto-Diagnostics Failure Detected
             </div>
-
-            <CollapsibleSection
-              title="Modern Download Info"
-              collapsed={updaterCollapsed.ota}
-              onToggle={() => setUpdaterCollapsed(prev => ({ ...prev, ota: !prev.ota }))}
-            >
-              <DiagnosticField label="Download URL Used" value={otaDiagnostics.downloadUrl || 'N/A'} />
-              <DiagnosticField label="APK Path" value={otaDiagnostics.apkPath || 'N/A'} />
-              <DiagnosticField label="File Size" value={otaDiagnostics.fileSize || 'N/A'} />
-              <DiagnosticField label="SHA-256 Expected" value={otaDiagnostics.shaExpected || 'N/A'} />
-              <DiagnosticField label="SHA-256 Calculated" value={otaDiagnostics.shaCalculated || 'N/A'} />
-              <DiagnosticField label="Installer Result" value={otaDiagnostics.installerResult || 'N/A'} />
-            </CollapsibleSection>
-          </div>
-        ) : (
-          <div>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
-              <span style={{ fontSize: 13, fontWeight: 700, color: 'rgba(255,255,255,0.4)' }}>Legacy Updater Diagnostics</span>
+            <div style={{ fontSize: 11, color: '#fff', lineHeight: 1.4 }}>
+              <div style={{ borderBottom: '1px solid rgba(239, 68, 68, 0.1)', paddingBottom: 4, marginBottom: 4 }}>
+                <strong>Failed Stage:</strong> <span style={{ color: '#ef4444' }}>{diag.failedStage}</span>
+              </div>
+              <div style={{ borderBottom: '1px solid rgba(239, 68, 68, 0.1)', paddingBottom: 4, marginBottom: 4 }}>
+                <strong>Reason:</strong> {diag.reason}
+              </div>
+              <div style={{ borderBottom: '1px solid rgba(239, 68, 68, 0.1)', paddingBottom: 4, marginBottom: 4 }}>
+                <strong>Suggested Cause:</strong> <span style={{ color: '#fbcfe8' }}>{diag.suggestedCause}</span>
+              </div>
+              <div>
+                <strong>Suggested Fix:</strong> <span style={{ color: '#6ee7b7', fontWeight: 700 }}>{diag.suggestedFix}</span>
+              </div>
             </div>
-
-            <CollapsibleSection
-              title="Device Info"
-              collapsed={updaterCollapsed.device}
-              onToggle={() => setUpdaterCollapsed(prev => ({ ...prev, device: !prev.device }))}
-            >
-              <DiagnosticField label="Device Model" value={otaDiagnostics.deviceModel} />
-              <DiagnosticField label="Android Version" value={otaDiagnostics.androidVersion} />
-              <DiagnosticField label="Permission State" value={otaDiagnostics.permissionState} />
-              <DiagnosticField label="Timestamp" value={otaDiagnostics.timestamp} />
-            </CollapsibleSection>
-
-            <CollapsibleSection
-              title="Update Decision"
-              collapsed={updaterCollapsed.decision}
-              onToggle={() => setUpdaterCollapsed(prev => ({ ...prev, decision: !prev.decision }))}
-            >
-              <DiagnosticField label="Update Decision" value={otaDebugLogs.updateDecision || 'N/A'} />
-              <DiagnosticField label="Update Decision Reason" value={otaDebugLogs.updateDecisionReason || 'N/A'} />
-              <DiagnosticField label="Installed versionCode" value={otaDebugLogs.installedVersionCode !== null ? String(otaDebugLogs.installedVersionCode) : 'N/A'} />
-              <DiagnosticField label="Remote versionCode" value={otaDebugLogs.remoteVersionCode !== null ? String(otaDebugLogs.remoteVersionCode) : 'N/A'} />
-              <DiagnosticField label="Version Comparison" value={otaDebugLogs.versionComparisonResult || 'N/A'} />
-            </CollapsibleSection>
-
-            <CollapsibleSection
-              title="OTA Verification"
-              collapsed={updaterCollapsed.ota}
-              onToggle={() => setUpdaterCollapsed(prev => ({ ...prev, ota: !prev.ota }))}
-            >
-              <DiagnosticField label="Installer App Available" value={String(otaDebugLogs.appInstallerAvailable)} />
-              <DiagnosticField label="Vite App Version" value={otaDebugLogs.appVersion} />
-              <DiagnosticField label="Native Wrapper Version" value={otaDebugLogs.nativeApkVersion || 'N/A'} />
-              <DiagnosticField label="Expected SHA-256" value={otaDiagnostics.shaExpected} />
-              <DiagnosticField label="Calculated SHA-256" value={otaDiagnostics.shaCalculated} />
-            </CollapsibleSection>
-
-            <CollapsibleSection
-              title="Errors & Stack Trace"
-              collapsed={updaterCollapsed.errors}
-              onToggle={() => setUpdaterCollapsed(prev => ({ ...prev, errors: !prev.errors }))}
-            >
-              <DiagnosticField label="Exception Message" value={otaDiagnostics.exceptionMessage} />
-              <DiagnosticField label="Failure Stack Trace" value={otaDiagnostics.failureReason} isCode />
-              <DiagnosticField label="Installer Result" value={otaDiagnostics.installerResult} isCode />
-            </CollapsibleSection>
+            {diag.exceptionStack && diag.exceptionStack !== 'None' && (
+              <CollapsibleSection title="Show Exception Stack" collapsed={diagExceptionCollapsed} onToggle={() => setDiagExceptionCollapsed(!diagExceptionCollapsed)}>
+                <pre style={{ fontSize: 9, color: '#fca5a5', background: 'rgba(0,0,0,0.4)', padding: 6, borderRadius: 6, overflowX: 'auto', margin: 0 }}>
+                  {diag.exceptionStack}
+</pre>
+              </CollapsibleSection>
+            )}
           </div>
         )}
+        {updaterTabMode === 'laboratory' ? (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+            <style>{`
+              @keyframes spin {
+                from { transform: rotate(0deg); }
+                to { transform: rotate(360deg); }
+              }
+            `}</style>
 
-        {/* PRODUCTION TESTING */}
-        <div style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.06)', borderRadius: 14, padding: 14, marginBottom: 12 }}>
-          <span style={{ fontWeight: 800, fontSize: 13, display: 'block', marginBottom: 10 }}>Production Testing</span>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
-            <button onClick={handleCompleteUpdateFlow} disabled={updatingFlow} style={{ padding: 10, background: accent.from, border: 'none', color: '#fff', borderRadius: 8, fontSize: 11, fontWeight: 700, cursor: 'pointer' }}>
-              Run Complete Update Flow
-            </button>
-            <button onClick={() => ota.downloadUpdate('DevTools')} style={{ padding: 10, background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)', color: '#fff', borderRadius: 8, fontSize: 11, fontWeight: 700, cursor: 'pointer' }}>
-              Trigger Download
-            </button>
-            <button onClick={() => ota.applyUpdate('DevTools')} style={{ padding: 10, background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)', color: '#fff', borderRadius: 8, fontSize: 11, fontWeight: 700, cursor: 'pointer' }}>
-              Trigger Install
-            </button>
-            <button onClick={() => ota.checkNow()} style={{ padding: 10, background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)', color: '#fff', borderRadius: 8, fontSize: 11, fontWeight: 700, cursor: 'pointer' }}>
-              Force Check Updates
-            </button>
+            {/* A. VISUAL PIPELINE VISUALIZATION */}
+            {renderVisualPipeline()}
+
+            {/* B. LIVE TELEMETRY STATUS PANEL */}
+            {renderLiveStatusPanel()}
+
+            {/* C. COLLAPSIBLE ENGINEERING SECTIONS */}
+            
+            {/* SECTION 1: Production Testing */}
+            <CollapsibleSection
+              title="🧪 Production Testing"
+              collapsed={labSectionsCollapsed.testing}
+              onToggle={() => setLabSectionsCollapsed(prev => ({ ...prev, testing: !prev.testing }))}
+            >
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                <p style={{ margin: '0 0 4px', fontSize: 11, color: 'rgba(255,255,255,0.4)', lineHeight: 1.45 }}>
+                  Execute real production updater paths. These trigger live file systems and system installations.
+                </p>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: 8 }}>
+                  {renderLabButtonBlock(
+                    'Run Complete Update Flow',
+                    'Runs the full production update check, download, and install pipeline.',
+                    'Android PackageInstaller confirmation dialog appears.',
+                    'Offline, signature conflict, low storage, missing permissions.',
+                    'prodFlow',
+                    async () => {
+                      const checkRes = await checkForUpdate(true, 'dev_tools', 'Run Production Flow tapped');
+                      if (checkRes.updateAvailable) {
+                        await downloadUpdate('Prod Flow');
+                        await applyUpdate('Prod Flow');
+                      } else {
+                        showToast('No update available to install.');
+                      }
+                    },
+                    'success'
+                  )}
+                  {renderLabButtonBlock(
+                    'Trigger Download',
+                    'Triggers real download of the target update APK from mirror server.',
+                    'APK file download completes and is saved in local cache directory.',
+                    'Network connection timeout or server endpoint unreachable.',
+                    'download',
+                    async () => {
+                      await downloadUpdate('Updater Lab');
+                    },
+                    'success'
+                  )}
+                  {renderLabButtonBlock(
+                    'Trigger Install',
+                    'Triggers real installation of the cached update package.',
+                    'Launches the Android PackageInstaller system overlay confirmation.',
+                    'No downloaded APK file exists, or installer overlay is blocked.',
+                    'install',
+                    async () => {
+                      await applyUpdate('Updater Lab');
+                    },
+                    'primary'
+                  )}
+                  {renderLabButtonBlock(
+                    'Force Check Updates',
+                    'Queries the remote manifest file to check for version changes.',
+                    'State machine moves to Checking then Idle or Update Available.',
+                    'Manifest url invalid or network disconnected.',
+                    'forceCheck',
+                    async () => {
+                      await checkForUpdate(true, 'dev_tools', 'Force Check Updates button tapped');
+                    },
+                    'info'
+                  )}
+                </div>
+              </div>
+            </CollapsibleSection>
+
+            {/* SECTION 2: Simulation Controls */}
+            <CollapsibleSection
+              title="🧩 Simulation Controls"
+              collapsed={labSectionsCollapsed.simulation}
+              onToggle={() => setLabSectionsCollapsed(prev => ({ ...prev, simulation: !prev.simulation }))}
+            >
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                <p style={{ margin: '0 0 4px', fontSize: 11, color: 'rgba(255,255,255,0.4)', lineHeight: 1.45 }}>
+                  Mock state transitions and remote response parameters to test updater behaviors.
+                </p>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: 8 }}>
+                  {renderLabButtonBlock(
+                    'Force Update Available',
+                    'Mocks remote version 3.7.99 to force an update availability check.',
+                    'State machine transitions to update_available.',
+                    'None (fully simulated).',
+                    'forceAvail',
+                    async () => {
+                      updaterSimulation.forceUpdateAvailable = true;
+                      updaterSimulation.forceNoUpdate = false;
+                      updaterSimulation.forceDowngrade = false;
+                      await checkForUpdate(true, 'dev_tools', 'Simulation: Force Update Available');
+                    },
+                    'info'
+                  )}
+                  {renderLabButtonBlock(
+                    'Force No Update',
+                    'Mocks remote version matching the local build to simulate no updates.',
+                    'State machine transitions to idle.',
+                    'None.',
+                    'forceNoUpdate',
+                    async () => {
+                      updaterSimulation.forceUpdateAvailable = false;
+                      updaterSimulation.forceNoUpdate = true;
+                      updaterSimulation.forceDowngrade = false;
+                      await checkForUpdate(true, 'dev_tools', 'Simulation: Force No Update');
+                    },
+                    'info'
+                  )}
+                  {renderLabButtonBlock(
+                    'Force Downgrade',
+                    'Mocks remote version 3.7.10 to simulate version downgrade.',
+                    'State transitions to ready_to_install with version downgrade detected.',
+                    'None.',
+                    'forceDown',
+                    async () => {
+                      updaterSimulation.forceUpdateAvailable = false;
+                      updaterSimulation.forceNoUpdate = false;
+                      updaterSimulation.forceDowngrade = true;
+                      await checkForUpdate(true, 'dev_tools', 'Simulation: Force Downgrade');
+                    },
+                    'info'
+                  )}
+                  {renderLabButtonBlock(
+                    'Force Metadata Failure',
+                    'Injects error during manifest metadata query.',
+                    'State transitions to failed or idle with error message.',
+                    'None.',
+                    'forceMetaFail',
+                    async () => {
+                      updaterSimulation.forceMetadataFailure = true;
+                      await checkForUpdate(true, 'dev_tools', 'Simulation: Force Metadata Failure');
+                    },
+                    'danger'
+                  )}
+                  {renderLabButtonBlock(
+                    'Force Mandatory',
+                    'Simulates a mandatory release update metadata block.',
+                    'Checks label the next available update as mandatory.',
+                    'None.',
+                    'forceMandatory',
+                    async () => {
+                      updaterSimulation.forceMandatoryUpdate = true;
+                      updaterSimulation.forceOptionalUpdate = false;
+                      await checkForUpdate(true, 'dev_tools', 'Simulation: Force Mandatory');
+                    },
+                    'secondary'
+                  )}
+                  {renderLabButtonBlock(
+                    'Force Optional',
+                    'Simulates an optional release update metadata block.',
+                    'Checks label the next available update as optional.',
+                    'None.',
+                    'forceOptional',
+                    async () => {
+                      updaterSimulation.forceOptionalUpdate = true;
+                      updaterSimulation.forceMandatoryUpdate = false;
+                      await checkForUpdate(true, 'dev_tools', 'Simulation: Force Optional');
+                    },
+                    'secondary'
+                  )}
+                  {renderLabButtonBlock(
+                    'Force APK Update',
+                    'Forces update package type to system APK.',
+                    'Triggers PackageInstaller sessions instead of ZIP files.',
+                    'None.',
+                    'forceApk',
+                    async () => {
+                      updaterSimulation.forceApkUpdate = true;
+                      updaterSimulation.forceOtaUpdate = false;
+                      await checkForUpdate(true, 'dev_tools', 'Simulation: Force APK Update');
+                    },
+                    'secondary'
+                  )}
+                  {renderLabButtonBlock(
+                    'Force OTA Update',
+                    'Forces update package type to Javascript bundle ZIP.',
+                    'State machine targets internal JS hot-reload file writing.',
+                    'None.',
+                    'forceOta',
+                    async () => {
+                      updaterSimulation.forceOtaUpdate = true;
+                      updaterSimulation.forceApkUpdate = false;
+                      await checkForUpdate(true, 'dev_tools', 'Simulation: Force OTA Update');
+                    },
+                    'secondary'
+                  )}
+                  {renderLabButtonBlock(
+                    'Force Pending User Action',
+                    'Mocks status callback for user confirmation prompt.',
+                    'Simulates displaying the PackageInstaller confirmation.',
+                    'No active listeners registered.',
+                    'mockPending',
+                    () => {
+                      updaterSimulation.forceInstallSuccess = false;
+                      updaterSimulation.forceInstallFailure = false;
+                      updaterSimulation.forceUserCancel = false;
+                      updaterSimulation.forcePendingUserAction = true;
+                      triggerSimulatedStatus(-1, 'STATUS_PENDING_USER_ACTION');
+                    },
+                    'warning'
+                  )}
+                  {renderLabButtonBlock(
+                    'Force Success (0)',
+                    'Simulates installer completing successfully with code 0.',
+                    'State machine transitions to completed / success.',
+                    'No active listeners.',
+                    'mockSuccess',
+                    () => {
+                      updaterSimulation.forceInstallSuccess = true;
+                      updaterSimulation.forceInstallFailure = false;
+                      updaterSimulation.forceUserCancel = false;
+                      updaterSimulation.forcePendingUserAction = false;
+                      triggerSimulatedStatus(0, 'STATUS_SUCCESS');
+                    },
+                    'success'
+                  )}
+                  {renderLabButtonBlock(
+                    'Force Fail (1)',
+                    'Simulates installer failing with code 1.',
+                    'State machine transitions to failed.',
+                    'No active listeners.',
+                    'mockFail',
+                    () => {
+                      updaterSimulation.forceInstallSuccess = false;
+                      updaterSimulation.forceInstallFailure = true;
+                      updaterSimulation.forceUserCancel = false;
+                      updaterSimulation.forcePendingUserAction = false;
+                      triggerSimulatedStatus(1, 'STATUS_FAILURE');
+                    },
+                    'danger'
+                  )}
+                  {renderLabButtonBlock(
+                    'Force Cancel (3)',
+                    'Simulates user dismissing the confirmation prompt.',
+                    'State machine transitions to failed (cancelled).',
+                    'No active listeners.',
+                    'mockCancel',
+                    () => {
+                      updaterSimulation.forceInstallSuccess = false;
+                      updaterSimulation.forceInstallFailure = false;
+                      updaterSimulation.forceUserCancel = true;
+                      updaterSimulation.forcePendingUserAction = false;
+                      triggerSimulatedStatus(3, 'STATUS_FAILURE_ABORTED');
+                    },
+                    'danger'
+                  )}
+                </div>
+              </div>
+            </CollapsibleSection>
+
+            {/* SECTION 3: Failure & Recovery Injections */}
+            <CollapsibleSection
+              title="🛠 Recovery & Failures"
+              collapsed={labSectionsCollapsed.recovery}
+              onToggle={() => setLabSectionsCollapsed(prev => ({ ...prev, recovery: !prev.recovery }))}
+            >
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                <p style={{ margin: '0 0 4px', fontSize: 11, color: 'rgba(255,255,255,0.4)', lineHeight: 1.45 }}>
+                  Test state machine resiliency by injecting network, hashing, and signature conflicts.
+                </p>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: 8 }}>
+                  {renderLabButtonBlock(
+                    'Inject Download Failure',
+                    'Injects simulated IOException during file writing.',
+                    'Download fails and states update to download_failed.',
+                    'None.',
+                    'injectDownFail',
+                    async () => {
+                      updaterSimulation.forceDownloadFailure = true;
+                      updaterSimulation.forceDownloadTimeout = false;
+                      showToast('Simulating download failure...');
+                      transitionToState('checking', 'Simulation: Download Failure initiated');
+                      await new Promise(resolve => setTimeout(resolve, 800));
+                      transitionToState('update_available', 'Simulation: Update available (v3.7.45)');
+                      await new Promise(resolve => setTimeout(resolve, 800));
+                      transitionToState('downloading', 'Simulation: Downloading package...');
+                      await new Promise(resolve => setTimeout(resolve, 1000));
+                      transitionToState('download_failed', 'Simulated download IO failure (Connection lost)');
+                      await new Promise(resolve => setTimeout(resolve, 800));
+                      transitionToState('failed', 'Download failed: Simulated download IO failure');
+                    },
+                    'danger'
+                  )}
+                  {renderLabButtonBlock(
+                    'Inject Connection Timeout',
+                    'Simulates download socket timeout.',
+                    'Download throws timeout and retries or transitions to failed.',
+                    'None.',
+                    'injectTimeout',
+                    async () => {
+                      updaterSimulation.forceDownloadTimeout = true;
+                      updaterSimulation.forceDownloadFailure = false;
+                      showToast('Simulating connection timeout...');
+                      transitionToState('checking', 'Simulation: Connection Timeout initiated');
+                      await new Promise(resolve => setTimeout(resolve, 800));
+                      transitionToState('update_available', 'Simulation: Update available (v3.7.45)');
+                      await new Promise(resolve => setTimeout(resolve, 800));
+                      transitionToState('downloading', 'Simulation: Downloading package...');
+                      await new Promise(resolve => setTimeout(resolve, 1000));
+                      transitionToState('download_failed', 'Simulated download timeout (Gateway timeout)');
+                      await new Promise(resolve => setTimeout(resolve, 800));
+                      transitionToState('failed', 'Download failed: Simulated download timeout');
+                    },
+                    'danger'
+                  )}
+                  {renderLabButtonBlock(
+                    'Inject SHA Failure',
+                    'Mocks checksum check to fail after download completes.',
+                    'Calculated SHA fails to match manifest, transitions to sha_failed.',
+                    'None.',
+                    'injectShaFail',
+                    async () => {
+                      updaterSimulation.forceShaFailure = true;
+                      showToast('Simulating SHA failure...');
+                      transitionToState('checking', 'Simulation: SHA Failure initiated');
+                      await new Promise(resolve => setTimeout(resolve, 800));
+                      transitionToState('update_available', 'Simulation: Update available (v3.7.45)');
+                      await new Promise(resolve => setTimeout(resolve, 800));
+                      transitionToState('downloading', 'Simulation: Downloading package...');
+                      await new Promise(resolve => setTimeout(resolve, 1000));
+                      transitionToState('verifying_sha', 'Simulation: Checking SHA-256 integrity...');
+                      await new Promise(resolve => setTimeout(resolve, 800));
+                      transitionToState('sha_failed', 'Simulated checksum mismatch: expected aa12, got cc34');
+                      await new Promise(resolve => setTimeout(resolve, 800));
+                      transitionToState('failed', 'Verification failed: Simulated checksum mismatch');
+                    },
+                    'danger'
+                  )}
+                  {renderLabButtonBlock(
+                    'Inject Signature Conflict',
+                    'Mocks signature verification mismatch for package compatibility.',
+                    'Checks label the APK signature invalid, transitions to signature_mismatch.',
+                    'None.',
+                    'injectSigConflict',
+                    async () => {
+                      updaterSimulation.forceSignatureMismatch = true;
+                      showToast('Simulating signature conflict...');
+                      transitionToState('checking', 'Simulation: Signature Conflict initiated');
+                      await new Promise(resolve => setTimeout(resolve, 800));
+                      transitionToState('update_available', 'Simulation: Update available (v3.7.45)');
+                      await new Promise(resolve => setTimeout(resolve, 800));
+                      transitionToState('downloading', 'Simulation: Downloading package...');
+                      await new Promise(resolve => setTimeout(resolve, 1000));
+                      transitionToState('verifying_sha', 'Simulation: Checking SHA-256 integrity...');
+                      await new Promise(resolve => setTimeout(resolve, 800));
+                      transitionToState('verifying_eligibility', 'Simulation: Checking package compatibility...');
+                      await new Promise(resolve => setTimeout(resolve, 800));
+                      transitionToState('signature_mismatch', 'Simulated Android PackageInstaller signature verification failure');
+                    },
+                    'danger'
+                  )}
+                  {renderLabButtonBlock(
+                    'Inject Invalid APK',
+                    'Fails parsing APK archive info details.',
+                    'Eligibility checks mark package as corrupt, transitions to failed.',
+                    'None.',
+                    'injectInvalidApk',
+                    async () => {
+                      updaterSimulation.forceInvalidApk = true;
+                      showToast('Simulating invalid APK...');
+                      transitionToState('checking', 'Simulation: Invalid APK initiated');
+                      await new Promise(resolve => setTimeout(resolve, 800));
+                      transitionToState('update_available', 'Simulation: Update available (v3.7.45)');
+                      await new Promise(resolve => setTimeout(resolve, 800));
+                      transitionToState('downloading', 'Simulation: Downloading package...');
+                      await new Promise(resolve => setTimeout(resolve, 1000));
+                      transitionToState('verifying_sha', 'Simulation: Checking SHA-256 integrity...');
+                      await new Promise(resolve => setTimeout(resolve, 800));
+                      transitionToState('verifying_eligibility', 'Simulation: Checking package compatibility...');
+                      await new Promise(resolve => setTimeout(resolve, 800));
+                      transitionToState('eligibility_failed', 'Simulated eligibility failed: package info is corrupt');
+                      await new Promise(resolve => setTimeout(resolve, 800));
+                      transitionToState('failed', 'Eligibility verification failed: package info is corrupt');
+                    },
+                    'danger'
+                  )}
+                  {renderLabButtonBlock(
+                    'Force Recovery Mode',
+                    'Fakes consecutive installer failures to trigger recovery mode.',
+                    'App loads diagnostics recovery layout upon next update check.',
+                    'None.',
+                    'forceRecovery',
+                    async () => {
+                      updaterSimulation.forceRecoveryMode = true;
+                      await checkForUpdate(true, 'dev_tools', 'Simulation: Force Recovery Mode');
+                    },
+                    'warning'
+                  )}
+                  {renderLabButtonBlock(
+                    'Force Valid Cached APK',
+                    'Mocks APK storage check to bypass downloading phase.',
+                    'Transitions directly from update_available to ready_to_install.',
+                    'None.',
+                    'forceCached',
+                    () => {
+                      updaterSimulation.forceCachedApk = true;
+                    },
+                    'warning'
+                  )}
+                  {renderLabButtonBlock(
+                    'Force Resume Mode',
+                    'Forces download range headers to request partial resume packets.',
+                    'Downloads append to existing files instead of rewriting.',
+                    'None.',
+                    'forceResume',
+                    () => {
+                      updaterSimulation.forceResumeDownload = true;
+                    },
+                    'warning'
+                  )}
+                  {renderLabButtonBlock(
+                    'Reset State Machine',
+                    'Clears current updater state indicators and sets to IDLE.',
+                    'Resets active checking/downloading state properties.',
+                    'None.',
+                    'resetStateMachine',
+                    () => {
+                      resetOtaUpdateState();
+                      showToast('State machine reset to IDLE.');
+                    },
+                    'warning'
+                  )}
+                  {renderLabButtonBlock(
+                    'Clear All Simulations',
+                    'Clears all mocked variables and resets parameters to default.',
+                    'Manifest queries and installer sessions behave normally.',
+                    'None.',
+                    'clearSims',
+                    async () => {
+                      updaterSimulation.forceUpdateAvailable = false;
+                      updaterSimulation.forceNoUpdate = false;
+                      updaterSimulation.forceDowngrade = false;
+                      updaterSimulation.forceMandatoryUpdate = false;
+                      updaterSimulation.forceOptionalUpdate = false;
+                      updaterSimulation.forceApkUpdate = false;
+                      updaterSimulation.forceOtaUpdate = false;
+                      updaterSimulation.forceMetadataFailure = false;
+                      updaterSimulation.forceShaFailure = false;
+                      updaterSimulation.forceSignatureMismatch = false;
+                      updaterSimulation.forceInvalidApk = false;
+                      updaterSimulation.forceDownloadFailure = false;
+                      updaterSimulation.forceDownloadTimeout = false;
+                      updaterSimulation.forceRecoveryMode = false;
+                      updaterSimulation.forceCachedApk = false;
+                      updaterSimulation.forceResumeDownload = false;
+                      updaterSimulation.forceInstallSuccess = false;
+                      updaterSimulation.forceInstallFailure = false;
+                      updaterSimulation.forceUserCancel = false;
+                      updaterSimulation.forcePendingUserAction = false;
+                      await checkForUpdate(true, 'dev_tools', 'Simulation: Clear All Simulations');
+                    },
+                    'primary'
+                  )}
+                  {renderLabButtonBlock(
+                    'Clear Recovery Flags',
+                    'Clears stored count variables for self-healing loops.',
+                    'Resets consecutive failures list.',
+                    'None.',
+                    'clearRecovery',
+                    () => {
+                      localStorage.removeItem('studio:consecutiveFailures');
+                      localStorage.removeItem('studio:recoveryMode');
+                      showToast('Recovery variables cleared.');
+                    },
+                    'secondary'
+                  )}
+                  {renderLabButtonBlock(
+                    'Delete Cached APK',
+                    'Deletes APK files from cache directories.',
+                    'Clears storage files to verify download from scratch.',
+                    'Cache file not found or write protected.',
+                    'deleteApk',
+                    async () => {
+                      const ver = globalOtaState.remoteVersion || '3.7.99';
+                      await deleteLocalApk(ver);
+                      showToast('Deleted cached update APKs.');
+                    },
+                    'secondary'
+                  )}
+                  {renderLabButtonBlock(
+                    'Reset Diagnostics',
+                    'Clears current in-memory otaDiagnostics fields and resets otaDebugLogs values.',
+                    'Diagnostics properties are reset to null/defaults.',
+                    'None.',
+                    'resetDiagnostics',
+                    () => {
+                      resetOtaDiagnostics();
+                      triggerSimRender();
+                      showToast('Diagnostics reset successfully.');
+                    },
+                    'warning'
+                  )}
+                  {renderLabButtonBlock(
+                    'Reset Completely',
+                    'Performs full wipe of parameters, states, and history logs.',
+                    'Wipes log lists, timelines, cache files, and machine values.',
+                    'None.',
+                    'resetCompletely',
+                    async () => {
+                      const ver = globalOtaState.remoteVersion || '3.7.99';
+                      resetOtaUpdateState();
+                      resetOtaDiagnostics();
+                      await deleteLocalApk(ver);
+                      localStorage.removeItem('studio:consecutiveFailures');
+                      localStorage.removeItem('studio:recoveryMode');
+                      localStorage.removeItem('studio:downloadedApkPath');
+                      jsLogs.length = 0;
+                      nativeLogsList.length = 0;
+                      stateTimeline.length = 0;
+                      transitionHistory.length = 0;
+                      rejectedTransitions.length = 0;
+                      showToast('Updater completely reset.');
+                    },
+                    'danger'
+                  )}
+                  {renderLabButtonBlock(
+                    'Clear Timeline',
+                    'Clears the state timeline, transition history, and rejected transitions from local variables.',
+                    'Timeline displays are completely emptied.',
+                    'None.',
+                    'clearTimeline',
+                    () => {
+                      stateTimeline.length = 0;
+                      transitionHistory.length = 0;
+                      rejectedTransitions.length = 0;
+                      triggerSimRender();
+                      showToast('Timeline history cleared.');
+                    },
+                    'warning'
+                  )}
+                </div>
+              </div>
+            </CollapsibleSection>
+
+            {/* SECTION 4: Advanced Engineering */}
+            <CollapsibleSection
+              title="⚙ Advanced Engineering"
+              collapsed={labSectionsCollapsed.advanced}
+              onToggle={() => setLabSectionsCollapsed(prev => ({ ...prev, advanced: !prev.advanced }))}
+            >
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                <p style={{ margin: '0 0 4px', fontSize: 11, color: 'rgba(255,255,255,0.4)', lineHeight: 1.45 }}>
+                  Access native Android bindings, Activity recreate features, and APK file inspections.
+                </p>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: 8 }}>
+                  {renderLabButtonBlock(
+                    'Resume Pending Install',
+                    'Manually executes confirmation intents if present in background.',
+                    'Launches pending confirmations immediately.',
+                    'No intents pending in plugin variables.',
+                    'resumePending',
+                    async () => {
+                      await AppInstaller.resumePendingInstall();
+                    },
+                    'info'
+                  )}
+                  {renderLabButtonBlock(
+                    'Resume Active Session',
+                    'Queries active PackageInstaller session details.',
+                    'Re-binds callbacks to active system installations.',
+                    'No session active or session closed.',
+                    'resumeSession',
+                    async () => {
+                      await AppInstaller.resumePackageInstallerSession();
+                    },
+                    'info'
+                  )}
+                  {renderLabButtonBlock(
+                    'Simulate Lifecycle Pause',
+                    'Simulates onPause activity event callback.',
+                    'Logs onPause telemetry timestamp.',
+                    'None.',
+                    'simPause',
+                    () => {
+                      addJsLog('Simulating onPause lifecycle event');
+                      recordActivityLifecycle('onPause');
+                    },
+                    'warning'
+                  )}
+                  {renderLabButtonBlock(
+                    'Simulate Lifecycle Resume',
+                    'Simulates onResume activity event callback.',
+                    'Logs onResume event and executes startup recoveries.',
+                    'None.',
+                    'simResume',
+                    async () => {
+                      addJsLog('Simulating onResume lifecycle event');
+                      recordActivityLifecycle('onResume');
+                      const { enforceStartupRecovery } = await import('@workspace/studio-core');
+                      await enforceStartupRecovery();
+                    },
+                    'warning'
+                  )}
+                  {renderLabButtonBlock(
+                    'Simulate Activity Recreate',
+                    'Recreates the foreground Capacitor activity.',
+                    'MainActivity restarts, maintaining session callbacks.',
+                    'Android window reference invalid.',
+                    'simRecreate',
+                    async () => {
+                      await AppInstaller.recreateActivity();
+                    },
+                    'danger'
+                  )}
+                  {renderLabButtonBlock(
+                    'Simulate Process Kill',
+                    'Calls System.exit(0) to terminate the app JVM process.',
+                    'App closes immediately to test lifecycle restoration.',
+                    'Android process controller restricts execution.',
+                    'simKill',
+                    async () => {
+                      await AppInstaller.killProcess();
+                    },
+                    'danger'
+                  )}
+                  {renderLabButtonBlock(
+                    'Replay Last Install',
+                    'Executes applyUpdate targeting the last cached path.',
+                    'Installer session commits downloaded files again.',
+                    'Path not found or APK unreadable.',
+                    'replayInstall',
+                    async () => {
+                      const lastPath = localStorage.getItem('studio:downloadedApkPath') || '';
+                      if (!lastPath) throw new Error('No downloaded APK path found in storage.');
+                      await applyUpdate('Replay Last Installation');
+                    },
+                    'info'
+                  )}
+                  {renderLabButtonBlock(
+                    'Replay Last Failure',
+                    'Prints the last recorded error details.',
+                    'Outputs failure stack trace in logs console.',
+                    'No recorded errors.',
+                    'replayFail',
+                    () => {
+                      const err = otaDebugLogs.installError || localStorage.getItem('studio:lastError') || 'No recorded failures';
+                      addJsLog(`[Replay Failure] Last error: ${err}`);
+                    },
+                    'info'
+                  )}
+                  {renderLabButtonBlock(
+                    'Open Cached APK',
+                    'Opens sharing intent for cached APK packages.',
+                    'Android share dialog lists available target apps.',
+                    'File not found or share permission denied.',
+                    'openApk',
+                    async () => {
+                      const lastPath = localStorage.getItem('studio:downloadedApkPath') || '';
+                      if (!lastPath) throw new Error('No downloaded APK path found.');
+                      if (isNative()) {
+                        const { Share } = await import('@capacitor/share');
+                        await Share.share({ title: 'Cached APK', url: lastPath.startsWith('file://') ? lastPath : `file://${lastPath}` });
+                      } else {
+                        addJsLog(`[Open Cached APK] Mock browser path: ${lastPath}`);
+                      }
+                    },
+                    'info'
+                  )}
+                  {renderLabButtonBlock(
+                    'Open Installer Permission',
+                    'Opens the native Android system settings page for managing unknown app sources.',
+                    'System permission overlay is launched.',
+                    'Plugin not loaded, or settings window restricted.',
+                    'openPermission',
+                    async () => {
+                      if (isNative()) {
+                        await AppInstaller.openUnknownAppSourcesSettings();
+                      } else {
+                        addJsLog('[Open Permission] Mock environment: Open unknown app sources settings.');
+                      }
+                    },
+                    'info'
+                  )}
+                  {renderLabButtonBlock(
+                    'Open Download Folder',
+                    'Copies the download cache folder path to clipboard and launches share dialog.',
+                    'Folder path is copied to clipboard and sharing options appear.',
+                    'No downloaded path registered in storage.',
+                    'openDownloadFolder',
+                    async () => {
+                      const path = localStorage.getItem('studio:downloadedApkPath') || '';
+                      const folder = path ? path.substring(0, path.lastIndexOf('/')) : 'Cache Directory';
+                      if (isNative()) {
+                        const { Share } = await import('@capacitor/share');
+                        await Share.share({ title: 'Download Folder', text: `Path: ${folder}` });
+                      }
+                      await handleCopyText(folder, 'Download Folder Path');
+                    },
+                    'info'
+                  )}
+                  {renderLabButtonBlock(
+                    'Validate Metadata',
+                    'Performs deep comparisons of remote manifest version details versus the downloaded APK package.',
+                    'Local and remote metadata matches are calculated and printed to logs.',
+                    'No downloaded package found, or package invalid.',
+                    'validateMetadata',
+                    async () => {
+                      const lastPath = localStorage.getItem('studio:downloadedApkPath') || '';
+                      if (!lastPath) throw new Error('No downloaded APK path found.');
+                      if (isNative()) {
+                        const details = await AppInstaller.getApkDetails({ filePath: lastPath });
+                        const isEligible = details.versionCode > (nativeDeviceInfo?.versionCode ?? 0);
+                        const verMatch = details.versionName === globalOtaState.remoteVersion;
+                        addJsLog(`[Validate Metadata] Remote version match: ${verMatch} (${details.versionName} vs ${globalOtaState.remoteVersion}). Code higher: ${isEligible} (${details.versionCode} vs ${nativeDeviceInfo?.versionCode}).`);
+                        showToast(`Validation Complete: Version Match = ${verMatch}, Code Higher = ${isEligible}`);
+                      } else {
+                        addJsLog('[Validate Metadata] Mock: Manifest validation match verified.');
+                        showToast('Mock metadata validated successfully.');
+                      }
+                    },
+                    'info'
+                  )}
+                  {renderLabButtonBlock(
+                    'Inspect APK',
+                    'Extracts package identifiers and versionCode.',
+                    'Prints parsed packageName and versionCode values.',
+                    'Package corrupted or parsing failed.',
+                    'inspectApk',
+                    async () => {
+                      const lastPath = localStorage.getItem('studio:downloadedApkPath') || '';
+                      if (!lastPath) throw new Error('No downloaded APK path found.');
+                      if (isNative()) {
+                        const details = await AppInstaller.inspectApk({ filePath: lastPath });
+                        addJsLog(`[Inspect APK] Result: ${JSON.stringify(details)}`);
+                        setLocalApkDetails(details);
+                      } else {
+                        addJsLog('[Inspect APK] Mock environment: verified valid com.chordex.app APK.');
+                      }
+                    },
+                    'info'
+                  )}
+                  {renderLabButtonBlock(
+                    'Verify SHA',
+                    'Re-evaluates SHA checksum of cached package files.',
+                    'Outputs verifySHA comparison output values.',
+                    'Target file missing.',
+                    'verifyShaAgain',
+                    async () => {
+                      const lastPath = localStorage.getItem('studio:downloadedApkPath') || '';
+                      if (!lastPath) throw new Error('No downloaded APK path found.');
+                      if (isNative()) {
+                        const expected = globalOtaState.apkSha256 || 'unknown';
+                        const result = await AppInstaller.verifyApkSha256({ filePath: lastPath, expectedHash: expected });
+                        addJsLog(`[Verify SHA] Expected: ${expected}. Matches: ${result.matches}`);
+                      } else {
+                        addJsLog('[Verify SHA] Mock environment: SHA matches expected hash.');
+                      }
+                    },
+                    'info'
+                  )}
+                  {renderLabButtonBlock(
+                    'APK Eligibility',
+                    'Validates APK signatures and version downgrade rules.',
+                    'Prints eligibility validation status conclusions.',
+                    'APK file unreadable.',
+                    'runEligAgain',
+                    async () => {
+                      const lastPath = localStorage.getItem('studio:downloadedApkPath') || '';
+                      if (!lastPath) throw new Error('No downloaded APK path found.');
+                      if (isNative()) {
+                        const details = await AppInstaller.getApkDetails({ filePath: lastPath });
+                        addJsLog(`[Eligibility check] Result details: ${JSON.stringify(details)}`);
+                      } else {
+                        addJsLog('[Eligibility check] Mock environment: Valid signature and versionCode.');
+                      }
+                    },
+                    'info'
+                  )}
+                </div>
+              </div>
+            </CollapsibleSection>
+
+            {/* SECTION 5: Reports */}
+            <CollapsibleSection
+              title="📋 Diagnostics & Reports"
+              collapsed={labSectionsCollapsed.reports}
+              onToggle={() => setLabSectionsCollapsed(prev => ({ ...prev, reports: !prev.reports }))}
+            >
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                <p style={{ margin: '0 0 4px', fontSize: 11, color: 'rgba(255,255,255,0.4)', lineHeight: 1.45 }}>
+                  Export chronological logs, transition telemetry, and diagnostic logs into clipboard.
+                </p>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: 8 }}>
+                  {renderLabButtonBlock(
+                    'Refresh Status',
+                    'Manually pulls device metrics, active installer session statuses, and APK details.',
+                    'Dashboard status displays update instantly.',
+                    'Native binder calls timeout.',
+                    'manualRefresh',
+                    async () => {
+                      await refreshData();
+                      showToast('Diagnostics refreshed.');
+                    },
+                    'success'
+                  )}
+                  {renderLabButtonBlock(
+                    'Copy Everything',
+                    'Compiles all native/JS log history, transition details, and device configurations.',
+                    'A complete aggregated markdown summary is copied to the clipboard.',
+                    'None.',
+                    'expEverything',
+                    async () => {
+                      await exportEverything();
+                    },
+                    'primary'
+                  )}
+                  {renderLabButtonBlock(
+                    'Copy Timeline',
+                    'Exports formatted chronological lists of update events.',
+                    'Timeline list copied in plain text.',
+                    'None.',
+                    'expTimeline',
+                    async () => {
+                      let txt = `=== UNIFIED TIMELINE ===\n`;
+                      unifiedTimeline.forEach(e => {
+                        const timeStr = new Date(e.time).toLocaleTimeString();
+                        txt += `[${timeStr}] [${e.type.toUpperCase()}] ${e.text} ${e.details ? ` - ${e.details}` : ''}\n`;
+                      });
+                      await handleCopyText(txt, 'Timeline');
+                    },
+                    'secondary'
+                  )}
+                  {renderLabButtonBlock(
+                    'Copy Diagnostics',
+                    'Copies the latest otaDiagnostics state object details.',
+                    'Diagnostics JSON string copied.',
+                    'None.',
+                    'expDiag',
+                    async () => {
+                      await handleCopyText(JSON.stringify(otaDiagnostics, null, 2), 'Diagnostics');
+                    },
+                    'secondary'
+                  )}
+                  {renderLabButtonBlock(
+                    'Export Report',
+                    'Builds a detailed summary of failures and device telemetry.',
+                    'Engineering Report markdown copied.',
+                    'None.',
+                    'expReport',
+                    async () => {
+                      await exportEngineeringReport();
+                    },
+                    'secondary'
+                  )}
+                  {renderLabButtonBlock(
+                    'Copy Logs',
+                    'Copies combined JS and Native logs chronologically sorted.',
+                    'Chronological log entries copied.',
+                    'None.',
+                    'copyLogsCombined',
+                    async () => {
+                      let txt = '=== COMBINED JS AND NATIVE LOGS ===\n';
+                      const combined = [
+                        ...jsLogs.map(l => ({ time: l.timestamp, msg: `[JS] ${l.message}` })),
+                        ...nativeLogsList.map(l => ({ time: l.timestamp || Date.now(), msg: `[NATIVE] [${l.stage}] Status: ${l.status} - Message: ${l.message}` }))
+                      ].sort((a, b) => a.time - b.time);
+                      combined.forEach(c => {
+                        txt += `[${new Date(c.time).toLocaleTimeString()}] ${c.msg}\n`;
+                      });
+                      await handleCopyText(txt, 'Combined Logs');
+                    },
+                    'secondary'
+                  )}
+                  {renderLabButtonBlock(
+                    'Copy JS Logs',
+                    'Copies captured JS console logs.',
+                    'JS console log entries copied.',
+                    'None.',
+                    'copyJsLogsOnly',
+                    async () => {
+                      let txt = '=== JS CONSOLE LOGS ===\n';
+                      jsLogs.forEach(log => {
+                        txt += `[${new Date(log.timestamp).toLocaleTimeString()}] ${log.message}\n`;
+                      });
+                      await handleCopyText(txt, 'JS Logs');
+                    },
+                    'secondary'
+                  )}
+                  {renderLabButtonBlock(
+                    'Copy Native Logs',
+                    'Copies captured PackageInstaller callback and system logs.',
+                    'Native log entries copied.',
+                    'None.',
+                    'copyNativeLogsOnly',
+                    async () => {
+                      let txt = '=== NATIVE SYSTEM LOGS ===\n';
+                      nativeLogsList.forEach(log => {
+                        txt += `[${log.stage || 'N/A'}] Status: ${log.status || 'N/A'} - Message: ${log.message || 'N/A'}\n`;
+                      });
+                      await handleCopyText(txt, 'Native Logs');
+                    },
+                    'secondary'
+                  )}
+                  {renderLabButtonBlock(
+                    'Copy PackageInstaller Events',
+                    'Copies PackageInstaller callback history records.',
+                    'PackageInstaller timeline text copied.',
+                    'None.',
+                    'expPkgInst',
+                    async () => {
+                      let txt = '=== PACKAGE INSTALLER EVENTS ===\n';
+                      nativeLogsList.forEach(log => {
+                        txt += `[${log.stage}] Status: ${log.status} - Message: ${log.message}\n`;
+                      });
+                      await handleCopyText(txt, 'PackageInstaller Events');
+                    },
+                    'secondary'
+                  )}
+                  {renderLabButtonBlock(
+                    'Copy Activity Lifecycle',
+                    'Copies activity focus and resume timeline states.',
+                    'Activity lifecycle text copied.',
+                    'None.',
+                    'expLifecycle',
+                    async () => {
+                      let txt = '=== ACTIVITY LIFECYCLE TIMELINE ===\n';
+                      activityLifecycleTimeline.forEach(a => {
+                        txt += `[${new Date(a.timestamp).toLocaleTimeString()}] Stage: ${a.stage}\n`;
+                      });
+                      await handleCopyText(txt, 'Activity Lifecycle');
+                    },
+                    'secondary'
+                  )}
+                  {renderLabButtonBlock(
+                    'Copy State Machine',
+                    'Copies transitionHistory trace items.',
+                    'Transitions log text copied.',
+                    'None.',
+                    'expStateMach',
+                    async () => {
+                      let txt = '=== STATE MACHINE TRANSITIONS ===\n';
+                      transitionHistory.forEach(t => {
+                        txt += `[${new Date(t.timestamp).toLocaleTimeString()}] ${t.from} -> ${t.to} (${t.reason})\n`;
+                      });
+                      await handleCopyText(txt, 'State Machine Transitions');
+                    },
+                    'secondary'
+                  )}
+                  {renderLabButtonBlock(
+                    'Copy Current Metadata',
+                    'Copies remote version metadata attributes.',
+                    'Metadata JSON copied.',
+                    'None.',
+                    'expMeta',
+                    async () => {
+                      await handleCopyText(JSON.stringify(globalOtaState, null, 2), 'Current Metadata');
+                    },
+                    'secondary'
+                  )}
+                  {renderLabButtonBlock(
+                    'Copy APK Metadata',
+                    'Copies inspectApk output details.',
+                    'APK metadata JSON copied.',
+                    'None.',
+                    'expApkMeta',
+                    async () => {
+                      await handleCopyText(JSON.stringify(localApkDetails || {}, null, 2), 'APK Metadata');
+                    },
+                    'secondary'
+                  )}
+                  {renderLabButtonBlock(
+                    'Copy Device Information',
+                    'Copies native device models and SDK level attributes.',
+                    'Device info JSON copied.',
+                    'None.',
+                    'expDeviceInfo',
+                    async () => {
+                      await handleCopyText(JSON.stringify(nativeDeviceInfo || {}, null, 2), 'Device Information');
+                    },
+                    'secondary'
+                  )}
+                  {renderLabButtonBlock(
+                    'Copy Full Timeline',
+                    'Copies unified chronologically sorted log items.',
+                    'Full event timeline text copied.',
+                    'None.',
+                    'expFullTimeline',
+                    async () => {
+                      let txt = `=== FULL UNIFIED TIMELINE ===\n`;
+                      unifiedTimeline.forEach(e => {
+                        const timeStr = new Date(e.time).toLocaleTimeString();
+                        txt += `[${timeStr}] [${e.type.toUpperCase()}] ${e.text} ${e.details ? ` - ${e.details}` : ''}\n`;
+                      });
+                      await handleCopyText(txt, 'Full Timeline');
+                    },
+                    'secondary'
+                  )}
+                </div>
+              </div>
+            </CollapsibleSection>
+
+            {/* D. LIVE EXECUTION CONSOLE WITH SEARCH & FILTERS */}
+            <div style={{ background: 'rgba(0,0,0,0.4)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 12, padding: 12, display: 'flex', flexDirection: 'column', gap: 8 }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid rgba(255,255,255,0.08)', paddingBottom: 6 }}>
+                <div style={{ fontSize: 12, fontWeight: 800, color: '#38bdf8', display: 'flex', alignItems: 'center', gap: 6 }}>
+                  <span className="material-symbols-outlined" style={{ fontSize: 16 }}>terminal</span>
+                  Live Execution Console
+                </div>
+                <div style={{ display: 'flex', gap: 6 }}>
+                  <button
+                    onClick={() => {
+                      jsLogs.length = 0;
+                      nativeLogsList.length = 0;
+                      stateTimeline.length = 0;
+                      triggerSimRender();
+                      showToast('Console cleared.');
+                    }}
+                    style={{ padding: '4px 8px', borderRadius: 4, background: 'rgba(255,255,255,0.06)', color: 'rgba(255,255,255,0.6)', border: 'none', fontSize: 10, fontWeight: 700, cursor: 'pointer' }}
+                  >
+                    Clear
+                  </button>
+                  <button
+                    onClick={() => {
+                      let txt = `=== LIVE CONSOLE LOGS ===\n`;
+                      getUnifiedTimeline().forEach(e => {
+                        const timeStr = new Date(e.time).toLocaleTimeString();
+                        txt += `[${timeStr}] [${e.type.toUpperCase()}] ${e.text} ${e.details ? ` - ${e.details}` : ''}\n`;
+                      });
+                      navigator.clipboard.writeText(txt).then(() => showToast('Logs copied!'));
+                    }}
+                    style={{ padding: '4px 8px', borderRadius: 4, background: 'rgba(255,255,255,0.06)', color: 'rgba(255,255,255,0.6)', border: 'none', fontSize: 10, fontWeight: 700, cursor: 'pointer' }}
+                  >
+                    Copy Logs
+                  </button>
+                </div>
+              </div>
+
+              {/* Search & Filter Bar */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 6, padding: '4px 0' }}>
+                <input
+                  type="text"
+                  placeholder="Search console logs..."
+                  value={logSearchQuery}
+                  onChange={(e) => setLogSearchQuery(e.target.value)}
+                  style={{
+                    width: '100%',
+                    padding: '6px 10px',
+                    borderRadius: 6,
+                    background: 'rgba(0,0,0,0.2)',
+                    border: '1px solid rgba(255,255,255,0.1)',
+                    color: '#fff',
+                    fontSize: '11px',
+                    fontFamily: 'Manrope',
+                    outline: 'none'
+                  }}
+                />
+                <div style={{ display: 'flex', gap: 4, overflowX: 'auto', paddingBottom: 4, whiteSpace: 'nowrap' }}>
+                  {(['all', 'js', 'native', 'state', 'errors', 'warnings', 'pkg_installer', 'lifecycle', 'state_machine'] as const).map((mode) => (
+                    <button
+                      key={mode}
+                      onClick={() => setLogFilterMode(mode)}
+                      style={{
+                        padding: '4px 8px',
+                        borderRadius: 4,
+                        background: logFilterMode === mode ? 'rgba(56, 189, 248, 0.2)' : 'rgba(255,255,255,0.05)',
+                        color: logFilterMode === mode ? '#38bdf8' : 'rgba(255,255,255,0.5)',
+                        border: logFilterMode === mode ? '1px solid #38bdf8' : '1px solid transparent',
+                        fontSize: '9px',
+                        fontWeight: 750,
+                        cursor: 'pointer',
+                        textTransform: 'uppercase'
+                      }}
+                    >
+                      {mode.replace('_', ' ')}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div style={{ maxHeight: 200, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 4, paddingRight: 4 }}>
+                {filteredTimeline.length === 0 ? (
+                  <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.3)', fontStyle: 'italic', padding: '10px 0', textAlign: 'center' }}>
+                    No logs match current search or filters.
+                  </div>
+                ) : (
+                  filteredTimeline.map((e, idx) => {
+                    const timeStr = new Date(e.time).toLocaleTimeString();
+                    let color = '#34d399'; // js
+                    if (e.type === 'native') color = '#fbbf24';
+                    if (e.type === 'state') color = '#60a5fa';
+                    return (
+                      <div key={idx} style={{ fontFamily: 'monospace', fontSize: 9.5, borderBottom: '1px solid rgba(255,255,255,0.02)', paddingBottom: 2, textAlign: 'left', wordBreak: 'break-all', whiteSpace: 'pre-wrap' }}>
+                        <span style={{ color: 'rgba(255,255,255,0.3)' }}>[{timeStr}]</span>{' '}
+                        <span style={{ color, fontWeight: 700 }}>[{e.type.toUpperCase()}]</span>{' '}
+                        <span style={{ color: '#fff' }}>{e.text}</span>
+                        {e.details && <span style={{ color: 'rgba(255,255,255,0.4)', marginLeft: 6 }}>({e.details})</span>}
+                      </div>
+                    );
+                  })
+                )}
+                <div ref={consoleEndRef} />
+              </div>
+            </div>
           </div>
-        </div>
+        ) : (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+            {/* 1. Real-time Telemetry */}
+            <div style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.05)', borderRadius: 12, padding: 12 }}>
+              <div style={{ fontSize: 13, fontWeight: 800, marginBottom: 10, color: '#a855f7', display: 'flex', alignItems: 'center', gap: 6 }}>
+                <span className="material-symbols-outlined" style={{ fontSize: 18 }}>monitoring</span>
+                Real-time Telemetry
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                <DiagnosticField label="App Version" value={APP_VERSION} />
+                <DiagnosticField label="Wrapper Version" value={otaDebugLogs.nativeApkVersion || 'N/A'} />
+                <DiagnosticField label="Available Version" value={globalOtaState.remoteVersion || 'N/A'} />
+                <DiagnosticField label="Wrapper versionCode" value={otaDebugLogs.installedVersionCode !== null ? String(otaDebugLogs.installedVersionCode) : 'N/A'} />
+                <DiagnosticField label="Package Name" value={otaDebugLogs.installedPackageName || 'com.chordex.app'} />
+                <DiagnosticField label="Build Type" value={otaDebugLogs.installedDebuggable ? 'Debug (Debuggable)' : 'Production (Signed)'} />
+                <DiagnosticField label="Current JS State" value={globalOtaState.updateState} />
+                <DiagnosticField label="Download Progress" value={`${Math.round(globalOtaState.progress * 100)}%`} />
+                <DiagnosticField label="SHA-256 Expected" value={globalOtaState.apkSha256 || 'N/A'} />
+                <DiagnosticField label="SHA-256 Calculated" value={otaDebugLogs.shaVerification || 'N/A'} />
+                <DiagnosticField label="Eligibility Result" value={otaDebugLogs.apkEligibilityResult || 'N/A'} />
+              </div>
+            </div>
 
-        {/* SIMULATION CONTROLS */}
-        <div style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.06)', borderRadius: 14, padding: 14, marginBottom: 12 }}>
-          <span style={{ fontWeight: 800, fontSize: 13, display: 'block', marginBottom: 10 }}>Simulation Controls</span>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
-            <button onClick={simulateTimeout} style={{ padding: 8, background: 'rgba(239, 68, 68, 0.1)', border: '1px solid rgba(239, 68, 68, 0.2)', color: '#ef4444', borderRadius: 6, fontSize: 10, fontWeight: 700, cursor: 'pointer' }}>Timeout</button>
-            <button onClick={simulateChecksumFailure} style={{ padding: 8, background: 'rgba(239, 68, 68, 0.1)', border: '1px solid rgba(239, 68, 68, 0.2)', color: '#ef4444', borderRadius: 6, fontSize: 10, fontWeight: 700, cursor: 'pointer' }}>Checksum Failure</button>
-            <button onClick={simulateNetworkFailure} style={{ padding: 8, background: 'rgba(239, 68, 68, 0.1)', border: '1px solid rgba(239, 68, 68, 0.2)', color: '#ef4444', borderRadius: 6, fontSize: 10, fontWeight: 700, cursor: 'pointer' }}>Network Failure</button>
-            <button onClick={simulateCancel} style={{ padding: 8, background: 'rgba(255, 255, 255, 0.05)', border: '1px solid rgba(255, 255, 255, 0.1)', color: '#fff', borderRadius: 6, fontSize: 10, fontWeight: 700, cursor: 'pointer' }}>Cancel</button>
-            <button onClick={simulateInstallFailure} style={{ padding: 8, background: 'rgba(239, 68, 68, 0.1)', border: '1px solid rgba(239, 68, 68, 0.2)', color: '#ef4444', borderRadius: 6, fontSize: 10, fontWeight: 700, cursor: 'pointer' }}>Install Failure</button>
-            <button onClick={simulateServerUnavailable} style={{ padding: 8, background: 'rgba(239, 68, 68, 0.1)', border: '1px solid rgba(239, 68, 68, 0.2)', color: '#ef4444', borderRadius: 6, fontSize: 10, fontWeight: 700, cursor: 'pointer' }}>Server Unavailable</button>
-            <button onClick={simulateCorruptedApk} style={{ padding: 8, background: 'rgba(239, 68, 68, 0.1)', border: '1px solid rgba(239, 68, 68, 0.2)', color: '#ef4444', borderRadius: 6, fontSize: 10, fontWeight: 700, cursor: 'pointer' }}>Corrupted APK</button>
-            <button onClick={simulateRollback} style={{ padding: 8, background: 'rgba(245, 158, 11, 0.1)', border: '1px solid rgba(245, 158, 11, 0.2)', color: '#f59e0b', borderRadius: 6, fontSize: 10, fontWeight: 700, cursor: 'pointer' }}>Rollback</button>
+            {/* 2. PackageInstaller Monitor */}
+            <div style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.05)', borderRadius: 12, padding: 12 }}>
+              <div style={{ fontSize: 13, fontWeight: 800, marginBottom: 10, color: '#eab308', display: 'flex', alignItems: 'center', gap: 6 }}>
+                <span className="material-symbols-outlined" style={{ fontSize: 18 }}>view_carousel</span>
+                PackageInstaller Monitor
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 4, marginBottom: 8 }}>
+                <DiagnosticField label="Active Session ID" value={nativeInstallerDetails?.sessionId !== undefined && nativeInstallerDetails.sessionId !== -1 ? String(nativeInstallerDetails.sessionId) : 'None'} />
+                <DiagnosticField label="Session Stage" value={nativeInstallerDetails?.sessionState || 'None'} />
+                <DiagnosticField label="PendingIntent Created" value={nativeInstallerDetails?.pendingIntentCreated ? 'YES' : 'NO'} />
+                <DiagnosticField label="IntentSender Created" value={nativeInstallerDetails?.intentSenderCreated ? 'YES' : 'NO'} />
+                <DiagnosticField label="Intent Fired" value={nativeInstallerDetails?.intentFired ? 'YES' : 'NO'} />
+                <DiagnosticField label="Confirmation Intent Recv" value={nativeInstallerDetails?.confirmationIntentReceived ? 'YES' : 'NO'} />
+                <DiagnosticField label="Confirmation Intent Active" value={nativeInstallerDetails?.confirmationIntentStarted ? 'YES' : 'NO'} />
+                <DiagnosticField label="Last Received Status" value={nativeInstallerDetails?.lastStatusCode !== undefined && nativeInstallerDetails.lastStatusCode !== -999 ? String(nativeInstallerDetails.lastStatusCode) : 'None'} />
+                <DiagnosticField label="Last Received Message" value={nativeInstallerDetails?.lastStatusMessage || 'N/A'} />
+                <DiagnosticField label="Last Callback Timestamp" value={nativeInstallerDetails?.lastStatusTimestamp ? new Date(nativeInstallerDetails.lastStatusTimestamp).toLocaleTimeString() : 'N/A'} />
+                <DiagnosticField label="Pending Confirmation Intent" value={nativeInstallerDetails?.pendingConfirmIntentExists ? 'EXISTS' : 'NONE'} />
+                <DiagnosticField label="Active Sessions Count" value={nativeInstallerDetails?.activeSessionsCount !== undefined ? String(nativeInstallerDetails.activeSessionsCount) : 'N/A'} />
+                <DiagnosticField label="Has Install Permission" value={nativeInstallerDetails?.hasInstallPermission ? 'YES' : 'NO'} />
+                <DiagnosticField label="Installation Active (Prefs)" value={nativeInstallerDetails?.installationActive ? 'YES' : 'NO'} />
+              </div>
+            </div>
+
+            {/* 3. State Machine Viewer */}
+            <div style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.05)', borderRadius: 12, padding: 12 }}>
+              <div style={{ fontSize: 13, fontWeight: 800, marginBottom: 8, color: '#3b82f6', display: 'flex', alignItems: 'center', gap: 6 }}>
+                <span className="material-symbols-outlined" style={{ fontSize: 18 }}>account_tree</span>
+                State Machine Viewer
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 4, marginBottom: 8 }}>
+                <DiagnosticField label="Current State" value={globalOtaState.updateState} />
+                <DiagnosticField label="Rejected Transitions" value={String(rejectedTransitions.length)} />
+              </div>
+              <CollapsibleSection title={`Show State History (${transitionHistory.length})`} collapsed={stateHistoryCollapsed} onToggle={() => setStateHistoryCollapsed(!stateHistoryCollapsed)}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 6, maxHeight: 150, overflowY: 'auto', background: 'rgba(0,0,0,0.15)', padding: 8, borderRadius: 8 }}>
+                  {transitionHistory.length === 0 ? (
+                    <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.3)' }}>No state transitions recorded.</div>
+                  ) : (
+                    transitionHistory.slice().reverse().map((t, idx) => (
+                      <div key={idx} style={{ fontSize: 10, borderBottom: '1px solid rgba(255,255,255,0.03)', paddingBottom: 4 }}>
+                        <span style={{ color: '#60a5fa' }}>[{new Date(t.timestamp).toLocaleTimeString()}]</span>{' '}
+                        <strong>{t.from}</strong> &rarr; <strong style={{ color: t.invalid ? '#f87171' : '#34d399' }}>{t.to}</strong>
+                        {t.durationMs > 0 && <span style={{ color: 'rgba(255,255,255,0.3)', marginLeft: 6 }}>({t.durationMs}ms)</span>}
+                        <div style={{ color: 'rgba(255,255,255,0.4)', fontSize: 9, marginTop: 1 }}>Reason: {t.reason}</div>
+                      </div>
+                    ))
+                  )}
+                </div>
+              </CollapsibleSection>
+            </div>
+
+            {/* 4. Device & Context Information */}
+            <div style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.05)', borderRadius: 12, padding: 12 }}>
+              <div style={{ fontSize: 13, fontWeight: 800, marginBottom: 8, color: '#f59e0b', display: 'flex', alignItems: 'center', gap: 6 }}>
+                <span className="material-symbols-outlined" style={{ fontSize: 18 }}>device_unknown</span>
+                Device Context
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                <DiagnosticField label="Android OS" value={nativeDeviceInfo?.androidVersion || 'N/A'} />
+                <DiagnosticField label="SDK Level" value={nativeDeviceInfo?.sdkInt !== undefined ? String(nativeDeviceInfo.sdkInt) : 'N/A'} />
+                <DiagnosticField label="Model / Brand" value={`${nativeDeviceInfo?.manufacturer || ''} ${nativeDeviceInfo?.model || ''}`} />
+                <DiagnosticField label="ABI Architecture" value={nativeDeviceInfo?.architecture || 'N/A'} />
+                <DiagnosticField label="Storage Space" value={nativeDeviceInfo?.storageAvailable || 'N/A'} />
+                <DiagnosticField label="System Memory" value={nativeDeviceInfo?.ram || 'N/A'} />
+                <DiagnosticField label="Battery Level" value={nativeDeviceInfo?.battery || 'N/A'} />
+                <DiagnosticField label="Network Status" value={nativeDeviceInfo?.networkState || 'N/A'} />
+                <DiagnosticField label="Device Time" value={nativeDeviceInfo?.time || 'N/A'} />
+                <DiagnosticField label="Installation Source" value={nativeDeviceInfo?.installerPackage || 'N/A'} />
+                <DiagnosticField label="Install Permission Granted" value={nativeDeviceInfo?.canRequestPackageInstalls ? 'YES' : 'NO'} />
+              </div>
+            </div>
+
+            {/* 5. File Diagnostics */}
+            {localApkDetails && (
+              <div style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.05)', borderRadius: 12, padding: 12 }}>
+                <div style={{ fontSize: 13, fontWeight: 800, marginBottom: 8, color: '#10b981', display: 'flex', alignItems: 'center', gap: 6 }}>
+                  <span className="material-symbols-outlined" style={{ fontSize: 18 }}>drafts</span>
+                  Downloaded APK Information
+                </div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                  <DiagnosticField label="Package Name" value={localApkDetails.packageName || 'N/A'} />
+                  <DiagnosticField label="Version Name" value={localApkDetails.versionName || 'N/A'} />
+                  <DiagnosticField label="Version Code" value={localApkDetails.versionCode ? String(localApkDetails.versionCode) : 'N/A'} />
+                  <DiagnosticField label="Universal APK" value={localApkDetails.isUniversalApk ? 'YES' : 'NO'} />
+                  <DiagnosticField label="Min / Target SDK" value={`${localApkDetails.minSdk || 'N/A'} / ${localApkDetails.targetSdk || 'N/A'}`} />
+                  <DiagnosticField label="Valid Package Header" value={localApkDetails.isValidApk ? 'YES' : 'NO'} />
+                  <DiagnosticField label="Sign Certificate SHA" value={localApkDetails.signingSha256 ? `${localApkDetails.signingSha256.substring(0, 16)}...` : 'N/A'} />
+                </div>
+              </div>
+            )}
+
+            {/* 6. Chronological Unified Timeline */}
+            <div style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.05)', borderRadius: 12, padding: 12 }}>
+              <div style={{ fontSize: 13, fontWeight: 800, marginBottom: 8, color: '#06b6d4', display: 'flex', alignItems: 'center', gap: 6 }}>
+                <span className="material-symbols-outlined" style={{ fontSize: 18 }}>view_headline</span>
+                Chronological Event Timeline
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 6, maxHeight: 220, overflowY: 'auto', background: 'rgba(0,0,0,0.25)', padding: 8, borderRadius: 8, fontFamily: 'monospace', fontSize: 10 }}>
+                {unifiedTimeline.length === 0 ? (
+                  <div style={{ color: 'rgba(255,255,255,0.3)', fontFamily: 'sans-serif' }}>No execution timeline recorded.</div>
+                ) : (
+                  unifiedTimeline.map((e, idx) => {
+                    const timeStr = new Date(e.time).toLocaleTimeString();
+                    const color = e.type === 'js' ? '#34d399' : e.type === 'state' ? '#60a5fa' : '#f59e0b';
+                    return (
+                      <div key={idx} style={{ borderBottom: '1px solid rgba(255,255,255,0.02)', paddingBottom: 4 }}>
+                        <span style={{ color: 'rgba(255,255,255,0.3)' }}>[{timeStr}]</span>{' '}
+                        <span style={{ color, fontWeight: 700 }}>[{e.type.toUpperCase()}]</span>{' '}
+                        <span style={{ color: '#fff' }}>{e.text}</span>
+                        {e.details && <div style={{ color: 'rgba(255,255,255,0.4)', paddingLeft: 12, fontSize: 9 }}>{e.details}</div>}
+                      </div>
+                    );
+                  })
+                )}
+              </div>
+            </div>
+
+            {/* 7. Export Controls */}
+            <div style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.05)', borderRadius: 12, padding: 12 }}>
+              <div style={{ fontSize: 13, fontWeight: 800, marginBottom: 10, color: '#f59e0b', display: 'flex', alignItems: 'center', gap: 6 }}>
+                <span className="material-symbols-outlined" style={{ fontSize: 18 }}>ios_share</span>
+                Export Engineering Report
+              </div>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: 6 }}>
+                <button
+                  onClick={exportEngineeringReport}
+                  style={{ padding: '8px', borderRadius: 8, background: '#f59e0b', color: '#fff', border: 'none', fontWeight: 700, fontSize: 11, cursor: 'pointer' }}
+                >
+                  Copy Report (.md)
+                </button>
+                <button
+                  onClick={exportTimelineMarkdown}
+                  style={{ padding: '8px', borderRadius: 8, background: 'rgba(255,255,255,0.08)', color: '#fff', border: 'none', fontWeight: 700, fontSize: 11, cursor: 'pointer' }}
+                >
+                  Copy Timeline (.md)
+                </button>
+                <button
+                  onClick={exportCompleteTimelineJSON}
+                  style={{ padding: '8px', borderRadius: 8, background: 'rgba(255,255,255,0.08)', color: '#fff', border: 'none', fontWeight: 700, fontSize: 11, cursor: 'pointer' }}
+                >
+                  Copy Timeline (.json)
+                </button>
+                <button
+                  onClick={exportCompleteTimelineText}
+                  style={{ padding: '8px', borderRadius: 8, background: 'rgba(255,255,255,0.08)', color: '#fff', border: 'none', fontWeight: 700, fontSize: 11, cursor: 'pointer' }}
+                >
+                  Copy Timeline (.txt)
+                </button>
+              </div>
+            </div>
           </div>
-        </div>
-
-        {/* RECOVERY & FAILURES */}
-        <div style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.06)', borderRadius: 14, padding: 14, marginBottom: 12 }}>
-          <span style={{ fontWeight: 800, fontSize: 13, display: 'block', marginBottom: 10 }}>Recovery & Failures</span>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
-            <button onClick={handleClearApkCache} style={{ padding: 10, background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', color: '#fff', borderRadius: 8, fontSize: 11, fontWeight: 700, cursor: 'pointer' }}>
-              Clear APK Cache
-            </button>
-            <button onClick={handleResetUpdater} style={{ padding: 10, background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', color: '#fff', borderRadius: 8, fontSize: 11, fontWeight: 700, cursor: 'pointer' }}>
-              Reset Updater State
-            </button>
-            <button onClick={handleRebindListeners} style={{ padding: 10, background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', color: '#fff', borderRadius: 8, fontSize: 11, fontWeight: 700, cursor: 'pointer', gridColumn: 'span 2' }}>
-              Re-register Listeners
-            </button>
-          </div>
-        </div>
-
-        {/* ADVANCED ENGINEERING */}
-        <div style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.06)', borderRadius: 14, padding: 14, marginBottom: 12 }}>
-          <span style={{ fontWeight: 800, fontSize: 13, display: 'block', marginBottom: 10 }}>Advanced Engineering</span>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
-            <button onClick={handleQueryStorage} style={{ padding: 10, background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', color: '#fff', borderRadius: 8, fontSize: 11, fontWeight: 700, cursor: 'pointer' }}>
-              Query Device Storage
-            </button>
-            <button onClick={handleCheckInstallerStatus} style={{ padding: 10, background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', color: '#fff', borderRadius: 8, fontSize: 11, fontWeight: 700, cursor: 'pointer' }}>
-              Check AppInstaller Status
-            </button>
-          </div>
-        </div>
-
-        <WarningsInspector logs={logs} showToast={showToast} moduleFilter={['updater', 'apkdownloader']} />
+        )}
       </div>
     );
   };
@@ -1403,6 +3418,44 @@ export default function DevToolsDashboard({ accent, onBack }: Props) {
               <span style={{ background: '#ef4444', color: '#fff', fontSize: 9, fontWeight: 900, padding: '2px 6px', borderRadius: 4 }}>{err.module.toUpperCase()}</span>
             </div>
             <div style={{ fontSize: 13, fontWeight: 700, color: '#fca5a5', fontFamily: 'monospace', marginBottom: 8 }}>{err.message}</div>
+            {(() => {
+              const codeMatch = /Minified React error #(\d+)/i.exec(err.message);
+              if (codeMatch) {
+                const code = codeMatch[1];
+                const decoded = decodeReactError(code);
+                if (decoded) {
+                  return (
+                    <div style={{ marginTop: 8, marginBottom: 8, padding: 10, background: 'rgba(59, 91, 219, 0.08)', border: '1px solid rgba(59, 91, 219, 0.2)', borderRadius: 8, fontSize: 11, color: '#d2d6dc', lineHeight: 1.4, textAlign: 'left' }}>
+                      <div style={{ fontWeight: 800, color: '#748ffc', marginBottom: 4 }}>Decoded React Error #${code}:</div>
+                      <div style={{ fontStyle: 'italic', marginBottom: 6 }}>{decoded.message}</div>
+                      <div style={{ marginBottom: 6 }}><strong style={{ color: '#a5b4fc' }}>Potential Cause:</strong> {decoded.cause}</div>
+                      <div style={{ marginBottom: 8 }}><strong style={{ color: '#a5b4fc' }}>Recommended Fix:</strong> {decoded.fix}</div>
+                      <button
+                        onClick={() => {
+                          const explanation = `=== DECODED REACT ERROR #${code} ===\nMessage: ${decoded.message}\n\nPotential Cause: ${decoded.cause}\n\nRecommended Fix: ${decoded.fix}`;
+                          navigator.clipboard.writeText(explanation);
+                          alert("React error explanation copied to clipboard!");
+                        }}
+                        style={{
+                          background: 'rgba(59, 91, 219, 0.2)',
+                          border: '1px solid rgba(59, 91, 219, 0.4)',
+                          color: '#9eb2ff',
+                          borderRadius: 6,
+                          fontSize: 10,
+                          padding: '4px 8px',
+                          cursor: 'pointer',
+                          fontFamily: 'Manrope',
+                          fontWeight: 700
+                        }}
+                      >
+                        Copy Decoded Explanation
+                      </button>
+                    </div>
+                  );
+                }
+              }
+              return null;
+            })()}
             {err.stack && (
               <pre style={{ margin: 0, padding: 8, background: 'rgba(0,0,0,0.3)', borderRadius: 6, fontSize: 10, fontFamily: 'monospace', color: 'rgba(255,255,255,0.6)', overflowX: 'auto', whiteSpace: 'pre-wrap', maxHeight: 150, overflowY: 'auto' }}>
                 {err.stack}
@@ -1603,7 +3656,7 @@ export default function DevToolsDashboard({ accent, onBack }: Props) {
 
         <div style={{ background: '#181820', borderRadius: 12, border: '1px solid rgba(255,255,255,0.08)', padding: 12, display: 'flex', flexDirection: 'column', gap: 10 }}>
           <span style={{ fontSize: 12, fontWeight: 700, color: '#f59e0b' }}>Black Screen Diagnostics</span>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, fontSize: 11 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: 8, fontSize: 11 }}>
             <div>Return Attempts: <strong>{diag.returnAttempts}</strong></div>
             <div>Failed Returns: <strong>{diag.failedReturns}</strong></div>
             <div>Detections: <strong>{diag.blackScreenDetections}</strong></div>
@@ -2008,12 +4061,6 @@ export default function DevToolsDashboard({ accent, onBack }: Props) {
         action: () => setSubView('updater')
       },
       {
-        id: 'diagnostics_reports',
-        title: 'Diagnostics & Reports',
-        description: 'Generate reports, copy logs, export timeline, and inspect native update history.',
-        action: () => setSubView('diagnostics')
-      },
-      {
         id: 'system',
         title: 'System',
         description: 'View device, runtime and environment information.',
@@ -2073,10 +4120,6 @@ export default function DevToolsDashboard({ accent, onBack }: Props) {
         ))}
       </div>
     );
-  };
-
-  const renderDiagnosticsReportsView = () => {
-    return renderDiagnosticsReportsViewHelper(accent, showToast, settings, ota);
   };
 
   const renderAppsView = () => {
@@ -2190,7 +4233,7 @@ export default function DevToolsDashboard({ accent, onBack }: Props) {
 
             <div style={{
               display: 'grid',
-              gridTemplateColumns: '1fr 1fr',
+              gridTemplateColumns: 'repeat(2, minmax(0, 1fr))',
               gap: '8px 16px',
               fontSize: '12px'
             }}>
@@ -2259,7 +4302,8 @@ export default function DevToolsDashboard({ accent, onBack }: Props) {
       height: '100%',
       background: '#000000',
       color: '#f4f4f5',
-      fontFamily: 'Manrope, sans-serif'
+      fontFamily: 'Manrope, sans-serif',
+      overflowX: 'hidden'
     }}>
       {subView === 'dashboard' && (
         <>
@@ -2356,7 +4400,7 @@ export default function DevToolsDashboard({ accent, onBack }: Props) {
             border: '1px solid rgba(255,255,255,0.06)',
             borderRadius: '16px',
             display: 'grid',
-            gridTemplateColumns: 'repeat(3, 1fr)',
+            gridTemplateColumns: 'repeat(3, minmax(0, 1fr))',
             gap: '10px 8px',
             fontSize: '11px',
             flexShrink: 0
@@ -2432,15 +4476,6 @@ export default function DevToolsDashboard({ accent, onBack }: Props) {
             )}
           </div>
         </>
-      )}
-
-      {subView === 'diagnostics' && (
-        <div style={{ display: 'flex', flexDirection: 'column', height: '100%', background: '#000000' }}>
-          {renderSubViewHeader('Diagnostics & Reports')}
-          <div style={{ flex: 1, overflowY: 'auto', padding: '16px 20px' }}>
-            {renderDiagnosticsReportsView()}
-          </div>
-        </div>
       )}
 
       {subView === 'apps' && (
@@ -2566,241 +4601,6 @@ export default function DevToolsDashboard({ accent, onBack }: Props) {
           {toastMsg}
         </div>
       )}
-    </div>
-  );
-}
-
-// ── DIAGNOSTICS & REPORTS VIEW IMPLEMENTATION ──
-export function renderDiagnosticsReportsViewHelper(
-  accent: any,
-  showToast: (msg: string) => void,
-  settings: any,
-  ota: any
-) {
-  // Helpers for chronological timeline & report
-  const getChronologicalTimeline = () => {
-    const list: Array<{ timestamp: number; type: string; details: any }> = [];
-    getNavigationEntries().forEach(n => {
-      list.push({
-        timestamp: n.timestamp,
-        type: 'NAVIGATION',
-        details: { from: n.fromApp, to: n.toApp, active: n.activeAppAfterTransition }
-      });
-    });
-    getLogs().forEach(l => {
-      list.push({
-        timestamp: l.timestamp,
-        type: `LOG_${l.level.toUpperCase()}`,
-        details: { module: l.module, message: l.message }
-      });
-    });
-    stateTransitionHistory.forEach(t => {
-      list.push({
-        timestamp: t.timestamp,
-        type: 'STATE_TRANSITION',
-        details: { from: t.from, to: t.to }
-      });
-    });
-    lifecycleHistory.forEach(l => {
-      list.push({
-        timestamp: l.timestamp,
-        type: 'LIFECYCLE',
-        details: { state: l.state }
-      });
-    });
-    packageInstallerHistory.forEach(p => {
-      list.push({
-        timestamp: p.timestamp,
-        type: 'PACKAGE_INSTALLER',
-        details: { event: p.event, details: p.details }
-      });
-    });
-    return list.sort((a, b) => a.timestamp - b.timestamp);
-  };
-
-  const generateEngineeringReport = () => {
-    const timeline = getChronologicalTimeline().map(t => {
-      const time = new Date(t.timestamp).toISOString();
-      return `| ${time} | ${t.type} | ${JSON.stringify(t.details)} |`;
-    }).join('\n');
-    return `# Studio Engineering Diagnostics Report\nGenerated: ${new Date().toISOString()}\nApp Version: v${APP_VERSION}\nNative Version: ${otaDebugLogs.nativeApkVersion || 'N/A'}\nPlatform: ${isNative() ? 'Android' : 'Web'}\n\n## Device Details\n- **Model:** ${otaDiagnostics.deviceModel || 'N/A'}\n- **Android Version:** ${otaDiagnostics.androidVersion || 'N/A'}\n- **Permissions:** ${otaDiagnostics.permissionState || 'N/A'}\n\n## Updater State\n- **Current State:** ${ota.updateState}\n- **Update Available:** ${ota.updateAvailable ? 'Yes' : 'No'}\n- **Remote Version:** ${ota.remoteVersion || 'N/A'}\n- **Update Type:** ${ota.updateType}\n\n## Timeline\n| Timestamp | Event Type | Details |\n|---|---|---|\n${timeline}\n\n## Diagnostics Exceptions\n- **Exception Message:** ${otaDiagnostics.exceptionMessage || 'None'}\n- **Failure Reason:** ${otaDiagnostics.failureReason || 'None'}\n`;
-  };
-
-  const [copyingLabel, setCopyingLabel] = useState<string | null>(null);
-
-  const handleSafeCopy = async (label: string, getContent: () => string | Promise<string>) => {
-    if (copyingLabel) return;
-    setCopyingLabel(label);
-    try {
-      const content = await getContent();
-      await navigator.clipboard.writeText(content);
-      showToast(`${label} copied successfully!`);
-    } catch (err: any) {
-      showToast(`Copy failed: ${err.message || String(err)}`);
-    } finally {
-      setCopyingLabel(null);
-    }
-  };
-
-  const buttons = [
-    {
-      label: 'Refresh Status',
-      desc: 'Force check remote update metadata & status.',
-      action: async () => {
-        await ota.checkNow();
-        showToast('Status refreshed.');
-      }
-    },
-    {
-      label: 'Copy Everything',
-      desc: 'Copy all JS/Native logs, history, and metadata.',
-      action: () => handleSafeCopy('Everything', () => {
-        return JSON.stringify({
-          appVersion: APP_VERSION,
-          timestamp: new Date().toISOString(),
-          device: {
-            userAgent: navigator.userAgent,
-            platform: navigator.platform,
-            isNative: isNative(),
-            deviceModel: otaDiagnostics.deviceModel,
-            androidVersion: otaDiagnostics.androidVersion,
-            permissionState: otaDiagnostics.permissionState,
-          },
-          settings: {
-            theme: settings.theme,
-            appMode: settings.appMode,
-            developerMode: settings.developerMode,
-          },
-          updaterState: ota,
-          otaDiagnostics,
-          otaDebugLogs,
-          stateTransitions: stateTransitionHistory,
-          lifecycle: lifecycleHistory,
-          packageInstaller: packageInstallerHistory,
-          navigation: getNavigationEntries(),
-          jsLogs: getLogs(),
-          errors: getErrors(),
-        }, null, 2);
-      })
-    },
-    {
-      label: 'Copy Timeline',
-      desc: 'Copy chronological timeline of all events.',
-      action: () => handleSafeCopy('Timeline', () => JSON.stringify(getChronologicalTimeline(), null, 2))
-    },
-    {
-      label: 'Copy Diagnostics',
-      desc: 'Copy the JSON diagnostics payload.',
-      action: () => handleSafeCopy('Diagnostics', () => JSON.stringify(otaDiagnostics, null, 2))
-    },
-    {
-      label: 'Export Report',
-      desc: 'Generate engineering markdown report.',
-      action: () => handleSafeCopy('Report', () => generateEngineeringReport())
-    },
-    {
-      label: 'Copy Logs',
-      desc: 'Copy merged JS + Native logs.',
-      action: () => handleSafeCopy('Merged Logs', () => {
-        const jsLogs = getLogs().map(l => `[JS] [${new Date(l.timestamp).toISOString()}] [${l.level.toUpperCase()}] [${l.module}] ${l.message}`).join('\n');
-        const nativeLogs = `[NATIVE] [${otaDiagnostics.timestamp || 'N/A'}] Exception: ${otaDiagnostics.exceptionMessage || 'None'}\nReason: ${otaDiagnostics.failureReason || 'None'}\nInstaller Result: ${otaDiagnostics.installerResult || 'None'}\nLog: ${otaDebugLogs.installError || 'None'}`;
-        return `=== JS LOGS ===\n${jsLogs}\n\n=== NATIVE LOGS ===\n${nativeLogs}`;
-      })
-    },
-    {
-      label: 'Copy JS Logs',
-      desc: 'Copy JS logs only.',
-      action: () => handleSafeCopy('JS Logs', () => getLogs().map(l => `[${new Date(l.timestamp).toISOString()}] [${l.level.toUpperCase()}] [${l.module}] ${l.message}`).join('\n'))
-    },
-    {
-      label: 'Copy Native Logs',
-      desc: 'Copy Native/Updater logs only.',
-      action: () => handleSafeCopy('Native Logs', () => `[NATIVE] [${otaDiagnostics.timestamp || 'N/A'}] Exception: ${otaDiagnostics.exceptionMessage || 'None'}\nReason: ${otaDiagnostics.failureReason || 'None'}\nInstaller Result: ${otaDiagnostics.installerResult || 'None'}\nLog: ${otaDebugLogs.installError || 'None'}`)
-    },
-    {
-      label: 'Copy PackageInstaller Events',
-      desc: 'Copy PackageInstaller callback history.',
-      action: () => handleSafeCopy('PackageInstaller Events', () => JSON.stringify(packageInstallerHistory, null, 2))
-    },
-    {
-      label: 'Copy Activity Lifecycle',
-      desc: 'Copy activity lifecycle transition history.',
-      action: () => handleSafeCopy('Activity Lifecycle', () => JSON.stringify(lifecycleHistory, null, 2))
-    },
-    {
-      label: 'Copy State Machine',
-      desc: 'Copy updater state transition history.',
-      action: () => handleSafeCopy('State Machine', () => JSON.stringify(stateTransitionHistory, null, 2))
-    },
-    {
-      label: 'Copy Current Metadata',
-      desc: 'Copy current remote version metadata.',
-      action: () => handleSafeCopy('Current Metadata', () => JSON.stringify({
-        fetchedVersionJson: otaDebugLogs.fetchedVersionJson,
-        fetchedAppReleaseJson: otaDebugLogs.fetchedAppReleaseJson,
-        remoteVersion: ota.remoteVersion,
-        updateType: ota.updateType,
-        apkUrl: ota.apkUrl,
-        apkSha256: ota.apkSha256,
-      }, null, 2))
-    },
-    {
-      label: 'Copy APK Metadata',
-      desc: 'Copy downloaded APK inspect details.',
-      action: () => handleSafeCopy('APK Metadata', () => JSON.stringify({
-        downloadedPackageName: otaDebugLogs.downloadedPackageName,
-        downloadedVersionName: otaDebugLogs.downloadedVersionName,
-        downloadedVersionCode: otaDebugLogs.downloadedVersionCode,
-        downloadedSigningSha256: otaDebugLogs.downloadedSigningSha256,
-        downloadedIsValidApk: otaDebugLogs.downloadedIsValidApk,
-        downloadedIsUniversalApk: otaDebugLogs.downloadedIsUniversalApk,
-        downloadedApkSize: otaDebugLogs.downloadedApkSize,
-      }, null, 2))
-    },
-    {
-      label: 'Copy Device Information',
-      desc: 'Copy Android model, SDK, ABI, package, and storage info.',
-      action: () => handleSafeCopy('Device Info', () => JSON.stringify({
-        deviceModel: otaDiagnostics.deviceModel,
-        androidVersion: otaDiagnostics.androidVersion,
-        permissionState: otaDiagnostics.permissionState,
-        userAgent: navigator.userAgent,
-        platform: navigator.platform,
-        isNative: isNative(),
-        installedPackageName: otaDebugLogs.installedPackageName,
-        installedVersionName: otaDebugLogs.installedVersionName,
-        installedVersionCode: otaDebugLogs.installedVersionCode,
-        installedSigningSha256: otaDebugLogs.installedSigningSha256,
-      }, null, 2))
-    },
-    {
-      label: 'Copy Full Timeline',
-      desc: 'Copy unified chronological timeline.',
-      action: () => handleSafeCopy('Full Timeline', () => JSON.stringify(getChronologicalTimeline(), null, 2))
-    }
-  ];
-
-  return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 12, paddingBottom: 'max(20px, env(safe-area-inset-bottom))' }}>
-      {buttons.map((btn, idx) => (
-        <div key={idx} onClick={btn.action} className="btn-smooth" style={{
-          display: 'flex', flexDirection: 'column', padding: '14px 16px',
-          background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.06)',
-          borderRadius: '12px', cursor: 'pointer', textAlign: 'left', transition: 'all 0.2s ease'
-        }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <span style={{ fontSize: '13.5px', fontWeight: 800, color: '#fff' }}>
-              {btn.label}
-            </span>
-            {copyingLabel === btn.label && (
-              <span className="material-symbols-outlined" style={{ animation: 'lg-spin-spinner 1s linear infinite', fontSize: 16, color: accent.from }}>sync</span>
-            )}
-          </div>
-          <span style={{ fontSize: '11px', color: 'rgba(255,255,255,0.4)', marginTop: 4 }}>
-            {btn.desc}
-          </span>
-        </div>
-      ))}
     </div>
   );
 }
