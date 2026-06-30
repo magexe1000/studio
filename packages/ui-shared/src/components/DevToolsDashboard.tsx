@@ -35,13 +35,16 @@ import {
   simulateStatusCallback,
   globalOtaState,
   resetOtaUpdateState,
+  resetOtaDiagnostics,
   checkForUpdate,
   downloadUpdate,
   applyUpdate,
   deleteLocalApk,
   transitionHistory,
   rejectedTransitions,
-  AppInstaller
+  AppInstaller,
+  APP_VERSION_LABEL,
+  NATIVE_VERSION
 } from '@workspace/studio-core';
 
 import { decodeReactError } from './ErrorBoundary';
@@ -378,65 +381,70 @@ export default function DevToolsDashboard({ accent, onBack }: Props) {
     }
   }, [simUpdateCount, updaterTabMode]);
 
+  const isMountedRef = useRef(true);
   useEffect(() => {
-    if (subView !== 'updater') return;
+    isMountedRef.current = true;
+    return () => {
+      isMountedRef.current = false;
+    };
+  }, []);
 
-    let active = true;
+  const refreshData = async () => {
+    try {
+      if (isNative() && typeof AppInstaller !== 'undefined') {
+        // 1. Get Device Info
+        const dev = await AppInstaller.getDeviceInfo();
+        if (isMountedRef.current) setNativeDeviceInfo(dev);
 
-    const refreshData = async () => {
-      try {
-        if (isNative() && typeof AppInstaller !== 'undefined') {
-          // 1. Get Device Info
-          const dev = await AppInstaller.getDeviceInfo();
-          if (active) setNativeDeviceInfo(dev);
+        // 2. Get PackageInstaller Details
+        if (typeof AppInstaller.getExtendedDiagnostics === 'function') {
+          const det = await AppInstaller.getExtendedDiagnostics();
+          if (isMountedRef.current) setNativeInstallerDetails(det);
+        } else if (typeof (AppInstaller as any).getPackageInstallerDetails === 'function') {
+          const det = await (AppInstaller as any).getPackageInstallerDetails();
+          if (isMountedRef.current) setNativeInstallerDetails(det);
+        }
 
-          // 2. Get PackageInstaller Details
-          if (typeof AppInstaller.getExtendedDiagnostics === 'function') {
-            const det = await AppInstaller.getExtendedDiagnostics();
-            if (active) setNativeInstallerDetails(det);
-          } else if (typeof (AppInstaller as any).getPackageInstallerDetails === 'function') {
-            const det = await (AppInstaller as any).getPackageInstallerDetails();
-            if (active) setNativeInstallerDetails(det);
-          }
-
-          // 3. Get Installer Log History
-          if (typeof AppInstaller.getInstallerLogHistory === 'function') {
-            const historyRes = await AppInstaller.getInstallerLogHistory();
-            if (active && historyRes && historyRes.logs) {
-              try {
-                const parsedLogs = JSON.parse(historyRes.logs);
-                setNativeLogsList(Array.isArray(parsedLogs) ? parsedLogs : []);
-              } catch (e) {
-                console.warn('Failed to parse installer log history:', e);
-              }
-            }
-          }
-
-          // 4. Get File details for downloaded APK if exists
-          const path = localStorage.getItem('studio:downloadedApkPath');
-          if (path) {
+        // 3. Get Installer Log History
+        if (typeof AppInstaller.getInstallerLogHistory === 'function') {
+          const historyRes = await AppInstaller.getInstallerLogHistory();
+          if (isMountedRef.current && historyRes && historyRes.logs) {
             try {
-              if (typeof AppInstaller.inspectApk === 'function') {
-                const apkDet = await AppInstaller.inspectApk({ filePath: path });
-                if (active) setLocalApkDetails(apkDet);
-              }
-            } catch (err) {
-              console.warn('Failed to inspect APK:', err);
+              const parsedLogs = JSON.parse(historyRes.logs);
+              setNativeLogsList(Array.isArray(parsedLogs) ? parsedLogs : []);
+            } catch (e) {
+              console.warn('Failed to parse installer log history:', e);
             }
-          } else {
-            if (active) setLocalApkDetails(null);
           }
         }
-      } catch (err) {
-        console.warn('Failed to refresh updater diagnostics:', err);
+
+        // 4. Get File details for downloaded APK if exists
+        const path = localStorage.getItem('studio:downloadedApkPath');
+        if (path) {
+          try {
+            if (typeof AppInstaller.inspectApk === 'function') {
+              const apkDet = await AppInstaller.inspectApk({ filePath: path });
+              if (isMountedRef.current) setLocalApkDetails(apkDet);
+            }
+          } catch (err) {
+            console.warn('Failed to inspect APK:', err);
+          }
+        } else {
+          if (isMountedRef.current) setLocalApkDetails(null);
+        }
       }
-    };
+    } catch (err) {
+      console.warn('Failed to refresh updater diagnostics:', err);
+    }
+  };
+
+  useEffect(() => {
+    if (subView !== 'updater') return;
 
     refreshData();
     const timer = setInterval(refreshData, 2000);
 
     return () => {
-      active = false;
       clearInterval(timer);
     };
   }, [subView]);
@@ -1201,90 +1209,274 @@ export default function DevToolsDashboard({ accent, onBack }: Props) {
       });
       handleCopyText(txt, 'Timeline Plain Text');
     };
-
-    const exportEngineeringReport = async () => {
+    const generateFullEngineeringReport = () => {
       const diag = getAutoDiagnostics();
       const devInfo = nativeDeviceInfo || {};
-      let report = `# UPDATER ENGINEERING REPORT\n`;
-      report += `Generated: ${new Date().toLocaleString()}\n`;
-      report += `Current Version: ${APP_VERSION}\n\n`;
+      const installer = nativeInstallerDetails || {};
       
-      report += `## Diagnostic Summary\n`;
-      if (diag) {
-        report += `* **Failed Stage:** ${diag.failedStage}\n`;
-        report += `* **Error/Reason:** ${diag.reason}\n`;
-        report += `* **Suggested Root Cause:** ${diag.suggestedCause}\n`;
-        report += `* **Suggested Fix:** ${diag.suggestedFix}\n\n`;
+      let r = `==================================================\n`;
+      r += `1. APPLICATION & BUILD INFO\n`;
+      r += `==================================================\n`;
+      r += `Application Name:       Chordex Studio\n`;
+      r += `App Version:            ${APP_VERSION_LABEL}\n`;
+      r += `Native Version:         ${NATIVE_VERSION}\n`;
+      r += `VersionCode:            ${devInfo.versionCode ?? 'N/A'}\n`;
+      r += `Vite Git Commit:        ${import.meta.env.VITE_GIT_COMMIT_SHA || 'unknown'}\n`;
+      r += `Build Timestamp:        ${import.meta.env.VITE_BUILD_TIMESTAMP || 'unknown'}\n`;
+      r += `Update Type/Channel:    ${otaDebugLogs.updateType || 'N/A'}\n\n`;
+      
+      r += `==================================================\n`;
+      r += `2. DEVICE & HARDWARE\n`;
+      r += `==================================================\n`;
+      r += `Manufacturer:           ${devInfo.manufacturer || 'N/A'}\n`;
+      r += `Model:                  ${devInfo.model || 'N/A'}\n`;
+      r += `Android OS Version:     ${devInfo.osVersion || 'N/A'}\n`;
+      r += `Supported ABIs:         ${devInfo.supportedAbis ? JSON.stringify(devInfo.supportedAbis) : 'N/A'}\n`;
+      r += `Storage Available:      ${devInfo.storageAvailable || 'N/A'}\n`;
+      r += `Network Online:         ${navigator.onLine ? 'Connected' : 'Offline'}\n\n`;
+      
+      r += `==================================================\n`;
+      r += `3. UPDATER STATE & STATE MACHINE\n`;
+      r += `==================================================\n`;
+      r += `Current State:          ${globalOtaState.updateState}\n`;
+      r += `Updater Status:         ${globalOtaState.updateAvailable ? 'Update Available' : 'Idle'}\n`;
+      r += `Recovery Diagnostics:   ${updaterSimulation.forceRecoveryMode || localStorage.getItem('studio:recoveryMode') ? 'ACTIVE' : 'INACTIVE'}\n\n`;
+      
+      r += `==================================================\n`;
+      r += `4. DOWNLOAD & INSTALLER INFORMATION\n`;
+      r += `==================================================\n`;
+      r += `Download URL:           ${globalOtaState.apkUrl || globalOtaState.downloadUrl || 'N/A'}\n`;
+      r += `Download Status:        ${otaDebugLogs.downloadStatus || 'N/A'}\n`;
+      r += `Download Progress:      ${globalOtaState.progress ? `${Math.round(globalOtaState.progress * 100)}%` : '0%'}\n`;
+      r += `SHA Verification:       ${otaDebugLogs.shaVerification || 'N/A'}\n`;
+      r += `Eligibility Results:    ${otaDebugLogs.eligibilityFinalInstall || 'N/A'}\n\n`;
+      
+      r += `==================================================\n`;
+      r += `5. PACKAGEINSTALLER MONITOR\n`;
+      r += `==================================================\n`;
+      r += `Session ID:             ${installer.sessionId ?? -1}\n`;
+      r += `Session State:          ${installer.sessionState || 'None'}\n`;
+      r += `PendingIntent Status:   ${installer.pendingIntentCreated ? 'CREATED' : 'NONE'}\n`;
+      r += `confirmIntent Status:   ${installer.confirmIntentCreated ? 'CREATED' : 'NONE'}\n`;
+      r += `Last Native Status:     ${installer.lastStatusMessage || 'None'}\n`;
+      r += `Last Native Code:       ${installer.lastStatusCode ?? -999}\n`;
+      r += `Install Progress:       ${installer.progress ?? 'N/A'}\n\n`;
+      
+      r += `==================================================\n`;
+      r += `6. APK METADATA DETAILS\n`;
+      r += `==================================================\n`;
+      r += `Installed APK Metadata:\n`;
+      r += `  Package Name:         ${devInfo.packageName || 'N/A'}\n`;
+      r += `  Version Name:         ${devInfo.versionName || 'N/A'}\n`;
+      r += `  Version Code:         ${devInfo.versionCode || 'N/A'}\n\n`;
+      
+      r += `Downloaded APK Metadata:\n`;
+      if (localApkDetails) {
+        r += `  Package Name:         ${localApkDetails.packageName || 'N/A'}\n`;
+        r += `  Version Name:         ${localApkDetails.versionName || 'N/A'}\n`;
+        r += `  Version Code:         ${localApkDetails.versionCode || 'N/A'}\n`;
+        r += `  Signing SHA-256:      ${localApkDetails.signingSha256 || 'N/A'}\n`;
+        r += `  Debuggable:           ${localApkDetails.debuggable ? 'TRUE' : 'FALSE'}\n`;
+        r += `  Valid APK:            ${localApkDetails.isValidApk ? 'TRUE' : 'FALSE'}\n`;
       } else {
-        report += `No active errors detected. All systems nominal.\n\n`;
+        r += `  No downloaded APK details inspected yet.\n`;
       }
-
-      report += `## Device & Context Telemetry\n`;
-      report += `* **SDK Version:** ${devInfo.sdkInt || 'N/A'}\n`;
-      report += `* **Manufacturer/Model:** ${devInfo.manufacturer || 'N/A'} ${devInfo.model || 'N/A'}\n`;
-      report += `* **Locale:** ${devInfo.deviceLocale || 'N/A'}\n`;
-      report += `* **Storage State:** ${devInfo.storageAvailable || 'N/A'}\n`;
-      report += `* **Unknown Sources Allowed:** ${devInfo.canRequestPackageInstalls ? 'YES' : 'NO'}\n`;
-      report += `* **Installer Package:** ${devInfo.installerPackage || 'Unknown'}\n\n`;
-
-      report += `## PackageInstaller Session Metrics\n`;
-      report += `* **Active Session ID:** ${nativeInstallerDetails?.sessionId ?? -1}\n`;
-      report += `* **Session State:** ${nativeInstallerDetails?.sessionState || 'None'}\n`;
-      report += `* **Last Native Code:** ${nativeInstallerDetails?.lastStatusCode ?? -999}\n`;
-      report += `* **Last Native Message:** ${nativeInstallerDetails?.lastStatusMessage || 'N/A'}\n\n`;
-
-      report += `## State Transition History\n`;
-      transitionHistory.forEach(t => {
-        report += `* ${new Date(t.timestamp).toLocaleTimeString()}: ${t.from} -> ${t.to} (${t.reason}) [Duration: ${t.durationMs}ms] ${t.invalid ? '(INVALID)' : ''}\n`;
-      });
+      r += `\n`;
       
-      report += `\n=== END OF REPORT ===`;
+      r += `==================================================\n`;
+      r += `7. ACTIVITY LIFECYCLE TIMELINE\n`;
+      r += `==================================================\n`;
+      if (activityLifecycleTimeline.length === 0) {
+        r += `No lifecycle events recorded.\n`;
+      } else {
+        activityLifecycleTimeline.forEach(a => {
+          r += `[${new Date(a.timestamp).toLocaleTimeString()}] ${a.stage}\n`;
+        });
+      }
+      r += `\n`;
+      
+      r += `==================================================\n`;
+      r += `8. STATE TRANSITION HISTORY\n`;
+      r += `==================================================\n`;
+      if (transitionHistory.length === 0) {
+        r += `No transitions recorded.\n`;
+      } else {
+        transitionHistory.forEach(t => {
+          r += `[${new Date(t.timestamp).toLocaleTimeString()}] ${t.from} -> ${t.to} (${t.reason}) [${t.durationMs}ms] ${t.invalid ? '(INVALID)' : ''}\n`;
+        });
+      }
+      r += `\n`;
+
+      r += `==================================================\n`;
+      r += `9. REJECTED TRANSITIONS\n`;
+      r += `==================================================\n`;
+      if (rejectedTransitions.length === 0) {
+        r += `No rejected transitions recorded.\n`;
+      } else {
+        rejectedTransitions.forEach(t => {
+          r += `[${new Date(t.timestamp).toLocaleTimeString()}] From ${t.from} -> ${t.attempted} (Reason: ${t.reason})\n`;
+        });
+      }
+      r += `\n`;
+      
+      r += `==================================================\n`;
+      r += `10. CHRONOLOGICAL EVENT TIMELINE\n`;
+      r += `==================================================\n`;
+      if (unifiedTimeline.length === 0) {
+        r += `Timeline empty.\n`;
+      } else {
+        unifiedTimeline.forEach(e => {
+          r += `[${new Date(e.time).toLocaleTimeString()}] [${e.type.toUpperCase()}] ${e.text} ${e.details ? `(${e.details})` : ''}\n`;
+        });
+      }
+      r += `\n`;
+      
+      r += `==================================================\n`;
+      r += `11. NATIVE SYSTEM LOGS\n`;
+      r += `==================================================\n`;
+      if (nativeLogsList.length === 0) {
+        r += `No native PackageInstaller callback logs recorded.\n`;
+      } else {
+        nativeLogsList.forEach(log => {
+          r += `[${log.stage || 'N/A'}] Status: ${log.status || 'N/A'} - Message: ${log.message || 'N/A'}\n`;
+        });
+      }
+      r += `\n`;
+
+      r += `==================================================\n`;
+      r += `12. JS CONSOLE LOGS\n`;
+      r += `==================================================\n`;
+      if (jsLogs.length === 0) {
+        r += `No JS logs recorded.\n`;
+      } else {
+        jsLogs.forEach(log => {
+          r += `[${new Date(log.timestamp).toLocaleTimeString()}] ${log.message}\n`;
+        });
+      }
+      r += `\n`;
+
+      r += `==================================================\n`;
+      r += `13. UNIFIED LOGS\n`;
+      r += `==================================================\n`;
+      const combined = [
+        ...jsLogs.map(l => ({ time: l.timestamp, msg: `[JS] ${l.message}` })),
+        ...nativeLogsList.map(l => ({ time: l.timestamp || Date.now(), msg: `[NATIVE] [${l.stage}] Status: ${l.status} - Message: ${l.message}` }))
+      ].sort((a, b) => a.time - b.time);
+      if (combined.length === 0) {
+        r += `No logs recorded.\n`;
+      } else {
+        combined.forEach(c => {
+          r += `[${new Date(c.time).toLocaleTimeString()}] ${c.msg}\n`;
+        });
+      }
+      r += `\n`;
+
+      r += `==================================================\n`;
+      r += `14. WARNINGS, ERRORS & EXCEPTIONS\n`;
+      r += `==================================================\n`;
+      r += `WARNINGS:\n`;
+      let warningsList: string[] = [];
+      jsLogs.forEach(l => {
+        if (l.message.toLowerCase().includes('warning') || l.message.toLowerCase().includes('warn')) {
+          warningsList.push(`[JS] [${new Date(l.timestamp).toLocaleTimeString()}] ${l.message}`);
+        }
+      });
+      nativeLogsList.forEach(l => {
+        const msg = l.message || '';
+        const stat = l.status || '';
+        if (msg.toLowerCase().includes('warning') || msg.toLowerCase().includes('warn') || stat.toLowerCase().includes('warning') || stat.toLowerCase().includes('warn')) {
+          warningsList.push(`[NATIVE] [${l.stage}] Status: ${l.status} - Message: ${l.message}`);
+        }
+      });
+      if (warningsList.length === 0) {
+        r += `  No warnings detected in logs.\n`;
+      } else {
+        warningsList.forEach(w => {
+          r += `  ${w}\n`;
+        });
+      }
+      r += `\n`;
+
+      r += `ERRORS & EXCEPTIONS:\n`;
+      const errs = getErrors();
+      if (errs.length === 0) {
+        r += `  No exceptions captured by the Error Boundary.\n`;
+      } else {
+        errs.forEach((e, idx) => {
+          r += `  Error #${idx + 1}:\n`;
+          r += `    Timestamp: ${new Date(e.timestamp).toLocaleString()}\n`;
+          r += `    Source:    ${e.source}\n`;
+          r += `    Module:    ${e.module}\n`;
+          r += `    Message:   ${e.message}\n`;
+          if (e.stack) {
+            r += `    Stack:\n${e.stack}\n`;
+          }
+          r += `\n`;
+        });
+      }
+      r += `\n`;
+
+      r += `==================================================\n`;
+      r += `15. REACT DIAGNOSTICS\n`;
+      r += `==================================================\n`;
+      r += `File:                  packages/ui-shared/src/components/DevToolsDashboard.tsx\n`;
+      r += `Component:             DevToolsDashboard\n`;
+      r += `Hook:                  useMemo (filteredTimeline)\n`;
+      r += `Line:                  Hoisted to top-level (unconditional execution)\n`;
+      r += `Resolution:            Hoisted to avoid dynamic Hook order changes on tab switches.\n\n`;
+
+      r += `==================================================\n`;
+      r += `16. OTA DIAGNOSTICS SUMMARY\n`;
+      r += `==================================================\n`;
+      r += `Exception Message:     ${otaDiagnostics.exceptionMessage || 'N/A'}\n`;
+      r += `Failure Reason:        ${otaDiagnostics.failureReason || 'N/A'}\n`;
+      r += `Download URL:          ${otaDiagnostics.downloadUrl || 'N/A'}\n`;
+      r += `Apk Path:              ${otaDiagnostics.apkPath || 'N/A'}\n`;
+      r += `File Size:             ${otaDiagnostics.fileSize || 'N/A'}\n`;
+      r += `SHA Expected:          ${otaDiagnostics.shaExpected || 'N/A'}\n`;
+      r += `SHA Calculated:        ${otaDiagnostics.shaCalculated || 'N/A'}\n`;
+      r += `Installer Result:      ${otaDiagnostics.installerResult || 'N/A'}\n`;
+      r += `Permission State:      ${otaDiagnostics.permissionState || 'N/A'}\n`;
+      r += `Android Version:       ${otaDiagnostics.androidVersion || 'N/A'}\n`;
+      r += `Device Model:          ${otaDiagnostics.deviceModel || 'N/A'}\n`;
+      r += `Timestamp:             ${otaDiagnostics.timestamp || 'N/A'}\n`;
+      r += `Architecture:          ${otaDiagnostics.architecture || 'N/A'}\n`;
+      r += `Device Locale:         ${otaDiagnostics.deviceLocale || 'N/A'}\n`;
+      r += `Storage Available:     ${otaDiagnostics.storageAvailable || 'N/A'}\n`;
+      r += `Network State:         ${otaDiagnostics.networkState || 'N/A'}\n`;
+      r += `Status Code:           ${otaDiagnostics.statusCode ?? 'N/A'}\n`;
+      r += `Status Text:           ${otaDiagnostics.statusText || 'N/A'}\n\n`;
+
+      r += `==================================================\n`;
+      r += `17. NEXT RECOMMENDED ACTION & RECOMMENDATIONS\n`;
+      r += `==================================================\n`;
+      if (diag) {
+        r += `Suggested Fix: ${diag.suggestedFix}\n`;
+      } else if (globalOtaState.updateState === 'waiting_for_confirmation') {
+        r += `The PackageInstaller has launched the system prompt. The user needs to confirm the installation.\n`;
+      } else if (globalOtaState.updateState === 'ready_to_install') {
+        r += `The update package is ready. Execute 'Trigger Install' to prompt the user.\n`;
+      } else if (globalOtaState.updateAvailable) {
+        r += `An update is available remote. Execute 'Trigger Download' to retrieve the package.\n`;
+      } else {
+        r += `All systems nominal. No actions required.\n`;
+      }
+      r += `\n`;
+      
+      r += `==================================================\n`;
+      r += `END OF REPORT\n`;
+      r += `==================================================`;
+      return r;
+    };;
+
+    const exportEngineeringReport = async () => {
+      const report = generateFullEngineeringReport();
       handleCopyText(report, 'Complete Engineering Report');
     };
 
     const exportEverything = async () => {
-      let txt = `# Chordex Updater Diagnostics - Copy Everything\n\n`;
-      txt += `## 1. DEVICE Telemetry\n${JSON.stringify(nativeDeviceInfo || {}, null, 2)}\n\n`;
-      txt += `## 2. PACKAGE INSTALLER MONITOR\n${JSON.stringify(nativeInstallerDetails || {}, null, 2)}\n\n`;
-      txt += `## 3. STATE MACHINE METADATA\n${JSON.stringify(globalOtaState, null, 2)}\n\n`;
-      
-      txt += `## 4. CHRONOLOGICAL EVENT TIMELINE\n`;
-      unifiedTimeline.forEach(e => {
-        const timeStr = new Date(e.time).toLocaleTimeString();
-        txt += `[${timeStr}] [${e.type.toUpperCase()}] ${e.text} ${e.details ? ` - ${e.details}` : ''}\n`;
-      });
-      txt += `\n`;
-
-      txt += `## 5. NATIVE LOGS\n`;
-      nativeLogs.forEach(log => {
-        txt += `[${new Date(log.timestamp).toLocaleTimeString()}] ${log.message}\n`;
-      });
-      txt += `\n`;
-
-      txt += `## 6. JS LOGS\n`;
-      jsLogs.forEach(log => {
-        txt += `[${new Date(log.timestamp).toLocaleTimeString()}] ${log.message}\n`;
-      });
-      txt += `\n`;
-
-      txt += `## 7. STATE TRANSITION HISTORY\n`;
-      transitionHistory.forEach(t => {
-        txt += `[${new Date(t.timestamp).toLocaleTimeString()}] ${t.from} -> ${t.to} (${t.reason}) - Caller: ${t.caller}\n`;
-      });
-      txt += `\n`;
-
-      txt += `## 8. ACTIVITY LIFECYCLE\n`;
-      activityLifecycleTimeline.forEach(a => {
-        txt += `[${new Date(a.timestamp).toLocaleTimeString()}] Stage: ${a.stage}\n`;
-      });
-      txt += `\n`;
-
-      txt += `## 9. REJECTED TRANSITIONS\n`;
-      rejectedTransitions.forEach(t => {
-        txt += `[${new Date(t.timestamp).toLocaleTimeString()}] From ${t.from} -> ${t.attempted} (Reason: ${t.reason})\n`;
-      });
-      
-      await handleCopyText(txt, 'All Diagnostics Combined');
+      const report = generateFullEngineeringReport();
+      handleCopyText(report, 'All Diagnostics Combined');
     };
 
     const diag = getAutoDiagnostics();
@@ -1874,6 +2066,19 @@ export default function DevToolsDashboard({ accent, onBack }: Props) {
                     'secondary'
                   )}
                   {renderLabButtonBlock(
+                    'Reset Diagnostics',
+                    'Clears current in-memory otaDiagnostics fields and resets otaDebugLogs values.',
+                    'Diagnostics properties are reset to null/defaults.',
+                    'None.',
+                    'resetDiagnostics',
+                    () => {
+                      resetOtaDiagnostics();
+                      triggerSimRender();
+                      showToast('Diagnostics reset successfully.');
+                    },
+                    'warning'
+                  )}
+                  {renderLabButtonBlock(
                     'Reset Completely',
                     'Performs full wipe of parameters, states, and history logs.',
                     'Wipes log lists, timelines, cache files, and machine values.',
@@ -1882,6 +2087,7 @@ export default function DevToolsDashboard({ accent, onBack }: Props) {
                     async () => {
                       const ver = globalOtaState.remoteVersion || '3.7.99';
                       resetOtaUpdateState();
+                      resetOtaDiagnostics();
                       await deleteLocalApk(ver);
                       localStorage.removeItem('studio:consecutiveFailures');
                       localStorage.removeItem('studio:recoveryMode');
@@ -1894,6 +2100,21 @@ export default function DevToolsDashboard({ accent, onBack }: Props) {
                       showToast('Updater completely reset.');
                     },
                     'danger'
+                  )}
+                  {renderLabButtonBlock(
+                    'Clear Timeline',
+                    'Clears the state timeline, transition history, and rejected transitions from local variables.',
+                    'Timeline displays are completely emptied.',
+                    'None.',
+                    'clearTimeline',
+                    () => {
+                      stateTimeline.length = 0;
+                      transitionHistory.length = 0;
+                      rejectedTransitions.length = 0;
+                      triggerSimRender();
+                      showToast('Timeline history cleared.');
+                    },
+                    'warning'
                   )}
                 </div>
               </div>
@@ -2024,7 +2245,61 @@ export default function DevToolsDashboard({ accent, onBack }: Props) {
                     'info'
                   )}
                   {renderLabButtonBlock(
-                    'Inspect Downloaded APK',
+                    'Open Installer Permission',
+                    'Opens the native Android system settings page for managing unknown app sources.',
+                    'System permission overlay is launched.',
+                    'Plugin not loaded, or settings window restricted.',
+                    'openPermission',
+                    async () => {
+                      if (isNative()) {
+                        await AppInstaller.openUnknownAppSourcesSettings();
+                      } else {
+                        addJsLog('[Open Permission] Mock environment: Open unknown app sources settings.');
+                      }
+                    },
+                    'info'
+                  )}
+                  {renderLabButtonBlock(
+                    'Open Download Folder',
+                    'Copies the download cache folder path to clipboard and launches share dialog.',
+                    'Folder path is copied to clipboard and sharing options appear.',
+                    'No downloaded path registered in storage.',
+                    'openDownloadFolder',
+                    async () => {
+                      const path = localStorage.getItem('studio:downloadedApkPath') || '';
+                      const folder = path ? path.substring(0, path.lastIndexOf('/')) : 'Cache Directory';
+                      if (isNative()) {
+                        const { Share } = await import('@capacitor/share');
+                        await Share.share({ title: 'Download Folder', text: `Path: ${folder}` });
+                      }
+                      await handleCopyText(folder, 'Download Folder Path');
+                    },
+                    'info'
+                  )}
+                  {renderLabButtonBlock(
+                    'Validate Metadata',
+                    'Performs deep comparisons of remote manifest version details versus the downloaded APK package.',
+                    'Local and remote metadata matches are calculated and printed to logs.',
+                    'No downloaded package found, or package invalid.',
+                    'validateMetadata',
+                    async () => {
+                      const lastPath = localStorage.getItem('studio:downloadedApkPath') || '';
+                      if (!lastPath) throw new Error('No downloaded APK path found.');
+                      if (isNative()) {
+                        const details = await AppInstaller.getApkDetails({ filePath: lastPath });
+                        const isEligible = details.versionCode > (nativeDeviceInfo?.versionCode ?? 0);
+                        const verMatch = details.versionName === globalOtaState.remoteVersion;
+                        addJsLog(`[Validate Metadata] Remote version match: ${verMatch} (${details.versionName} vs ${globalOtaState.remoteVersion}). Code higher: ${isEligible} (${details.versionCode} vs ${nativeDeviceInfo?.versionCode}).`);
+                        showToast(`Validation Complete: Version Match = ${verMatch}, Code Higher = ${isEligible}`);
+                      } else {
+                        addJsLog('[Validate Metadata] Mock: Manifest validation match verified.');
+                        showToast('Mock metadata validated successfully.');
+                      }
+                    },
+                    'info'
+                  )}
+                  {renderLabButtonBlock(
+                    'Inspect APK',
                     'Extracts package identifiers and versionCode.',
                     'Prints parsed packageName and versionCode values.',
                     'Package corrupted or parsing failed.',
@@ -2043,7 +2318,7 @@ export default function DevToolsDashboard({ accent, onBack }: Props) {
                     'info'
                   )}
                   {renderLabButtonBlock(
-                    'Verify SHA Again',
+                    'Verify SHA',
                     'Re-evaluates SHA checksum of cached package files.',
                     'Outputs verifySHA comparison output values.',
                     'Target file missing.',
@@ -2062,7 +2337,7 @@ export default function DevToolsDashboard({ accent, onBack }: Props) {
                     'info'
                   )}
                   {renderLabButtonBlock(
-                    'Re-run Eligibility',
+                    'APK Eligibility',
                     'Validates APK signatures and version downgrade rules.',
                     'Prints eligibility validation status conclusions.',
                     'APK file unreadable.',
@@ -2095,6 +2370,18 @@ export default function DevToolsDashboard({ accent, onBack }: Props) {
                 </p>
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: 8 }}>
                   {renderLabButtonBlock(
+                    'Refresh Status',
+                    'Manually pulls device metrics, active installer session statuses, and APK details.',
+                    'Dashboard status displays update instantly.',
+                    'Native binder calls timeout.',
+                    'manualRefresh',
+                    async () => {
+                      await refreshData();
+                      showToast('Diagnostics refreshed.');
+                    },
+                    'success'
+                  )}
+                  {renderLabButtonBlock(
                     'Copy Everything',
                     'Compiles all native/JS log history, transition details, and device configurations.',
                     'A complete aggregated markdown summary is copied to the clipboard.',
@@ -2106,7 +2393,7 @@ export default function DevToolsDashboard({ accent, onBack }: Props) {
                     'primary'
                   )}
                   {renderLabButtonBlock(
-                    'Export Timeline',
+                    'Copy Timeline',
                     'Exports formatted chronological lists of update events.',
                     'Timeline list copied in plain text.',
                     'None.',
@@ -2122,7 +2409,7 @@ export default function DevToolsDashboard({ accent, onBack }: Props) {
                     'secondary'
                   )}
                   {renderLabButtonBlock(
-                    'Export Diagnostics',
+                    'Copy Diagnostics',
                     'Copies the latest otaDiagnostics state object details.',
                     'Diagnostics JSON string copied.',
                     'None.',
@@ -2133,13 +2420,62 @@ export default function DevToolsDashboard({ accent, onBack }: Props) {
                     'secondary'
                   )}
                   {renderLabButtonBlock(
-                    'Copy Engineering Report',
+                    'Export Report',
                     'Builds a detailed summary of failures and device telemetry.',
                     'Engineering Report markdown copied.',
                     'None.',
                     'expReport',
                     async () => {
                       await exportEngineeringReport();
+                    },
+                    'secondary'
+                  )}
+                  {renderLabButtonBlock(
+                    'Copy Logs',
+                    'Copies combined JS and Native logs chronologically sorted.',
+                    'Chronological log entries copied.',
+                    'None.',
+                    'copyLogsCombined',
+                    async () => {
+                      let txt = '=== COMBINED JS AND NATIVE LOGS ===\n';
+                      const combined = [
+                        ...jsLogs.map(l => ({ time: l.timestamp, msg: `[JS] ${l.message}` })),
+                        ...nativeLogsList.map(l => ({ time: l.timestamp || Date.now(), msg: `[NATIVE] [${l.stage}] Status: ${l.status} - Message: ${l.message}` }))
+                      ].sort((a, b) => a.time - b.time);
+                      combined.forEach(c => {
+                        txt += `[${new Date(c.time).toLocaleTimeString()}] ${c.msg}\n`;
+                      });
+                      await handleCopyText(txt, 'Combined Logs');
+                    },
+                    'secondary'
+                  )}
+                  {renderLabButtonBlock(
+                    'Copy JS Logs',
+                    'Copies captured JS console logs.',
+                    'JS console log entries copied.',
+                    'None.',
+                    'copyJsLogsOnly',
+                    async () => {
+                      let txt = '=== JS CONSOLE LOGS ===\n';
+                      jsLogs.forEach(log => {
+                        txt += `[${new Date(log.timestamp).toLocaleTimeString()}] ${log.message}\n`;
+                      });
+                      await handleCopyText(txt, 'JS Logs');
+                    },
+                    'secondary'
+                  )}
+                  {renderLabButtonBlock(
+                    'Copy Native Logs',
+                    'Copies captured PackageInstaller callback and system logs.',
+                    'Native log entries copied.',
+                    'None.',
+                    'copyNativeLogsOnly',
+                    async () => {
+                      let txt = '=== NATIVE SYSTEM LOGS ===\n';
+                      nativeLogsList.forEach(log => {
+                        txt += `[${log.stage || 'N/A'}] Status: ${log.status || 'N/A'} - Message: ${log.message || 'N/A'}\n`;
+                      });
+                      await handleCopyText(txt, 'Native Logs');
                     },
                     'secondary'
                   )}

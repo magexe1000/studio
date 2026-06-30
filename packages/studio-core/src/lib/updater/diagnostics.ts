@@ -445,3 +445,29 @@ Storage Available: ${dev?.storageAvailable || 'N/A'}
 ${health.details.join('\n')}
 ==================================================`;
 }
+
+export function resetOtaDiagnostics() {
+  // Reset all keys in otaDiagnostics
+  Object.keys(otaDiagnostics).forEach(key => {
+    (otaDiagnostics as any)[key] = null;
+  });
+
+  // Reset keys in otaDebugLogs
+  Object.keys(otaDebugLogs).forEach(key => {
+    if (key === 'appVersion') {
+      otaDebugLogs.appVersion = APP_VERSION;
+    } else if (key === 'apkEligibilityResult' || key === 'pluginMethodCheck' || key === 'finalUpdatePath') {
+      (otaDebugLogs as any)[key] = 'N/A';
+    } else if (key === 'registeredPlugins') {
+      otaDebugLogs.registeredPlugins = '[]';
+    } else if (key === 'otaBlockedBecauseApkRequired' || key === 'nativeApkBehind' || key === 'apkUpdateRequired' || key === 'staleOtaCleared' || key === 'capgoSetBlocked') {
+      (otaDebugLogs as any)[key] = false;
+    } else if (key === 'appInstallerAvailable' || key === 'downloadApkAvailable' || key === 'verifyApkSha256Available' || key === 'installApkAvailable' || key === 'openInstallPermissionSettingsAvailable') {
+      (otaDebugLogs as any)[key] = false;
+    } else if (key === 'recoveryAttemptsPerformed') {
+      otaDebugLogs.recoveryAttemptsPerformed = [];
+    } else {
+      (otaDebugLogs as any)[key] = null;
+    }
+  });
+}
