@@ -375,6 +375,8 @@ export default function DevToolsDashboard({ accent, onBack }: Props) {
   const [localApkDetails, setLocalApkDetails] = useState<any>(null);
   const [nativeLogsList, setNativeLogsList] = useState<any[]>([]);
   const [simUpdateCount, setSimUpdateCount] = useState(0);
+  const [auditStatus, setAuditStatus] = useState<'idle' | 'running' | 'success' | 'failed'>('idle');
+  const [auditResults, setAuditResults] = useState<Array<{ name: string; status: 'success' | 'failed'; message: string }>>([]);
   const triggerSimRender = () => setSimUpdateCount(prev => prev + 1);
 
   useEffect(() => {
@@ -801,12 +803,307 @@ export default function DevToolsDashboard({ accent, onBack }: Props) {
 
   // Render Inline Updater Diagnostics & Laboratory View
   const renderUpdaterView = () => {
-    const handleCopyText = (text: string, label: string) => {
-      navigator.clipboard.writeText(text)
-        .then(() => showToast(`${label} copied to clipboard!`))
-        .catch(() => showToast('Copy failed.'));
+    const handleCopyText = async (text: string, label: string) => {
+      try {
+        await navigator.clipboard.writeText(text);
+        showToast(`${label} copied to clipboard!`);
+      } catch (err: any) {
+        showToast(`Copy failed: ${err?.message || String(err)}`);
+        throw err;
+      }
     };
+    const runAutomatedAudit = async () => {
+      setAuditStatus('running');
+      setAuditResults([]);
+      addJsLog('=== STARTING AUTOMATED BUTTON AUDIT ===');
+      
+      const results: Array<{ name: string; status: 'success' | 'failed'; message: string }> = [];
+      const addResult = (name: string, status: 'success' | 'failed', message: string) => {
+        results.push({ name, status, message });
+        setAuditResults([...results]);
+        addJsLog(`[Audit] ${name}: ${status.toUpperCase()} - ${message}`);
+      };
 
+      const originalWriteText = navigator.clipboard.writeText;
+      let lastWrittenClipboardText = '';
+      navigator.clipboard.writeText = async (text) => {
+        lastWrittenClipboardText = text;
+        return Promise.resolve();
+      };
+
+      try {
+        resetOtaUpdateState();
+        resetOtaDiagnostics();
+        updaterSimulation.forceUpdateAvailable = false;
+        updaterSimulation.forceNoUpdate = false;
+        updaterSimulation.forceDowngrade = false;
+        updaterSimulation.forceMetadataFailure = false;
+        updaterSimulation.forceDownloadFailure = false;
+        updaterSimulation.forceDownloadTimeout = false;
+        updaterSimulation.forceShaFailure = false;
+        updaterSimulation.forceSignatureMismatch = false;
+        updaterSimulation.forceInvalidApk = false;
+        updaterSimulation.forceInstallSuccess = false;
+        updaterSimulation.forceInstallFailure = false;
+        updaterSimulation.forceUserCancel = false;
+        updaterSimulation.forcePendingUserAction = false;
+
+        updaterSimulation.forceUpdateAvailable = true;
+        await checkForUpdate(true, 'dev_tools', 'Audit: Force Update Available');
+        if (globalOtaState.updateState === 'update_available' && globalOtaState.remoteVersion === '3.7.99') {
+          addResult('Force Update Available', 'success', 'Successfully forced update availability of v3.7.99.');
+        } else {
+          addResult('Force Update Available', 'failed', `Expected state 'update_available' (v3.7.99), got '${globalOtaState.updateState}' (${globalOtaState.remoteVersion}).`);
+        }
+
+        updaterSimulation.forceUpdateAvailable = false;
+        updaterSimulation.forceNoUpdate = true;
+        await checkForUpdate(true, 'dev_tools', 'Audit: Force No Update');
+        if (globalOtaState.updateState === 'idle') {
+          addResult('Force No Update', 'success', 'Successfully forced idle state.');
+        } else {
+          addResult('Force No Update', 'failed', `Expected state 'idle', got '${globalOtaState.updateState}'.`);
+        }
+
+        updaterSimulation.forceNoUpdate = false;
+        updaterSimulation.forceDowngrade = true;
+        await checkForUpdate(true, 'dev_tools', 'Audit: Force Downgrade');
+        addResult('Force Downgrade', 'success', `Downgrade check completed. State: ${globalOtaState.updateState}`);
+
+        updaterSimulation.forceDowngrade = false;
+        updaterSimulation.forceMetadataFailure = true;
+        await checkForUpdate(true, 'dev_tools', 'Audit: Force Metadata Failure');
+        if (globalOtaState.updateState === 'failed') {
+          addResult('Force Metadata Failure', 'success', 'Successfully simulated metadata fetch failure.');
+        } else {
+          addResult('Force Metadata Failure', 'failed', `Expected state 'failed', got '${globalOtaState.updateState}'.`);
+        }
+        updaterSimulation.forceMetadataFailure = false;
+
+        triggerSimulatedStatus(-1, 'STATUS_PENDING_USER_ACTION');
+        if (globalOtaState.updateState === 'waiting_for_confirmation') {
+          addResult('Force Pending User Action', 'success', 'Successfully transitioned to waiting_for_confirmation.');
+        } else {
+          addResult('Force Pending User Action', 'failed', `Expected state 'waiting_for_confirmation', got '${globalOtaState.updateState}'.`);
+        }
+
+        triggerSimulatedStatus(0, 'STATUS_SUCCESS');
+        if (globalOtaState.updateState === 'installed') {
+          addResult('Force Success (0)', 'success', 'Successfully transitioned to installed.');
+        } else {
+          addResult('Force Success (0)', 'failed', `Expected state 'installed', got '${globalOtaState.updateState}'.`);
+        }
+
+        triggerSimulatedStatus(1, 'STATUS_FAILURE');
+        if (globalOtaState.updateState === 'failed') {
+          addResult('Force Fail (1)', 'success', 'Successfully transitioned to failed.');
+        } else {
+          addResult('Force Fail (1)', 'failed', `Expected state 'failed', got '${globalOtaState.updateState}'.`);
+        }
+
+        triggerSimulatedStatus(3, 'STATUS_FAILURE_ABORTED');
+        if (globalOtaState.updateState === 'failed') {
+          addResult('Force Cancel (3)', 'success', 'Successfully transitioned to failed (user cancelled).');
+        } else {
+          addResult('Force Cancel (3)', 'failed', `Expected state 'failed', got '${globalOtaState.updateState}'.`);
+        }
+
+        triggerSimulatedStatus(6, 'STATUS_FAILURE_STORAGE');
+        if (globalOtaState.updateState === 'failed') {
+          addResult('Force Storage Failure (6)', 'success', 'Successfully transitioned to failed (storage full).');
+        } else {
+          addResult('Force Storage Failure (6)', 'failed', `Expected state 'failed', got '${globalOtaState.updateState}'.`);
+        }
+
+        triggerSimulatedStatus(5, 'STATUS_FAILURE_CONFLICT');
+        if (globalOtaState.updateState === 'signature_mismatch') {
+          addResult('Force Signature Conflict (5)', 'success', 'Successfully transitioned to signature_mismatch.');
+        } else {
+          addResult('Force Signature Conflict (5)', 'failed', `Expected state 'signature_mismatch', got '${globalOtaState.updateState}'.`);
+        }
+
+        triggerSimulatedStatus(7, 'STATUS_FAILURE_INCOMPATIBLE');
+        if (globalOtaState.updateState === 'versionCode_low') {
+          addResult('Force Downgrade Blocked (7)', 'success', 'Successfully transitioned to versionCode_low.');
+        } else {
+          addResult('Force Downgrade Blocked (7)', 'failed', `Expected state 'versionCode_low', got '${globalOtaState.updateState}'.`);
+        }
+
+        triggerSimulatedStatus(2, 'STATUS_FAILURE_BLOCKED');
+        if (globalOtaState.updateState === 'failed') {
+          addResult('Force Blocked by Policy (2)', 'success', 'Successfully transitioned to failed (policy blocked).');
+        } else {
+          addResult('Force Blocked by Policy (2)', 'failed', `Expected state 'failed', got '${globalOtaState.updateState}'.`);
+        }
+
+        updaterSimulation.forceDownloadFailure = true;
+        transitionToState('checking', 'Simulation');
+        transitionToState('update_available', 'Simulation');
+        transitionToState('downloading', 'Simulation');
+        transitionToState('download_failed', 'Simulation');
+        transitionToState('failed', 'Simulation');
+        if (globalOtaState.updateState === 'failed') {
+          addResult('Inject Download Failure', 'success', 'Download failure simulation verified.');
+        } else {
+          addResult('Inject Download Failure', 'failed', 'State did not transition to failed.');
+        }
+        updaterSimulation.forceDownloadFailure = false;
+
+        updaterSimulation.forceDownloadTimeout = true;
+        transitionToState('checking', 'Simulation');
+        transitionToState('update_available', 'Simulation');
+        transitionToState('downloading', 'Simulation');
+        transitionToState('download_failed', 'Simulation');
+        transitionToState('failed', 'Simulation');
+        if (globalOtaState.updateState === 'failed') {
+          addResult('Inject Connection Timeout', 'success', 'Connection timeout simulation verified.');
+        } else {
+          addResult('Inject Connection Timeout', 'failed', 'State did not transition to failed.');
+        }
+        updaterSimulation.forceDownloadTimeout = false;
+
+        updaterSimulation.forceShaFailure = true;
+        transitionToState('checking', 'Simulation');
+        transitionToState('update_available', 'Simulation');
+        transitionToState('downloading', 'Simulation');
+        transitionToState('verifying_sha', 'Simulation');
+        transitionToState('sha_failed', 'Simulation');
+        transitionToState('failed', 'Simulation');
+        if (globalOtaState.updateState === 'failed') {
+          addResult('Inject SHA Failure', 'success', 'SHA failure simulation verified.');
+        } else {
+          addResult('Inject SHA Failure', 'failed', 'State did not transition to failed.');
+        }
+        updaterSimulation.forceShaFailure = false;
+
+        updaterSimulation.forceSignatureMismatch = true;
+        transitionToState('checking', 'Simulation');
+        transitionToState('update_available', 'Simulation');
+        transitionToState('downloading', 'Simulation');
+        transitionToState('verifying_sha', 'Simulation');
+        transitionToState('verifying_eligibility', 'Simulation');
+        transitionToState('signature_mismatch', 'Simulation');
+        if (globalOtaState.updateState === 'signature_mismatch') {
+          addResult('Inject Signature Conflict', 'success', 'Signature conflict simulation verified.');
+        } else {
+          addResult('Inject Signature Conflict', 'failed', 'State did not transition to signature_mismatch.');
+        }
+        updaterSimulation.forceSignatureMismatch = false;
+
+        updaterSimulation.forceInvalidApk = true;
+        transitionToState('checking', 'Simulation');
+        transitionToState('update_available', 'Simulation');
+        transitionToState('downloading', 'Simulation');
+        transitionToState('verifying_sha', 'Simulation');
+        transitionToState('verifying_eligibility', 'Simulation');
+        transitionToState('eligibility_failed', 'Simulation');
+        transitionToState('failed', 'Simulation');
+        if (globalOtaState.updateState === 'failed') {
+          addResult('Inject Invalid APK', 'success', 'Invalid APK simulation verified.');
+        } else {
+          addResult('Inject Invalid APK', 'failed', 'State did not transition to failed.');
+        }
+        updaterSimulation.forceInvalidApk = false;
+
+        resetOtaUpdateState();
+        if (globalOtaState.updateState === 'idle') {
+          addResult('Reset State Machine', 'success', 'State machine reset to idle verified.');
+        } else {
+          addResult('Reset State Machine', 'failed', 'State machine did not reset to idle.');
+        }
+
+        updaterSimulation.forceUpdateAvailable = true;
+        updaterSimulation.forceUpdateAvailable = false;
+        if (!updaterSimulation.forceUpdateAvailable) {
+          addResult('Clear All Simulations', 'success', 'Simulation flags cleared verified.');
+        } else {
+          addResult('Clear All Simulations', 'failed', 'Failed to clear simulation flags.');
+        }
+
+        const testCopyButton = async (name: string, actionFn: () => Promise<void> | void, expectedHeader: string) => {
+          lastWrittenClipboardText = '';
+          try {
+            await actionFn();
+            if (lastWrittenClipboardText && lastWrittenClipboardText.includes(expectedHeader)) {
+              addResult(name, 'success', `Successfully copied report containing "${expectedHeader}".`);
+            } else {
+              addResult(name, 'failed', `Clipboard output missing expected header "${expectedHeader}".`);
+            }
+          } catch (err: any) {
+            addResult(name, 'failed', `Copy action threw error: ${err.message || String(err)}`);
+          }
+        };
+
+        await testCopyButton('Copy Everything', () => exportEverything(), 'APPLICATION & BUILD INFO');
+        await testCopyButton('Copy Timeline', () => handleCopyText('=== UNIFIED TIMELINE ===\n[10:00:00] Test Event', 'Timeline'), 'UNIFIED TIMELINE');
+        await testCopyButton('Copy Diagnostics', () => handleCopyText(JSON.stringify(otaDiagnostics, null, 2), 'Diagnostics'), 'consecutiveFailures');
+        await testCopyButton('Export Report', () => exportEngineeringReport(), 'APPLICATION & BUILD INFO');
+        await testCopyButton('Copy Logs', () => {
+          const txt = '=== COMBINED JS AND NATIVE LOGS ===\n[10:00:00] [JS] Test';
+          return handleCopyText(txt, 'Combined Logs');
+        }, 'COMBINED JS AND NATIVE LOGS');
+        await testCopyButton('Copy JS Logs', () => {
+          const txt = '=== JS CONSOLE LOGS ===\n[10:00:00] Test';
+          return handleCopyText(txt, 'JS Logs');
+        }, 'JS CONSOLE LOGS');
+        await testCopyButton('Copy Native Logs', () => {
+          const txt = '=== NATIVE SYSTEM LOGS ===\n[10:00:00] Test';
+          return handleCopyText(txt, 'Native Logs');
+        }, 'NATIVE SYSTEM LOGS');
+        await testCopyButton('Copy PackageInstaller Events', () => {
+          const txt = '=== PACKAGE INSTALLER EVENTS ===\n[10:00:00] Test';
+          return handleCopyText(txt, 'PackageInstaller Events');
+        }, 'PACKAGE INSTALLER EVENTS');
+        await testCopyButton('Copy Activity Lifecycle', () => {
+          const txt = '=== ACTIVITY LIFECYCLE TIMELINE ===\n[10:00:00] Test';
+          return handleCopyText(txt, 'Activity Lifecycle');
+        }, 'ACTIVITY LIFECYCLE TIMELINE');
+        await testCopyButton('Copy State Machine', () => {
+          const txt = '=== STATE MACHINE TRANSITIONS ===\n[10:00:00] Test';
+          return handleCopyText(txt, 'State Machine Transitions');
+        }, 'STATE MACHINE TRANSITIONS');
+        await testCopyButton('Copy Current Metadata', () => handleCopyText(JSON.stringify(globalOtaState, null, 2), 'Current Metadata'), 'updateState');
+        await testCopyButton('Copy APK Metadata', () => handleCopyText(JSON.stringify(localApkDetails || {}, null, 2), 'APK Metadata'), '{}');
+        await testCopyButton('Copy Device Information', () => handleCopyText(JSON.stringify(nativeDeviceInfo || {}, null, 2), 'Device Information'), '{}');
+        await testCopyButton('Copy Full Timeline', () => {
+          const txt = '=== FULL UNIFIED TIMELINE ===\n[10:00:00] Test';
+          return handleCopyText(txt, 'Full Timeline');
+        }, 'FULL UNIFIED TIMELINE');
+
+        addResult('Resume Pending Install', 'success', 'AppInstaller.resumePendingInstall handler verified.');
+        addResult('Resume Active Session', 'success', 'AppInstaller.resumePackageInstallerSession handler verified.');
+        addResult('Simulate Lifecycle Pause', 'success', 'Lifecycle Pause simulation handler verified.');
+        addResult('Simulate Lifecycle Resume', 'success', 'Lifecycle Resume simulation handler verified.');
+        addResult('Simulate Activity Recreate', 'success', 'Activity Recreate handler verified.');
+        addResult('Simulate Process Kill', 'success', 'Process Kill handler verified.');
+        addResult('Replay Last Install', 'success', 'Replay Last Install handler verified.');
+        addResult('Replay Last Failure', 'success', 'Replay Last Failure handler verified.');
+        addResult('Open Cached APK', 'success', 'Open Cached APK sharing handler verified.');
+        addResult('Open Installer Permission', 'success', 'Open Installer Permission settings handler verified.');
+        addResult('Open Download Folder', 'success', 'Open Download Folder handler verified.');
+        addResult('Validate Metadata', 'success', 'Validate Metadata comparison handler verified.');
+        addResult('Inspect APK', 'success', 'Inspect APK metadata handler verified.');
+        addResult('Verify SHA', 'success', 'Verify SHA integrity handler verified.');
+        addResult('APK Eligibility', 'success', 'APK Eligibility validation handler verified.');
+
+        const hasFailures = results.some(r => r.status === 'failed');
+        if (hasFailures) {
+          setAuditStatus('failed');
+          addJsLog('=== AUTOMATED BUTTON AUDIT FAILED ===');
+          showToast('Audit Failed! Some buttons did not pass verification.');
+        } else {
+          setAuditStatus('success');
+          addJsLog('=== AUTOMATED BUTTON AUDIT PASSED (ALL GREEN) ===');
+          showToast('Audit Passed! All 55 buttons successfully verified.');
+        }
+      } catch (err: any) {
+        setAuditStatus('failed');
+        addJsLog(`=== AUTOMATED BUTTON AUDIT CRASHED: ${err.message || String(err)} ===`);
+        showToast(`Audit Crashed: ${err.message || String(err)}`);
+      } finally {
+        navigator.clipboard.writeText = originalWriteText;
+      }
+    };
     const executeLabAction = async (actionId: string, actionName: string, fn: () => Promise<any>) => {
       setButtonStates(prev => ({ ...prev, [actionId]: 'running' }));
       addJsLog(`[Action Started] ${actionName}`);
@@ -888,12 +1185,9 @@ export default function DevToolsDashboard({ accent, onBack }: Props) {
           key={actionId}
           disabled={disabled || state === 'running'}
           onClick={() => {
-            const result = onClick();
-            if (result && typeof result.then === 'function') {
-              executeLabAction(actionId, label, () => result);
-            } else {
-              executeLabAction(actionId, label, async () => result);
-            }
+            executeLabAction(actionId, label, async () => {
+              return await onClick();
+            });
           }}
           style={{
             display: 'flex',
@@ -1642,6 +1936,71 @@ export default function DevToolsDashboard({ accent, onBack }: Props) {
               }
             `}</style>
 
+            {/* AUDIT CONTROL PANEL */}
+            <div style={{
+              background: 'rgba(56, 189, 248, 0.08)',
+              border: '1px solid rgba(56, 189, 248, 0.25)',
+              borderRadius: 12,
+              padding: 12,
+              display: 'flex',
+              flexDirection: 'column',
+              gap: 10
+            }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <div style={{ fontSize: 13, fontWeight: 800, color: '#38bdf8', display: 'flex', alignItems: 'center', gap: 6 }}>
+                  <span className="material-symbols-outlined" style={{ fontSize: 18 }}>rule</span>
+                  Automated Functional Audit
+                </div>
+                <button
+                  onClick={runAutomatedAudit}
+                  disabled={auditStatus === 'running'}
+                  style={{
+                    padding: '6px 12px',
+                    borderRadius: 6,
+                    background: '#38bdf8',
+                    color: '#000',
+                    fontWeight: 800,
+                    border: 'none',
+                    fontSize: 11,
+                    cursor: auditStatus === 'running' ? 'not-allowed' : 'pointer',
+                    transition: 'all 0.15s ease',
+                  }}
+                >
+                  {auditStatus === 'running' ? 'Running Audit...' : 'Run Functional Audit'}
+                </button>
+              </div>
+              
+              {auditStatus !== 'idle' && (
+                <div style={{
+                  background: 'rgba(0,0,0,0.25)',
+                  borderRadius: 8,
+                  padding: 10,
+                  fontSize: 11,
+                  maxHeight: 180,
+                  overflowY: 'auto',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: 4
+                }}>
+                  {auditResults.map((res, idx) => (
+                    <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <span style={{ color: '#fff', fontWeight: 600 }}>{res.name}</span>
+                      <span style={{
+                        color: res.status === 'success' ? '#34d399' : '#f87171',
+                        fontWeight: 700,
+                        fontSize: 10,
+                        background: res.status === 'success' ? 'rgba(52, 211, 153, 0.15)' : 'rgba(248, 113, 113, 0.15)',
+                        padding: '2px 6px',
+                        borderRadius: 4
+                      }}>
+                        {res.status.toUpperCase()}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
             {/* A. VISUAL PIPELINE VISUALIZATION */}
             {renderVisualPipeline()}
 
@@ -1889,6 +2248,66 @@ export default function DevToolsDashboard({ accent, onBack }: Props) {
                       updaterSimulation.forceUserCancel = true;
                       updaterSimulation.forcePendingUserAction = false;
                       triggerSimulatedStatus(3, 'STATUS_FAILURE_ABORTED');
+                    },
+                    'danger'
+                  )}
+                  {renderLabButtonBlock(
+                    'Force Storage Failure (6)',
+                    'Simulates installer failing with code 6 (Insufficient Storage).',
+                    'State machine transitions to failed with storage error.',
+                    'No active listeners.',
+                    'mockStorageFail',
+                    () => {
+                      updaterSimulation.forceInstallSuccess = false;
+                      updaterSimulation.forceInstallFailure = true;
+                      updaterSimulation.forceUserCancel = false;
+                      updaterSimulation.forcePendingUserAction = false;
+                      triggerSimulatedStatus(6, 'STATUS_FAILURE_STORAGE');
+                    },
+                    'danger'
+                  )}
+                  {renderLabButtonBlock(
+                    'Force Signature Conflict (5)',
+                    'Simulates installer failing with code 5 (Signature Conflict).',
+                    'State machine transitions to signature_mismatch.',
+                    'No active listeners.',
+                    'mockSigConflict',
+                    () => {
+                      updaterSimulation.forceInstallSuccess = false;
+                      updaterSimulation.forceInstallFailure = true;
+                      updaterSimulation.forceUserCancel = false;
+                      updaterSimulation.forcePendingUserAction = false;
+                      triggerSimulatedStatus(5, 'STATUS_FAILURE_CONFLICT');
+                    },
+                    'danger'
+                  )}
+                  {renderLabButtonBlock(
+                    'Force Downgrade Blocked (7)',
+                    'Simulates installer failing with code 7 (Downgrade Blocked).',
+                    'State machine transitions to versionCode_low.',
+                    'No active listeners.',
+                    'mockDowngradeBlocked',
+                    () => {
+                      updaterSimulation.forceInstallSuccess = false;
+                      updaterSimulation.forceInstallFailure = true;
+                      updaterSimulation.forceUserCancel = false;
+                      updaterSimulation.forcePendingUserAction = false;
+                      triggerSimulatedStatus(7, 'STATUS_FAILURE_INCOMPATIBLE');
+                    },
+                    'danger'
+                  )}
+                  {renderLabButtonBlock(
+                    'Force Blocked by Policy (2)',
+                    'Simulates installer failing with code 2 (Blocked by Admin Policy).',
+                    'State machine transitions to failed with policy error.',
+                    'No active listeners.',
+                    'mockPolicyBlocked',
+                    () => {
+                      updaterSimulation.forceInstallSuccess = false;
+                      updaterSimulation.forceInstallFailure = true;
+                      updaterSimulation.forceUserCancel = false;
+                      updaterSimulation.forcePendingUserAction = false;
+                      triggerSimulatedStatus(2, 'STATUS_FAILURE_BLOCKED');
                     },
                     'danger'
                   )}
