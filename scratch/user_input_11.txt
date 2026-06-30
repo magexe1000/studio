@@ -1,0 +1,441 @@
+<USER_REQUEST>
+Studio / Livex Android — Global Responsive Framework, Full Language Enforcement, Premium Navigation Experience, and Chordex Discover Expansion
+
+Current real-device testing shows four major areas that still need work.
+
+==================================================
+OBJECTIVE A — GLOBAL RESPONSIVE FRAMEWORK
+=========================================
+
+Stagex revealed a larger issue:
+
+Some layouts still depend on specific screen dimensions and can become misaligned, overlapped, clipped, or visually inconsistent across devices.
+
+This must be solved at the framework level.
+
+Not only for Stagex.
+
+The goal is:
+
+Every screen must look correct on every supported Android device.
+
+==================================================
+OBJECTIVE B — TRUE APP-WIDE LANGUAGE SWITCHING
+==============================================
+
+The current language system is incomplete.
+
+Changing language only affects some screens.
+
+The user expects language switching to be absolute.
+
+If Spanish is selected:
+
+Everything must be Spanish.
+
+If English is selected:
+
+Everything must be English.
+
+No exceptions.
+
+==================================================
+OBJECTIVE C — PREMIUM APP TRANSITIONS
+=====================================
+
+The launch splash now exists and works.
+
+However:
+
+* transitions still feel flat
+* motion feels immediate
+* there are still occasional micro-stutters
+
+The goal is to make Studio feel premium and native.
+
+==================================================
+OBJECTIVE D — CHORDEX DISCOVER EVOLUTION
+========================================
+
+Discover should evolve from a song browser into a complete practice environment.
+
+The long-term target is:
+
+* practice view
+* chord-over-lyrics system
+* karaoke mode
+* floating chord overlay
+* large searchable catalog
+* strong Enjambre support
+
+==================================================
+SECTION A — GLOBAL RESPONSIVE DEVICE FRAMEWORK
+==============================================
+
+Perform a complete responsive audit of:
+
+* Hub
+* Chordex
+* Stagex
+* Drumex
+* Groovex
+* Vocalex
+
+Find and fix:
+
+* overlapping controls
+* clipped text
+* hidden actions
+* oversized components
+* off-screen elements
+* broken flex layouts
+* inconsistent spacing
+* unsafe fixed positioning
+* device-specific assumptions
+
+Validate against:
+
+* small phones
+* large phones
+* foldables if supported
+* tablets
+* portrait
+* landscape
+
+Create reusable responsive utilities where appropriate.
+
+Do not create one-off CSS hacks.
+
+Root-cause the layout system.
+
+==================================================
+SECTION B — FULL LANGUAGE ENFORCEMENT
+=====================================
+
+Perform a full localization audit.
+
+Identify:
+
+* hardcoded English strings
+* hardcoded Spanish strings
+* untranslated labels
+* untranslated dialogs
+* untranslated nested content
+* untranslated modules
+* translation bypasses
+* fallback language leaks
+
+Affected areas include:
+
+* Hub
+* Chordex
+* Stagex
+* Drumex
+* Groovex
+* Vocalex
+* Discover
+* settings
+* onboarding
+* notifications
+* dialogs
+* bottom sheets
+* empty states
+* errors
+* tooltips
+* internal modules
+
+When language changes:
+
+Everything must update.
+
+No mixed-language UI is allowed.
+
+==================================================
+SECTION C — CENTRALIZED I18N ARCHITECTURE
+=========================================
+
+Verify that all translation paths use a single source of truth.
+
+Remove:
+
+* duplicate translation systems
+* local string islands
+* isolated translation wrappers
+
+Ensure all content flows through the same translation layer.
+
+==================================================
+SECTION D — PREMIUM APP ENTRY TRANSITIONS
+=========================================
+
+Current transition quality is acceptable but not premium.
+
+Improve:
+
+* easing curves
+* fade timing
+* scale timing
+* visual continuity
+* transition sequencing
+
+Required flow:
+
+Hub
+→ Launch Splash
+→ App
+
+must feel like a single continuous animation.
+
+Avoid:
+
+* abrupt visibility changes
+* hard cuts
+* harsh opacity jumps
+* immediate content appearance
+
+==================================================
+SECTION E — MICRO-STUTTER ELIMINATION
+=====================================
+
+Investigate remaining transition jank.
+
+Check:
+
+* unnecessary re-renders
+* lazy-load timing
+* Suspense behavior
+* expensive layout calculations
+* image loading
+* state churn
+* animation scheduling
+* mount sequencing
+
+Reduce visible frame drops during:
+
+* app entry
+* app exit
+* app switching
+
+==================================================
+SECTION F — CHORDEX PRACTICE VIEW
+=================================
+
+Create the foundation for a dedicated song practice screen.
+
+Support:
+
+* title
+* artist
+* key
+* BPM
+* capo
+* sections
+* chord positioning
+* lyrics rendering
+* future timestamp support
+
+Architecture must support large libraries.
+
+Avoid hardcoded implementations.
+
+==================================================
+SECTION G — KARAOKE SYSTEM
+==========================
+
+Add configurable lyric presentation modes.
+
+Support:
+
+* static mode
+* auto-scroll
+* focus line
+* karaoke highlight
+* font size
+* chord size
+* spacing
+* contrast mode
+
+Persist settings locally.
+
+==================================================
+SECTION H — FLOATING CHORD OVERLAY
+==================================
+
+Inside practice mode only:
+
+Add a draggable overlay displaying:
+
+* current chord
+* upcoming chord(s)
+
+Requirements:
+
+* smooth updates
+* persistent position
+* screen bounds protection
+* high performance
+
+==================================================
+SECTION I — ENJAMBRE PRIORITY LIBRARY
+=====================================
+
+Create a major Discover expansion centered on Enjambre.
+
+Target:
+
+* minimum 25–50 entries
+
+Include metadata:
+
+* title
+* album
+* year
+* tags
+* mood
+* difficulty
+* availability status
+
+Examples include:
+
+* Dulce Soledad
+* Visita
+* Manía Cardíaca
+* Cámara de Faltas
+* Somos Ajenos
+* Impacto
+* Vida en el Espejo
+* Elemento
+* Enemigo
+* Y La Esperanza
+* Sábado Perpetuo
+
+and many more.
+
+The architecture must scale to hundreds or thousands of future songs.
+
+==================================================
+SECTION J — SONG DATA MODEL
+===========================
+
+Design a reusable song/chart schema.
+
+Support:
+
+* metadata
+* sections
+* lyrics
+* chords
+* timestamps
+* difficulty
+* tags
+
+Do not store songs as giant text blobs.
+
+==================================================
+SECTION K — CHANGELOG DISCIPLINE
+================================
+
+Current issue:
+
+Older releases leave outdated entries behind.
+
+Every release must contain:
+
+* only changes introduced in that release
+* no stale entries
+* no duplicated entries
+* no historical clutter
+
+Before publishing:
+
+Verify changelog accuracy against actual implementation.
+
+==================================================
+SECTION L — VALIDATION
+======================
+
+Run:
+
+* pnpm scope:check --platform apk
+* pnpm check:versions
+* pnpm typecheck:android
+* pnpm build:android:web
+* pnpm test:android
+
+Validate:
+
+* responsive layouts
+* language switching
+* transition smoothness
+* Discover
+* practice mode
+* karaoke options
+* floating overlay
+* Stagex layout integrity
+
+==================================================
+SECTION M — RELEASE
+===================
+
+After validation passes:
+
+1. Commit only relevant files.
+
+2. Push directly to:
+   origin/fix/android-stagex-3640
+
+3. Build production-signed APK.
+
+4. Publish using the NEXT AVAILABLE VERSION.
+
+Never reuse the currently installed version.
+
+5. Upload:
+
+   * APK
+   * SHA256 file
+
+6. Update:
+
+   * app-release.json
+   * version.json if required
+   * latest APK redirect if used
+
+7. Deploy Firebase Hosting.
+
+8. Verify:
+
+   * GitHub release asset
+   * SHA256
+   * Firebase metadata
+   * updater eligibility
+
+==================================================
+SECTION N — FINAL REPORT
+========================
+
+Return one final consolidated report only:
+
+A. Responsive framework improvements.
+B. Localization fixes.
+C. I18N architecture changes.
+D. Transition improvements.
+E. Performance improvements.
+F. Practice mode architecture.
+G. Karaoke implementation.
+H. Floating chord overlay.
+I. Enjambre catalog expansion.
+J. Song schema design.
+K. Changelog cleanup.
+L. Validation results.
+M. APK metadata.
+N. Commit hash.
+O. Branch push confirmation.
+P. GitHub Release URL.
+Q. Firebase deployment verification.
+R. Confirmation that the APK is live and downloadable.
+
+</USER_REQUEST>
+<ADDITIONAL_METADATA>
+The current local time is: 2026-06-22T16:09:43-06:00.
+</ADDITIONAL_METADATA>

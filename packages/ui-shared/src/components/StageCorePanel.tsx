@@ -1,4 +1,4 @@
-import { setBackHandler, useBackHandler, useChordStore, ACCENT_COLORS, translations, useT, useLiquidGlassNav, useNavCollapsed, setNavCollapsed, useIsWebDesktop } from '@workspace/studio-core';
+import { setBackHandler, useBackHandler, useChordStore, ACCENT_COLORS, translations, useT, useLiquidGlassNav, useNavCollapsed, setNavCollapsed, useIsWebDesktop, registerDebugProvider, unregisterDebugProvider } from '@workspace/studio-core';
 import { useRef, useEffect, useCallback, useState, useMemo } from 'react';
 import { motion } from 'motion/react';
 import AnimatedActionButton from './animata/container/animated-border-trail';
@@ -412,11 +412,7 @@ export default function StagexPanel() {
     return () => window.removeEventListener('storage', handleStorage);
   }, [loadCustomElements]);
 
-  useEffect(() => {
-    if (expandedCats.custom) {
-      loadCustomElements();
-    }
-  }, [expandedCats.custom, loadCustomElements]);
+  // Removed redundant expandedCats.custom loader to optimize performance and prevent duplicate calls.
 
   const handleAddElement = useCallback((item: any) => {
     try {
@@ -840,29 +836,32 @@ ComposedPath: ${path.slice(0, 3).join(' > ')}`;
     }
   };
 
-  const toggleStageExpanded = async () => {
+  const toggleStageExpanded = () => {
     const nextVal = !isStageExpanded;
     setRotationTransition(true);
-    try {
-      if (nextVal) {
-        if (Capacitor.isNativePlatform()) {
-          await ScreenOrientation.lock({ orientation: 'landscape' });
-        } else if (window.screen && window.screen.orientation && (window.screen.orientation as any).lock) {
-          await (window.screen.orientation as any).lock('landscape');
+    setIsStageExpanded(nextVal);
+    
+    (async () => {
+      try {
+        if (nextVal) {
+          if (Capacitor.isNativePlatform()) {
+            await ScreenOrientation.lock({ orientation: 'landscape' });
+          } else if (window.screen && window.screen.orientation && (window.screen.orientation as any).lock) {
+            await (window.screen.orientation as any).lock('landscape');
+          }
+        } else {
+          if (Capacitor.isNativePlatform()) {
+            await ScreenOrientation.lock({ orientation: 'portrait' });
+          } else if (window.screen && window.screen.orientation && (window.screen.orientation as any).lock) {
+            await (window.screen.orientation as any).lock('portrait');
+          }
         }
-      } else {
-        if (Capacitor.isNativePlatform()) {
-          await ScreenOrientation.lock({ orientation: 'portrait' });
-        } else if (window.screen && window.screen.orientation && (window.screen.orientation as any).lock) {
-          await (window.screen.orientation as any).lock('portrait');
-        }
+      } catch (e) {
+        console.warn('Screen orientation lock/unlock failed:', e);
       }
-      setIsStageExpanded(nextVal);
-    } catch (e) {
-      console.warn('Screen orientation lock/unlock failed:', e);
-    } finally {
-      setTimeout(() => setRotationTransition(false), 320);
-    }
+    })();
+
+    setTimeout(() => setRotationTransition(false), 320);
   };
 
   useEffect(() => {
@@ -926,18 +925,24 @@ ComposedPath: ${path.slice(0, 3).join(' > ')}`;
     }
   }, [pdfFileName, pdfSceneChoice]);
 
+  const mediaQueryString = useMemo(() => {
+    return (typeof window !== 'undefined' && Capacitor.isNativePlatform())
+      ? '(orientation: landscape)'
+      : '(orientation: landscape) and (max-width: 960px)';
+  }, []);
+
   const [isLandscape, setIsLandscape] = useState(
-    () => typeof window !== 'undefined' && window.matchMedia('(orientation: landscape) and (max-width: 960px)').matches
+    () => typeof window !== 'undefined' && window.matchMedia(mediaQueryString).matches
   );
   useEffect(() => {
-    const mql = window.matchMedia('(orientation: landscape) and (max-width: 960px)');
+    const mql = window.matchMedia(mediaQueryString);
     const handler = (e: MediaQueryListEvent) => {
       setIsLandscape(e.matches);
       if (!e.matches) setLandscapeNavHidden(false);
     };
     mql.addEventListener('change', handler);
     return () => mql.removeEventListener('change', handler);
-  }, []);
+  }, [mediaQueryString]);
 
   const [rotationTransition, setRotationTransition] = useState(false);
   useEffect(() => {
@@ -964,12 +969,12 @@ ComposedPath: ${path.slice(0, 3).join(' > ')}`;
   })();
   const isAmoled  = isLight ? false : (isWebDesktop ? true : stageVis.amoledMode);
 
-  const baseOrigin = (typeof window !== 'undefined' && Capacitor.isNativePlatform()) ? 'https://localhost' : '';
+  const baseOrigin = typeof window !== 'undefined' ? window.location.origin : '';
   const iframeSrc = useRef(
     `${baseOrigin}/stage-core/index.html#${isLight ? 'light' : 'dark'},${encodeURIComponent(accent.from)},${encodeURIComponent(accent.to)},${isAmoled ? '1' : '0'}`
   ).current;
-  const stageBg   = isAmoled ? (isLight ? '#ffffff' : '#000000') : isLight ? '#f2f1ef' : '#0e0e0e';
-  const stageHdr  = isAmoled ? (isLight ? '#ffffff' : '#000000') : isLight ? '#f2f1ef' : '#0e0e0e';
+  const stageBg   = isLight ? '#f2f1ef' : '#000000';
+  const stageHdr  = isLight ? '#f2f1ef' : '#000000';
 
   const showBack = curView === 'Rider' || curView === 'Setlist' || curView === 'Gear' || curView === 'Members' || curView === 'Export';
 
@@ -1083,7 +1088,15 @@ ComposedPath: ${path.slice(0, 3).join(' > ')}`;
       injectStartOnPicker(iframe);
     };
     iframe.addEventListener('load', handleLoad);
-    if (iframe.contentDocument && iframe.contentDocument.readyState === 'complete') {
+    let docComplete = false;
+    try {
+      if (iframe.contentDocument && iframe.contentDocument.readyState === 'complete') {
+        docComplete = true;
+      }
+    } catch (e) {
+      console.warn('Failed to access contentDocument on mount:', e);
+    }
+    if (docComplete) {
       handleLoad();
     }
     return () => iframe.removeEventListener('load', handleLoad);
@@ -1091,10 +1104,12 @@ ComposedPath: ${path.slice(0, 3).join(' > ')}`;
 
   useEffect(() => {
     const onMsg = (e: MessageEvent) => {
-      const isAllowedOrigin = e.origin === window.location.origin ||
-        e.origin === 'https://localhost' ||
-        e.origin === 'http://localhost' ||
-        e.origin === 'capacitor://localhost';
+      const origin = e.origin || '';
+      const isAllowedOrigin = !origin || origin === 'null' ||
+        origin === window.location.origin ||
+        origin.startsWith('https://localhost') ||
+        origin.startsWith('http://localhost') ||
+        origin.startsWith('capacitor://localhost');
       if (!isAllowedOrigin) return;
       if (e.source !== iframeRef.current?.contentWindow) return;
 
@@ -1124,8 +1139,6 @@ ComposedPath: ${path.slice(0, 3).join(' > ')}`;
     return () => window.removeEventListener('message', onMsg);
   }, [showDiagnostics, logDiagnostic]);
 
-  // Register this iframe with the cloud sync engine so it can request
-  // snapshots and push restores through postMessage.
   useEffect(() => {
     let cancelled = false;
     void import('@workspace/studio-core').then(({ registerStageIframe }) => {
@@ -1137,6 +1150,38 @@ ComposedPath: ${path.slice(0, 3).join(' > ')}`;
       void import('@workspace/studio-core').then(({ registerStageIframe }) => registerStageIframe(null));
     };
   }, []);
+
+  useEffect(() => {
+    registerDebugProvider({
+      id: 'stagex',
+      name: 'Stagex Editor',
+      getDebugState: () => ({
+        activeImplementation: 'Modern Web Stagex',
+        activeStageCorePanel: 'v4.0.0-web',
+        iframeLoaded: !iframeLoading,
+        iframeReady: iframeReady.current,
+        bridgeConnected: iframeReady.current && !iframeLoading,
+        bridgeMessagesSent: diagTaps.sentMsgs,
+        bridgeMessagesReceived: diagTaps.recvMsgs,
+        activeTab: curView,
+        selectedElement: 'none',
+        overlayState: 'N/A',
+        diagTaps,
+        controlState: {
+          Add: { rendered: true, lastError: null },
+          Setup: { rendered: true, lastError: null },
+          Preferences: { rendered: true, lastError: null },
+          Save: { rendered: true, lastError: null },
+          Export: { rendered: true, lastError: null },
+          Visibility: { rendered: true, lastError: null },
+          Rotate: { rendered: true, lastError: null }
+        }
+      })
+    });
+    return () => {
+      unregisterDebugProvider('stagex');
+    };
+  }, [iframeLoading, curView, diagTaps]);
 
   useEffect(() => {
     const iframe = iframeRef.current;
@@ -1162,7 +1207,7 @@ ComposedPath: ${path.slice(0, 3).join(' > ')}`;
       }
     } catch {}
     try {
-      iframe.contentWindow?.postMessage({ type: 'sc-landscape', landscape: isLandscape }, window.location.origin);
+      iframe.contentWindow?.postMessage({ type: 'sc-landscape', landscape: isLandscape }, '*');
     } catch {}
   }, [isLandscape]);
 
@@ -1526,7 +1571,7 @@ ComposedPath: ${path.slice(0, 3).join(' > ')}`;
               />
               {iframeLoading && (
                 <div style={{ position: 'absolute', inset: 0, zIndex: 10, background: stageBg }}>
-                  <SmartLoading fallbackSkeleton={<StagexPanelSkeleton />} />
+                  <SmartLoading app="stage" />
                 </div>
               )}
             </div>
@@ -2138,6 +2183,7 @@ ComposedPath: ${path.slice(0, 3).join(' > ')}`;
               <button
                 key={label}
                 onClick={fn}
+                onTouchEnd={(e) => { e.preventDefault(); fn(); }}
                 title={label}
                 aria-label={label}
                 data-testid={testid}
@@ -2156,6 +2202,7 @@ ComposedPath: ${path.slice(0, 3).join(' > ')}`;
 
             <button
               onClick={() => callIframe('openPresetsPanel')}
+              onTouchEnd={(e) => { e.preventDefault(); callIframe('openPresetsPanel'); }}
               title={tr.stagex.toolPresets}
               style={{
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
@@ -2171,6 +2218,7 @@ ComposedPath: ${path.slice(0, 3).join(' > ')}`;
 
             <button
               onClick={() => { setCurView('Export'); callIframe('switchView', 'Export'); }}
+              onTouchEnd={(e) => { e.preventDefault(); setCurView('Export'); callIframe('switchView', 'Export'); }}
               title={tr.stagex.toolExport}
               style={{
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
@@ -2191,6 +2239,7 @@ ComposedPath: ${path.slice(0, 3).join(' > ')}`;
           <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
             <button
               onClick={() => callIframe('toggleExportOptions')}
+              onTouchEnd={(e) => { e.preventDefault(); callIframe('toggleExportOptions'); }}
               title="Sections"
               style={{
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
@@ -2205,6 +2254,7 @@ ComposedPath: ${path.slice(0, 3).join(' > ')}`;
             </button>
             <button
               onClick={openPdfSheet}
+              onTouchEnd={(e) => { e.preventDefault(); openPdfSheet(); }}
               title="Export PDF"
               style={{
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
@@ -2252,7 +2302,7 @@ ComposedPath: ${path.slice(0, 3).join(' > ')}`;
 
         {iframeLoading && (
           <div style={{ position: 'absolute', inset: 0, zIndex: 10, background: stageBg }}>
-            <SmartLoading fallbackSkeleton={<StagexPanelSkeleton />} />
+            <SmartLoading app="stage" />
           </div>
         )}
 
@@ -2315,6 +2365,7 @@ ComposedPath: ${path.slice(0, 3).join(' > ')}`;
         {curView === 'Editor' && (
           <button
             onClick={toggleStageExpanded}
+            onTouchEnd={(e) => { e.preventDefault(); toggleStageExpanded(); }}
             aria-label={isStageExpanded ? "Exit Landscape View" : "Enter Landscape View"}
             style={{
               position: 'absolute',
@@ -2358,6 +2409,7 @@ ComposedPath: ${path.slice(0, 3).join(' > ')}`;
             id="stagex-eye-button"
             data-testid="stagex-eye-button"
             onClick={() => callIframe('toggleGigMode')}
+            onTouchEnd={(e) => { e.preventDefault(); callIframe('toggleGigMode'); }}
             aria-label={liveMode ? tr.stagex.exitLiveMode : tr.stagex.enterLiveMode}
             style={{
               position: 'absolute',
@@ -2401,6 +2453,7 @@ ComposedPath: ${path.slice(0, 3).join(' > ')}`;
             id="stagex-plus-button"
             data-testid="stagex-plus-button"
             onClick={handleFabTap}
+            onTouchEnd={(e) => { e.preventDefault(); handleFabTap(); }}
             aria-label={tr.stagex.addInstrument}
             style={{
               position: 'absolute',
@@ -2580,6 +2633,7 @@ ComposedPath: ${path.slice(0, 3).join(' > ')}`;
                   key={view}
                   ref={el => { stageBtnRefs.current[i] = el; }}
                   onClick={() => handleNavTap(view)}
+                  onTouchEnd={(e) => { e.preventDefault(); handleNavTap(view); }}
                   className="stage-nav-btn"
                   style={{
                     flex: 1,

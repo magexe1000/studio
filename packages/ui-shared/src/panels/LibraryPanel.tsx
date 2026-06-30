@@ -1,5 +1,6 @@
-import { getAllChords, searchChords, getChordById, getRelatedChords, type ChordType, useChordStore, ACCENT_COLORS, SONGS, GENRE_META, type Genre, SPANISH_DESCRIPTIONS, useScrollHide, useT, useIsWebDesktop, setBackHandler, playChord, stopChordPlayback, type GuitarChordData } from '@workspace/studio-core';
+import { getAllChords, searchChords, getChordById, getRelatedChords, type ChordType, useChordStore, ACCENT_COLORS, SONGS, GENRE_META, type Genre, SPANISH_DESCRIPTIONS, useScrollHide, useT, useIsWebDesktop, useBackHandler, playChord, stopChordPlayback, type GuitarChordData, type SongChart } from '@workspace/studio-core';
 import React, { useState, useMemo, useRef, useEffect, useCallback } from 'react';
+import { SongPracticeView } from '../components/SongPracticeView';
 import EmptyStateLottie from '../components/lottie/EmptyStateLottie';
 import ChordDiagram from '../components/ChordDiagram';
 import { AppModeMenuLogo } from '../components/AppModeMenuLogo';
@@ -75,7 +76,9 @@ const CATEGORIES: {
   { type: 'halfdim', icon: 'contrast',            label: 'Half-Dim ø7',  desc: 'Jazz & classical tension.',        color: '#ee7d77' },
   { type: 'dim7',    icon: 'block',               label: 'Dim7',         desc: 'Symmetrical & eerie.',             color: '#ee7d77' },
   { type: '11th',    icon: 'stacked_bar_chart',   label: '11th',         desc: 'Dense & modern.',                  color: '#b57bee' },
+  { type: 'min11',   icon: 'stacked_bar_chart',   label: 'Min11',        desc: 'Mellow minor 11th.',               color: '#b57bee' },
   { type: '13th',    icon: 'equalizer',           label: '13th',         desc: 'Full jazz voicing.',               color: '#b57bee' },
+  { type: 'min13',   icon: 'equalizer',           label: 'Min13',        desc: 'Rich minor 13th.',                 color: '#b57bee' },
   { type: '7sus4',   icon: 'pending',             label: '7sus4',        desc: 'Funky & unresolved.',              color: '#34d399' },
   { type: '7sus2',   icon: 'radio_button_unchecked', label: '7sus2',     desc: 'Open dominant.',                   color: '#34d399' },
   { type: 'maj6',    icon: 'grade',               label: 'Maj6',         desc: 'Vintage & melodic.',               color: '#fbbf24' },
@@ -429,7 +432,18 @@ function ChordCard({
 // ── Main panel ────────────────────────────────────────────────
 export default function LibraryPanel() {
   const isWebDesktop = useIsWebDesktop();
-  const { selectedChordId, recentChords, favorites, selectChord, settings, activePanel, toggleFavorite, addToProgression } = useChordStore();
+  const {
+    selectedChordId,
+    recentChords,
+    favorites,
+    selectChord,
+    settings,
+    activePanel,
+    toggleFavorite,
+    addToProgression,
+    libraryActiveType: activeType,
+    setLibraryActiveType: setActiveType,
+  } = useChordStore();
   const [chordPlaying, setChordPlaying] = useState(false);
 
   const handleChordClick = (chordId: string) => {
@@ -456,34 +470,38 @@ export default function LibraryPanel() {
   // Library tab state
   const [mainTab, setMainTab]     = useState<'explore' | 'discover'>('explore');
   const [query, setQuery]         = useState('');
-  const [activeType, setActiveType] = useState<ChordType | 'all' | null>(null);
 
   // Discover state
   const [activeGenre, setActiveGenre]   = useState<Genre | null>(null);
   const [discoverQuery, setDiscoverQuery] = useState('');
   const DISCOVER_PAGE_SIZE = 20;
   const [discoverLimit, setDiscoverLimit] = useState(DISCOVER_PAGE_SIZE);
+  const [activePracticeSong, setActivePracticeSong] = useState<SongChart | null>(null);
 
   // Reset pagination whenever the filter or search changes so the user
   // always sees the first page of results for the new query.
   useEffect(() => { setDiscoverLimit(DISCOVER_PAGE_SIZE); }, [activeGenre, discoverQuery]);
 
   // ── Back navigation ──────────────────────────────────────────────────────
-  const backHandlerRef = useRef<() => boolean>(() => false);
-  useEffect(() => {
-    backHandlerRef.current = () => {
-      if (query)       { setQuery('');        return true; }
-      if (activeType)  { setActiveType(null); return true; }
-      if (activeGenre) { setActiveGenre(null); return true; }
-      return false;
-    };
-  }, [query, activeType, activeGenre]);
-
-  useEffect(() => {
-    if (activePanel !== 'library') return;
-    setBackHandler(() => backHandlerRef.current());
-    return () => setBackHandler(null);
-  }, [activePanel]);
+  useBackHandler('nested', () => {
+    if (activePanel !== 'library') return false;
+    if (activePracticeSong) {
+      setActivePracticeSong(null);
+      return true;
+    }
+    if (isWebDesktop && selectedChordId) {
+      selectChord(null as any);
+      return true;
+    }
+    if (query)       { setQuery('');        return true; }
+    if (activeType)  { setActiveType(null); return true; }
+    if (activeGenre) { setActiveGenre(null); return true; }
+    if (mainTab === 'discover') {
+      setMainTab('explore');
+      return true;
+    }
+    return false;
+  }, [activePanel, activePracticeSong, selectedChordId, query, activeType, activeGenre, mainTab, isWebDesktop]);
 
   const allChords = getAllChords();
   const chord = useMemo(() => selectedChordId ? getChordById(selectedChordId) : null, [selectedChordId]);
@@ -515,7 +533,20 @@ export default function LibraryPanel() {
     if (!activeType || activeType === 'all') return [];
     const seen = new Set<string>();
     return allChords.filter(c => {
-      if (c.type !== activeType) return false;
+      let match = c.type === activeType;
+      if (!match) {
+        if (activeType === '11th' && ['min11', 'maj11', '7#11', 'maj7#11', 'add11'].includes(c.type)) match = true;
+        else if (activeType === '13th' && ['min13', 'maj13', '13sus4'].includes(c.type)) match = true;
+        else if (activeType === '9th' && ['dom9', 'maj9', 'min9', '7b9', '7s9'].includes(c.type)) match = true;
+        else if (activeType === '6th' && ['maj6', 'min6', '69'].includes(c.type)) match = true;
+        else if (activeType === 'dim' && ['dim7', 'halfdim'].includes(c.type)) match = true;
+        else if (activeType === 'aug' && c.type === 'aug7') match = true;
+        else if (activeType === 'sus4' && ['7sus4', '9sus4'].includes(c.type)) match = true;
+        else if (activeType === 'sus2' && ['7sus2', 'sus2add13'].includes(c.type)) match = true;
+        else if (activeType === 'add9' && c.type === 'madd9') match = true;
+        else if (activeType === '7th' && ['7b5', '7alt'].includes(c.type)) match = true;
+      }
+      if (!match) return false;
       const key = c.guitar.frets.join(',');
       if (seen.has(key)) return false;
       seen.add(key);
@@ -974,6 +1005,25 @@ export default function LibraryPanel() {
                                 </button>
                               );
                             })}
+                          </div>
+                          
+                          {/* Mobile Practice trigger row */}
+                          <div className="flex justify-between items-center mt-2 pt-2 border-t border-zinc-900/60">
+                            <span style={{ fontSize: '9px', color: 'var(--c-text-muted)', fontFamily: 'Inter' }}>
+                              {song.bpm ? `${song.bpm} BPM` : ''} {song.capo ? `· Capo ${song.capo}` : ''}
+                            </span>
+                            <button
+                              onClick={() => setActivePracticeSong(song)}
+                              style={{
+                                padding: '4px 10px', borderRadius: '6px', fontSize: '9px', fontWeight: 800,
+                                background: 'var(--c-accent)', border: 'none', color: '#ffffff',
+                                cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 2,
+                                fontFamily: 'Manrope'
+                              }}
+                            >
+                              <span className="material-symbols-outlined" style={{ fontSize: '11px' }}>play_circle</span>
+                              {isSpanish ? 'Práctica' : 'Practice'}
+                            </button>
                           </div>
                         </div>
                       );
@@ -1522,18 +1572,38 @@ export default function LibraryPanel() {
                       {describe(song.id, song.description)}
                     </p>
 
-                    {/* Key + BPM */}
-                    <div className="flex gap-3 mt-3">
-                      <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-1 rounded"
-                        style={{ background: 'var(--app-surface-low)', color: 'var(--c-text-secondary)', fontFamily: 'Manrope' }}>
-                        {(t.library as { keyOf?: (k: string) => string }).keyOf?.(song.key) ?? `Key of ${song.key}`}
-                      </span>
-                      {song.bpm && (
+                    {/* Key + BPM + Capo + Start Practice button */}
+                    <div className="flex justify-between items-center mt-3 pt-3 border-t border-zinc-900/40">
+                      <div className="flex gap-2">
                         <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-1 rounded"
                           style={{ background: 'var(--app-surface-low)', color: 'var(--c-text-secondary)', fontFamily: 'Manrope' }}>
-                          {(t.library as { bpmShort?: (n: number) => string }).bpmShort?.(song.bpm) ?? `${song.bpm} BPM`}
+                          {(t.library as { keyOf?: (k: string) => string }).keyOf?.(song.key) ?? `Key of ${song.key}`}
                         </span>
-                      )}
+                        {song.bpm && (
+                          <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-1 rounded"
+                            style={{ background: 'var(--app-surface-low)', color: 'var(--c-text-secondary)', fontFamily: 'Manrope' }}>
+                            {(t.library as { bpmShort?: (n: number) => string }).bpmShort?.(song.bpm) ?? `${song.bpm} BPM`}
+                          </span>
+                        )}
+                        {song.capo !== undefined && song.capo > 0 && (
+                          <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-1 rounded"
+                            style={{ background: 'var(--app-surface-low)', color: 'var(--c-text-secondary)', fontFamily: 'Manrope' }}>
+                            Capo {song.capo}
+                          </span>
+                        )}
+                      </div>
+                      <button
+                        onClick={() => setActivePracticeSong(song)}
+                        style={{
+                          padding: '6px 14px', borderRadius: '8px', fontSize: '11px', fontWeight: 800,
+                          background: 'var(--c-accent)', border: 'none', color: '#ffffff',
+                          cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4,
+                          fontFamily: 'Manrope'
+                        }}
+                      >
+                        <span className="material-symbols-outlined" style={{ fontSize: '14px' }}>play_circle</span>
+                        {t.library.startPractice}
+                      </button>
                     </div>
                   </div>
                 );
@@ -1566,6 +1636,12 @@ export default function LibraryPanel() {
         )}
        </div>
       </div>
+      {activePracticeSong && (
+        <SongPracticeView
+          song={activePracticeSong}
+          onClose={() => setActivePracticeSong(null)}
+        />
+      )}
     </div>
   );
 }

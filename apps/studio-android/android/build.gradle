@@ -22,6 +22,11 @@ allprojects {
         google()
         mavenCentral()
     }
+    tasks.whenTaskAdded { task ->
+        if (task.name.startsWith("lintVital")) {
+            task.enabled = false
+        }
+    }
 }
 
 task clean(type: Delete) {

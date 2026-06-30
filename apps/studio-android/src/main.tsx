@@ -4,24 +4,27 @@ import { TolgeeProvider } from "@tolgee/react";
 import App from "./App";
 import {
   tolgee,
-  notifyBundleReady,
   ensureNotificationPermission,
   seedAudioAssets,
-  NATIVE_VERSION
+  NATIVE_VERSION,
+  initDevToolsFramework
 } from "@workspace/studio-core";
 import { Capacitor } from "@capacitor/core";
 import "./index.css";
+import EmergencyDebugOverlay from "./EmergencyDebugOverlay";
 
-// Tell the Capgo updater plugin that this bundle booted successfully.
-void notifyBundleReady();
+// Initialize DevTools
+initDevToolsFramework();
 
-// Ask for notification permission on first launch.
-void ensureNotificationPermission();
+// Defer non-critical background initialization by 2 seconds to keep critical frames clear
+setTimeout(() => {
+  // Ask for notification permission on first launch.
+  void ensureNotificationPermission();
 
-// Kick off the drum-sample seed in the background.
-void seedAudioAssets();
+  // Kick off the drum-sample seed in the background.
+  void seedAudioAssets();
+}, 2000);
 
-const ChangelogModal = lazy(() => import("@workspace/ui-android").then(m => ({ default: m.UpdateDiagnosticsSheet }))); // or use appropriate lazy wrapper
 const UpdateIndicator = lazy(() => import("@workspace/ui-android").then(m => ({ default: m.UpdateIndicator })));
 
 function GlobalOverlays() {
@@ -38,11 +41,52 @@ function GlobalOverlays() {
   );
 }
 
+function RootAppContainer() {
+  const [appKey, setAppKey] = useState(0);
+
+  useEffect(() => {
+    (window as any).__forceRerenderApp = () => {
+      setAppKey(prev => prev + 1);
+    };
+    return () => {
+      delete (window as any).__forceRerenderApp;
+    };
+  }, []);
+
+  return <App key={appKey} />;
+}
+
+// Create the emergency overlay root synchronously directly under document.body before mount
+if (typeof document !== 'undefined') {
+  let overlayRoot = document.getElementById("livex-emergency-overlay-root");
+  if (!overlayRoot) {
+    overlayRoot = document.createElement("div");
+    overlayRoot.id = "livex-emergency-overlay-root";
+    overlayRoot.style.position = "fixed";
+    overlayRoot.style.inset = "0";
+    overlayRoot.style.zIndex = "2147483647";
+    overlayRoot.style.isolation = "isolate";
+    overlayRoot.style.pointerEvents = "none";
+    overlayRoot.style.transform = "translateZ(0)";
+    overlayRoot.style.contain = "none";
+    overlayRoot.style.background = "transparent";
+    document.body.appendChild(overlayRoot);
+  }
+}
+
+// Log React bootstrap start time
+if (typeof window !== 'undefined' && (window as any).__bootTimings) {
+  (window as any).__bootTimings.reactBootstrapStart = performance.now();
+  console.log("[LivexBoot] React bootstrap started: " + (window as any).__bootTimings.reactBootstrapStart.toFixed(2) + "ms");
+}
+
+// Mount React immediately (native splash screen takes care of hiding visual load transitions)
 createRoot(document.getElementById("root")!).render(
-  <TolgeeProvider tolgee={tolgee} fallback={null}>
-    <App />
+  <>
+    <RootAppContainer />
     <GlobalOverlays />
-  </TolgeeProvider>,
+    <EmergencyDebugOverlay />
+  </>,
 );
 
 // Clean up all service workers since they are not supported in native wrappers.

@@ -1,4 +1,5 @@
-import { useBackHandler, subscribeAuth, signOut, type AuthUser, subscribeSyncStatus, syncNow, type SyncStatus, deviceId, getConflictLogs, clearConflictLogs, createCloudBackup, getSyncDiagnostics, pushLocalSettingsToCloud, pullCloudSettingsFromCloud, registerDevice, registerCurrentDevice, reconnectDevices, useChordStore, ACCENT_COLORS, type Theme, type AnimationSpeed, type DisplayDensity, type AppKey, type PerAppVisuals, useNavHidden, useNavCollapsed, useScrollHide, useT, APP_VERSION_LABEL, APP_VERSION_TAG, APP_VERSION_DATE, compareSemver, APP_VERSION, getChangelogSections, useOtaUpdate, otaDebugLogs, otaDiagnostics, checkForUpdate, resetOtaUpdateState, isAppInstallerAvailable, applyUpdate, isNative, fadeToBlackAndReload, notifyOtaAvailable, resolveApkUrl, downloadAndInstallApk, resolveReleasePageUrl, useLiquidGlassNav, useIsWebDesktop, useStudioPreferences } from '@workspace/studio-core';
+import { useBackHandler, subscribeAuth, signOut, type AuthUser, subscribeSyncStatus, syncNow, type SyncStatus, deviceId, getConflictLogs, clearConflictLogs, createCloudBackup, getSyncDiagnostics, pushLocalSettingsToCloud, pullCloudSettingsFromCloud, registerDevice, registerCurrentDevice, reconnectDevices, useChordStore, ACCENT_COLORS, type Theme, type AnimationSpeed, type DisplayDensity, type AppKey, type PerAppVisuals, useNavHidden, useNavCollapsed, useScrollHide, useT, APP_VERSION_LABEL, APP_VERSION_TAG, APP_VERSION_DATE, compareSemver, APP_VERSION, getChangelogSections, useOtaUpdate, otaDebugLogs, otaDiagnostics, checkForUpdate, resetOtaUpdateState, isAppInstallerAvailable, applyUpdate, isNative, fadeToBlackAndReload, notifyOtaAvailable, resolveApkUrl, downloadAndInstallApk, resolveReleasePageUrl, useLiquidGlassNav, useIsWebDesktop, useStudioPreferences, registerDebugProvider, unregisterDebugProvider, recordNavigation, getFirestoreDiagnostics, getNavigationEntries } from '@workspace/studio-core';
+import { getUpdateHistory, triggerDowngrade } from '@workspace/studio-core';
 import React, { useState, useRef, useEffect, useLayoutEffect, lazy, Suspense, useMemo, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import { motion } from 'motion/react';
@@ -12,9 +13,12 @@ import UpdateDiagnosticsSheet from './UpdateDiagnosticsSheet';
 import StudioUpdateScreen from './StudioUpdateScreen';
 import StudioTitleReveal from './StudioTitleReveal';
 import { EncryptedText } from './ui/encrypted-text';
+import { SHARED_NAV_TRANSITION, getSharedNavTransform, getSharedNavOpacity } from './navStyles';
 import ProfileDropdown from './kokonutui/profile-dropdown';
 import SmartLoading from './SmartLoading';
 import { StudioSkeletonProfile, StudioSkeletonList } from './StudioSkeleton';
+import DevToolsDashboard from './DevToolsDashboard';
+
 
 // AccountCard pulls Firebase (auth + firestore). Lazy-load it so Firebase
 // stays out of the initial bundle graph; only fetched when Settings tab opens.
@@ -233,6 +237,7 @@ export default function StudioHub() {
   const [successAnimationState, setSuccessAnimationState] = useState<'entering' | 'exiting' | 'hidden'>('hidden');
   const [successName, setSuccessName] = useState('');
   const scrollRef = useRef<HTMLDivElement>(null);
+  const launchTimers = useRef<ReturnType<typeof setTimeout>[]>([]);
 
   const lastUserRef = useRef<AuthUser | null>(null);
 
@@ -244,6 +249,40 @@ export default function StudioHub() {
   const devTapsRef = useRef(0);
   const [devToast, setDevToast] = useState<string | null>(null);
   const [devToastTimer, setDevToastTimer] = useState<number | null>(null);
+
+  useEffect(() => {
+    registerDebugProvider({
+      id: 'hub',
+      name: 'Studio Hub',
+      getDebugState: () => {
+        const diag = getFirestoreDiagnostics();
+        const navEntries = getNavigationEntries();
+        const lastNav = navEntries.length > 0 ? navEntries[navEntries.length - 1] : null;
+        return {
+          activeTab: tab,
+          zooming,
+          authStatus: authUser ? 'Signed In' : 'Signed Out',
+          theme: settings.theme,
+          language: settings.language,
+          'Sync Provider': diag.syncProvider,
+          'Firestore Runtime Active': diag.firestoreRuntimeActive,
+          'Firestore Disabled (Verified)': !diag.firestoreRuntimeActive,
+          'Firestore Listen Channels': diag.firestoreListenChannels,
+          'Firestore Write Channels': diag.firestoreWriteChannels,
+          'Firestore Last Error': diag.firestoreLastError,
+          'Firestore Init Call Stack': (diag as any).firestoreInitStack || 'never',
+          'Hub Transition Status': (window as any).studioTransitionActive ? 'Active' : 'Completed',
+          'Last Navigation Path': lastNav ? `${lastNav.fromApp} -> ${lastNav.toApp}` : 'none',
+          'Last Navigation Duration': lastNav && lastNav.transitionComplete && lastNav.transitionStart
+            ? `${lastNav.transitionComplete - lastNav.transitionStart}ms`
+            : 'N/A'
+        };
+      }
+    });
+    return () => {
+      unregisterDebugProvider('hub');
+    };
+  }, [tab, zooming, authUser, settings.theme, settings.language]);
 
 
   const showDevToast = (msg: string) => {
@@ -373,16 +412,45 @@ export default function StudioHub() {
       console.warn('[Navigation] App switch request ignored: transition in progress.');
       return;
     }
+    const currentApp = useChordStore.getState().settings.appMode || 'hub';
+    recordNavigation({
+      fromApp: currentApp,
+      toApp: appMode,
+      transitionStart: Date.now(),
+      transitionLockState: true,
+      activeAppAfterTransition: appMode,
+      fallbackRendered: false
+    });
+
     (window as any).studioTransitionActive = true;
+    setZooming(true);
     updateSettings({ appMode });
-    setTimeout(() => {
-      setZooming(true);
-    }, 100);
-    setTimeout(() => {
+
+    // Clear any pending launch timers
+    launchTimers.current.forEach(clearTimeout);
+    launchTimers.current = [];
+
+    const t2 = setTimeout(() => {
       (window as any).studioTransitionActive = false;
-    }, 450);
+      recordNavigation({
+        fromApp: currentApp,
+        toApp: appMode,
+        transitionComplete: Date.now(),
+        transitionLockState: false,
+        activeAppAfterTransition: appMode,
+        fallbackRendered: false
+      });
+    }, 340);
+    launchTimers.current.push(t2);
   // updateSettings is stable (Zustand action), setZooming is React setState
   // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  useEffect(() => {
+    return () => {
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+      launchTimers.current.forEach(clearTimeout);
+    };
   }, []);
 
   const [introFinished, setIntroFinished] = useState(() => {
@@ -411,6 +479,10 @@ export default function StudioHub() {
   useEffect(() => {
     if (settings.appMode === 'hub') {
       setZooming(false);
+      // Clear launch timers to prevent race conditions (black screen return bug)
+      launchTimers.current.forEach(clearTimeout);
+      launchTimers.current = [];
+      (window as any).studioTransitionActive = false;
     }
   }, [settings.appMode]);
 
@@ -446,24 +518,27 @@ export default function StudioHub() {
   );
 
   return (
-    <div style={{
-      position: 'relative',
-      height: '100dvh',
-      overflow: 'hidden',
-      background: 'var(--app-bg)',
-      display: 'flex',
-      flexDirection: 'column',
-      paddingTop: 'env(safe-area-inset-top)',
-      fontFamily: 'Manrope, sans-serif',
-      transform: zooming ? 'scale(1.10)' : 'scale(1)',
-      opacity: zooming ? 0 : 1,
-      transition: zooming
-        ? 'transform 380ms cubic-bezier(0.4,0,1,1), opacity 280ms ease-in, background-color 700ms cubic-bezier(0.4,0,0.2,1)'
-        : 'transform 380ms cubic-bezier(0.16, 1, 0.3, 1), opacity 380ms ease-out, background-color 700ms cubic-bezier(0.4,0,0.2,1)',
-    }}>
+    <div
+      data-livex-hub-root="true"
+      style={{
+        position: 'relative',
+        height: '100dvh',
+        overflow: 'hidden',
+        background: 'var(--app-bg)',
+        display: 'flex',
+        flexDirection: 'column',
+        paddingTop: 'env(safe-area-inset-top)',
+        fontFamily: 'Manrope, sans-serif',
+        transform: zooming ? 'scale(1.10)' : 'scale(1)',
+        opacity: zooming ? 0 : 1,
+        transition: zooming
+          ? 'transform 285ms cubic-bezier(0.4,0,1,1), opacity 210ms ease-in, background-color 700ms cubic-bezier(0.4,0,0.2,1)'
+          : 'transform 285ms cubic-bezier(0.16, 1, 0.3, 1), opacity 285ms ease-out, background-color 700ms cubic-bezier(0.4,0,0.2,1)',
+        pointerEvents: introFinished ? 'auto' : 'none',
+      }}
+    >
 
-      {/* ── Main scrollable content ── */}
-      <div ref={scrollRef} style={{ flex: 1, overflowY: tab === 'home' ? 'hidden' : 'auto', overflowX: 'hidden' }}>
+      <div ref={scrollRef} style={{ flex: 1, overflowY: 'auto', overflowX: 'hidden' }}>
 
         {/* ── HOME TAB ── */}
         {tab === 'home' && (
@@ -472,7 +547,7 @@ export default function StudioHub() {
 
 
             {/* Logo area */}
-            <div className="spring-in" style={{
+            <div className={introFinished ? 'spring-in' : ''} style={{
               display: 'flex', flexDirection: 'column', alignItems: 'center',
               paddingTop: 'clamp(36px, 7vh, 56px)',
             }}>
@@ -486,11 +561,14 @@ export default function StudioHub() {
 
             {/* Combined welcome + apps card */}
             <GradientBorderCard
+              data-livex-hub-content="true"
               borderRadius={24}
               wrapStyle={{
                 width: '100%', maxWidth: 380,
                 marginTop: 'clamp(28px, 6vh, 48px)',
-                animation: 'spring-in 400ms 80ms cubic-bezier(0.34,1.56,0.64,1) both, gb-spin 14s linear infinite',
+                animation: introFinished
+                  ? 'spring-in 400ms 80ms cubic-bezier(0.34,1.56,0.64,1) both, gb-spin 14s linear infinite'
+                  : 'gb-spin 14s linear infinite',
               }}
               innerStyle={{
                 overflow: 'hidden',
@@ -509,7 +587,11 @@ export default function StudioHub() {
                     encryptedClassName="text-[var(--accent-from)] opacity-60 font-mono"
                   />
                 </p>
-                <p style={{ fontSize: 14, color: 'var(--c-text-secondary)', margin: '5px 0 0', fontWeight: 500 }}>
+                <p style={{
+                  fontSize: 14, color: 'var(--c-text-secondary)', margin: '5px 0 0', fontWeight: 500,
+                  opacity: introFinished ? 1 : 0,
+                  transition: 'opacity 300ms ease'
+                }}>
                   {subtitle}
                 </p>
               </div>
@@ -898,7 +980,7 @@ export default function StudioHub() {
       </div>
 
       {/* ── Bottom nav ── */}
-      {!isWebDesktop && <HubNav tab={tab} setTab={setTab} accent={accent} />}
+      {!isWebDesktop && <HubNav tab={tab} setTab={setTab} accent={accent} introFinished={introFinished} />}
 
       {/* UpdateIndicator is now hoisted to AppShell so it appears on
           every screen, not just the Hub. */}
@@ -1429,6 +1511,8 @@ function HubUpdaterPage({ className, style, cardStyle, accent, onBack }: {
   const lang = settings.language ?? 'en';
   const changelogSections = getChangelogSections(lang);
   const [changelogExpanded, setChangelogExpanded] = useState(false);
+  const [downgradeTarget, setDowngradeTarget] = useState<{version: string, versionCode: number, apkUrl: string, sha256: string} | null>(null);
+  const [showDowngradeConfirm, setShowDowngradeConfirm] = useState(false);
   const isChangelogTooLong = changelogSections.length > 2 || changelogSections.some(s => s.items.length > 3);
 
   const isApkFlow = ota.updateType === 'apk' || ota.updateType === 'both';
@@ -1814,9 +1898,6 @@ function HubUpdaterPage({ className, style, cardStyle, accent, onBack }: {
             <button
               className="updater-cta-btn"
               onClick={async () => {
-                if (isNative()) {
-                  window.dispatchEvent(new CustomEvent('studio:open-update-dialog'));
-                }
                 await ota.checkNow();
               }}
               disabled={isChecking}
@@ -1943,8 +2024,233 @@ function HubUpdaterPage({ className, style, cardStyle, accent, onBack }: {
         </>
       )}
 
+      {/* ── VERSION MANAGER SECTION (native-only) ── */}
+      {isNative() && (
+        <>
+          <p className="updater-section-title spring-in" style={{ animationDelay: '110ms' }}>
+            {lang === 'es' ? 'Gestor de Versiones' : 'Version Manager'}
+          </p>
+          
+          <div className="spring-in" style={{ ...cardStyle, margin: 0, padding: '20px', display: 'flex', flexDirection: 'column', gap: 20, animationDelay: '120ms' }}>
+            {/* Visual Timeline Path */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+              <p style={{ margin: 0, fontFamily: 'Manrope', fontWeight: 700, fontSize: 12, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--c-text-tertiary)' }}>
+                {lang === 'es' ? 'Ruta de Actualización' : 'Upgrade Path'}
+              </p>
+              
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, background: 'rgba(128,128,128,0.03)', padding: '12px 14px', borderRadius: 16, border: '1px solid rgba(128,128,128,0.06)' }}>
+                {/* Installed node */}
+                <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center', gap: 4 }}>
+                  <span style={{ fontSize: 10, fontWeight: 700, padding: '2px 6px', borderRadius: 6, background: '#22c55e20', color: '#22c55e', textTransform: 'uppercase' }}>
+                    {lang === 'es' ? 'Instalado' : 'Installed'}
+                  </span>
+                  <strong style={{ fontSize: 12, fontFamily: 'monospace' }}>v{APP_VERSION}</strong>
+                  <span style={{ fontSize: 9, color: 'var(--c-text-tertiary)' }}>code {otaDebugLogs.installedVersionCode || '131'}</span>
+                </div>
+                
+                {/* Connector arrow */}
+                <span className="material-symbols-outlined" style={{ fontSize: 16, color: 'var(--c-text-tertiary)' }}>chevron_left</span>
+                
+                {/* Previous stable versions node */}
+                <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center', gap: 4 }}>
+                  <span style={{ fontSize: 10, fontWeight: 700, padding: '2px 6px', borderRadius: 6, background: 'rgba(128,128,128,0.15)', color: 'var(--c-text-secondary)', textTransform: 'uppercase' }}>
+                    {lang === 'es' ? 'Anteriores' : 'Previous'}
+                  </span>
+                  <strong style={{ fontSize: 12, fontFamily: 'monospace' }}>v3.7.3 - v3.7.0</strong>
+                  <span style={{ fontSize: 9, color: 'var(--c-text-tertiary)' }}>{lang === 'es' ? 'Estables' : 'Stable'}</span>
+                </div>
+                
+                {/* Connector arrow */}
+                <span className="material-symbols-outlined" style={{ fontSize: 16, color: 'var(--c-text-tertiary)' }}>chevron_left</span>
+                
+                {/* Latest node */}
+                <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center', gap: 4 }}>
+                  <span style={{ fontSize: 10, fontWeight: 700, padding: '2px 6px', borderRadius: 6, background: 'var(--accent-from, #7c3aed)20', color: 'var(--accent-from, #7c3aed)', textTransform: 'uppercase' }}>
+                    {lang === 'es' ? 'Última' : 'Latest'}
+                  </span>
+                  <strong style={{ fontSize: 12, fontFamily: 'monospace' }}>v{ota.remoteVersion || '3.7.4'}</strong>
+                  <span style={{ fontSize: 9, color: 'var(--c-text-tertiary)' }}>{lang === 'es' ? 'Lanzamiento' : 'Release'}</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Version details card */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 10, borderTop: '1px solid rgba(128, 128, 128, 0.08)', paddingTop: 14 }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <span style={{ fontFamily: 'Manrope', fontWeight: 700, fontSize: 13, color: 'var(--c-text-secondary)' }}>
+                  {lang === 'es' ? 'Detalles de la versión' : 'Version Information'}
+                </span>
+                <span style={{ fontSize: 10, color: 'var(--c-text-tertiary)', fontFamily: 'Inter' }}>
+                  {lang === 'es' ? 'Fecha:' : 'Date:'} {APP_VERSION_DATE}
+                </span>
+              </div>
+              
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                <span style={{ fontSize: 11, padding: '3px 8px', borderRadius: 8, background: 'rgba(128,128,128,0.06)', border: '1px solid rgba(128,128,128,0.1)', color: 'var(--c-text-secondary)' }}>
+                  {lang === 'es' ? 'Firma: Oficial' : 'Signature: Official'}
+                </span>
+                <span style={{ fontSize: 11, padding: '3px 8px', borderRadius: 8, background: 'rgba(128,128,128,0.06)', border: '1px solid rgba(128,128,128,0.1)', color: 'var(--c-text-secondary)' }}>
+                  {lang === 'es' ? 'Canal: Producción' : 'Channel: Production'}
+                </span>
+              </div>
+            </div>
+
+            {/* Downgrade selection list */}
+            <div style={{ borderTop: '1px solid rgba(128, 128, 128, 0.08)', paddingTop: 14 }}>
+              <p style={{ margin: '0 0 10px', fontFamily: 'Manrope', fontWeight: 700, fontSize: 13, color: 'var(--c-text-secondary)' }}>
+                {lang === 'es' ? 'Seleccionar Versión de Downgrade' : 'Select Downgrade Version'}
+              </p>
+              
+              {(() => {
+                const currentCode = otaDebugLogs.installedVersionCode || 131;
+                
+                const OFFICIAL_RELEASES = [
+                  {
+                    version: '3.7.4',
+                    versionCode: 131,
+                    apkUrl: 'https://github.com/MAGEXE1000/Studio/releases/download/v3.7.4/studio-3.7.4.apk',
+                    sha256: '0000000000000000000000000000000000000000000000000000000000000000'
+                  },
+                  {
+                    version: '3.7.3',
+                    versionCode: 130,
+                    apkUrl: 'https://github.com/MAGEXE1000/Studio/releases/download/v3.7.3/studio-3.7.3.apk',
+                    sha256: '0000000000000000000000000000000000000000000000000000000000000000'
+                  },
+                  {
+                    version: '3.7.2',
+                    versionCode: 129,
+                    apkUrl: 'https://github.com/MAGEXE1000/Studio/releases/download/v3.7.2/studio-3.7.2.apk',
+                    sha256: 'e86e7a2b972e90f6797cb3fd6b9cfde14376c24be8a98b76dfb28e67a73fcd0a'
+                  },
+                  {
+                    version: '3.7.1',
+                    versionCode: 128,
+                    apkUrl: 'https://github.com/MAGEXE1000/Studio/releases/download/v3.7.1/studio-3.7.1.apk',
+                    sha256: '9211c4c81a539fe63b0fd828236d6546e7f86f91f3c3cbdf9ebc39e29824ce1a'
+                  },
+                  {
+                    version: '3.7.0',
+                    versionCode: 127,
+                    apkUrl: 'https://github.com/MAGEXE1000/Studio/releases/download/v3.7.0/studio-3.7.0.apk',
+                    sha256: '058a5167ff727c93e4361b4bc5d9d3845bf03757ccc43cac7ab202f682b91bbe'
+                  }
+                ];
+                
+                const downgradeTargets = OFFICIAL_RELEASES.filter(r => r.versionCode < currentCode)
+                  .sort((a, b) => b.versionCode - a.versionCode)
+                  .slice(0, 3); // show top 3 downgrade targets
+                  
+                if (downgradeTargets.length === 0) {
+                  return (
+                    <p style={{ margin: 0, fontFamily: 'Inter', fontSize: 12, color: 'var(--c-text-tertiary)', fontStyle: 'italic' }}>
+                      {lang === 'es' ? 'No hay versiones anteriores disponibles para downgrade.' : 'No older stable versions available for downgrade.'}
+                    </p>
+                  );
+                }
+                
+                return (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                    {downgradeTargets.map((target) => (
+                      <button
+                        key={target.version}
+                        onClick={() => {
+                          setDowngradeTarget(target);
+                          setShowDowngradeConfirm(true);
+                        }}
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'space-between',
+                          padding: '12px 14px',
+                          borderRadius: 12,
+                          background: 'rgba(128, 128, 128, 0.05)',
+                          border: '1px solid rgba(128, 128, 128, 0.1)',
+                          color: 'var(--c-text-primary)',
+                          cursor: 'pointer',
+                          fontFamily: 'inherit',
+                          textAlign: 'left',
+                          transition: 'all 200ms ease'
+                        }}
+                      >
+                        <div>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                            <p style={{ margin: 0, fontFamily: 'Manrope', fontWeight: 800, fontSize: 14, color: 'var(--accent-from, #7c3aed)' }}>
+                              v{target.version}
+                            </p>
+                            <span style={{ fontSize: 9, fontWeight: 700, padding: '1px 5px', borderRadius: 4, background: '#ef444415', color: '#ef4444', textTransform: 'uppercase' }}>
+                              Downgrade Target
+                            </span>
+                          </div>
+                          <p style={{ margin: '3px 0 0', fontFamily: 'Inter', fontSize: 11, color: 'var(--c-text-tertiary)' }}>
+                            {lang === 'es' ? `Código: ${target.versionCode} • Firma oficial` : `Code: ${target.versionCode} • Official signed`}
+                          </p>
+                        </div>
+                        <span className="material-symbols-outlined" style={{ fontSize: 18, color: 'var(--c-text-secondary)' }}>arrow_downward</span>
+                      </button>
+                    ))}
+                  </div>
+                );
+              })()}
+            </div>
+          </div>
+        </>
+      )}
+
+      {/* ── UPDATE HISTORY LOG (native-only) ── */}
+      {isNative() && (
+        <>
+          {(() => {
+            const history = getUpdateHistory();
+            if (history.length === 0) return null;
+            return (
+              <>
+                <p className="updater-section-title spring-in" style={{ animationDelay: '130ms' }}>
+                  {lang === 'es' ? 'Historial de Transiciones' : 'Transition History'}
+                </p>
+                <div className="spring-in" style={{ ...cardStyle, margin: 0, padding: '12px 18px', display: 'flex', flexDirection: 'column', gap: 10, animationDelay: '140ms', maxHeight: 200, overflowY: 'auto' }}>
+                  {history.map((entry, idx) => {
+                    const dateStr = new Date(entry.timestamp).toLocaleDateString(lang === 'es' ? 'es-MX' : 'en-US', { hour: '2-digit', minute: '2-digit' } as any);
+                    const isSuccess = entry.status === 'success';
+                    return (
+                      <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', fontSize: 12, paddingBottom: idx < history.length - 1 ? 8 : 0, borderBottom: idx < history.length - 1 ? '1px solid rgba(128,128,128,0.05)' : 'none' }}>
+                        <div>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                            <span style={{ fontFamily: 'Manrope', fontWeight: 700, color: 'var(--c-text-primary)' }}>
+                              {entry.fromVersion} → {entry.toVersion}
+                            </span>
+                            <span style={{
+                              fontSize: 9.5,
+                              padding: '2px 6px',
+                              borderRadius: 4,
+                              background: entry.type === 'upgrade' ? 'rgba(74,222,128,0.1)' : 'rgba(234,179,8,0.1)',
+                              color: entry.type === 'upgrade' ? '#4ade80' : '#eab308',
+                              fontWeight: 700,
+                              textTransform: 'uppercase'
+                            }}>
+                              {entry.type}
+                            </span>
+                          </div>
+                          <p style={{ margin: '2px 0 0', color: 'var(--c-text-tertiary)', fontSize: 11 }}>
+                            {dateStr} • {entry.trigger === 'auto' ? 'Auto' : 'User'}
+                            {entry.error && ` • ${entry.error}`}
+                          </p>
+                        </div>
+                        <span className="material-symbols-outlined" style={{ fontSize: 16, color: isSuccess ? '#4ade80' : '#f87171' }}>
+                          {isSuccess ? 'check_circle' : 'error'}
+                        </span>
+                      </div>
+                    );
+                  })}
+                </div>
+              </>
+            );
+          })()}
+        </>
+      )}
+
       {/* ── TIP CARD ── */}
-      <div className="updater-tip-card spring-in" style={{ animationDelay: '120ms' }}>
+      <div className="updater-tip-card spring-in" style={{ animationDelay: '150ms' }}>
         <span className="material-symbols-outlined" style={{ fontSize: 16, color: accent.from, flexShrink: 0, marginTop: 1, fontVariationSettings: "'FILL' 1", opacity: 0.8 }}>info</span>
         <div>
           <p style={{ margin: 0, fontFamily: 'Manrope', fontWeight: 700, fontSize: 12.5, color: 'var(--c-text-primary)' }}>{L.howItWorks}</p>
@@ -1957,6 +2263,114 @@ function HubUpdaterPage({ className, style, cardStyle, accent, onBack }: {
           </p>
         </div>
       </div>
+
+      {showDowngradeConfirm && downgradeTarget && (
+        <div style={{
+          position: 'fixed',
+          inset: 0,
+          zIndex: 9999,
+          background: 'rgba(0,0,0,0.7)',
+          backdropFilter: 'blur(8px)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          padding: 20
+        }}>
+          <div style={{
+            background: 'var(--app-surface)',
+            borderRadius: 24,
+            border: '1px solid rgba(128,128,128,0.15)',
+            width: '100%',
+            maxWidth: 380,
+            padding: '24px 20px',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: 16,
+            boxShadow: '0 12px 36px rgba(0,0,0,0.4)',
+            animation: 'slide-up 300ms cubic-bezier(0.34, 1.56, 0.64, 1)'
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, color: '#f87171' }}>
+              <span className="material-symbols-outlined" style={{ fontSize: 28 }}>warning</span>
+              <h3 style={{ margin: 0, fontFamily: 'Manrope', fontWeight: 800, fontSize: 18, color: 'var(--c-text-primary)' }}>
+                {lang === 'es' ? 'Confirmar Downgrade' : 'Confirm Downgrade'}
+              </h3>
+            </div>
+            
+            <p style={{ margin: 0, fontSize: 13, color: 'var(--c-text-secondary)', lineHeight: 1.5 }}>
+              {lang === 'es' 
+                ? `¿Estás seguro de que deseas instalar la versión anterior v${downgradeTarget.version}?`
+                : `Are you sure you want to install the older version v${downgradeTarget.version}?`}
+            </p>
+
+            <div style={{
+              background: 'rgba(248,113,113,0.06)',
+              border: '1px solid rgba(248,113,113,0.2)',
+              borderRadius: 14,
+              padding: '12px 14px',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: 8,
+              fontSize: 12,
+              color: 'var(--c-text-secondary)',
+              lineHeight: 1.45
+            }}>
+              <div style={{ display: 'flex', gap: 6 }}>
+                <strong style={{ color: '#f87171' }}>• {lang === 'es' ? 'Riesgos:' : 'Risks:'}</strong>
+                <span>{lang === 'es' ? 'Pueden ocurrir errores de base de datos debido a incompatibilidades de esquemas.' : 'Database errors may occur due to schema incompatibilities.'}</span>
+              </div>
+              <div style={{ display: 'flex', gap: 6 }}>
+                <strong style={{ color: '#f87171' }}>• {lang === 'es' ? 'Compatibilidad:' : 'Compatibility:'}</strong>
+                <span>{lang === 'es' ? 'La versión instalada es más nueva que la seleccionada.' : 'The currently installed version is newer than the selected version.'}</span>
+              </div>
+              <div style={{ display: 'flex', gap: 6 }}>
+                <strong style={{ color: '#4ade80' }}>• {lang === 'es' ? 'Reversibilidad:' : 'Reversibility:'}</strong>
+                <span>{lang === 'es' ? 'Puedes volver a actualizar a la versión más reciente en cualquier momento.' : 'You can upgrade back to the latest version at any time.'}</span>
+              </div>
+            </div>
+
+            <div style={{ display: 'flex', gap: 10, marginTop: 8 }}>
+              <button
+                onClick={() => {
+                  setShowDowngradeConfirm(false);
+                  setDowngradeTarget(null);
+                }}
+                style={{
+                  flex: 1, height: 44, borderRadius: 12,
+                  background: 'rgba(128,128,128,0.08)',
+                  border: '1px solid rgba(128,128,128,0.15)',
+                  color: 'var(--c-text-secondary)',
+                  fontFamily: 'Manrope', fontWeight: 700, fontSize: 13,
+                  cursor: 'pointer'
+                }}
+              >
+                {lang === 'es' ? 'Cancelar' : 'Cancel'}
+              </button>
+              <button
+                onClick={async () => {
+                  setShowDowngradeConfirm(false);
+                  try {
+                    const { triggerDowngrade } = await import('@workspace/studio-core');
+                    await triggerDowngrade(downgradeTarget.version, downgradeTarget.apkUrl, downgradeTarget.sha256);
+                  } catch (err: any) {
+                    alert(`Downgrade failed: ${err.message || String(err)}`);
+                  }
+                  setDowngradeTarget(null);
+                }}
+                style={{
+                  flex: 1, height: 44, borderRadius: 12,
+                  background: 'linear-gradient(135deg, #ef4444, #b91c1c)',
+                  border: 'none', color: 'white',
+                  fontFamily: 'Manrope', fontWeight: 800, fontSize: 13,
+                  cursor: 'pointer',
+                  boxShadow: '0 4px 12px rgba(239,68,68,0.2)'
+                }}
+              >
+                {lang === 'es' ? 'Downgrade' : 'Downgrade'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -2190,9 +2604,7 @@ function HubSettings({
 
       try {
         if (isNative()) {
-          const { CapacitorUpdater } = await import('@capgo/capacitor-updater');
-          const current = await CapacitorUpdater.current();
-          setDevOtaVersion(current?.bundle?.version || 'builtin');
+          setDevOtaVersion('disabled');
         } else {
           setDevOtaVersion('N/A — Web build');
         }
@@ -2330,6 +2742,11 @@ function HubSettings({
   const handleClearApplied = () => {
     localStorage.removeItem('studio:appliedVersions');
     localStorage.removeItem('studio:appliedUpdateVersion');
+    if (isNative()) {
+      import('@workspace/studio-core').then(({ AppInstaller }) => {
+        AppInstaller.clearInstallerLogHistory();
+      }).catch(err => console.error(err));
+    }
     showDevToast('Applied versions cleared.');
   };
 
@@ -2409,11 +2826,16 @@ function HubSettings({
   };
 
   const getDiagnosticsText = () => {
+    const isNativePlat = isNative();
+    const wrapperVersion = otaDebugLogs.nativeApkVersion || 'Unknown';
+    const hasMismatch = isNativePlat && wrapperVersion !== 'Unknown' && wrapperVersion !== 'N/A' && APP_VERSION !== wrapperVersion;
+
     return [
       '=== STUDIO DIAGNOSTICS REPORT ===',
       `Timestamp: ${new Date().toISOString()}`,
       `App Version: ${APP_VERSION}`,
       `Device Model: ${isNative() ? 'Native Device' : 'Web Browser'}`,
+      ...(hasMismatch ? ['', 'VERSION_MISMATCH_DETECTED', `App Version (${APP_VERSION}) does not match APK Wrapper Version (${wrapperVersion})`, ''] : []),
       '',
       '=== APK UPDATE DIAGNOSTICS ===',
       `App Version: ${APP_VERSION}`,
@@ -2945,14 +3367,15 @@ User Agent: [Automatically Generated]
   function renderGeneralContent() {
     const isHideActive = preferences.autoHideSidebarInApps;
     const isHoverActive = isHideActive && preferences.hoverRevealSidebar;
+    const sSets = t.hub.studioSettings;
 
     return (
       <div style={{ display: 'flex', flexDirection: 'column', gap: 16, width: '100%', paddingBottom: 24 }}>
-        <SettingsSectionLabel>Sidebar Behavior</SettingsSectionLabel>
+        <SettingsSectionLabel>{sSets.sidebarBehavior}</SettingsSectionLabel>
         <div style={cardStyle}>
           <SettingRow
-            label="Hide sidebar while using apps"
-            desc="Hides the global Studio sidebar inside apps to maximize workspace size"
+            label={sSets.hideSidebar}
+            desc={sSets.hideSidebarDesc}
           >
             <Toggle
               value={preferences.autoHideSidebarInApps}
@@ -2964,8 +3387,8 @@ User Agent: [Automatically Generated]
 
           <div style={{ opacity: isHideActive ? 1 : 0.5, pointerEvents: isHideActive ? 'auto' : 'none', transition: 'opacity 200ms ease' }}>
             <SettingRow
-              label="Reveal sidebar on left-edge hover"
-              desc="Hovering the far-left edge of the screen reveals the hidden sidebar"
+              label={sSets.revealSidebar}
+              desc={sSets.revealSidebarDesc}
             >
               <Toggle
                 value={isHideActive && preferences.hoverRevealSidebar}
@@ -2978,8 +3401,8 @@ User Agent: [Automatically Generated]
 
           <div style={{ opacity: isHoverActive ? 1 : 0.5, pointerEvents: isHoverActive ? 'auto' : 'none', transition: 'opacity 200ms ease' }}>
             <SettingRow
-              label="Auto-close hover-opened sidebar"
-              desc="Automatically hides the sidebar when your pointer leaves it"
+              label={sSets.autoCloseSidebar}
+              desc={sSets.autoCloseSidebarDesc}
             >
               <Toggle
                 value={isHoverActive && preferences.autoCloseHoverSidebar}
@@ -2991,17 +3414,17 @@ User Agent: [Automatically Generated]
           </div>
         </div>
 
-        <SettingsSectionLabel>App Workspace</SettingsSectionLabel>
+        <SettingsSectionLabel>{sSets.appWorkspace}</SettingsSectionLabel>
         <div style={cardStyle}>
           <SettingRow
-            label="Show app navigation dock"
-            desc="Shows a macOS-style floating bottom dock inside apps for section navigation"
+            label={sSets.showNavDock}
+            desc={sSets.showNavDockDesc}
           >
             <Toggle
               value={preferences.showWebAppDock}
               onChange={v => {
                 if (!v && isWebDesktop) {
-                  alert("Cannot disable the app navigation dock on desktop/tablet as it is the only way to navigate sections inside apps.");
+                  alert(sSets.dockAlertDesktop);
                   return;
                 }
                 setPreference('showWebAppDock', v);
@@ -3012,13 +3435,13 @@ User Agent: [Automatically Generated]
           </SettingRow>
           <div style={{ padding: '0px 20px 14px', marginTop: '-10px', borderBottom: '1px solid rgba(128,128,128,0.08)' }}>
             <p style={{ fontSize: '11px', color: 'var(--c-text-muted)', fontFamily: 'Inter', margin: 0 }}>
-              Always enabled on Web desktop/tablet as it's the only way to navigate sub-app sections.
+              {sSets.dockAlwaysEnabled}
             </p>
           </div>
 
           <SettingRow
-            label="Remember last Chordex section"
-            desc="Reopening Chordex returns to your last used section instead of resetting"
+            label={sSets.rememberSection}
+            desc={sSets.rememberSectionDesc}
           >
             <Toggle
               value={preferences.rememberLastAppSection}
@@ -3027,13 +3450,29 @@ User Agent: [Automatically Generated]
               accentTo={accent.to}
             />
           </SettingRow>
+
+          <SettingRow
+            label={t.settings.rows.swipeBackBehavior || "Swipe back behavior"}
+            desc={t.settings.rows.swipeBackBehaviorDesc || "Configure swipe back gesture behavior on app root screens."}
+          >
+            <SegmentedControl<'exit-to-hub' | 'manual-only'>
+              value={settings.swipeBackBehavior || 'exit-to-hub'}
+              options={[
+                { value: 'exit-to-hub', label: t.settings.rows.swipeBackExit || "Swipe to Hub" },
+                { value: 'manual-only', label: t.settings.rows.swipeBackManual || "Manual Only" }
+              ]}
+              onChange={v => updateSettings({ swipeBackBehavior: v })}
+              accentFrom={accent.from}
+              accentTo={accent.to}
+            />
+          </SettingRow>
         </div>
 
-        <SettingsSectionLabel>Performance</SettingsSectionLabel>
+        <SettingsSectionLabel>{sSets.performance}</SettingsSectionLabel>
         <div style={cardStyle}>
           <SettingRow
-            label="Reduce interface animations"
-            desc="Minimizes transitions and movement across the workspace"
+            label={sSets.reduceAnimations}
+            desc={sSets.reduceAnimationsDesc}
           >
             <Toggle
               value={preferences.reduceMotion}
@@ -3044,8 +3483,8 @@ User Agent: [Automatically Generated]
           </SettingRow>
 
           <SettingRow
-            label="Compact desktop spacing"
-            desc="Reduces spacing and padding for more information on laptop screens"
+            label={sSets.compactSpacing}
+            desc={sSets.compactSpacingDesc}
           >
             <Toggle
               value={preferences.compactDesktopSpacing}
@@ -3058,13 +3497,13 @@ User Agent: [Automatically Generated]
           <SettingRow label={t.settings.rows.haptic} desc={t.settings.rows.hapticDesc}>
             <Toggle value={settings.hapticFeedback} onChange={v => updateSettings({ hapticFeedback: v })} accentFrom={accent.from} accentTo={accent.to} />
           </SettingRow>
-          <SettingRow label={(t.hub as { studioSettings?: { highRefresh?: string } }).studioSettings?.highRefresh ?? 'High refresh rate'} desc={(t.hub as { studioSettings?: { highRefreshDesc?: string } }).studioSettings?.highRefreshDesc ?? "Keeps animations at your display's max rate (90/120Hz). May increase battery use."}>
+          <SettingRow label={sSets.highRefresh} desc={sSets.highRefreshDesc}>
             <Toggle value={settings.highRefreshRate} onChange={v => updateSettings({ highRefreshRate: v })} accentFrom={accent.from} accentTo={accent.to} />
           </SettingRow>
-          <SettingRow label={(t.hub as { studioSettings?: { lowLatency?: string } }).studioSettings?.lowLatency ?? 'Low latency mode'} desc={(t.hub as { studioSettings?: { lowLatencyDesc?: string } }).studioSettings?.lowLatencyDesc ?? 'Faster audio response across all apps.'}>
+          <SettingRow label={sSets.lowLatency} desc={sSets.lowLatencyDesc}>
             <Toggle value={settings.lowLatencyMode} onChange={v => updateSettings({ lowLatencyMode: v })} accentFrom={accent.from} accentTo={accent.to} />
           </SettingRow>
-          <SettingRow label={(t.hub as { studioSettings?: { performanceMode?: string } }).studioSettings?.performanceMode ?? 'Performance mode'} desc={(t.hub as { studioSettings?: { performanceModeDesc?: string } }).studioSettings?.performanceModeDesc ?? 'Disables blur and heavy animations for older devices.'}>
+          <SettingRow label={sSets.performanceMode} desc={sSets.performanceModeDesc}>
             <Toggle value={settings.performanceMode} onChange={v => updateSettings({ performanceMode: v })} accentFrom={accent.from} accentTo={accent.to} />
           </SettingRow>
         </div>
@@ -3146,7 +3585,7 @@ User Agent: [Automatically Generated]
           </div>
           <div style={{ padding: isWebDesktop ? '14px 0px 12px' : '14px 16px 12px' }}>
             <p style={{ fontSize: 11, fontWeight: 700, color: 'var(--c-text-secondary)', letterSpacing: '0.12em', textTransform: 'uppercase', margin: '0 0 10px', fontFamily: 'Manrope' }}>{t.settings.rows.accentColor}</p>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: 8 }}>
+            <div className="hub-accent-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: 8 }}>
               {COLOR_OPTIONS.map(c => {
                 const isActive = hubVis.accentColor === c.id;
                 return (
@@ -3190,7 +3629,7 @@ User Agent: [Automatically Generated]
           </div>
         </div>
 
-        <SettingsSectionLabel>Display</SettingsSectionLabel>
+        <SettingsSectionLabel>{t.settings.sections.display}</SettingsSectionLabel>
         <div style={cardStyle}>
           <SettingRow label={t.settings.rows.density} desc={t.settings.rows.densityDesc}>
             <SegmentedControl<DisplayDensity> value={settings.displayDensity} options={[{ value: 'compact', label: t.settings.rows.compact }, { value: 'comfortable', label: t.settings.rows.normal }, { value: 'spacious', label: t.settings.rows.airy }]} onChange={v => updateSettings({ displayDensity: v })} accentFrom={accent.from} accentTo={accent.to} />
@@ -3626,6 +4065,11 @@ User Agent: [Automatically Generated]
           localStorage.removeItem('studio:downloadedApkPath');
           localStorage.removeItem('studio:downloadedBundleId');
           localStorage.removeItem('studio:downloadedVersions');
+          if (isNative()) {
+            import('@workspace/studio-core').then(({ AppInstaller }) => {
+              AppInstaller.clearInstallerLogHistory();
+            }).catch(err => console.error(err));
+          }
           showDevToast('Update state fully reset.');
         });
       };
@@ -3735,8 +4179,8 @@ User Agent: [Automatically Generated]
 
           <SettingsSectionLabel>2. Update System</SettingsSectionLabel>
           <div style={cardStyle}>
-            <DevButtonRow label="Check For Updates" desc="Run default foreground query" actionLabel="Check" actionId="check-normal" onPress={() => wrapAction('check-normal', async () => { await checkForUpdate(false); })} />
-            <DevButtonRow label="Force Update Check" desc="Bypass all skip & check intervals" actionLabel="Force Check" actionId="check-force" onPress={() => wrapAction('check-force', async () => { await checkForUpdate(true); })} />
+            <DevButtonRow label="Check For Updates" desc="Run default foreground query" actionLabel="Check" actionId="check-normal" onPress={() => wrapAction('check-normal', async () => { await checkForUpdate(false, 'developer_settings', 'Check For Updates button tapped'); })} />
+            <DevButtonRow label="Force Update Check" desc="Bypass all skip & check intervals" actionLabel="Force Check" actionId="check-force" onPress={() => wrapAction('check-force', async () => { await checkForUpdate(true, 'developer_settings', 'Force Update Check button tapped'); })} />
             <DevButtonRow label="Clear Update Cache" desc="Delete downloaded APK files & paths" actionLabel="Clear" actionId="clear-cache" onPress={handleClearUpdateCacheAction} isDestructive />
             <DevButtonRow label="Clear Dismissed Versions" desc="Reset choices for skipped versions" actionLabel="Clear" actionId="clear-dismissed" onPress={handleClearDismissedAction} />
             <DevButtonRow label="Clear Applied Versions" desc="Reset installed update database" actionLabel="Clear" actionId="clear-applied" onPress={handleClearAppliedAction} />
@@ -4204,7 +4648,7 @@ User Agent: [Automatically Generated]
       case 'updater':
         return renderUpdaterContent();
       case 'developer':
-        return renderDeveloperContent();
+        return <DevToolsDashboard accent={accent} onBack={goBack} />;
       case 'about':
         return renderAboutContent();
       case 'debug':
@@ -4224,7 +4668,7 @@ User Agent: [Automatically Generated]
       return (
         <div key={pageKey} className="settings-panel-sheet" style={subStyle}>
           <style>{HUB_SETTINGS_CSS}</style>
-          <SettingsSubHeader title="Release Notes" onBack={goBack} />
+          <SettingsSubHeader title={t.hub.studioSettings.releaseTitle || 'Release Notes'} onBack={goBack} />
           {renderReleaseNotesContent()}
         </div>
       );
@@ -4234,7 +4678,7 @@ User Agent: [Automatically Generated]
       return (
         <div key={pageKey} className="settings-panel-sheet" style={subStyle}>
           <style>{HUB_SETTINGS_CSS}</style>
-          <SettingsSubHeader title="Privacy Preferences" onBack={goBack} />
+          <SettingsSubHeader title={t.hub.studioSettings.privacyTitle || 'Privacy Policy'} onBack={goBack} />
           {renderPrivacyContent()}
         </div>
       );
@@ -4244,7 +4688,7 @@ User Agent: [Automatically Generated]
       return (
         <div key={pageKey} className="settings-panel-sheet" style={subStyle}>
           <style>{HUB_SETTINGS_CSS}</style>
-          <SettingsSubHeader title="General Preferences" onBack={goBack} />
+          <SettingsSubHeader title={t.hub.studioSettings.generalTitle || 'General Preferences'} onBack={goBack} />
           {renderGeneralContent()}
         </div>
       );
@@ -4283,7 +4727,7 @@ User Agent: [Automatically Generated]
       return (
         <div key={pageKey} className="settings-panel-sheet" style={subStyle}>
           <style>{HUB_SETTINGS_CSS}</style>
-          <SettingsSubHeader title="Update Debug" onBack={goBack} />
+          <SettingsSubHeader title={(t.hub as any).studioSettings?.developerTitle || 'Update Debug'} onBack={goBack} />
           {renderDebugContent()}
         </div>
       );
@@ -4292,9 +4736,7 @@ User Agent: [Automatically Generated]
     if (page === 'developer') {
       return (
         <div key={pageKey} className="settings-panel-sheet" style={subStyle}>
-          <style>{HUB_SETTINGS_CSS}</style>
-          <SettingsSubHeader title="Developer Options" onBack={goBack} />
-          {renderDeveloperContent()}
+          <DevToolsDashboard accent={accent} onBack={goBack} />
         </div>
       );
     }
@@ -4313,7 +4755,7 @@ User Agent: [Automatically Generated]
       return (
         <div key={pageKey} className="settings-panel-sheet" style={subStyle}>
           <style>{HUB_SETTINGS_CSS}</style>
-          <SettingsSubHeader title="Help Center" onBack={goBack} />
+          <SettingsSubHeader title={t.hub.studioSettings.helpTitle || 'Help Center'} onBack={goBack} />
           <div style={{ padding: '0 20px', overflowY: 'auto', flex: 1 }}>
             {renderHelpCenterContent()}
           </div>
@@ -4325,7 +4767,7 @@ User Agent: [Automatically Generated]
       return (
         <div key={pageKey} className="settings-panel-sheet" style={subStyle}>
           <style>{HUB_SETTINGS_CSS}</style>
-          <SettingsSubHeader title="FAQ & Support" onBack={goBack} />
+          <SettingsSubHeader title={(t.hub as any).studioSettings?.helpTitle || 'FAQ & Support'} onBack={goBack} />
           <div style={{ padding: '0 20px', overflowY: 'auto', flex: 1 }}>
             {renderFaqContent()}
           </div>
@@ -4337,7 +4779,7 @@ User Agent: [Automatically Generated]
       return (
         <div key={pageKey} className="settings-panel-sheet" style={subStyle}>
           <style>{HUB_SETTINGS_CSS}</style>
-          <SettingsSubHeader title="Terms of Service" onBack={goBack} />
+          <SettingsSubHeader title={t.hub.studioSettings.termsTitle || 'Terms of Service'} onBack={goBack} />
           <div style={{ padding: '0 20px', overflowY: 'auto', flex: 1 }}>
             {renderTermsContent()}
           </div>
@@ -4349,7 +4791,7 @@ User Agent: [Automatically Generated]
       return (
         <div key={pageKey} className="settings-panel-sheet" style={subStyle}>
           <style>{HUB_SETTINGS_CSS}</style>
-          <SettingsSubHeader title="Privacy Policy" onBack={goBack} />
+          <SettingsSubHeader title={t.hub.studioSettings.privacyTitle || 'Privacy Policy'} onBack={goBack} />
           <div style={{ padding: '0 20px', overflowY: 'auto', flex: 1 }}>
             {renderPrivacyPolicyContent()}
           </div>
@@ -4361,7 +4803,7 @@ User Agent: [Automatically Generated]
       return (
         <div key={pageKey} className="settings-panel-sheet" style={subStyle}>
           <style>{HUB_SETTINGS_CSS}</style>
-          <SettingsSubHeader title="Report a Bug" onBack={goBack} />
+          <SettingsSubHeader title={t.hub.studioSettings.bugTitle || 'Report a Bug'} onBack={goBack} />
           <div style={{ padding: '0 20px', overflowY: 'auto', flex: 1 }}>
             {renderBugReportContent()}
           </div>
@@ -4380,41 +4822,41 @@ User Agent: [Automatically Generated]
 
         {renderMobileProfileCard()}
 
-        <SettingsSectionLabel delay={70}>Preferences</SettingsSectionLabel>
+        <SettingsSectionLabel delay={70}>{t.hub.studioSettings.preferencesLabel || 'Preferences'}</SettingsSectionLabel>
         <div style={cardStyle}>
           {!isNative() && (
-            <SettingsNavRow icon="settings" iconColor={accent.from} title="General Preferences" desc="Configure workspace layout and app behaviors" onPress={() => navigate('general')} delay={75} />
+            <SettingsNavRow icon="settings" iconColor={accent.from} title={t.hub.studioSettings.generalTitle || 'General Preferences'} desc={t.hub.studioSettings.generalDesc || 'Configure workspace layout and app behaviors'} onPress={() => navigate('general')} delay={75} />
           )}
           <SettingsNavRow icon="palette" iconColor={accent.from} title={t.settings.sections.appearance} desc={(t.hub as { studioSettings?: { appearanceDesc?: string } }).studioSettings?.appearanceDesc ?? 'Theme, colors, display & performance'} onPress={() => navigate('appearance')} delay={80} />
           <SettingsNavRow icon="language" iconColor={accent.from} title={t.settings.sections.language} desc={(t.hub as { studioSettings?: { languageDesc?: string } }).studioSettings?.languageDesc ?? 'App display language'} onPress={() => navigate('language')} last={isNative()} delay={85} />
           {!isNative() && (
-            <SettingsNavRow icon="account_circle" iconColor={accent.from} title={lang === 'es' ? 'Perfil y Cuenta' : 'Profile & Account'} desc="Manage user settings and backup" onPress={() => navigate('profile')} last delay={90} />
+            <SettingsNavRow icon="account_circle" iconColor={accent.from} title={t.hub.studioSettings.profileTitle || (lang === 'es' ? 'Perfil y Cuenta' : 'Profile & Account')} desc={t.hub.studioSettings.profileDesc || 'Manage user settings and backup'} onPress={() => navigate('profile')} last delay={90} />
           )}
         </div>
 
-        <SettingsSectionLabel delay={100}>Help & Support</SettingsSectionLabel>
+        <SettingsSectionLabel delay={100}>{t.hub.studioSettings.helpLabel || 'Help & Support'}</SettingsSectionLabel>
         <div style={cardStyle}>
-          <SettingsNavRow icon="contact_support" iconColor={accent.from} title={lang === 'es' ? 'Ayuda y Soporte' : 'Help & Support'} desc={lang === 'es' ? 'Documentación, preguntas frecuentes y diagnósticos' : 'Documentation, FAQ & diagnostics'} onPress={() => navigate('help-center')} last={isNative()} delay={110} />
+          <SettingsNavRow icon="contact_support" iconColor={accent.from} title={t.hub.studioSettings.helpTitle || (lang === 'es' ? 'Ayuda y Soporte' : 'Help & Support')} desc={t.hub.studioSettings.helpDesc || (lang === 'es' ? 'Documentación, preguntas frecuentes y diagnósticos' : 'Documentation, FAQ & diagnostics')} onPress={() => navigate('help-center')} last={isNative()} delay={110} />
           {!isNative() && (
-            <SettingsNavRow icon="article" iconColor={accent.from} title="Release Notes" desc="View version history" onPress={() => navigate('release-notes')} delay={120} />
+            <SettingsNavRow icon="article" iconColor={accent.from} title={t.hub.studioSettings.releaseTitle || 'Release Notes'} desc={t.hub.studioSettings.releaseDesc || 'View version history'} onPress={() => navigate('release-notes')} delay={120} />
           )}
           {!isNative() && (
-            <SettingsNavRow icon="install_desktop" iconColor={accent.from} title="Download Apps" desc="Get native mobile and desktop clients" onPress={() => navigate('download-apps')} delay={130} />
+            <SettingsNavRow icon="install_desktop" iconColor={accent.from} title={t.hub.studioSettings.downloadTitle || 'Download Apps'} desc={t.hub.studioSettings.downloadDesc || 'Get native mobile and desktop clients'} onPress={() => navigate('download-apps')} delay={130} />
           )}
           {!isNative() && (
-            <SettingsNavRow icon="keyboard" iconColor={accent.from} title="Keyboard Shortcuts" desc="View quick key bindings" onPress={() => navigate('keyboard-shortcuts')} last delay={140} />
+            <SettingsNavRow icon="keyboard" iconColor={accent.from} title={t.hub.studioSettings.keyboardTitle || 'Keyboard Shortcuts'} desc={t.hub.studioSettings.keyboardDesc || 'View quick key bindings'} onPress={() => navigate('keyboard-shortcuts')} last delay={140} />
           )}
         </div>
 
-        <SettingsSectionLabel delay={170}>Legal</SettingsSectionLabel>
+        <SettingsSectionLabel delay={170}>{t.hub.studioSettings.legalLabel || 'Legal'}</SettingsSectionLabel>
         <div style={cardStyle}>
-          <SettingsNavRow icon="gavel" iconColor={accent.from} title="Terms of Service" desc="Read terms and conditions" onPress={() => navigate('terms')} delay={180} />
-          <SettingsNavRow icon="policy" iconColor={accent.from} title="Privacy Policy" desc="Read privacy guidelines" onPress={() => navigate('privacy-policy')} last delay={190} />
+          <SettingsNavRow icon="gavel" iconColor={accent.from} title={t.hub.studioSettings.termsTitle || 'Terms of Service'} desc={t.hub.studioSettings.termsDesc || 'Read terms and conditions'} onPress={() => navigate('terms')} delay={180} />
+          <SettingsNavRow icon="policy" iconColor={accent.from} title={t.hub.studioSettings.privacyTitle || 'Privacy Policy'} desc={t.hub.studioSettings.privacyDesc || 'Read privacy guidelines'} onPress={() => navigate('privacy-policy')} last delay={190} />
         </div>
 
-        <SettingsSectionLabel delay={210}>Feedback</SettingsSectionLabel>
+        <SettingsSectionLabel delay={210}>{t.hub.studioSettings.feedbackLabel || 'Feedback'}</SettingsSectionLabel>
         <div style={cardStyle}>
-          <SettingsNavRow icon="bug_report" iconColor={accent.from} title="Report a Bug" desc="Send us feedback or bug reports" onPress={() => navigate('bug-report')} last delay={220} />
+          <SettingsNavRow icon="bug_report" iconColor={accent.from} title={t.hub.studioSettings.bugTitle || 'Report a Bug'} desc={t.hub.studioSettings.bugDesc || 'Send us feedback or bug reports'} onPress={() => navigate('bug-report')} last delay={220} />
         </div>
 
         <SettingsSectionLabel delay={240}>{(t.hub as { studioSettings?: { systemAbout?: string } }).studioSettings?.systemAbout ?? 'System & About'}</SettingsSectionLabel>
@@ -4425,7 +4867,7 @@ User Agent: [Automatically Generated]
 
           <SettingsNavRow icon="info" iconColor={accent.from} title={t.settings.sections.about} desc={APP_VERSION_LABEL} onPress={() => navigate('about')} last={!settings.developerMode} delay={260} />
           {settings.developerMode && (
-            <SettingsNavRow icon="terminal" iconColor={accent.from} title="Developer Options" desc="Update simulation, logs, and controls" onPress={() => navigate('developer')} last delay={270} />
+            <SettingsNavRow icon="terminal" iconColor={accent.from} title={t.hub.studioSettings.developerTitle || 'Developer Options'} desc={t.hub.studioSettings.developerDesc || 'Update simulation, logs, and controls'} onPress={() => navigate('developer')} last delay={270} />
           )}
         </div>
 
@@ -4436,31 +4878,31 @@ User Agent: [Automatically Generated]
 
   const activePageId = page === 'main' ? 'general' : page;
 
-  const sections = [
+  const sections = useMemo(() => [
     {
-      label: lang === 'es' ? 'Usuario' : 'User',
+      label: t.hub.studioSettings.userLabel || (lang === 'es' ? 'Usuario' : 'User'),
       items: [
-        { id: 'profile' as const, icon: 'account_circle', label: lang === 'es' ? 'Perfil y Cuenta' : 'Profile & Account' },
+        { id: 'profile' as const, icon: 'account_circle', label: t.hub.studioSettings.profileTitle || (lang === 'es' ? 'Perfil y Cuenta' : 'Profile & Account') },
       ]
     },
     {
-      label: lang === 'es' ? 'Preferencias' : 'Preferences',
+      label: t.hub.studioSettings.preferencesLabel || (lang === 'es' ? 'Preferencias' : 'Preferences'),
       items: [
-        { id: 'general' as const, icon: 'settings', label: lang === 'es' ? 'Ajustes' : 'Settings' },
-        { id: 'appearance' as const, icon: 'palette', label: lang === 'es' ? 'Apariencia' : 'Appearance' },
-        { id: 'language' as const, icon: 'language', label: lang === 'es' ? 'Idioma' : 'Language' },
-        { id: 'privacy' as const, icon: 'security', label: lang === 'es' ? 'Privacidad y Seguridad' : 'Privacy & Security' },
+        { id: 'general' as const, icon: 'settings', label: t.hub.studioSettings.generalTitle || (lang === 'es' ? 'Ajustes' : 'Settings') },
+        { id: 'appearance' as const, icon: 'palette', label: t.settings.sections.appearance || (lang === 'es' ? 'Apariencia' : 'Appearance') },
+        { id: 'language' as const, icon: 'language', label: t.settings.sections.language || (lang === 'es' ? 'Idioma' : 'Language') },
+        { id: 'privacy' as const, icon: 'security', label: t.hub.studioSettings.privacyTitle || (lang === 'es' ? 'Privacidad y Seguridad' : 'Privacy & Security') },
       ]
     },
     {
-      label: lang === 'es' ? 'Aplicación' : 'Application',
+      label: t.hub.studioSettings.applicationLabel || (lang === 'es' ? 'Aplicación' : 'Application'),
       items: [
-        { id: 'release-notes' as const, icon: 'article', label: lang === 'es' ? 'Notas de Lanzamiento' : 'Release Notes' },
-        { id: 'about' as const, icon: 'info', label: lang === 'es' ? 'Acerca de Studio' : 'About & Version' },
-        ...(settings.developerMode ? [{ id: 'developer' as const, icon: 'terminal', label: lang === 'es' ? 'Opciones de Desarrollador' : 'Developer Options' }] : []),
+        { id: 'release-notes' as const, icon: 'article', label: t.hub.studioSettings.releaseTitle || (lang === 'es' ? 'Notas de Lanzamiento' : 'Release Notes') },
+        { id: 'about' as const, icon: 'info', label: t.settings.sections.about || (lang === 'es' ? 'Acerca de Studio' : 'About & Version') },
+        ...(settings.developerMode ? [{ id: 'developer' as const, icon: 'terminal', label: t.hub.studioSettings.developerTitle || (lang === 'es' ? 'Opciones de Desarrollador' : 'Developer Options') }] : []),
       ]
     }
-  ];
+  ], [t, settings.developerMode, lang]);
 
   const getPageTitle = (id: SettingsPageId | 'profile') => {
     for (const section of sections) {
@@ -4656,10 +5098,11 @@ function useHubNavItems(): { id: HubTab; icon: string; label: string }[] {
   ];
 }
 
-function HubNav({ tab, setTab, accent }: {
+function HubNav({ tab, setTab, accent, introFinished = true }: {
   tab: HubTab;
   setTab: (t: HubTab) => void;
   accent: { from: string; to: string; mid: string };
+  introFinished?: boolean;
 }) {
   const { settings } = useChordStore();
   const HUB_NAV_ITEMS = useHubNavItems();
@@ -4763,29 +5206,11 @@ function HubNav({ tab, setTab, accent }: {
           : '0 12px 48px rgba(0,0,0,0.50), 0 1.5px 0 rgba(255,255,255,0.08) inset',
         zIndex: 50,
         overflow: 'hidden',
-        pointerEvents: (navHidden || navCollapsed) ? 'none' : 'auto',
-        transform: !entered
-          ? 'translateX(-50%) translateY(24px)'
-          : navHidden
-            ? 'translateX(-50%) translateY(calc(100% + 32px))'
-            : 'translateX(-50%) translateY(0px)',
-        opacity: entered ? 1 : 0,
-        clipPath: navCollapsed
-          ? `inset(${Math.max(0, expandedH - 5)}px ${Math.max(0, Math.floor((expandedW - 90) / 2))}px 0 ${Math.max(0, Math.floor((expandedW - 90) / 2))}px round 99px)`
-          : 'inset(0 0 0 0 round 2rem)',
-        willChange: 'clip-path, transform, opacity',
-        transition: [
-          navCollapsed
-            ? 'clip-path 500ms cubic-bezier(0.4,0,0.2,1)'
-            : 'clip-path 380ms cubic-bezier(0.16,1,0.3,1)',
-          navCollapsed
-            ? 'transform 500ms cubic-bezier(0.4,0,0.2,1)'
-            : 'transform 380ms cubic-bezier(0.16,1,0.3,1)',
-          'opacity          500ms cubic-bezier(0.16,1,0.3,1)',
-          'background-color 300ms ease',
-          'border-color     300ms ease',
-          'box-shadow       300ms ease',
-        ].join(', '),
+        pointerEvents: (navHidden || navCollapsed || !introFinished) ? 'none' : 'auto',
+        transform: getSharedNavTransform(navHidden, navCollapsed, entered && introFinished),
+        opacity: getSharedNavOpacity(navHidden, navCollapsed, entered && introFinished),
+        willChange: 'transform, opacity',
+        transition: SHARED_NAV_TRANSITION,
         backdropFilter: 'blur(20px)',
         WebkitBackdropFilter: 'blur(20px)',
       }}
@@ -4794,8 +5219,7 @@ function HubNav({ tab, setTab, accent }: {
         position: 'absolute', inset: 0,
         display: 'flex', alignItems: 'center', justifyContent: 'space-around',
         padding: '6px 8px',
-        opacity: navCollapsed ? 0 : 1,
-        transition: navCollapsed ? 'opacity 100ms ease' : 'opacity 350ms ease 180ms',
+        opacity: 1,
         willChange: 'opacity',
       }}>
       {/* Sliding pill */}
@@ -4883,6 +5307,7 @@ function HubHelp({
   setTab: React.Dispatch<React.SetStateAction<HubTab>>;
 }) {
   const { settings } = useChordStore();
+  const t = useT();
   const lang = settings.language ?? 'en';
   const isWebDesktop = useIsWebDesktop();
 
@@ -5097,12 +5522,12 @@ function HubHelp({
               }}
             >
               <span className="material-symbols-outlined" style={{ fontSize: 18 }}>download</span>
-              Download APK
+              {t.help.downloadApps.downloadApk}
             </a>
           </div>
           <div style={{ height: 1, borderTop: '1px solid rgba(128, 128, 128, 0.08)' }} />
           <p style={{ margin: 0, fontSize: 12, color: 'var(--c-text-secondary)', lineHeight: 1.5 }}>
-            To install: download and run the APK on your device. You may need to enable "Install from Unknown Sources" in your system security settings.
+            {t.help.downloadApps.installApkDesc}
           </p>
         </div>
 
@@ -5125,17 +5550,17 @@ function HubHelp({
                   Web Version (PWA)
                 </h3>
                 <span style={{ fontSize: 12, color: 'var(--c-text-secondary)' }}>
-                  v4.0.0 (Web)
+                  {t.help.downloadApps.pwaVersion}
                 </span>
               </div>
             </div>
             <div style={{ fontSize: 12, fontWeight: 700, color: accent.from, background: `${accent.from}22`, padding: '6px 12px', borderRadius: 8 }}>
-              Running Now
+              {t.help.downloadApps.runningNow}
             </div>
           </div>
           <div style={{ height: 1, borderTop: '1px solid rgba(128, 128, 128, 0.08)' }} />
           <p style={{ margin: 0, fontSize: 12, color: 'var(--c-text-secondary)', lineHeight: 1.5 }}>
-            Enjoy the full experience on any desktop or mobile device. Install as a Progressive Web App (PWA) directly via your browser's install menu for offline support and standalone window display.
+            {t.help.downloadApps.installPwaDesc}
           </p>
         </div>
 
@@ -5163,7 +5588,7 @@ function HubHelp({
                 </span>
               </div>
               <span style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', color: accent.from, opacity: 0.8 }}>
-                Coming soon
+                {t.help.downloadApps.comingSoon}
               </span>
             </div>
           ))}
@@ -5175,19 +5600,19 @@ function HubHelp({
   function renderKeyboardShortcutsContent() {
     const categories = [
       {
-        title: 'Stage Mode (Stagex)',
+        title: t.help.keyboardShortcuts.stagexTitle,
         shortcuts: [
-          { keys: ['Space', '→', '↓'], desc: 'Advance to next scene (Forward)' },
-          { keys: ['←', '↑'], desc: 'Go back to previous scene (Backward)' },
-          { keys: ['Esc'], desc: 'Close Stage Mode / Exit fullscreen' }
+          { keys: ['Space', '→', '↓'], desc: t.help.keyboardShortcuts.nextScene },
+          { keys: ['←', '↑'], desc: t.help.keyboardShortcuts.prevScene },
+          { keys: ['Esc'], desc: t.help.keyboardShortcuts.exitStage }
         ]
       },
       {
-        title: 'Sequencer & Editing (Drumex)',
+        title: t.help.keyboardShortcuts.drumexTitle,
         shortcuts: [
-          { keys: ['Ctrl', 'Z'], desc: 'Undo last editing step' },
-          { keys: ['Ctrl', 'Y'], desc: 'Redo last undone step' },
-          { keys: ['Ctrl', 'Shift', 'Z'], desc: 'Redo last undone step (Alternative)' }
+          { keys: ['Ctrl', 'Z'], desc: t.help.keyboardShortcuts.undo },
+          { keys: ['Ctrl', 'Y'], desc: t.help.keyboardShortcuts.redo },
+          { keys: ['Ctrl', 'Shift', 'Z'], desc: t.help.keyboardShortcuts.redoAlt }
         ]
       }
     ];
@@ -5245,19 +5670,19 @@ function HubHelp({
     return (
       <div style={{ display: 'flex', flexDirection: 'column', gap: 16, fontSize: 13, color: 'var(--c-text-secondary)', lineHeight: 1.6, paddingBottom: 24 }}>
         <p style={{ margin: 0 }}>
-          Welcome to Studio. By accessing or using our application, you agree to comply with and be bound by the following Terms of Service. Please read them carefully.
+          {t.help.terms.welcome}
         </p>
-        <h4 style={{ color: 'var(--c-text-primary)', margin: '8px 0 4px 0', fontSize: 14, fontWeight: 700 }}>1. Ownership of Content</h4>
+        <h4 style={{ color: 'var(--c-text-primary)', margin: '8px 0 4px 0', fontSize: 14, fontWeight: 700 }}>{t.help.terms.h1}</h4>
         <p style={{ margin: 0 }}>
-          All musical patterns, drum sequences, settings, and other project data created by you using Studio's tools (Chordex, Drumex, Stagex, Groovex, Vocalex) remain entirely your property. We lay no claim of copyright, trademark, or ownership over your creative output.
+          {t.help.terms.p1}
         </p>
-        <h4 style={{ color: 'var(--c-text-primary)', margin: '8px 0 4px 0', fontSize: 14, fontWeight: 700 }}>2. Use of Service</h4>
+        <h4 style={{ color: 'var(--c-text-primary)', margin: '8px 0 4px 0', fontSize: 14, fontWeight: 700 }}>{t.help.terms.h2}</h4>
         <p style={{ margin: 0 }}>
-          Studio is provided on a local-first basis. Data sync features are provided for your personal backup convenience. You agree not to abuse or attempt to overload the sync servers.
+          {t.help.terms.p2}
         </p>
-        <h4 style={{ color: 'var(--c-text-primary)', margin: '8px 0 4px 0', fontSize: 14, fontWeight: 700 }}>3. Disclaimer of Warranties</h4>
+        <h4 style={{ color: 'var(--c-text-primary)', margin: '8px 0 4px 0', fontSize: 14, fontWeight: 700 }}>{t.help.terms.h3}</h4>
         <p style={{ margin: 0 }}>
-          Studio is provided "as is" and "as available" without any warranties of any kind. While we aim to protect project data using reliable local storage and cloud sync mechanisms, we cannot guarantee data will not be lost. We recommend periodic manual backups.
+          {t.help.terms.p3}
         </p>
       </div>
     );
@@ -5267,19 +5692,19 @@ function HubHelp({
     return (
       <div style={{ display: 'flex', flexDirection: 'column', gap: 16, fontSize: 13, color: 'var(--c-text-secondary)', lineHeight: 1.6, paddingBottom: 24 }}>
         <p style={{ margin: 0 }}>
-          Your privacy is extremely important to us. This Privacy Policy details how Studio collects, uses, and safeguards your data.
+          {t.help.privacy.welcome}
         </p>
-        <h4 style={{ color: 'var(--c-text-primary)', margin: '8px 0 4px 0', fontSize: 14, fontWeight: 700 }}>1. Local-First Storage</h4>
+        <h4 style={{ color: 'var(--c-text-primary)', margin: '8px 0 4px 0', fontSize: 14, fontWeight: 700 }}>{t.help.privacy.h1}</h4>
         <p style={{ margin: 0 }}>
-          By default, all your project settings, drum sequences, and songs are stored locally on your device using IndexedDB and localStorage. None of this creative work leaves your device unless you explicitly enable Cloud Sync.
+          {t.help.privacy.p1}
         </p>
-        <h4 style={{ color: 'var(--c-text-primary)', margin: '8px 0 4px 0', fontSize: 14, fontWeight: 700 }}>2. Cloud Backup & Authentication</h4>
+        <h4 style={{ color: 'var(--c-text-primary)', margin: '8px 0 4px 0', fontSize: 14, fontWeight: 700 }}>{t.help.privacy.h2}</h4>
         <p style={{ margin: 0 }}>
-          If you create a Studio Account, we use Firebase to manage your login credentials. Your project backups are stored securely in Firestore databases. We only use this data to perform cross-device syncing at your request.
+          {t.help.privacy.p2}
         </p>
-        <h4 style={{ color: 'var(--c-text-primary)', margin: '8px 0 4px 0', fontSize: 14, fontWeight: 700 }}>3. No Third-Party Tracking</h4>
+        <h4 style={{ color: 'var(--c-text-primary)', margin: '8px 0 4px 0', fontSize: 14, fontWeight: 700 }}>{t.help.privacy.h3}</h4>
         <p style={{ margin: 0 }}>
-          Studio does not use telemetry, advertising trackers, or external behavioral analytics. Your interaction with the app remains entirely private.
+          {t.help.privacy.p3}
         </p>
       </div>
     );
@@ -5289,7 +5714,7 @@ function HubHelp({
     const handleCopyTemplate = () => {
       const template = `[STUDIO BUG REPORT]
 ------------------------------------
-App Version: v${APP_VERSION} (Web)
+App Version: v${APP_VERSION} (${isNative() ? 'Android' : 'Web'})
 User Agent: ${navigator.userAgent}
 Date: ${new Date().toISOString()}
 
@@ -5315,8 +5740,8 @@ Date: ${new Date().toISOString()}
       <div style={{ display: 'flex', flexDirection: 'column', gap: 16, paddingBottom: 24 }}>
         <p style={{ margin: 0, fontSize: 13, color: 'var(--c-text-secondary)', lineHeight: 1.5 }}>
           {isNative()
-            ? "If you encounter an issue or unexpected behavior in Studio, please report it! Tap below to send us a support email with pre-filled diagnostic information."
-            : "If you encounter an issue or unexpected behavior in Studio, please report it! Copy the template below and submit it on our GitHub repository."
+            ? t.help.bugReport.nativeDesc
+            : t.help.bugReport.webDesc
           }
         </p>
 
@@ -5340,7 +5765,7 @@ Date: ${new Date().toISOString()}
           <span className="material-symbols-outlined" style={{ fontSize: 18 }}>
             {copiedBugTemplate ? 'check' : 'content_copy'}
           </span>
-          {copiedBugTemplate ? 'Copied to Clipboard!' : 'Copy Bug Template'}
+          {copiedBugTemplate ? t.help.bugReport.copied : t.help.bugReport.copyTemplate}
         </button>
 
         <div style={{
@@ -5391,7 +5816,7 @@ User Agent: [Automatically Generated]
             }}
           >
             <span className="material-symbols-outlined" style={{ fontSize: 18 }}>open_in_new</span>
-            Report a Bug on GitHub
+            {t.help.bugReport.githubBtn}
           </a>
         </div>
       </div>
@@ -5421,37 +5846,37 @@ User Agent: [Automatically Generated]
     }
   }
 
-  const sections = [
+  const sections = useMemo(() => [
     {
-      label: lang === 'es' ? 'Soporte' : 'Support',
+      label: t.hub.studioSettings.helpLabel || (lang === 'es' ? 'Soporte' : 'Support'),
       items: [
-        { id: 'help-center' as const, icon: 'contact_support', label: lang === 'es' ? 'Ayuda y Soporte' : 'Help & Support' },
-        { id: 'release-notes' as const, icon: 'article', label: lang === 'es' ? 'Notas de Lanzamiento' : 'Release Notes' },
-        { id: 'download-apps' as const, icon: 'install_desktop', label: lang === 'es' ? 'Descargar Aplicaciones' : 'Download Apps' },
-        { id: 'keyboard-shortcuts' as const, icon: 'keyboard', label: lang === 'es' ? 'Atajos de Teclado' : 'Keyboard Shortcuts' },
+        { id: 'help-center' as const, icon: 'contact_support', label: t.hub.studioSettings.helpTitle || (lang === 'es' ? 'Ayuda y Soporte' : 'Help & Support') },
+        { id: 'release-notes' as const, icon: 'article', label: t.hub.studioSettings.releaseTitle || (lang === 'es' ? 'Notas de Lanzamiento' : 'Release Notes') },
+        { id: 'download-apps' as const, icon: 'install_desktop', label: t.hub.studioSettings.downloadTitle || (lang === 'es' ? 'Descargar Aplicaciones' : 'Download Apps') },
+        { id: 'keyboard-shortcuts' as const, icon: 'keyboard', label: t.hub.studioSettings.keyboardTitle || (lang === 'es' ? 'Atajos de Teclado' : 'Keyboard Shortcuts') },
       ]
     },
     {
-      label: lang === 'es' ? 'Legal' : 'Legal',
+      label: t.hub.studioSettings.legalLabel || (lang === 'es' ? 'Legal' : 'Legal'),
       items: [
-        { id: 'terms' as const, icon: 'gavel', label: lang === 'es' ? 'Condiciones de Servicio' : 'Terms of Service' },
-        { id: 'privacy-policy' as const, icon: 'policy', label: lang === 'es' ? 'Política de Privacidad' : 'Privacy Policy' },
+        { id: 'terms' as const, icon: 'gavel', label: t.hub.studioSettings.termsTitle || (lang === 'es' ? 'Condiciones de Servicio' : 'Terms of Service') },
+        { id: 'privacy-policy' as const, icon: 'policy', label: t.hub.studioSettings.privacyTitle || (lang === 'es' ? 'Política de Privacidad' : 'Privacy Policy') },
       ]
     },
     {
-      label: lang === 'es' ? 'Comentarios' : 'Feedback',
+      label: t.hub.studioSettings.feedbackLabel || (lang === 'es' ? 'Comentarios' : 'Feedback'),
       items: [
-        { id: 'bug-report' as const, icon: 'bug_report', label: lang === 'es' ? 'Informar de un Error' : 'Report a Bug' },
+        { id: 'bug-report' as const, icon: 'bug_report', label: t.hub.studioSettings.bugTitle || (lang === 'es' ? 'Informar de un Error' : 'Report a Bug') },
       ]
     }
-  ];
+  ], [t, lang]);
 
   const getPageTitle = (id: HelpPageId) => {
     for (const section of sections) {
       const item = section.items.find(n => n.id === id);
       if (item) return item.label;
     }
-    return 'Help & Support';
+    return t.hub.studioSettings.helpLabel || 'Help & Support';
   };
 
   const activePageId = page === 'main' ? 'help-center' : page;
@@ -5902,6 +6327,7 @@ const FAQ_ITEMS: Record<string, FAQItem[]> = {
 };
 
 function HelpAccordion({ accent, lang }: { accent: { from: string; to: string }; lang: string }) {
+  const t = useT();
   const [openIdx, setOpenIdx] = useState<number | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [activeCategory, setActiveCategory] = useState<string | null>(null);
@@ -6103,7 +6529,7 @@ function HelpAccordion({ accent, lang }: { accent: { from: string; to: string };
         </span>
         <input
           type="text"
-          placeholder={lang === 'es' ? "Buscar ayuda y preguntas..." : "Search help articles & FAQs..."}
+          placeholder={t.help.accordion.searchPlaceholder || (lang === 'es' ? "Buscar ayuda y preguntas..." : "Search help articles & FAQs...")}
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
           style={{
@@ -6132,10 +6558,10 @@ function HelpAccordion({ accent, lang }: { accent: { from: string; to: string };
         </h3>
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
           {[
-            { id: 'getting-started', label: lang === 'es' ? 'Inicio' : 'Getting Started', icon: 'play_circle' },
+            { id: 'getting-started', label: t.help.accordion.categories.gettingStarted || (lang === 'es' ? 'Inicio' : 'Getting Started'), icon: 'play_circle' },
             { id: 'audio-midi', label: 'Audio & MIDI', icon: 'volume_up' },
-            { id: 'sync-storage', label: lang === 'es' ? 'Sincro y Almacén' : 'Sync & Storage', icon: 'cloud_sync' },
-            { id: 'troubleshooting', label: lang === 'es' ? 'Diagnóstico' : 'Diagnostics', icon: 'build' },
+            { id: 'sync-storage', label: t.help.accordion.categories.syncStorage || (lang === 'es' ? 'Sincro y Almacén' : 'Sync & Storage'), icon: 'cloud_sync' },
+            { id: 'troubleshooting', label: t.help.accordion.categories.diagnostics || (lang === 'es' ? 'Diagnóstico' : 'Diagnostics'), icon: 'build' },
           ].map((cat) => {
             const isActive = activeCategory === cat.id;
             return (
@@ -6181,7 +6607,7 @@ function HelpAccordion({ accent, lang }: { accent: { from: string; to: string };
               monitor_heart
             </span>
             <h4 style={{ margin: 0, fontSize: 14, fontWeight: 800, color: 'var(--c-text-primary)' }}>
-              {lang === 'es' ? 'Diagnóstico del Dispositivo' : 'Device Diagnostics'}
+              {t.help.accordion.diagnosticsCard.title || (lang === 'es' ? 'Diagnóstico del Dispositivo' : 'Device Diagnostics')}
             </h4>
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, fontSize: 11, color: 'var(--c-text-secondary)' }}>
@@ -6226,7 +6652,7 @@ function HelpAccordion({ accent, lang }: { accent: { from: string; to: string };
               <span className="material-symbols-outlined" style={{ fontSize: 14, animation: audioState === 'testing' ? 'spin 1s linear infinite' : 'none' }}>
                 {audioState === 'testing' ? 'sync' : 'volume_up'}
               </span>
-              {audioState === 'testing' ? 'Testing...' : 'Test Audio'}
+              {audioState === 'testing' ? (t.help.accordion.diagnosticsCard.btnTesting || 'Testing...') : (t.help.accordion.diagnosticsCard.btnTestAudio || 'Test Audio')}
             </button>
 
             <button
@@ -6249,7 +6675,7 @@ function HelpAccordion({ accent, lang }: { accent: { from: string; to: string };
               <span className="material-symbols-outlined" style={{ fontSize: 14, animation: syncState === 'syncing' ? 'spin 1s linear infinite' : 'none' }}>
                 {syncState === 'syncing' ? 'sync' : 'sync_problem'}
               </span>
-              {syncState === 'syncing' ? 'Syncing...' : 'Force Sync'}
+              {syncState === 'syncing' ? (t.help.accordion.diagnosticsCard.btnSyncing || 'Syncing...') : (t.help.accordion.diagnosticsCard.btnForceSync || 'Force Sync')}
             </button>
 
             <button
@@ -6272,7 +6698,7 @@ function HelpAccordion({ accent, lang }: { accent: { from: string; to: string };
               <span className="material-symbols-outlined" style={{ fontSize: 14, animation: cacheState === 'clearing' ? 'spin 1s linear infinite' : 'none' }}>
                 {cacheState === 'clearing' ? 'sync' : 'mop'}
               </span>
-              {cacheState === 'clearing' ? 'Clearing...' : 'Clear Cache'}
+              {cacheState === 'clearing' ? (t.help.accordion.diagnosticsCard.btnClearing || 'Clearing...') : (t.help.accordion.diagnosticsCard.btnClearCache || 'Clear Cache')}
             </button>
 
             <button
@@ -6295,7 +6721,7 @@ function HelpAccordion({ accent, lang }: { accent: { from: string; to: string };
               <span className="material-symbols-outlined" style={{ fontSize: 14, animation: securityState === 'auditing' ? 'spin 1s linear infinite' : 'none' }}>
                 {securityState === 'auditing' ? 'sync' : 'security'}
               </span>
-              {securityState === 'auditing' ? 'Auditing...' : 'Security Audit'}
+              {securityState === 'auditing' ? (t.help.accordion.diagnosticsCard.btnAuditing || 'Auditing...') : (t.help.accordion.diagnosticsCard.btnSecurityAudit || 'Security Audit')}
             </button>
 
             <button
@@ -6318,7 +6744,7 @@ function HelpAccordion({ accent, lang }: { accent: { from: string; to: string };
               <span className="material-symbols-outlined" style={{ fontSize: 14, animation: resetState === 'repairing' ? 'spin 1s linear infinite' : 'none' }}>
                 {resetState === 'repairing' ? 'sync' : 'restart_alt'}
               </span>
-              {resetState === 'repairing' ? 'Resetting...' : 'Reset & Reload'}
+              {resetState === 'repairing' ? (t.help.accordion.diagnosticsCard.btnResetting || 'Resetting...') : (t.help.accordion.diagnosticsCard.btnResetReload || 'Reset & Reload')}
             </button>
 
             <button
@@ -6340,7 +6766,7 @@ function HelpAccordion({ accent, lang }: { accent: { from: string; to: string };
               <span className="material-symbols-outlined" style={{ fontSize: 14 }}>
                 bug_report
               </span>
-              {diagEnabled ? 'Diagnostics: ON' : 'Diagnostics Overlay'}
+              {diagEnabled ? (t.help.accordion.diagnosticsCard.btnDiagOn || 'Diagnostics: ON') : (t.help.accordion.diagnosticsCard.btnDiagOff || 'Diagnostics Overlay')}
             </button>
           </div>
 

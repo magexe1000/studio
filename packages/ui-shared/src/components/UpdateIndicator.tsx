@@ -1,4 +1,5 @@
-import { useOtaUpdate, type StructuredReleaseNotes, otaDiagnostics, otaDebugLogs, APP_VERSION_LABEL, compareSemver, normalizeSemver, applyUpdate, isNative, fadeToBlackAndReload, useChordStore } from '@workspace/studio-core';
+import { useOtaUpdate, type StructuredReleaseNotes, otaDiagnostics, otaDebugLogs, APP_VERSION_LABEL, compareSemver, normalizeSemver, applyUpdate, isNative, fadeToBlackAndReload, useChordStore, isAppInstallerAvailable, AppInstaller } from '@workspace/studio-core';
+import { applyUpdateDirect, shareDownloadedApk, getDiagnosticsReport } from '@workspace/studio-core';
 /**
  * Floating "update available" indicator — top of the Hub.
  *
@@ -59,23 +60,31 @@ function CheckIconSvg() {
   );
 }
 
-function SpinnerSvg({ cFrom, cTo }: { cFrom: string; cTo: string }) {
+function GithubIcon({ size = 18, color = 'currentColor' }: { size?: number; color?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" width={size} height={size} fill={color} style={{ flexShrink: 0 }}>
+      <path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/>
+    </svg>
+  );
+}
+
+function SpinnerSvg({ cFrom, cTo, size = 14, strokeWidth = 3.2 }: { cFrom: string; cTo: string; size?: number; strokeWidth?: number }) {
   return (
     <svg
-      width="14"
-      height="14"
+      width={size}
+      height={size}
       viewBox="0 0 24 24"
       fill="none"
       stroke="currentColor"
-      strokeWidth="3.2"
+      strokeWidth={strokeWidth}
       strokeLinecap="round"
       style={{
         animation: 'lg-spin-spinner 1s linear infinite',
         flexShrink: 0,
       }}
     >
-      <circle cx="12" cy="12" r="10" stroke="rgba(255,255,255,0.15)" />
-      <path d="M12 2a10 10 0 0 1 10 10" stroke="url(#lg-spinner-grad-indicator)" />
+      <circle cx="12" cy="12" r="10" stroke="rgba(255,255,255,0.15)" strokeWidth={strokeWidth} />
+      <path d="M12 2a10 10 0 0 1 10 10" stroke="url(#lg-spinner-grad-indicator)" strokeWidth={strokeWidth} />
       <defs>
         <linearGradient id="lg-spinner-grad-indicator" x1="0%" y1="0%" x2="100%" y2="100%">
           <stop offset="0%" stopColor={cFrom} />
@@ -164,6 +173,8 @@ export default function UpdateIndicator({
   const ota = useOtaUpdate();
   const [phase, setPhase] = useState<Phase>(readInitialPhase);
   const [open, setOpen] = useState(false);
+  const [successVersion, setSuccessVersion] = useState<string | null>(null);
+  const [installFailedReason, setInstallFailedReason] = useState<string | null>(null);
   const [entered, setEntered] = useState(false);
   const [laterVersion, setLaterVersion] = useState<string | null>(readLaterVersion);
 
@@ -186,36 +197,93 @@ export default function UpdateIndicator({
     return false;
   })();
 
-  // Wipe the legacy "dismissed forever" key on mount so users who tapped
-  // Later in a previous build aren't stuck without an indicator.
-  useEffect(() => { clearLegacyDismissed(); }, []);
+  useEffect(() => {
+    console.log('[INSTRUMENTATION] [REACT] UpdateIndicator component mounted!');
+    clearLegacyDismissed();
+    return () => {
+      console.log('[INSTRUMENTATION] [REACT] UpdateIndicator component unmounted!');
+    };
+  }, []);
 
   useEffect(() => {
+    if (ota.validApkExists && ota.remoteVersion) {
+      if (ota.shouldShowRecoveryReminder(ota.remoteVersion)) {
+        console.log('[Smart Recovery] Valid APK exists on startup and reminder policy allows it. Opening modal.');
+        setOpen(true);
+      } else {
+        console.log('[Smart Recovery] Valid APK exists on startup, but suppressed by reminder policy.');
+      }
+    }
+  }, [ota.validApkExists, ota.remoteVersion]);
+
+  useEffect(() => {
+    console.log('[INSTRUMENTATION] [REACT] Add open-update-dialog event listener');
     const id = requestAnimationFrame(() => setEntered(true));
-    const handleOpen = () => setOpen(true);
+    const handleOpen = () => {
+      console.log('[INSTRUMENTATION] [REACT] studio:open-update-dialog event fired');
+      setOpen(true);
+    };
     window.addEventListener('studio:open-update-dialog', handleOpen);
     return () => {
+      console.log('[INSTRUMENTATION] [REACT] Remove open-update-dialog event listener');
       cancelAnimationFrame(id);
       window.removeEventListener('studio:open-update-dialog', handleOpen);
     };
   }, []);
 
+  useEffect(() => {
+    let active = true;
+    const checkAuthSuccess = async () => {
+      try {
+        if (isNative()) {
+          // 1. Get the last native installation result
+          const lastResult = (await AppInstaller.getLastInstallResult()) as any;
+          console.log('[OTA Success Check] Last native install result:', lastResult);
+          
+          if (lastResult.statusCode === 0) { // PackageInstaller success
+            // 2. Get the currently running native app info
+            const currentInfo = await AppInstaller.getInstalledAppInfo();
+            console.log('[OTA Success Check] Running native app info:', currentInfo);
+            
+            // 3. Verify it matches the expected version from triggerInstallation
+            const expectedCode = lastResult.expectedVersionCode ?? 0;
+            const expectedName = lastResult.expectedVersionName ?? '';
+            const codeMatches = expectedCode > 0 && currentInfo.versionCode === expectedCode;
+            const nameMatches = expectedName !== '' && currentInfo.versionName === expectedName;
+            
+            if (codeMatches || nameMatches) {
+              console.log('[OTA Success Check] Authoritative match succeeded!');
+              if (active) {
+                setSuccessVersion(currentInfo.versionName);
+                setOpen(true);
+                // Clear the logs and result so we don't show the success modal again on next boot
+                await AppInstaller.clearInstallerLogHistory();
+              }
+            } else {
+              console.log('[OTA Success Check] Expected version code/name does not match current native info.');
+            }
+          }
+        }
+      } catch (err) {
+        console.warn('[OTA Success Check] Auth success check failed:', err);
+      }
+    };
+    checkAuthSuccess();
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  useEffect(() => {
+    if (ota.updateState === 'failed' && ota.error) {
+      setInstallFailedReason(ota.error);
+    }
+  }, [ota.updateState, ota.error]);
+
   // Auto-minimize disabled per user request so the banner remains fully visible.
 
-  // Auto-OPEN the update modal whenever an update is available.
-  // NATIVE-ONLY: on web, the refresh banner handles this instead.
-  useEffect(() => {
-    if (!isNative()) return; // web uses its own non-blocking refresh banner
-    if (!ota.updateAvailable || !ota.remoteVersion) return;
-    const laterVer = readLaterVersion();
-    if (laterVer === ota.remoteVersion) return;
-
-    const autoOpened = readAutoOpenedVersion();
-    if (autoOpened === ota.remoteVersion) return;
-
-    setOpen(true);
-    writeAutoOpenedVersion(ota.remoteVersion);
-  }, [ota.updateAvailable, ota.remoteVersion, ota.updateState]);
+  // Auto-OPEN the update modal is disabled to protect the application startup sequence.
+  // The user will see a subtle pill in the corner, or they can click Check for Updates in settings.
 
   // WEB-ONLY: track whether the user dismissed the web refresh banner this session
   const [webBannerDismissed, setWebBannerDismissed] = useState(() => {
@@ -297,6 +365,10 @@ export default function UpdateIndicator({
             ota.dismissUpdate();
           }
         }}
+        successVersion={successVersion}
+        setSuccessVersion={setSuccessVersion}
+        installFailedReason={installFailedReason}
+        setInstallFailedReason={setInstallFailedReason}
       />
     );
   }
@@ -406,6 +478,7 @@ export default function UpdateIndicator({
     if (ota.remoteVersion) {
       writeLaterVersion(ota.remoteVersion);
       setLaterVersion(ota.remoteVersion);
+      ota.recordDismissal(ota.remoteVersion);
       try {
         const key = 'studio:dismissedVersions';
         const val = localStorage.getItem(key);
@@ -462,7 +535,7 @@ export default function UpdateIndicator({
           position: 'fixed',
           top: isBanner ? 'calc(env(safe-area-inset-top) + 14px)' : 'calc(env(safe-area-inset-top) + 28px)',
           right: isBanner ? '50%' : '20px',
-          zIndex: 60,
+          zIndex: 8900,
           width: isBanner ? 'min(360px, calc(100vw - 28px))' : 36,
           height: isBanner ? 52 : 36,
           padding: isBanner ? '0 12px 0 14px' : 0,
@@ -595,7 +668,14 @@ export default function UpdateIndicator({
               setPhase('pill');
               markBannerShown();
             }
+            if (ota.remoteVersion) {
+              ota.recordDismissal(ota.remoteVersion);
+            }
           }}
+          successVersion={successVersion}
+          setSuccessVersion={setSuccessVersion}
+          installFailedReason={installFailedReason}
+          setInstallFailedReason={setInstallFailedReason}
         />
       )}
 
@@ -614,6 +694,10 @@ export default function UpdateIndicator({
           from { transform: rotate(0deg); }
           to   { transform: rotate(360deg); }
         }
+        @keyframes lg-indeterminate-progress {
+          0% { left: -40%; }
+          100% { left: 100%; }
+        }
       `}</style>
     </>
   );
@@ -628,6 +712,10 @@ function UpdateModal({
   accentTo,
   onClose,
   onLater,
+  successVersion,
+  setSuccessVersion,
+  installFailedReason,
+  setInstallFailedReason,
 }: {
   fromLabel: string;
   toVersion: string;
@@ -637,11 +725,82 @@ function UpdateModal({
   accentTo: string;
   onClose: () => void;
   onLater: () => void;
+  successVersion: string | null;
+  setSuccessVersion: (v: string | null) => void;
+  installFailedReason: string | null;
+  setInstallFailedReason: (v: string | null) => void;
 }) {
   const ota = useOtaUpdate();
   const [permissionBlocked, setPermissionBlocked] = useState(false);
   const [diagnosticsOpen, setDiagnosticsOpen] = useState(false);
   const [linkCopied, setLinkCopied] = useState(false);
+  const [showGitHubConfirm, setShowGitHubConfirm] = useState(false);
+
+  const getDiagnosticsText = () => {
+    return [
+      '=== STUDIO UPDATE DIAGNOSTICS ===',
+      `Failure Timestamp: ${otaDiagnostics.timestamp || 'N/A'}`,
+      `Device Model/Manufacturer: ${otaDiagnostics.deviceModel || 'N/A'}`,
+      `Android Version: ${otaDiagnostics.androidVersion || 'N/A'}`,
+      `Permission State: ${otaDiagnostics.permissionState || 'N/A'}`,
+      `Exception Message: ${otaDiagnostics.exceptionMessage || 'N/A'}`,
+      `Failure Reason & Stack Trace:`,
+      otaDiagnostics.failureReason || 'N/A',
+      `Download URL Used: ${otaDiagnostics.downloadUrl || 'N/A'}`,
+      `APK Path: ${otaDiagnostics.apkPath || 'N/A'}`,
+      `File Size: ${otaDiagnostics.fileSize || 'N/A'}`,
+      `SHA-256 Expected: ${otaDiagnostics.shaExpected || 'N/A'}`,
+      `SHA-256 Calculated: ${otaDiagnostics.shaCalculated || 'N/A'}`,
+      `Installer Result: ${otaDiagnostics.installerResult || 'N/A'}`,
+      '',
+      '=== COMPREHENSIVE DEBUG LOGS ===',
+      `App Version (APP_VERSION): ${otaDebugLogs.appVersion}`,
+      `APK Version (Wrapper): ${otaDebugLogs.nativeApkVersion || 'N/A'}`,
+      `Update System: APK only`,
+      `OTA System: disabled`,
+      `AppInstaller Available: ${otaDebugLogs.appInstallerAvailable}`,
+      `downloadApk Available: ${otaDebugLogs.downloadApkAvailable}`,
+      `verifyApkSha256 Available: ${otaDebugLogs.verifyApkSha256Available}`,
+      `installApk Available: ${otaDebugLogs.installApkAvailable}`,
+      `openInstallPermissionSettings Available: ${otaDebugLogs.openInstallPermissionSettingsAvailable}`,
+      `Registered Capacitor Plugins: ${otaDebugLogs.registeredPlugins}`,
+      `Plugin Method Check: ${otaDebugLogs.pluginMethodCheck}`,
+      `Fetched version.json: ${otaDebugLogs.fetchedVersionJson || 'N/A'}`,
+      `Fetched app-release.json: ${otaDebugLogs.fetchedAppReleaseJson || 'N/A'}`,
+      `Update Type: ${otaDebugLogs.updateType || 'N/A'}`,
+      `Download Status: ${otaDebugLogs.downloadStatus || 'N/A'}`,
+      `SHA Verification Status: ${otaDebugLogs.shaVerification || 'N/A'}`,
+      `File Details: ${otaDebugLogs.fileDetails || 'N/A'}`,
+      `Install Error / Log: ${otaDebugLogs.installError || 'N/A'}`,
+      `Installer Launch Status: ${otaDebugLogs.installerLaunchStatus || 'N/A'}`,
+      `Last Exception Stack Trace:`,
+      otaDebugLogs.lastExceptionStackTrace || 'N/A',
+      '',
+      '=== ELIGIBILITY DETAILS ===',
+      `Installed package: ${otaDebugLogs.installedPackageName || 'N/A'}`,
+      `Installed versionName: ${otaDebugLogs.installedVersionName || 'N/A'}`,
+      `Installed versionCode: ${otaDebugLogs.installedVersionCode || 'N/A'}`,
+      `Installed signing SHA-256: ${otaDebugLogs.installedSigningSha256 || 'N/A'}`,
+      `Installed debuggable: ${otaDebugLogs.installedDebuggable !== null ? otaDebugLogs.installedDebuggable : 'N/A'}`,
+      '',
+      `Downloaded package: ${otaDebugLogs.downloadedPackageName || 'N/A'}`,
+      `Downloaded versionName: ${otaDebugLogs.downloadedVersionName || 'N/A'}`,
+      `Downloaded versionCode: ${otaDebugLogs.downloadedVersionCode || 'N/A'}`,
+      `Downloaded signing SHA-256: ${otaDebugLogs.downloadedSigningSha256 || 'N/A'}`,
+      `Downloaded debuggable: ${otaDebugLogs.downloadedDebuggable !== null ? otaDebugLogs.downloadedDebuggable : 'N/A'}`,
+      `Downloaded isValidApk: ${otaDebugLogs.downloadedIsValidApk !== null ? otaDebugLogs.downloadedIsValidApk : 'N/A'}`,
+      `Downloaded isUniversalApk: ${otaDebugLogs.downloadedIsUniversalApk !== null ? otaDebugLogs.downloadedIsUniversalApk : 'N/A'}`,
+      `Downloaded size: ${otaDebugLogs.downloadedApkSize || 'N/A'}`,
+      '',
+      `Eligibility package match: ${otaDebugLogs.eligibilityPackageNameMatch !== null ? otaDebugLogs.eligibilityPackageNameMatch : 'N/A'}`,
+      `Eligibility signing match: ${otaDebugLogs.eligibilitySigningMatch !== null ? otaDebugLogs.eligibilitySigningMatch : 'N/A'}`,
+      `Eligibility versionCode higher: ${otaDebugLogs.eligibilityVersionCodeHigher !== null ? otaDebugLogs.eligibilityVersionCodeHigher : 'N/A'}`,
+      `Eligibility release build: ${otaDebugLogs.eligibilityReleaseBuild !== null ? otaDebugLogs.eligibilityReleaseBuild : 'N/A'}`,
+      `Eligibility valid APK: ${otaDebugLogs.eligibilityValidApk !== null ? otaDebugLogs.eligibilityValidApk : 'N/A'}`,
+      `Eligibility final install: ${otaDebugLogs.eligibilityFinalInstall || 'N/A'}`,
+      `Eligibility reason: ${otaDebugLogs.eligibilityReason || 'N/A'}`
+    ].join('\n');
+  };
 
   const isApkFlow = ota.updateType === 'apk' || ota.updateType === 'both';
 
@@ -651,10 +810,12 @@ function UpdateModal({
 
   const handleStartUpdate = async () => {
     try {
-      await ota.downloadUpdate('UpdateIndicator: UpdateModal');
-      if (!isApkFlow) {
-        await ota.applyUpdate('UpdateIndicator: UpdateModal');
+      if (isNative() && isAppInstallerAvailable()) {
+        const { AppInstaller } = await import('@workspace/studio-core');
+        await AppInstaller.clearInstallerLogHistory();
       }
+      await ota.downloadUpdate('UpdateIndicator: UpdateModal');
+      await ota.applyUpdate('UpdateIndicator: UpdateModal');
     } catch (err) {
       console.error('[UpdateIndicator] Start update failed:', err);
     }
@@ -673,19 +834,6 @@ function UpdateModal({
       
       // Attempt to launch installer
       await ota.applyUpdate('UpdateIndicator: UpdateModal');
-      
-      // Close dialog cleanly on successful launch
-      onClose();
-      
-      // Minimize app cleanly
-      if (isNative()) {
-        try {
-          const { App } = await import('@capacitor/app');
-          await App.minimizeApp();
-        } catch (e) {
-          console.warn('Failed to minimize app:', e);
-        }
-      }
     } catch (err) {
       console.error('[UpdateIndicator] APK Install failed:', err);
     }
@@ -722,11 +870,6 @@ function UpdateModal({
         if (hasPerm && active) {
           setPermissionBlocked(false);
           await ota.applyUpdate('UpdateIndicator: UpdateModal');
-          onClose();
-          if (isNative()) {
-            const { App } = await import('@capacitor/app');
-            await App.minimizeApp();
-          }
         }
       } catch (err) {
         console.warn('[Permissions] Failed to query status:', err);
@@ -748,31 +891,7 @@ function UpdateModal({
     };
   }, [permissionBlocked, ota]);
 
-  const SpinnerSvg = ({ cFrom, cTo }: { cFrom: string; cTo: string }) => {
-    return (
-      <svg
-        width="28"
-        height="28"
-        viewBox="0 0 24 24"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="3.2"
-        strokeLinecap="round"
-        style={{
-          animation: 'lg-spin-spinner 1s linear infinite',
-        }}
-      >
-        <circle cx="12" cy="12" r="10" stroke="rgba(255,255,255,0.15)" />
-        <path d="M12 2a10 10 0 0 1 10 10" stroke="url(#lg-spinner-grad-indicator-dialog)" />
-        <defs>
-          <linearGradient id="lg-spinner-grad-indicator-dialog" x1="0%" y1="0%" x2="100%" y2="100%">
-            <stop offset="0%" stopColor={cFrom} />
-            <stop offset="100%" stopColor={cTo} />
-          </linearGradient>
-        </defs>
-      </svg>
-    );
-  };
+
 
   // Select Icon and Colors based on State
   let iconName = 'download';
@@ -784,9 +903,38 @@ function UpdateModal({
   let showButtons = true;
   let showSpinner = false;
 
-  let state = permissionBlocked ? 'permission_blocked' : ota.updateState;
-  if (state === 'available' && ota.reinstallRequired) {
-    state = 'reinstall_warning';
+  let state = successVersion
+    ? 'update_success'
+    : (installFailedReason
+        ? 'install_failed'
+        : (permissionBlocked ? 'permission_blocked' : ota.updateState)
+      );
+  if (state === 'update_available') {
+    if (ota.reinstallRequired) {
+      state = 'reinstall_warning';
+    } else if (ota.apkUpdateRequired && !isAppInstallerAvailable()) {
+      state = 'manual_apk_required';
+    } else {
+      state = 'available';
+    }
+  } else if (state === 'waiting_for_confirmation') {
+    state = 'waitingForUserInstallConfirmation';
+  } else if (ota.updateState === 'ready_to_install') {
+    state = 'readyForInstallPrompt';
+  } else if (ota.updateState === 'completed') {
+    state = 'installedOrReady';
+  } else if (ota.updateState === 'idle') {
+    if (ota.error) {
+      if (ota.error.includes('Signature mismatch')) {
+        state = 'signature_mismatch';
+      } else if (ota.error.includes('versionCode_low')) {
+        state = 'versionCode_low';
+      } else {
+        state = 'failed';
+      }
+    } else {
+      state = 'idle';
+    }
   }
 
   // Collapsible changelog section state
@@ -853,8 +1001,25 @@ function UpdateModal({
       description = 'This version of Studio cannot install updates automatically. Please download and install Studio manually once. Future updates will install automatically.';
       break;
 
-    case 'downloading_ota':
-    case 'downloading_apk':
+    case 'preparing':
+      iconName = 'sync';
+      iconColor = purpleFrom;
+      showSpinner = true;
+      title = 'Preparing update';
+      description = 'Initializing update system...';
+      showButtons = false;
+      break;
+
+    case 'enteringProgressScreen':
+      iconName = 'sync';
+      iconColor = purpleFrom;
+      showSpinner = true;
+      title = 'Starting update';
+      description = 'Transitioning to progress screen...';
+      showButtons = false;
+      break;
+
+    case 'downloading':
       iconName = 'cloud_download';
       iconColor = purpleFrom;
       title = 'Downloading update';
@@ -863,37 +1028,168 @@ function UpdateModal({
       showButtons = false;
       break;
 
-    case 'verifying_apk':
+    case 'verifying':
       iconName = 'verified_user';
       iconColor = purpleFrom;
       title = 'Verifying update';
-      description = 'Studio is checking the update package before installation.';
+      description = ota.statusText || 'Studio is checking the update package before installation.';
       showSpinner = true;
       showButtons = false;
       break;
 
-    case 'ready_to_install':
+    case 'readyForInstallPrompt':
       iconName = 'task_alt';
       iconColor = '#22c55e';
       title = 'Ready to install';
       description = 'The update package is verified. Android will now ask you to confirm the installation.';
       break;
 
+    case 'waitingForUserInstallConfirmation':
+      iconName = 'security';
+      iconColor = '#eab308';
+      title = 'Installation pending';
+      description = 'Please follow system prompts to complete installation.';
+      showSpinner = true;
+      break;
+
     case 'installing':
-    case 'completed':
+    case 'installedOrReady':
       iconName = 'sync';
       iconColor = purpleFrom;
       showSpinner = true;
-      title = 'Installing update';
-      description = ota.statusText || 'Handing over to Android Package Installer...';
+      title = 'Installing update...';
+      description = ota.statusText || 'Waiting for system confirmation...';
       showButtons = false;
+      break;
+
+    case 'installed':
+    case 'update_success':
+      iconName = 'check_circle';
+      iconColor = '#22c55e';
+      title = 'App updated successfully';
+      description = `Studio has been updated to version ${successVersion || ota.remoteVersion || 'latest'}.`;
+      showButtons = true;
+      showSpinner = false;
+      break;
+
+    case 'install_failed':
+      iconName = 'error';
+      iconColor = '#f87171';
+      title = 'Installation Failed';
+      description = installFailedReason || 'The installation could not be launched.';
+      showButtons = false;
+      showSpinner = false;
       break;
 
     case 'signature_mismatch':
       iconName = 'warning';
       iconColor = '#f87171';
-      title = 'Manual reinstall required';
-      description = 'This installed copy of Studio cannot be updated in place because it was signed differently. Back up your data, uninstall Studio, and install the latest official APK.';
+      title = 'Signature Mismatch Detected';
+      description = (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 12, textAlign: 'left', fontSize: 13, marginTop: 4 }}>
+          <div>
+            <p style={{ margin: 0, fontWeight: 700, color: '#f87171', lineHeight: 1.4 }}>
+              Technical Explanation:
+            </p>
+            <p style={{ margin: '2px 0 0', color: 'var(--c-text-secondary)', lineHeight: 1.4 }}>
+              The cryptographic signature of the downloaded update package does not match the signature of the installed application.
+            </p>
+          </div>
+
+          <div>
+            <p style={{ margin: 0, fontWeight: 700, color: 'var(--c-text-primary)', lineHeight: 1.4 }}>
+              Human Explanation:
+            </p>
+            <p style={{ margin: '2px 0 0', color: 'var(--c-text-secondary)', lineHeight: 1.4 }}>
+              Android security policy blocks overwriting applications signed with different certificate keys to prevent spoofing and unauthorized modification. This usually occurs if you switch between the official production releases and developer builds.
+            </p>
+          </div>
+
+          <div style={{ background: 'rgba(248,113,113,0.06)', border: '1px solid rgba(248,113,113,0.2)', padding: '10px 12px', borderRadius: 10 }}>
+            <p style={{ margin: 0, fontWeight: 700, color: '#f87171' }}>
+              Detected Cause & Root Cause:
+            </p>
+            <p style={{ margin: '2px 0 0', color: 'var(--c-text-secondary)', fontSize: 12, lineHeight: 1.45 }}>
+              {otaDebugLogs.rootCause || (otaDebugLogs.eligibilitySigningMatch === false 
+                ? 'Wrong certificate signature. The downloaded update signature differs from the installed app signing key.'
+                : otaDebugLogs.downloadedIsValidApk === false
+                  ? 'Corrupted download. The cached package is incomplete or not a valid Android APK.'
+                  : otaDiagnostics.shaExpected !== otaDiagnostics.shaCalculated
+                    ? 'Invalid SHA checksum. The downloaded file signature does not match the expected release hash.'
+                    : 'PackageInstaller issue. The system installer rejected the session handoff.')}
+            </p>
+            {otaDebugLogs.suggestedFix && (
+              <div style={{ marginTop: 6, borderTop: '1px solid rgba(248,113,113,0.15)', paddingTop: 6 }}>
+                <strong style={{ color: 'var(--c-text-primary)', fontSize: 11 }}>Suggested Fix:</strong>
+                <p style={{ margin: '2px 0 0', color: 'var(--c-text-secondary)', fontSize: 11, lineHeight: 1.45 }}>
+                  {otaDebugLogs.suggestedFix}
+                </p>
+              </div>
+            )}
+          </div>
+
+          <div style={{ background: 'rgba(128,128,128,0.03)', border: '1px solid rgba(128,128,128,0.1)', padding: '10px 12px', borderRadius: 10 }}>
+            <p style={{ margin: 0, fontWeight: 700, color: 'var(--c-text-secondary)' }}>
+              Recovery Attempts Performed:
+            </p>
+            <ul style={{ margin: '4px 0 0', paddingLeft: 18, color: 'var(--c-text-secondary)', fontSize: 12, lineHeight: 1.45 }}>
+              <li>Revalidated APK package structure</li>
+              <li>Recreated PackageInstaller sessions</li>
+              <li>Recreated installation PendingIntents</li>
+              <li>Revalidated SHA-256 integrity checks</li>
+              {otaDebugLogs.recoveryAttemptsPerformed && otaDebugLogs.recoveryAttemptsPerformed.map((attempt: string, idx: number) => (
+                <li key={idx}>{attempt}</li>
+              ))}
+            </ul>
+          </div>
+
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, fontSize: 11, fontFamily: 'monospace' }}>
+            <div style={{ background: 'rgba(128,128,128,0.04)', padding: '8px 10px', borderRadius: 8 }}>
+              <strong>Validation Stage:</strong><br />
+              {otaDebugLogs.validationStage || 'N/A'}
+            </div>
+            <div style={{ background: 'rgba(128,128,128,0.04)', padding: '8px 10px', borderRadius: 8 }}>
+              <strong>Exact Failing Stage:</strong><br />
+              {otaDebugLogs.exactFailingStage || 'N/A'}
+            </div>
+          </div>
+
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, fontSize: 11, fontFamily: 'monospace' }}>
+            <div style={{ background: 'rgba(128,128,128,0.04)', padding: '8px 10px', borderRadius: 8 }}>
+              <strong>Installed Version:</strong><br />
+              v{fromLabel} (code {otaDebugLogs.installedVersionCode || 'N/A'})
+            </div>
+            <div style={{ background: 'rgba(128,128,128,0.04)', padding: '8px 10px', borderRadius: 8 }}>
+              <strong>Latest Release:</strong><br />
+              v{toVersion || 'N/A'} (code {otaDebugLogs.downloadedVersionCode || 'N/A'})
+            </div>
+          </div>
+
+          <div style={{ background: 'rgba(128,128,128,0.04)', padding: '10px 12px', borderRadius: 10, fontFamily: 'monospace', fontSize: 10, display: 'flex', flexDirection: 'column', gap: 6 }}>
+            <div>
+              <strong style={{ color: 'var(--c-text-primary)' }}>Certificate comparison:</strong>
+              <div style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>Expected Production: {otaDebugLogs.expectedSigningSha256 || '900cf259185c81100cda8bb08571fa23552e9789131cf07a8f4056e4d4129206'}</div>
+              <div style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>Installed App:        {otaDebugLogs.installedSigningSha256 || 'N/A'}</div>
+              <div style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>Downloaded APK:       {otaDebugLogs.downloadedSigningSha256 || 'N/A'}</div>
+              <div style={{ marginTop: 2, fontWeight: 'bold', color: otaDebugLogs.eligibilitySigningMatch ? '#4ade80' : '#f87171' }}>
+                Comparison Result: {otaDebugLogs.eligibilitySigningMatch === true ? 'MATCH' : 'MISMATCH'}
+              </div>
+            </div>
+            {(otaDebugLogs.certificateSubject || otaDebugLogs.certificateIssuer) && (
+              <div style={{ borderTop: '1px solid rgba(128,128,128,0.08)', paddingTop: 4 }}>
+                <strong style={{ color: 'var(--c-text-primary)' }}>Certificate Info:</strong>
+                <div style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>Subject: {otaDebugLogs.certificateSubject || 'N/A'}</div>
+                <div style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>Issuer:  {otaDebugLogs.certificateIssuer || 'N/A'}</div>
+              </div>
+            )}
+            <div style={{ borderTop: '1px solid rgba(128,128,128,0.08)', paddingTop: 4 }}>
+              <strong style={{ color: 'var(--c-text-primary)' }}>SHA comparison:</strong>
+              <div style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>Expected Release SHA: {otaDiagnostics.shaExpected || 'N/A'}</div>
+              <div style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>Calculated APK SHA:   {otaDiagnostics.shaCalculated || 'N/A'}</div>
+            </div>
+          </div>
+        </div>
+      );
       break;
 
     case 'versionCode_low':
@@ -904,28 +1200,44 @@ function UpdateModal({
       break;
 
     case 'failed':
-      iconName = 'error';
-      iconColor = '#f87171';
-      title = 'Update download failed';
-      if (ota.error && (ota.error.includes('404') || ota.error.includes('non-OK status: 404'))) {
+      if (ota.recoveryMode) {
+        iconName = 'healing';
+        iconColor = '#eab308';
+        title = 'Update Recovery Mode';
         description = (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 10, textAlign: 'left', fontSize: 13, marginTop: 4 }}>
-            <p style={{ margin: 0, fontWeight: 700, color: '#f87171', lineHeight: 1.4 }}>
-              Studio update package was not found on the release server.
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8, textAlign: 'left', fontSize: 13, marginTop: 4 }}>
+            <p style={{ margin: 0, fontWeight: 700, color: '#eab308', lineHeight: 1.4 }}>
+              Studio failed to update automatically multiple times.
             </p>
-            <div style={{ background: 'rgba(128,128,128,0.05)', padding: '10px 12px', borderRadius: 10, fontFamily: 'monospace', fontSize: 11, border: '1px solid rgba(128,128,128,0.1)', display: 'flex', flexDirection: 'column', gap: 4 }}>
-              <div>Target Version: {ota.remoteVersion || 'N/A'}</div>
-              <div style={{ wordBreak: 'break-all' }}>APK URL: {ota.apkUrl || 'N/A'}</div>
-              <div>HTTP Status: 404 (Not Found)</div>
-              <div>Metadata (app-release.json) fetched: Yes</div>
-            </div>
-            <p style={{ margin: 0, color: 'var(--c-text-secondary)', fontSize: 12, lineHeight: 1.4 }}>
-              <strong>Suggested action:</strong> Try again later. This usually means the release metadata was published before the APK upload completed.
+            <p style={{ margin: 0, color: 'var(--c-text-secondary)', lineHeight: 1.45 }}>
+              Use the fail-safe recovery options below to install the update directly, share the update package, or download from alternative mirror sites.
             </p>
           </div>
         );
       } else {
-        description = ota.error || 'Studio could not complete the update. You can try again or copy diagnostics.';
+        iconName = 'error';
+        iconColor = '#f87171';
+        title = 'Update download failed';
+        if (ota.error && (ota.error.includes('404') || ota.error.includes('non-OK status: 404'))) {
+          description = (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 10, textAlign: 'left', fontSize: 13, marginTop: 4 }}>
+              <p style={{ margin: 0, fontWeight: 700, color: '#f87171', lineHeight: 1.4 }}>
+                Studio update package was not found on the release server.
+              </p>
+              <div style={{ background: 'rgba(128,128,128,0.05)', padding: '10px 12px', borderRadius: 10, fontFamily: 'monospace', fontSize: 11, border: '1px solid rgba(128,128,128,0.1)', display: 'flex', flexDirection: 'column', gap: 4 }}>
+                <div>Target Version: {ota.remoteVersion || 'N/A'}</div>
+                <div style={{ wordBreak: 'break-all' }}>APK URL: {ota.apkUrl || 'N/A'}</div>
+                <div>HTTP Status: 404 (Not Found)</div>
+                <div>Metadata (app-release.json) fetched: Yes</div>
+              </div>
+              <p style={{ margin: 0, color: 'var(--c-text-secondary)', fontSize: 12, lineHeight: 1.4 }}>
+                <strong>Suggested action:</strong> Try again later. This usually means the release metadata was published before the APK upload completed.
+              </p>
+            </div>
+          );
+        } else {
+          description = ota.error || 'Studio could not complete the update. You can try again or copy diagnostics.';
+        }
       }
       break;
   }
@@ -1034,16 +1346,15 @@ function UpdateModal({
         }
       };
 
-      const downloadUrlToUse = ota.manualApkUrl || ota.apkUrl || `https://github.com/MAGEXE1000/Studio/releases/tag/v${ota.remoteVersion}`;
-
       return (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginTop: 18, width: '100%' }}>
           <button
             type="button"
-            onClick={() => window.open(downloadUrlToUse, '_system')}
+            onClick={() => setShowGitHubConfirm(true)}
             style={primaryButtonStyle}
           >
-            Download reinstall build
+            <span className="material-symbols-outlined" style={{ fontSize: 18, marginRight: 6 }}>download</span>
+            Download Latest Release
           </button>
           
           <div style={{ display: 'flex', gap: 8, width: '100%' }}>
@@ -1076,24 +1387,53 @@ function UpdateModal({
 
     if (state === 'available') {
       return (
-        <div style={{ display: 'flex', gap: 8, marginTop: 18, width: '100%' }}>
-          <button
-            type="button"
-            onClick={onLater}
-            style={secondaryButtonStyle}
-          >
-            Later
-          </button>
-          <AnimatedActionButton
-            type="button"
-            onClick={handleStartUpdate}
-            wrapStyle={{ flex: 1, height: 44 }}
-            borderRadius={12}
-            trailColor={purpleTo}
-            style={animatedPrimaryButtonStyle}
-          >
-            Update Now
-          </AnimatedActionButton>
+        <div style={{ width: '100%' }}>
+          {ota.validApkExists ? (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginTop: 18, width: '100%' }}>
+              <button
+                type="button"
+                onClick={async () => {
+                  try {
+                    await ota.downloadUpdate('Modal: Continue Installation');
+                    await ota.applyUpdate('Modal: Continue Installation');
+                  } catch (err) {
+                    console.error('[UpdateIndicator] Continue installation failed:', err);
+                  }
+                }}
+                style={primaryButtonStyle}
+              >
+                <span className="material-symbols-outlined" style={{ fontSize: 18, marginRight: 6 }}>play_circle</span>
+                Continue Installation
+              </button>
+              <button
+                type="button"
+                onClick={onLater}
+                style={secondaryButtonStyle}
+              >
+                Later
+              </button>
+            </div>
+          ) : (
+            <div style={{ display: 'flex', gap: 8, marginTop: 18, width: '100%' }}>
+              <button
+                type="button"
+                onClick={onLater}
+                style={secondaryButtonStyle}
+              >
+                Later
+              </button>
+              <AnimatedActionButton
+                type="button"
+                onClick={handleStartUpdate}
+                wrapStyle={{ flex: 1, height: 44 }}
+                borderRadius={12}
+                trailColor={purpleTo}
+                style={animatedPrimaryButtonStyle}
+              >
+                Update Now
+              </AnimatedActionButton>
+            </div>
+          )}
         </div>
       );
     }
@@ -1166,119 +1506,86 @@ function UpdateModal({
       );
     }
 
-    const getDiagnosticsText = () => {
-      return [
-        '=== STUDIO UPDATE DIAGNOSTICS ===',
-        `Failure Timestamp: ${otaDiagnostics.timestamp || 'N/A'}`,
-        `Device Model/Manufacturer: ${otaDiagnostics.deviceModel || 'N/A'}`,
-        `Android Version: ${otaDiagnostics.androidVersion || 'N/A'}`,
-        `Permission State: ${otaDiagnostics.permissionState || 'N/A'}`,
-        `Exception Message: ${otaDiagnostics.exceptionMessage || 'N/A'}`,
-        `Failure Reason & Stack Trace:`,
-        otaDiagnostics.failureReason || 'N/A',
-        `Download URL Used: ${otaDiagnostics.downloadUrl || 'N/A'}`,
-        `APK Path: ${otaDiagnostics.apkPath || 'N/A'}`,
-        `File Size: ${otaDiagnostics.fileSize || 'N/A'}`,
-        `SHA-256 Expected: ${otaDiagnostics.shaExpected || 'N/A'}`,
-        `SHA-256 Calculated: ${otaDiagnostics.shaCalculated || 'N/A'}`,
-        `Installer Result: ${otaDiagnostics.installerResult || 'N/A'}`,
-        '',
-        '=== COMPREHENSIVE DEBUG LOGS ===',
-        `App Version (APP_VERSION): ${otaDebugLogs.appVersion}`,
-        `APK Version (Wrapper): ${otaDebugLogs.nativeApkVersion || 'N/A'}`,
-        `Update System: APK only`,
-        `OTA System: disabled`,
-        `AppInstaller Available: ${otaDebugLogs.appInstallerAvailable}`,
-        `downloadApk Available: ${otaDebugLogs.downloadApkAvailable}`,
-        `verifyApkSha256 Available: ${otaDebugLogs.verifyApkSha256Available}`,
-        `installApk Available: ${otaDebugLogs.installApkAvailable}`,
-        `openInstallPermissionSettings Available: ${otaDebugLogs.openInstallPermissionSettingsAvailable}`,
-        `Registered Capacitor Plugins: ${otaDebugLogs.registeredPlugins}`,
-        `Plugin Method Check: ${otaDebugLogs.pluginMethodCheck}`,
-        `Fetched version.json: ${otaDebugLogs.fetchedVersionJson || 'N/A'}`,
-        `Fetched app-release.json: ${otaDebugLogs.fetchedAppReleaseJson || 'N/A'}`,
-        `Update Type: ${otaDebugLogs.updateType || 'N/A'}`,
-        `Download Status: ${otaDebugLogs.downloadStatus || 'N/A'}`,
-        `SHA Verification Status: ${otaDebugLogs.shaVerification || 'N/A'}`,
-        `File Details: ${otaDebugLogs.fileDetails || 'N/A'}`,
-        `Install Error / Log: ${otaDebugLogs.installError || 'N/A'}`,
-        `Installer Launch Status: ${otaDebugLogs.installerLaunchStatus || 'N/A'}`,
-        `Last Exception Stack Trace:`,
-        otaDebugLogs.lastExceptionStackTrace || 'N/A',
-        '',
-        '=== ELIGIBILITY DETAILS ===',
-        `Installed package: ${otaDebugLogs.installedPackageName || 'N/A'}`,
-        `Installed versionName: ${otaDebugLogs.installedVersionName || 'N/A'}`,
-        `Installed versionCode: ${otaDebugLogs.installedVersionCode || 'N/A'}`,
-        `Installed signing SHA-256: ${otaDebugLogs.installedSigningSha256 || 'N/A'}`,
-        `Installed debuggable: ${otaDebugLogs.installedDebuggable !== null ? otaDebugLogs.installedDebuggable : 'N/A'}`,
-        '',
-        `Downloaded package: ${otaDebugLogs.downloadedPackageName || 'N/A'}`,
-        `Downloaded versionName: ${otaDebugLogs.downloadedVersionName || 'N/A'}`,
-        `Downloaded versionCode: ${otaDebugLogs.downloadedVersionCode || 'N/A'}`,
-        `Downloaded signing SHA-256: ${otaDebugLogs.downloadedSigningSha256 || 'N/A'}`,
-        `Downloaded debuggable: ${otaDebugLogs.downloadedDebuggable !== null ? otaDebugLogs.downloadedDebuggable : 'N/A'}`,
-        `Downloaded isValidApk: ${otaDebugLogs.downloadedIsValidApk !== null ? otaDebugLogs.downloadedIsValidApk : 'N/A'}`,
-        `Downloaded isUniversalApk: ${otaDebugLogs.downloadedIsUniversalApk !== null ? otaDebugLogs.downloadedIsUniversalApk : 'N/A'}`,
-        `Downloaded size: ${otaDebugLogs.downloadedApkSize || 'N/A'}`,
-        '',
-        `Eligibility package match: ${otaDebugLogs.eligibilityPackageNameMatch !== null ? otaDebugLogs.eligibilityPackageNameMatch : 'N/A'}`,
-        `Eligibility signing match: ${otaDebugLogs.eligibilitySigningMatch !== null ? otaDebugLogs.eligibilitySigningMatch : 'N/A'}`,
-        `Eligibility versionCode higher: ${otaDebugLogs.eligibilityVersionCodeHigher !== null ? otaDebugLogs.eligibilityVersionCodeHigher : 'N/A'}`,
-        `Eligibility release build: ${otaDebugLogs.eligibilityReleaseBuild !== null ? otaDebugLogs.eligibilityReleaseBuild : 'N/A'}`,
-        `Eligibility valid APK: ${otaDebugLogs.eligibilityValidApk !== null ? otaDebugLogs.eligibilityValidApk : 'N/A'}`,
-        `Eligibility final install: ${otaDebugLogs.eligibilityFinalInstall || 'N/A'}`,
-        `Eligibility reason: ${otaDebugLogs.eligibilityReason || 'N/A'}`
-      ].join('\n');
-    };
+
 
     if (state === 'signature_mismatch') {
-      const manualApkUrl = ota.manualApkUrl || `https://studio-30f44.web.app/apk/studio-${ota.remoteVersion}.apk`;
-      
       const copyDiagnostics = async () => {
-        const diagnosticText = getDiagnosticsText();
         try {
-          await navigator.clipboard.writeText(diagnosticText);
-          alert('Diagnostics copied to clipboard!');
+          const report = await getDiagnosticsReport();
+          await navigator.clipboard.writeText(report);
+          alert('Diagnostics health report copied to clipboard!');
         } catch (err) {
           console.error('Failed to copy diagnostics:', err);
+        }
+      };
+      
+      const handleRetryRecovery = async () => {
+        try {
+          await ota.runSignatureMismatchRecovery();
+        } catch (err: any) {
+          alert(`Recovery failed: ${err.message || String(err)}`);
+        }
+      };
+
+      const handleGitHubInstall = async () => {
+        try {
+          await ota.downloadAndInstallGitHubApk();
+        } catch (err: any) {
+          alert(`GitHub install failed: ${err.message || String(err)}`);
         }
       };
 
       return (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginTop: 18, width: '100%' }}>
-          <button
-            type="button"
-            onClick={() => window.open(manualApkUrl, '_system')}
-            style={primaryButtonStyle}
-          >
-            Download Latest APK
-          </button>
-          
           <div style={{ display: 'flex', gap: 8, width: '100%' }}>
             <button
               type="button"
-              onClick={copyDiagnostics}
+              onClick={handleRetryRecovery}
               style={halfSecondaryButtonStyle}
+            >
+              Retry
+            </button>
+            <button
+              type="button"
+              onClick={onLater}
+              style={halfSecondaryButtonStyle}
+            >
+              Cancel
+            </button>
+          </div>
+
+          <button
+            type="button"
+            onClick={handleGitHubInstall}
+            style={primaryButtonStyle}
+          >
+            <span className="material-symbols-outlined" style={{ fontSize: 18, marginRight: 6 }}>download</span>
+            Install Latest APK from GitHub
+          </button>
+          
+          <div style={{ display: 'flex', gap: 6, width: '100%', marginTop: 4 }}>
+            <button
+              type="button"
+              onClick={handleOpenGitHub}
+              style={{ ...halfSecondaryButtonStyle, fontSize: 11, height: 36 }}
+            >
+              GitHub Release Page
+            </button>
+            <button
+              type="button"
+              onClick={copyDiagnostics}
+              style={{ ...halfSecondaryButtonStyle, fontSize: 11, height: 36 }}
             >
               Copy Diagnostics
             </button>
             <button
               type="button"
               onClick={() => setDiagnosticsOpen(true)}
-              style={halfSecondaryButtonStyle}
+              style={{ ...halfSecondaryButtonStyle, fontSize: 11, height: 36 }}
             >
               Diagnostics UI
             </button>
           </div>
-
-          <button
-            type="button"
-            onClick={onLater}
-            style={tertiaryButtonStyle}
-          >
-            Later
-          </button>
         </div>
       );
     }
@@ -1325,36 +1632,162 @@ function UpdateModal({
     }
 
     if (state === 'failed') {
-      const manualApkUrl = ota.manualApkUrl || `https://studio-30f44.web.app/apk/studio-${ota.remoteVersion}.apk`;
       const copyDiagnostics = async () => {
-        const diagnosticText = getDiagnosticsText();
-
         try {
-          await navigator.clipboard.writeText(diagnosticText);
-          alert('Diagnostics copied to clipboard!');
+          const report = await getDiagnosticsReport();
+          await navigator.clipboard.writeText(report);
+          alert('Diagnostics health report copied to clipboard!');
         } catch (err) {
           console.error('Failed to copy diagnostics:', err);
         }
       };
 
+      const exportDiagnostics = async () => {
+        try {
+          const report = await getDiagnosticsReport();
+          const { Share } = await import('@capacitor/share');
+          await Share.share({
+            title: 'Studio Updater Diagnostics',
+            text: report,
+            dialogTitle: 'Export Diagnostics'
+          });
+        } catch (err) {
+          console.error('Failed to export diagnostics, copying instead:', err);
+          await copyDiagnostics();
+        }
+      };
+
+      if (ota.validApkExists) {
+        return (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginTop: 14, width: '100%' }}>
+            <h4 style={{ margin: '4px 0 2px', fontSize: 13, fontWeight: 800, color: 'var(--c-text-primary)', fontFamily: 'Manrope', alignSelf: 'flex-start' }}>
+              Installation could not be started
+            </h4>
+            <p style={{ margin: '0 0 6px', fontSize: 11.5, color: 'var(--c-text-secondary)', fontFamily: 'Inter', lineHeight: 1.45, textAlign: 'left' }}>
+              {ota.error || 'Studio could not start the installation automatically. Please choose an option below to recover.'}
+            </p>
+
+            <button
+              type="button"
+              onClick={async () => {
+                try {
+                  await ota.downloadUpdate('Recovery Center: Retry Installation');
+                  await ota.applyUpdate('Recovery Center: Retry Installation');
+                } catch (err) {
+                  console.error('[UpdateIndicator] Recovery retry failed:', err);
+                }
+              }}
+              style={primaryButtonStyle}
+            >
+              <span className="material-symbols-outlined" style={{ fontSize: 18, marginRight: 6 }}>refresh</span>
+              Retry Installation
+            </button>
+
+            <button
+              type="button"
+              onClick={async () => {
+                try {
+                  await ota.downloadUpdate('Recovery Center: Continue Installation');
+                  await ota.applyUpdate('Recovery Center: Continue Installation');
+                } catch (err) {
+                  console.error('[UpdateIndicator] Recovery continue failed:', err);
+                }
+              }}
+              style={secondaryButtonStyle}
+            >
+              <span className="material-symbols-outlined" style={{ fontSize: 18, marginRight: 6 }}>play_circle</span>
+              Continue Installation
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setShowGitHubConfirm(true)}
+              style={{
+                width: '100%', height: 44, borderRadius: 12,
+                background: 'transparent',
+                border: '1px solid rgba(128, 128, 128, 0.25)',
+                color: 'var(--c-text-secondary)',
+                fontFamily: 'Manrope', fontWeight: 700, fontSize: 13,
+                cursor: 'pointer',
+                display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+                transition: 'background-color 200ms ease',
+              }}
+            >
+              <GithubIcon size={18} color="var(--c-text-secondary)" />
+              Download from GitHub
+            </button>
+
+            <div style={{ display: 'flex', gap: 8, width: '100%', marginTop: 4 }}>
+              <button
+                type="button"
+                onClick={copyDiagnostics}
+                style={halfSecondaryButtonStyle}
+              >
+                Copy Diagnostics
+              </button>
+              <button
+                type="button"
+                onClick={exportDiagnostics}
+                style={halfSecondaryButtonStyle}
+              >
+                Export Diagnostics
+              </button>
+            </div>
+
+            <button
+              type="button"
+              onClick={onLater}
+              style={tertiaryButtonStyle}
+            >
+              Cancel
+            </button>
+          </div>
+        );
+      }
+
       return (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginTop: 18, width: '100%' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginTop: 14, width: '100%' }}>
+          <h4 style={{ margin: '4px 0 2px', fontSize: 13, fontWeight: 800, color: 'var(--c-text-primary)', fontFamily: 'Manrope', alignSelf: 'flex-start' }}>
+            Update Recovery Center
+          </h4>
+          <p style={{ margin: '0 0 6px', fontSize: 11.5, color: 'var(--c-text-secondary)', fontFamily: 'Inter', lineHeight: 1.45, textAlign: 'left' }}>
+            {ota.error || 'Studio could not complete the update automatically. Please choose a recovery action below.'}
+          </p>
+
           <button
             type="button"
-            onClick={() => window.open(manualApkUrl, '_system')}
+            onClick={async () => {
+              if (ota.updateAvailable) {
+                await handleStartUpdate();
+              } else {
+                await ota.checkNow();
+              }
+            }}
+            style={primaryButtonStyle}
+          >
+            <span className="material-symbols-outlined" style={{ fontSize: 18, marginRight: 6 }}>refresh</span>
+            Retry Update
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setShowGitHubConfirm(true)}
             style={{
-              width: '100%', height: 42, borderRadius: 12,
-              background: 'rgba(128,128,128,0.08)',
-              border: '1px solid rgba(128,128,128,0.15)',
-              color: 'var(--c-text-primary)',
+              width: '100%', height: 44, borderRadius: 12,
+              background: 'transparent',
+              border: '1px solid rgba(128, 128, 128, 0.25)',
+              color: 'var(--c-text-secondary)',
               fontFamily: 'Manrope', fontWeight: 700, fontSize: 13,
               cursor: 'pointer',
+              display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+              transition: 'background-color 200ms ease',
             }}
           >
-            Download APK Manually
+            <GithubIcon size={18} color="var(--c-text-secondary)" />
+            Download Latest Release
           </button>
-          
-          <div style={{ display: 'flex', gap: 8, width: '100%' }}>
+
+          <div style={{ display: 'flex', gap: 8, width: '100%', marginTop: 4 }}>
             <button
               type="button"
               onClick={copyDiagnostics}
@@ -1364,29 +1797,48 @@ function UpdateModal({
             </button>
             <button
               type="button"
-              onClick={() => setDiagnosticsOpen(true)}
+              onClick={exportDiagnostics}
               style={halfSecondaryButtonStyle}
             >
-              Diagnostics UI
+              Export Diagnostics
             </button>
           </div>
 
-          <div style={{ display: 'flex', gap: 8, width: '100%' }}>
-            <button
-              type="button"
-              onClick={onLater}
-              style={halfSecondaryButtonStyle}
-            >
-              Later
-            </button>
-            <button
-              type="button"
-              onClick={handleStartUpdate}
-              style={{ ...primaryButtonStyle, width: '100%' }}
-            >
-              Try Again
-            </button>
-          </div>
+          <button
+            type="button"
+            onClick={onLater}
+            style={tertiaryButtonStyle}
+          >
+            Cancel
+          </button>
+        </div>
+      );
+    }
+
+    if (state === 'update_success' || state === 'installed') {
+      return (
+        <div style={{ marginTop: 18, width: '100%' }}>
+          <button
+            type="button"
+            onClick={async () => {
+              console.log('[INSTRUMENTATION] [JS] Done button clicked. Requesting app exit.');
+              try {
+                setSuccessVersion(null);
+                onClose();
+                ota.dismissUpdate();
+                if (isNative()) {
+                  await AppInstaller.clearInstallerLogHistory();
+                  const { App: CapApp } = await import('@capacitor/app');
+                  await CapApp.exitApp();
+                }
+              } catch (err) {
+                console.error('[UpdateIndicator] Done click failed:', err);
+              }
+            }}
+            style={{ ...primaryButtonStyle, width: '100%' }}
+          >
+            Done
+          </button>
         </div>
       );
     }
@@ -1394,7 +1846,33 @@ function UpdateModal({
     return null;
   };
 
+  const renderIndeterminateProgress = () => {
+    return (
+      <div style={{ width: '100%', marginTop: 14, display: 'flex', flexDirection: 'column', gap: 6 }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, fontWeight: 700, fontFamily: 'Manrope', color: 'var(--c-text-primary)' }}>
+          <span>Installing update...</span>
+          <span>In progress</span>
+        </div>
+        <div style={{ width: '100%', height: 6, borderRadius: 3, background: 'rgba(128,128,128,0.12)', overflow: 'hidden', position: 'relative' }}>
+          <div style={{
+            position: 'absolute',
+            width: '40%', height: '100%',
+            background: `linear-gradient(90deg, ${purpleFrom}, ${purpleTo})`,
+            animation: 'lg-indeterminate-progress 1.5s infinite linear',
+            borderRadius: 3,
+          }} />
+        </div>
+        <div style={{ fontSize: 11, color: 'var(--c-text-secondary)', fontFamily: 'Inter', opacity: 0.8, textAlign: 'left' }}>
+          {ota.statusText || 'Waiting for system confirmation...'}
+        </div>
+      </div>
+    );
+  };
+
   const renderProgress = () => {
+    if (state === 'installing' || state === 'installedOrReady') {
+      return renderIndeterminateProgress();
+    }
     if (!showProgress) return null;
     const pct = Math.round(progressVal * 100);
     const fileName = `studio-update-${toVersion || 'latest'}.apk`;
@@ -1442,7 +1920,7 @@ function UpdateModal({
           display: 'flex', alignItems: 'center', justifyContent: 'center',
           marginBottom: 10,
         }}>
-          <SpinnerSvg cFrom={purpleFrom} cTo={purpleTo} />
+          <SpinnerSvg cFrom={purpleFrom} cTo={purpleTo} size={28} strokeWidth={3.6} />
         </div>
       );
     }
@@ -1638,19 +2116,254 @@ function UpdateModal({
       </div>
     );
   };
+  const isProgressScreenActive = [
+    'preparing',
+    'enteringProgressScreen',
+    'downloading',
+    'verifying',
+    'readyForInstallPrompt',
+    'waitingForUserInstallConfirmation',
+    'installing',
+    'installedOrReady',
+    'installed',
+    'update_success',
+    'install_failed',
+    'failed'
+  ].includes(state);
 
-  // Fullscreen premium progress overlay for active installation states
-  if (state === 'installing' || state === 'completed') {
+  if (isProgressScreenActive && !showGitHubConfirm) {
+    let actionButtons: React.ReactNode = null;
+    if (state === 'failed') {
+      actionButtons = (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 10, width: '100%', marginTop: 20 }}>
+          <div style={{ display: 'flex', gap: 10, width: '100%' }}>
+            <button
+              onClick={handleStartUpdate}
+              style={{
+                flex: 1, padding: '12px', borderRadius: 12,
+                background: `linear-gradient(90deg, ${purpleFrom}, ${purpleTo})`,
+                color: '#fff', border: 'none', fontWeight: 700, cursor: 'pointer',
+                fontFamily: 'Manrope, sans-serif',
+                transition: 'opacity 200ms ease',
+              }}
+            >
+              Retry
+            </button>
+            <button
+              onClick={onClose}
+              style={{
+                flex: 1, padding: '12px', borderRadius: 12,
+                background: 'rgba(128,128,128,0.12)',
+                color: 'var(--c-text-primary)', border: 'none', fontWeight: 700, cursor: 'pointer',
+                fontFamily: 'Manrope, sans-serif',
+                transition: 'background-color 200ms ease',
+              }}
+            >
+              Cancel
+            </button>
+          </div>
+          <button
+            onClick={() => setShowGitHubConfirm(true)}
+            style={{
+              width: '100%', padding: '12px', borderRadius: 12,
+              background: 'transparent',
+              border: '1px solid rgba(128, 128, 128, 0.25)',
+              color: 'var(--c-text-secondary)', fontWeight: 700, cursor: 'pointer',
+              fontFamily: 'Manrope, sans-serif',
+              display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+              transition: 'background-color 200ms ease',
+            }}
+          >
+            <GithubIcon size={18} color="var(--c-text-secondary)" />
+            Download from GitHub
+          </button>
+        </div>
+      );
+    } else if (state === 'install_failed') {
+      actionButtons = (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 10, width: '100%', marginTop: 20 }}>
+          <div style={{ display: 'flex', gap: 10, width: '100%' }}>
+            <button
+              onClick={async () => {
+                setInstallFailedReason(null);
+                await handleInstallApk();
+              }}
+              style={{
+                flex: 1, padding: '12px', borderRadius: 12,
+                background: `linear-gradient(90deg, ${purpleFrom}, ${purpleTo})`,
+                color: '#fff', border: 'none', fontWeight: 700, cursor: 'pointer',
+                fontFamily: 'Manrope, sans-serif',
+                transition: 'opacity 200ms ease',
+              }}
+            >
+              Retry
+            </button>
+            <button
+              onClick={async () => {
+                setInstallFailedReason(null);
+                await handleInstallApk();
+              }}
+              style={{
+                flex: 1, padding: '12px', borderRadius: 12,
+                background: 'rgba(128,128,128,0.12)',
+                color: 'var(--c-text-primary)', border: 'none', fontWeight: 700, cursor: 'pointer',
+                fontFamily: 'Manrope, sans-serif',
+                transition: 'background-color 200ms ease',
+              }}
+            >
+              Continue
+            </button>
+          </div>
+          <div style={{ display: 'flex', gap: 10, width: '100%' }}>
+            <button
+              onClick={() => setShowGitHubConfirm(true)}
+              style={{
+                flex: 1, padding: '12.5px 12px', borderRadius: 12,
+                background: 'transparent',
+                border: '1px solid rgba(128, 128, 128, 0.25)',
+                color: 'var(--c-text-secondary)', fontWeight: 700, cursor: 'pointer',
+                fontFamily: 'Manrope, sans-serif',
+                display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+              }}
+            >
+              <GithubIcon size={16} color="var(--c-text-secondary)" />
+              GitHub
+            </button>
+            <button
+              onClick={async () => {
+                const text = getDiagnosticsText();
+                if (typeof navigator !== 'undefined' && navigator.clipboard) {
+                  try {
+                    await navigator.clipboard.writeText(text);
+                    alert('Diagnostics copied to clipboard!');
+                  } catch {
+                    alert('Diagnostics info: ' + text.slice(0, 100));
+                  }
+                } else {
+                  alert('Diagnostics info: ' + text.slice(0, 100));
+                }
+              }}
+              style={{
+                flex: 1, padding: '12.5px 12px', borderRadius: 12,
+                background: 'transparent',
+                border: '1px solid rgba(128, 128, 128, 0.25)',
+                color: 'var(--c-text-secondary)', fontWeight: 700, cursor: 'pointer',
+                fontFamily: 'Manrope, sans-serif',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+              }}
+            >
+              Copy Logs
+            </button>
+          </div>
+          <button
+            onClick={() => {
+              setInstallFailedReason(null);
+              onClose();
+            }}
+            style={{
+              width: '100%', padding: '12px', borderRadius: 12,
+              background: 'rgba(128,128,128,0.06)',
+              color: 'var(--c-text-secondary)', border: 'none', fontWeight: 700, cursor: 'pointer',
+              fontFamily: 'Manrope, sans-serif',
+            }}
+          >
+            Cancel
+          </button>
+        </div>
+      );
+    }
+
     return (
       <StudioUpdateScreen
         progress={progressVal}
         accentFrom={purpleFrom}
         accentTo={purpleTo}
         statusText={description}
+        actionButtons={actionButtons}
+        updateState={state}
       />
     );
   }
 
+  if (showGitHubConfirm) {
+    return (
+      <div
+        role="dialog"
+        aria-modal="true"
+        onClick={() => setShowGitHubConfirm(false)}
+        style={{
+          position: 'fixed',
+          inset: 0,
+          zIndex: 9000,
+          background: 'rgba(0,0,0,0.55)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          padding: 24,
+          backdropFilter: 'blur(8px)',
+          WebkitBackdropFilter: 'blur(8px)',
+          animation: 'fade-in 200ms ease-out both',
+        }}
+      >
+        <div
+          onClick={(e) => e.stopPropagation()}
+          style={{
+            maxWidth: 380,
+            width: '100%',
+            background: 'var(--app-surface)',
+            borderRadius: 22,
+            overflow: 'hidden',
+            border: '1px solid rgba(128,128,128,0.15)',
+            boxShadow: '0 24px 60px rgba(0,0,0,0.45)',
+            animation: 'rise-in 240ms cubic-bezier(0.34,1.15,0.64,1) both',
+            padding: 24,
+          }}
+        >
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center', gap: 12 }}>
+            <div style={{
+              width: 58, height: 58, borderRadius: '50%',
+              background: 'rgba(128,128,128,0.06)',
+              border: '1.5px solid rgba(128,128,128,0.15)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              marginBottom: 10,
+            }}>
+              <GithubIcon size={28} color="var(--c-text-primary)" />
+            </div>
+            
+            <h3 style={{ margin: 0, fontSize: 18, fontWeight: 800, fontFamily: 'Manrope', color: 'var(--c-text-primary)' }}>
+              Download Official Release
+            </h3>
+            
+            <p style={{ margin: 0, fontSize: 13, color: 'var(--c-text-secondary)', fontFamily: 'Inter', lineHeight: 1.5, textAlign: 'left' }}>
+              The automatic updater could not complete this installation.<br /><br />
+              Studio publishes every official production APK on GitHub. You can safely download the latest signed release directly from the official repository.<br /><br />
+              This is the recommended recovery method whenever automatic installation cannot complete.
+            </p>
+            
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginTop: 14, width: '100%' }}>
+              <button
+                type="button"
+                onClick={async () => {
+                  await handleOpenGitHub();
+                  setShowGitHubConfirm(false);
+                }}
+                style={primaryButtonStyle}
+              >
+                Open GitHub
+              </button>
+              <button
+                type="button"
+                onClick={() => setShowGitHubConfirm(false)}
+                style={tertiaryButtonStyle}
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
   return (
     <div
       role="dialog"

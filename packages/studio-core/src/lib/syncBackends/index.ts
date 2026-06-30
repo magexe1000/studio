@@ -18,9 +18,8 @@ export function getSyncProviderByKey(key: string): SyncBackendProvider {
 }
 
 export async function initSyncBackends() {
-  for (const p of Object.values(providers)) {
-    await p.init().catch(err => console.error(`Failed to init provider ${p.providerName}:`, err));
-  }
+  const activeProvider = getActiveSyncProvider();
+  await activeProvider.init().catch(err => console.error(`Failed to init active provider ${activeProvider.providerName}:`, err));
 }
 
 export async function disposeSyncBackends() {

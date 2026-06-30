@@ -55,13 +55,44 @@
     if (sc_s.amoled) document.documentElement.setAttribute('data-amoled', '1');
   } catch(e) {}
 })();
+
+window.logIframeDiagnostic = function (detail, extra) {
+  try {
+    var payload = { type: 'sc-diagnostic', detail: detail };
+    if (extra) {
+      for (var key in extra) {
+        if (extra.hasOwnProperty(key)) {
+          payload[key] = extra[key];
+        }
+      }
+    }
+    window.parent.postMessage(payload, '*');
+  } catch (e) {}
+};
+
+window.addEventListener('error', function (e) {
+  window.logIframeDiagnostic('sc-runtime-error', {
+    error: e.message || String(e.error),
+    stack: e.error && e.error.stack ? e.error.stack : '',
+    source: e.filename ? e.filename + ':' + e.lineno + ':' + e.colno : 'window.onerror'
+  });
+});
+
+window.addEventListener('unhandledrejection', function (e) {
+  var reason = e.reason || '';
+  window.logIframeDiagnostic('sc-runtime-error', {
+    error: reason.message || String(reason),
+    stack: reason.stack || '',
+    source: 'unhandledrejection'
+  });
+});
 </script>
 <base href="/stage-core/">
 <meta charset="utf-8"/>
 <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
 <title>Stagex | Stage Plot Editor</title>
 <meta name="description" content="Stagex — professional stage plot and technical rider editor for musicians and engineers. Build stage layouts, manage inputs, and export to PDF."/>
-<meta name="theme-color" content="#0e0e0e"/>
+<meta name="theme-color" content="#000000"/>
 <meta property="og:type" content="website"/>
 <meta property="og:title" content="Stagex | Stage Plot Editor"/>
 <meta property="og:description" content="Professional stage plot and technical rider editor. Build visual stage layouts, manage musician inputs, and export to PDF."/>
@@ -247,7 +278,7 @@ body {
    Override to zero since the React header lives outside the iframe now. */
 #view-Assistant {
   padding-top: 0 !important;
-  background: #0e0e0e !important;
+  background: #000000 !important;
 }
 .sc-prefs-scroll {
   flex: 1;
@@ -363,7 +394,7 @@ body.gig-mode #sc-scenes-bar { opacity: 0 !important; pointer-events: none !impo
 ══════════════════════════════════════════ */
 #sc-vtools {
   position: absolute;
-  left: 8px;
+  left: calc(max(8px, env(safe-area-inset-left)));
   top: 50%;
   transform: translateY(-50%);
   z-index: 100;
@@ -373,8 +404,8 @@ body.gig-mode #sc-scenes-bar { opacity: 0 !important; pointer-events: none !impo
   gap: 4px;
 }
 #sc-vtools-toggle {
-  width: 30px;
-  height: 30px;
+  width: 32px;
+  height: 32px;
   border-radius: 10px;
   background: transparent;
   border: none;
@@ -553,10 +584,10 @@ html[data-theme="light"] #layer-panel .layer-row.on::before { background: #fff; 
 /* Unify the canvas background — body, html and the canvas container all use the same dark
    base so there is no visible seam between the React header above and the iframe content */
 html, body {
-  background: #050505 !important;
+  background: #000000 !important;
 }
 #canvas-container {
-  background: #050505 !important;
+  background: #000000 !important;
 }
 /* stage-viewport no longer needs the 52px top push — the toolbar floats above the canvas rect */
 #stage-viewport {
@@ -605,7 +636,7 @@ html, body {
   bottom: 0;
   overflow-y: auto;
   overflow-x: hidden;
-  background: #050505 !important;
+  background: #000000 !important;
 }
 .sc-hub-card {
   width: 100%;
@@ -863,7 +894,7 @@ html[data-theme="light"] .gear-empty-sub { color: #bbb !important; }
 
 /* Clean dark background for all setup sub-views */
 #view-Rider, #view-Setlist, #view-Gear, #view-Members {
-  background: #050505 !important;
+  background: #000000 !important;
 }
 
 /* Show the ← Setup back buttons */
@@ -2177,6 +2208,13 @@ html[data-amoled="1"] #el-properties-panel { background: #000 !important; }
     to   { opacity: 1; transform: scale(1)    translateY(0);    }
   }
 
+  #sc-scenes-bar::-webkit-scrollbar {
+    display: none !important;
+  }
+  #sc-scenes-bar {
+    scrollbar-width: none !important;
+  }
+
   /* Scenes Bar styling overrides */
   .sc-scene-label {
     font-family: 'Manrope', sans-serif;
@@ -2187,23 +2225,42 @@ html[data-amoled="1"] #el-properties-panel { background: #000 !important; }
     color: var(--scenes-fg-inactive);
     margin-right: 6px;
     margin-left: 4px;
+    flex-shrink: 0;
   }
 
   .sc-scene-btn {
+    position: relative;
     display: inline-flex;
     align-items: center;
+    justify-content: center;
     gap: 6px;
-    height: 26px;
-    padding: 0 12px;
-    border-radius: 9999px;
+    height: 36px;
+    padding: 0 16px;
+    border-radius: 18px;
     border: 1px solid rgba(255,255,255,0.08);
     background: transparent;
     color: var(--scenes-fg-inactive);
     font-family: 'Manrope', sans-serif;
-    font-size: 11px;
+    font-size: 12px;
     font-weight: 600;
     cursor: pointer;
     transition: all 150ms ease;
+    flex-shrink: 0;
+  }
+
+  .sc-scene-btn::before {
+    content: '';
+    position: absolute;
+    top: -6px;
+    bottom: -6px;
+    left: 0;
+    right: 0;
+    z-index: 1;
+  }
+
+  .sc-scene-btn * {
+    position: relative;
+    z-index: 2;
   }
 
   html[data-theme="light"] .sc-scene-btn {
@@ -2235,47 +2292,112 @@ html[data-amoled="1"] #el-properties-panel { background: #000 !important; }
   }
 
   .sc-scene-close {
-    opacity: 0.5;
-    font-size: 12px;
+    position: relative;
+    opacity: 0.6;
+    font-size: 14px;
     line-height: 1;
     cursor: pointer;
-    margin-left: 4px;
+    margin-left: 6px;
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    width: 12px;
-    height: 12px;
-    transition: color 120ms ease, opacity 120ms ease;
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background: rgba(255,255,255,0.08);
+    border: 14px solid transparent;
+    background-clip: padding-box;
+    box-sizing: content-box;
+    color: var(--scenes-fg-inactive);
+    transition: all 120ms ease;
+  }
+
+  html[data-theme="light"] .sc-scene-close {
+    background: rgba(0,0,0,0.06);
   }
 
   .sc-scene-close:hover {
     opacity: 1;
-    color: var(--hot) !important;
+    background-color: rgba(255,107,107,0.2) !important;
+    color: #ff6b6b !important;
   }
 
   .sc-scene-add-btn {
+    position: relative;
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    width: 26px;
-    height: 26px;
-    border-radius: 9999px;
-    border: 1px dashed rgba(255,255,255,0.2);
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
     background: transparent;
+    border: 14px solid transparent;
+    background-clip: padding-box;
+    box-sizing: content-box;
+    outline: 1px dashed rgba(255,255,255,0.25);
+    outline-offset: -1px;
     color: var(--scenes-fg-inactive);
     cursor: pointer;
     transition: all 150ms ease;
+    flex-shrink: 0;
+  }
+
+  @media (orientation: portrait) {
+    .sc-scene-btn {
+      height: 28px !important;
+      padding: 0 10px !important;
+      border-radius: 14px !important;
+      font-size: 11px !important;
+      gap: 4px !important;
+    }
+    .sc-scene-close {
+      width: 14px !important;
+      height: 14px !important;
+      font-size: 10px !important;
+      margin-left: 4px !important;
+      border: 8px solid transparent !important;
+    }
+    .sc-scene-add-btn {
+      width: 14px !important;
+      height: 14px !important;
+      border: 8px solid transparent !important;
+    }
+    .sc-scene-label {
+      font-size: 10px !important;
+    }
   }
 
   html[data-theme="light"] .sc-scene-add-btn {
-    border-color: rgba(0,0,0,0.2);
+    outline-color: rgba(0,0,0,0.25);
   }
 
   .sc-scene-add-btn:hover {
-    border-style: solid;
-    border-color: var(--accent);
+    outline-style: solid;
+    outline-color: var(--accent);
     background: rgba(255,255,255,0.04);
     color: var(--accent);
+  }
+
+  /* ── Hitbox Debug Overlay styles ── */
+  body.sc-show-hitboxes .sc-scene-btn {
+    box-shadow: inset 0 0 0 1.5px #ff4136 !important;
+  }
+  body.sc-show-hitboxes .sc-scene-btn::before {
+    outline: 1.5px dashed #0074d9 !important;
+    outline-offset: -1.5px;
+  }
+  body.sc-show-hitboxes .sc-scene-close {
+    box-shadow: inset 0 0 0 1.5px #ff4136 !important;
+    outline: 1.5px dashed #0074d9 !important;
+    outline-offset: -1.5px;
+  }
+  body.sc-show-hitboxes .sc-scene-add-btn {
+    box-shadow: inset 0 0 0 1.5px #ff4136 !important;
+    outline: 1.5px dashed #0074d9 !important;
+    outline-offset: -1.5px;
+  }
+  body.sc-show-hitboxes .sc-last-tapped {
+    box-shadow: inset 0 0 0 2px #2ecc40 !important;
   }
 
   html[data-theme="light"] .sc-scene-add-btn:hover {
@@ -2616,7 +2738,7 @@ html[data-amoled="1"] #el-properties-panel { background: #000 !important; }
 
   /* Desktop sub-sections wrapper styling override */
   .view-page.scrollable-view {
-    background: #050505 !important;
+    background: #000000 !important;
   }
   html[data-theme="light"] .view-page.scrollable-view {
     background: #fafafa !important;
@@ -2750,10 +2872,12 @@ html[data-amoled="1"] #el-properties-panel { background: #000 !important; }
 
   /* ── Android/Mobile Layout Regression Fixes ── */
   @media (max-width: 767px) {
-    /* Center stage viewport vertically and adjust padding to fit bottom nav safely */
-    #stage-viewport {
-      justify-content: center !important;
-      padding-bottom: calc(env(safe-area-inset-bottom) + 76px) !important;
+    /* Center stage viewport vertically and adjust padding to fit bottom nav safely (portrait only) */
+    @media (orientation: portrait) {
+      #stage-viewport {
+        justify-content: center !important;
+        padding-bottom: calc(env(safe-area-inset-bottom) + 76px) !important;
+      }
     }
 
     /* Force scrolling bottom padding on setup views to prevent overlap with bottom navigation */
@@ -3082,7 +3206,7 @@ html[data-amoled="1"] #el-properties-panel { background: #000 !important; }
     <div id="sc-vtools">
       <!-- Collapse / expand handle -->
       <button id="sc-vtools-toggle" onclick="toggleSCVTools()" title="Show tools">
-        <span class="material-symbols-outlined" style="font-size:15px;font-family:'Material Symbols Outlined';">more_vert</span>
+        <span class="material-symbols-outlined" style="font-size:18px;font-family:'Material Symbols Outlined';">more_vert</span>
       </button>
       <!-- Tools panel — starts collapsed -->
       <div id="sc-vtools-body" class="vtools-collapsed">
@@ -3147,12 +3271,13 @@ html[data-amoled="1"] #el-properties-panel { background: #000 !important; }
 
       <!-- SCENES BAR — sits naturally above the stage canvas (Editor view only) -->
       <div id="sc-scenes-bar"
-           style="display:none;align-items:center;justify-content:center;gap:6px;padding:2px 0;
+           style="position:relative;display:none;align-items:center;justify-content:flex-start;gap:6px;padding:6px 8px;
                   background:none;border:none;box-shadow:none;
                   overflow-x:auto;flex-wrap:nowrap;width:100%;
                   max-width:min(1080px,calc(100vw - 32px),calc((100vh - var(--dock-safe-gap, 40px)) * 16 / 9));
-                  margin-bottom:4px;z-index:30;
-                  transition:opacity 220ms ease;"></div>
+                  margin-bottom:0px;z-index:30;
+                  transition:opacity 220ms ease;
+                  scrollbar-width:none;-ms-overflow-style:none;"></div>
       <div id="stage-canvas" class="stage-grid relative" style="width:100%;max-width:min(1080px,calc(100vw - 32px),calc((100vh - var(--dock-safe-gap, 40px)) * 16 / 9));aspect-ratio:16/9;border:1px solid rgba(255,255,255,0.08);border-radius:12px;overflow:visible;">
 
         <!-- mode-pill lives outside canvas, see #mode-pill in body -->
@@ -3678,7 +3803,7 @@ Front-fills mandatory for the first 3 rows. All wireless systems must be frequen
 
 <!-- ═══════════════ ADD SONG BOTTOM SHEET ═══════════════ -->
 <div id="song-modal" style="display:none;position:absolute;inset:0;z-index:9000;align-items:flex-end;justify-content:center;background:rgba(0,0,0,0.65);" onclick="if(event.target===this)closeSongModal()">
-  <div id="song-sheet" style="width:100%;max-width:540px;background:#050505;border:1px solid rgba(255,255,255,0.08);border-radius:12px 12px 0 0;box-shadow:0 -12px 60px rgba(0,0,0,0.9);transform:translateY(100%);transition:transform 320ms cubic-bezier(0.32,0.72,0,1);padding-bottom:max(env(safe-area-inset-bottom,0px),16px);">
+  <div id="song-sheet" style="width:100%;max-width:540px;background:#000000;border:1px solid rgba(255,255,255,0.08);border-radius:12px 12px 0 0;box-shadow:0 -12px 60px rgba(0,0,0,0.9);transform:translateY(100%);transition:transform 320ms cubic-bezier(0.32,0.72,0,1);padding-bottom:max(env(safe-area-inset-bottom,0px),16px);">
     <!-- Drag pill -->
     <div style="display:flex;justify-content:center;padding:10px 0 2px;">
       <div style="width:34px;height:4px;border-radius:2px;background:rgba(255,255,255,0.14);"></div>
@@ -3953,7 +4078,7 @@ Front-fills mandatory for the first 3 rows. All wireless systems must be frequen
 
 <!-- ═══════════════ ADD GEAR MODAL ═══════════════ -->
 <div id="gear-modal" style="display:none;position:absolute;inset:0;z-index:9000;align-items:center;justify-content:center;background:rgba(0,0,0,0.85);backdrop-filter:blur(8px);">
-  <div style="width:480px;max-width:92vw;background:#050505;border:1px solid rgba(255,255,255,0.08);border-radius:12px;box-shadow:0 24px 80px rgba(0,0,0,0.6);overflow:hidden;">
+  <div style="width:480px;max-width:92vw;background:#000000;border:1px solid rgba(255,255,255,0.08);border-radius:12px;box-shadow:0 24px 80px rgba(0,0,0,0.6);overflow:hidden;">
     <div style="display:flex;align-items:center;justify-content:space-between;padding:22px 24px 18px;">
       <h2 style="font-family:'Manrope',sans-serif;font-size:17px;font-weight:800;color:#e7e5e4;margin:0;letter-spacing:-0.02em;">Add Gear Item</h2>
       <button onclick="closeGearModal()" style="color:#484847;background:none;border:none;cursor:pointer;font-size:22px;line-height:1;width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;transition:all 0.12s;" onmouseover="this.style.background='rgba(255,255,255,0.06)';this.style.color='#ff716c'" onmouseout="this.style.background='none';this.style.color='#484847'">×</button>
@@ -5031,27 +5156,153 @@ window.addEventListener('message', function(e) {
    * React parent posts { type:'sc-call', fn:'functionName', arg?:'...' }  *
    * We look up the function in window and call it.  This works even when   *
    * contentWindow direct access is restricted by the Android WebView.      */
+  var logIframeDiagnostic = window.logIframeDiagnostic;
+
+  logIframeDiagnostic('sc-runtime-ready');
+  logIframeDiagnostic('sc-listener-installed');
+
   window.addEventListener('message', function (e) {
-    var isAllowedOrigin = !e.origin || e.origin === window.location.origin ||
-      e.origin === 'https://localhost' ||
-      e.origin === 'http://localhost' ||
-      e.origin === 'capacitor://localhost';
-    if (!isAllowedOrigin) return;
+    var origin = e.origin || '';
+    var isAllowedOrigin = !origin || origin === 'null' || origin === 'about:blank' ||
+      origin === window.location.origin ||
+      origin.indexOf('https://localhost') === 0 ||
+      origin.indexOf('http://localhost') === 0 ||
+      origin.indexOf('capacitor://localhost') === 0;
+    
+    if (!isAllowedOrigin) {
+      logIframeDiagnostic('sc-origin-rejected', {
+        actual: origin,
+        expected: window.location.origin
+      });
+      return;
+    }
+
+    if (e.data && e.data.type === 'sc-back-request') {
+      var consumed = false;
+      if (typeof window.stageGoBack === 'function') {
+        consumed = window.stageGoBack();
+      }
+      window.parent.postMessage({ type: 'sc-back-response', consumed: consumed }, '*');
+      if (typeof window.reportStagexState === 'function') {
+        window.reportStagexState();
+      }
+      return;
+    }
+
+    if (e.data && e.data.type === 'requestSceneInfo') {
+      if (typeof window.__getSceneInfo === 'function') {
+        var info = window.__getSceneInfo();
+        window.parent.postMessage({ type: 'sc-scene-info', info: info }, '*');
+      }
+      return;
+    }
+
     if (!e.data || e.data.type !== 'sc-call') return;
     var fn  = e.data.fn;
     var arg = e.data.arg;
     var msgId = e.data.msgId;
     if (typeof fn !== 'string') return;
-    var target = window[fn];
-    if (typeof target === 'function') {
+
+    logIframeDiagnostic('sc-command-received', { fn: fn });
+
+    var handler = null;
+    if (fn === 'switchView') {
+      handler = window.switchView;
+    } else if (fn === 'toggleSCDial') {
+      handler = window.toggleSCDial;
+    } else if (fn === 'toggleGigMode') {
+      handler = window.toggleGigMode;
+    } else if (fn === 'stageGoBack') {
+      handler = window.stageGoBack;
+    } else if (fn === 'openPresetsPanel') {
+      handler = window.openPresetsPanel;
+    } else if (fn === 'exportPDFWithOptions') {
+      handler = window.exportPDFWithOptions;
+    } else {
+      handler = window[fn];
+    }
+
+    if (typeof handler === 'function') {
       try {
-        arg !== undefined ? target(arg) : target();
+        arg !== undefined ? handler(arg) : handler();
+        logIframeDiagnostic('sc-command-dispatched', { fn: fn });
         if (msgId) {
-          window.parent.postMessage({ type: 'sc-ack', msgId: msgId, fn: fn }, '*');
+          window.parent.postMessage({
+            type: 'sc-ack',
+            msgId: msgId,
+            command: fn,
+            status: 'success',
+            handlerName: fn,
+            error: ''
+          }, '*');
+          logIframeDiagnostic('sc-ack-sent', { fn: fn, msgId: msgId });
         }
-      } catch (err) { /* ignore */ }
+      } catch (err) {
+        logIframeDiagnostic('sc-command-handler-error', {
+          fn: fn,
+          error: err.message || String(err)
+        });
+        if (msgId) {
+          window.parent.postMessage({
+            type: 'sc-nack',
+            msgId: msgId,
+            command: fn,
+            status: 'error',
+            handlerName: fn,
+            error: err.message || String(err)
+          }, '*');
+        }
+      }
+    } else {
+      logIframeDiagnostic('sc-command-handler-missing', { fn: fn });
+      if (msgId) {
+        window.parent.postMessage({
+          type: 'sc-nack',
+          msgId: msgId,
+          command: fn,
+          status: 'missing',
+          handlerName: fn,
+          error: 'Handler missing or not a function'
+        }, '*');
+      }
     }
   }, false);
+
+  /* ── MutationObserver state sync to track open overlays ── */
+  (function() {
+    var lastState = false;
+    var lastReport = '';
+    function checkOverlays() {
+      var currentState = false;
+      if (typeof window.stageHasOpenOverlay === 'function') {
+        currentState = window.stageHasOpenOverlay();
+      }
+      if (currentState !== lastState) {
+        lastState = currentState;
+        window.parent.postMessage({ type: 'sc-overlay-state', open: currentState }, '*');
+      }
+      if (typeof window.reportStagexState === 'function') {
+        const presetsOpen = !!(document.getElementById('presets-panel')?.classList.contains('preset-open'));
+        const historyOpen = !!(window._histTimelineOpen);
+        const pdfExportOpen = (typeof state !== 'undefined' && state.currentView === 'Export') || (_curView === 'Export');
+        const serialized = presetsOpen + '-' + historyOpen + '-' + pdfExportOpen;
+        if (serialized !== lastReport) {
+          lastReport = serialized;
+          window.parent.postMessage({
+            type: 'sc-state-report',
+            pdfExportOpen: pdfExportOpen,
+            historyOpen: historyOpen,
+            layoutsOpen: presetsOpen
+          }, '*');
+        }
+      }
+    }
+    try {
+      var observer = new MutationObserver(checkOverlays);
+      observer.observe(document.body, { attributes: true, subtree: true, attributeFilter: ['class', 'style'] });
+    } catch(e) {}
+    setInterval(checkOverlays, 300);
+  })();
 
   /* ── Remove native Stagex header entirely on load ───────────────── */
   function removeNativeHeader() {

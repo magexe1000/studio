@@ -388,12 +388,12 @@ console.log('generate-release-metadata: ✓ Metadata URLs successfully validated
 
 try {
   fs.writeFileSync(appReleaseJsonPath, JSON.stringify(androidMetadata, null, 2) + '\n', 'utf8');
-  // Also write to dist/public in case we rebuild
-  const publicReleasePath = path.join(appRoot, 'dist/public/app-release.json');
+  // Also write to dist/android-web in case we rebuild
+  const publicReleasePath = path.join(appRoot, '../../dist/android-web/app-release.json');
   fs.mkdirSync(path.dirname(publicReleasePath), { recursive: true });
   fs.writeFileSync(publicReleasePath, JSON.stringify(androidMetadata, null, 2) + '\n', 'utf8');
 
-  console.log(`generate-release-metadata: ✓ Wrote firebase-public/app-release.json and dist/public/app-release.json`);
+  console.log(`generate-release-metadata: ✓ Wrote firebase-public/app-release.json and dist/android-web/app-release.json`);
 
   // Synchronize version.json files with Web metadata
   const syncVersionJson = (filePath) => {
@@ -411,7 +411,7 @@ try {
   };
 
   syncVersionJson(versionJsonPath);
-  syncVersionJson(path.join(appRoot, 'dist/public/version.json'));
+  syncVersionJson(path.join(appRoot, '../../dist/android-web/version.json'));
   syncVersionJson(path.join(appRoot, 'public/version.json'));
 } catch (err) {
   console.error(`\x1b[31mgenerate-release-metadata: ✗ Metadata generation failure: ${err.message}\x1b[0m`);

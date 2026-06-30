@@ -7,6 +7,9 @@
   },
   "hosting": {
     "public": "firebase-public",
+    "predeploy": [
+      "node scripts/verify-release-signatures.mjs"
+    ],
     "ignore": [
       "firebase.json",
       "**/.*",
@@ -149,7 +152,7 @@
     "redirects": [
       {
         "source": "/apk/studio-latest.apk",
-        "destination": "https://github.com/MAGEXE1000/Studio/releases/download/v3.6.35/studio-3.6.35.apk",
+        "destination": "https://github.com/MAGEXE1000/Studio/releases/download/v3.7.5/studio-3.7.5.apk",
         "type": 302
       },
       {

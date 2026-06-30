@@ -1,0 +1,36 @@
+{
+  "platform": "android",
+  "version": "3.7.5",
+  "versionName": "3.7.5",
+  "version_code": 132,
+  "versionCode": 132,
+  "packageName": "com.chordex.app",
+  "update_type": "apk",
+  "updateType": "apk",
+  "download_url": "https://github.com/MAGEXE1000/Studio/releases/download/v3.7.5/studio-3.7.5.apk",
+  "apkUrl": "https://github.com/MAGEXE1000/Studio/releases/download/v3.7.5/studio-3.7.5.apk",
+  "manual_download_url": "https://studio-30f44.web.app/apk/studio-3.7.5.apk",
+  "fallback_download_url": "https://github.com/MAGEXE1000/Studio/releases/download/v3.7.5/studio-3.7.5.apk",
+  "sha256": "ac0ec6b81b30e5f4ef5c0ec50ec494a0241feb3a45e6e4d1a3e7576f4eae2035",
+  "apkSha256": "ac0ec6b81b30e5f4ef5c0ec50ec494a0241feb3a45e6e4d1a3e7576f4eae2035",
+  "apkSizeBytes": 52405942,
+  "description": "• Added multi-stage signature mismatch recovery featuring automated cache clearing, session recreation, and PendingIntent resets.\n• Added direct GitHub Release package installation with SHA-256 integrity checks and signing certificate verification.\n• Added detailed error dialogs containing technical/human explanations, detected cause, and current/latest version comparison.\n• Fixed updater state machine overwrite issues to ensure signature mismatch and version checks are preserved.",
+  "whatsNew": "• Added multi-stage signature mismatch recovery featuring automated cache clearing, session recreation, and PendingIntent resets.\n• Added direct GitHub Release package installation with SHA-256 integrity checks and signing certificate verification.\n• Added detailed error dialogs containing technical/human explanations, detected cause, and current/latest version comparison.\n• Fixed updater state machine overwrite issues to ensure signature mismatch and version checks are preserved.",
+  "changelog": "• Added multi-stage signature mismatch recovery featuring automated cache clearing, session recreation, and PendingIntent resets.\n• Added direct GitHub Release package installation with SHA-256 integrity checks and signing certificate verification.\n• Added detailed error dialogs containing technical/human explanations, detected cause, and current/latest version comparison.\n• Fixed updater state machine overwrite issues to ensure signature mismatch and version checks are preserved.",
+  "releaseNotes": {
+    "added": [
+      "Added multi-stage signature mismatch recovery featuring automated cache clearing, session recreation, and PendingIntent resets.",
+      "Added direct GitHub Release package installation with SHA-256 integrity checks and signing certificate verification.",
+      "Added detailed error dialogs containing technical/human explanations, detected cause, and current/latest version comparison."
+    ],
+    "fixed": [
+      "Fixed updater state machine overwrite issues to ensure signature mismatch and version checks are preserved."
+    ]
+  },
+  "required_version_code": 132,
+  "requiredVersionCode": 132,
+  "signatures": "900cf259185c81100cda8bb08571fa23552e9789131cf07a8f4056e4d4129206",
+  "installMode": "normal-update",
+  "reinstallRequired": false,
+  "signatureChanged": false
+}

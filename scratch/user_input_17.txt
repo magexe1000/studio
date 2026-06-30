@@ -1,0 +1,127 @@
+<USER_REQUEST>
+Continue from the current state.
+
+The code for v3.6.80 has already been committed and pushed to:
+
+origin/fix/android-stagex-3640
+
+Current version:
+
+* versionName: 3.6.80
+* versionCode: 107
+
+The previous run stopped before publishing because local production signing credentials are not available in the terminal.
+
+Do NOT rebuild locally using missing local keystore credentials.
+
+Instead, use the GitHub Actions release pipeline, because production signing credentials are stored as repository secrets.
+
+==================================================
+TASK
+====
+
+Trigger the GitHub Actions release workflow for v3.6.80.
+
+Use the correct workflow that builds, signs, uploads, deploys Firebase metadata, and verifies the APK.
+
+Inputs:
+
+* version_name: 3.6.80
+* version_code: 107
+* note: Fix global i18n, add public-domain lyrics/charts to Chordex Discover, and add custom chart editor.
+
+Branch:
+
+fix/android-stagex-3640
+
+==================================================
+REQUIRED ACTIONS
+================
+
+1. Clear invalid local GitHub token override if needed:
+
+$env:GITHUB_TOKEN=""
+
+2. Verify GitHub CLI auth:
+
+gh auth status
+
+3. List workflows:
+
+gh workflow list
+
+4. Trigger the correct release workflow on branch:
+
+fix/android-stagex-3640
+
+Use the workflow that performs production signing through repo secrets.
+
+5. Watch the workflow until completion.
+
+6. If the workflow fails:
+
+   * fetch failed logs
+   * identify exact failing step
+   * fix only the release pipeline issue
+   * re-run workflow
+
+Do not modify app features unless the failure requires it.
+
+==================================================
+POST-RELEASE VERIFICATION
+=========================
+
+After workflow completes:
+
+1. Verify GitHub Release exists:
+
+v3.6.80
+
+2. Verify assets exist:
+
+* studio-3.6.80.apk
+* studio-3.6.80.apk.sha256
+
+3. Fetch Firebase metadata:
+
+* app-release.json
+* version.json
+
+4. Verify metadata:
+
+* versionName = 3.6.80
+* versionCode = 107
+* APK URL points to v3.6.80
+* SHA matches uploaded APK
+* file size matches uploaded APK
+
+5. Verify latest APK redirect if used:
+
+/apk/studio-latest.apk
+
+6. Confirm updater can detect:
+
+3.6.79 → 3.6.80
+
+==================================================
+FINAL REPORT
+============
+
+Return one final consolidated report only:
+
+1. Workflow triggered.
+2. Workflow URL.
+3. Workflow final status.
+4. GitHub Release URL.
+5. APK filename.
+6. APK SHA-256.
+7. Firebase app-release.json verification.
+8. Firebase version.json verification.
+9. Latest APK redirect verification.
+10. Confirmation that v3.6.80 is live and downloadable.
+11. Confirmation that devices on v3.6.79 can update to v3.6.80.
+
+</USER_REQUEST>
+<ADDITIONAL_METADATA>
+The current local time is: 2026-06-22T19:37:24-06:00.
+</ADDITIONAL_METADATA>

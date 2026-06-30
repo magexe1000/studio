@@ -25,8 +25,7 @@
 import { useMemo } from 'react';
 import { Capacitor } from '@capacitor/core';
 
-/** Canonical semver string used by the OTA comparator. */
-export const NATIVE_VERSION = '3.6.36';
+export const NATIVE_VERSION = '3.7.52';
 export const WEB_VERSION = '4.0.0';
 export const APP_VERSION = Capacitor.isNativePlatform() ? NATIVE_VERSION : WEB_VERSION;
 
@@ -38,11 +37,11 @@ export const APP_VERSION_LABEL = `${APP_VERSION_TAG} ${APP_VERSION}`;
 
 /** Release date for the CURRENT bundle, shown alongside the version pill
  *  in the changelog sheet. ISO-8601 (`YYYY-MM-DD`). */
-export const APP_VERSION_DATE = '2026-06-16'; // 3.6.36
+export const APP_VERSION_DATE = '2026-07-14'; // 3.7.47
 // Note: keep ISO-8601. Bump together with APP_VERSION on each release.
 
-export const APP_COMMIT_SHA = import.meta.env.VITE_GIT_COMMIT_SHA || 'c9e77a16';
-export const APP_BUILD_TIMESTAMP = import.meta.env.VITE_BUILD_TIMESTAMP || '6/16/2026, 1:15:07 PM CST';
+export const APP_COMMIT_SHA = import.meta.env.VITE_GIT_COMMIT_SHA || 'efd2b1a3';
+export const APP_BUILD_TIMESTAMP = import.meta.env.VITE_BUILD_TIMESTAMP || '7/14/2026, 12:00:00 AM CST';
 
 /**
  * Changelog for the CURRENT release — shown to the user the first
@@ -59,24 +58,10 @@ export interface ChangelogSection {
 
 export const APP_CHANGELOG_SECTIONS: ChangelogSection[] = [
   {
-    heading: "Improved",
-    items: [
-      "Unified Help Center and FAQ & Support into Help & Support.",
-      "Added searchable support content and functional troubleshooting actions.",
-      "Improved transition cleanup when switching between Studio apps.",
-      "Improved Stagex interaction diagnostics and event handling.",
-    ],
-  },
-  {
     heading: "Fixed",
     items: [
-      "Restored Stagex bottom-navigation section switching.",
-      "Corrected Stagex plus-button and element-picker interaction.",
-      "Corrected Stagex eye/visibility control behavior.",
-      "Corrected parent-to-iframe command delivery in Android WebView.",
-      "Improved selected-element controls.",
-      "Prevented transition states from leaving Studio on a black screen.",
-      "Added recovery actions when a Studio module fails to load.",
+      "Repaired all production DevTools Dashboard buttons, ensuring robust handling of missing cached APK paths for Replay Last Install, Open Cached APK, and Open Download Folder.",
+      "Satisfied TypeScript checks by ensuring all code paths in the dashboard button handlers return a value.",
     ],
   },
 ];
@@ -84,24 +69,10 @@ export const APP_CHANGELOG_SECTIONS: ChangelogSection[] = [
 /** Native English version of the current changelog for Android. */
 export const APP_CHANGELOG_SECTIONS_NATIVE: ChangelogSection[] = [
   {
-    heading: "Fixed",
+    heading: "What's New",
     items: [
-      "Restored Stagex bottom-navigation section switching.",
-      "Corrected Stagex plus-button and element-picker interaction.",
-      "Corrected Stagex eye/visibility control behavior.",
-      "Corrected parent-to-iframe command delivery in Android WebView.",
-      "Improved selected-element controls.",
-      "Prevented transition states from leaving Studio on a black screen.",
-      "Added recovery actions when a Studio module fails to load.",
-    ],
-  },
-  {
-    heading: "Improved",
-    items: [
-      "Unified Help Center and FAQ & Support into Help & Support.",
-      "Added searchable support content and functional troubleshooting actions.",
-      "Improved transition cleanup when switching between Studio apps.",
-      "Improved Stagex interaction diagnostics and event handling.",
+      "Rehabilitated DevTools Dashboard with full functional updates, simulation controls, and telemetry history.",
+      "Implemented robust clipboard validation and loading indicators for all diagnostic exports.",
     ],
   },
 ];
@@ -110,49 +81,25 @@ export const APP_CHANGELOG_SECTIONS_NATIVE: ChangelogSection[] = [
  *  by `ChangelogSheet` based on `settings.language`. */
 export const APP_CHANGELOG_SECTIONS_ES: ChangelogSection[] = [
   {
-    heading: "Corregido",
+    heading: "Novedades",
     items: [
-      "Restaurado el cambio de sección en la navegación inferior de Stagex.",
-      "Corregida la interacción del botón más y el selector de elementos en Stagex.",
-      "Corregido el comportamiento del control de ojo/visibilidad en Stagex.",
-      "Corregida la entrega de comandos parent-to-iframe en Android WebView.",
-      "Mejorados los controles de los elementos seleccionados.",
-      "Evitado que los estados de transición dejen a Studio en una pantalla negra.",
-      "Añadidas acciones de recuperación cuando un módulo de Studio no se carga.",
-    ],
-  },
-  {
-    heading: "Mejorado",
-    items: [
-      "Unificados el Centro de ayuda y Preguntas frecuentes y soporte en Ayuda y soporte.",
-      "Añadido contenido de soporte con búsqueda y acciones funcionales de solución de problemas.",
-      "Mejorada la limpieza de transiciones al cambiar entre aplicaciones de Studio.",
-      "Mejorados los diagnósticos de interacción y el manejo de eventos en Stagex.",
+      "Rehabilitación completa del panel de herramientas de desarrollo (DevTools) con simulaciones y registro de telemetría.",
+      "Validación mejorada del portapapeles con indicadores de carga en las exportaciones de diagnóstico.",
     ],
   },
 ];
+
 
 /** German version of the current changelog. */
 export const APP_CHANGELOG_SECTIONS_DE: ChangelogSection[] = [
   {
     heading: "Behoben",
     items: [
-      "Wiederherstellung des Bereichswechsels in der Stagex-Navigation unten.",
-      "Korrektur der Interaktion von Plus-Button und Element-Picker in Stagex.",
-      "Korrektur des Verhaltens der Augensymbol- und Sichtbarkeitssteuerung.",
-      "Korrektur der parent-to-iframe Befehlsübertragungen in Android WebView.",
-      "Verbesserte Steuerung für ausgewählte Elemente.",
-      "Verhindert, dass Übergangszustände Studio auf einem schwarzen Bildschirm hinterlassen.",
-      "Wiederherstellungsaktionen bei fehlgeschlagenem Laden von Studio-Modulen hinzugefügt.",
-    ],
-  },
-  {
-    heading: "Verbessert",
-    items: [
-      "Zusammenführung von Hilfe-Center und FAQ & Support in Hilfe & Support.",
-      "Durchsuchbare Support-Inhalte und funktionale Fehlerbehebungsaktionen hinzugefügt.",
-      "Verbesserte Übergangsbereinigung beim Wechsel zwischen Studio-Apps.",
-      "Verbesserte Stagex Interaktionsdiagnosen und Ereignisbehandlung.",
+      "Optimierte Startanimation durch Zwischenspeichern von Dimensionen und Logo-Offsets.",
+      "Vergrößerte Klickbereiche für Stagex-Objekte und Deaktivierung grauer Tipp-Overlays.",
+      "Umgestaltung des Stagex-Verlaufspanels in ein responsives Bottom-Sheet für Mobilgeräte.",
+      "Universelle Wischgeste-Zurück-Navigation für Overlays, Presets und Verlauf in Stagex.",
+      "Neugestaltung der App-Update-Fortschrittsanzeige mit automatischer Hintergrundinstallation.",
     ],
   },
 ];
@@ -315,3 +262,6 @@ export function useAppVersion(): {
     [],
   );
 }
+
+/** Authoritative expected production signing certificate SHA-256 fingerprint. */
+export const PRODUCTION_SIGNING_SHA256 = '900cf259185c81100cda8bb08571fa23552e9789131cf07a8f4056e4d4129206';

@@ -1,0 +1,260 @@
+name: Release Pipeline
+
+on:
+  workflow_dispatch:
+    inputs:
+      release_type:
+        description: "Release Type"
+        required: true
+        default: "both"
+        type: choice
+        options:
+          - "both"
+          - "ota"
+          - "apk"
+      note:
+        description: "Optional release note"
+        required: false
+        default: ""
+
+permissions:
+  contents: write
+  actions: read
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    env:
+      STUDIO_PRODUCTION_RELEASE: "true"
+      VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
+      VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
+      VITE_SYNC_BACKEND_PROVIDER: "supabase-realtime"
+      ANDROID_HOME: /usr/local/lib/android/sdk
+      ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+      ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+      ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+      EXPECTED_SIGNATURE_SHA256: "900cf259185c81100cda8bb08571fa23552e9789131cf07a8f4056e4d4129206"
+      REINSTALL_REQUIRED: "true"
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.26.1
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Enforce Import Boundaries
+        run: pnpm lint:imports
+
+      - name: Assert Production Signing Secrets
+        run: |
+          if [ "${{ env.STUDIO_PRODUCTION_RELEASE }}" != "true" ]; then
+            echo "::error::STUDIO_PRODUCTION_RELEASE flag is missing or not set to true!"
+            exit 1
+          fi
+          if [ -z "${{ secrets.ANDROID_KEYSTORE_BASE64 }}" ] || \
+             [ -z "${{ secrets.ANDROID_KEYSTORE_PASSWORD }}" ] || \
+             [ -z "${{ secrets.ANDROID_KEY_ALIAS }}" ] || \
+             [ -z "${{ secrets.ANDROID_KEY_PASSWORD }}" ]; then
+            echo "::error::Production signing secrets are missing. Refusing to publish release APK."
+            exit 1
+          fi
+
+      - name: Decode Android Keystore
+        run: |
+          echo "${{ secrets.ANDROID_KEYSTORE_BASE64 }}" | base64 --decode > apps/studio-android/android/app/release.keystore
+
+      - name: Verify Keystore File
+        run: |
+          if [ ! -s apps/studio-android/android/app/release.keystore ]; then
+            echo "::error::release.keystore is missing or empty!"
+            exit 1
+          fi
+
+      - name: Run Android Release Script
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          cd apps/studio-android
+          node scripts/release-firebase.mjs --no-bump > build.log 2>&1 || {
+            status=$?
+            echo "::error::Android release script failed with status $status"
+            cat build.log
+            exit $status
+          }
+
+      - name: Write and Update Release Metadata
+        run: |
+          cd apps/studio-android
+          node scripts/generate-release-metadata.mjs
+
+      - name: Verify Release APK and Metadata
+        run: |
+          APK_PATH="apps/studio-android/android/app/build/outputs/apk/release/app-release.apk"
+          
+          # 1. Verify APK exists
+          if [ ! -f "$APK_PATH" ]; then
+            echo "::error::Release APK does not exist at $APK_PATH"
+            exit 1
+          fi
+          
+          # 2. Find aapt
+          AAPT_PATH=$(find $ANDROID_HOME/build-tools -name aapt -type f | head -n 1)
+          if [ -z "$AAPT_PATH" ]; then
+            echo "::error::Could not find aapt utility"
+            exit 1
+          fi
+          
+          # 3. Dump badging
+          BADGING=$($AAPT_PATH dump badging "$APK_PATH")
+          
+          # 4. Verify package is com.chordex.app
+          if ! echo "$BADGING" | grep -q "package: name='com.chordex.app'"; then
+            echo "::error::Invalid package name! Expected com.chordex.app"
+            exit 1
+          fi
+          
+          # Resolve version name & code dynamically from badging or source files
+          REQ_VERSION=$(node -e "const fs = require('fs'); const src = fs.readFileSync('packages/studio-core/src/lib/appVersion.ts', 'utf8'); const m = src.match(/export\s+const\s+NATIVE_VERSION\s*=\s*['\"]([^'\"]+)['\"]/); console.log(m ? m[1] : 'unknown');")
+          REQ_CODE=$(node -e "const fs = require('fs'); const src = fs.readFileSync('apps/studio-android/android/app/build.gradle', 'utf8'); const m = src.match(/versionCode\s+(\d+)/); console.log(m ? m[1] : 'unknown');")
+          
+          # 5. Verify versionName matches
+          if ! echo "$BADGING" | grep -q "versionName='$REQ_VERSION'"; then
+            echo "::error::VersionName mismatch! Expected $REQ_VERSION"
+            exit 1
+          fi
+          
+          # 6. Verify versionCode matches
+          if ! echo "$BADGING" | grep -q "versionCode='$REQ_CODE'"; then
+            echo "::error::VersionCode mismatch! Expected $REQ_CODE"
+            exit 1
+          fi
+          
+          # 7. Verify APK is non-debuggable
+          if echo "$BADGING" | grep -q "application-debuggable"; then
+            echo "::error::Release APK is debuggable! This is unsafe."
+            exit 1
+          fi
+          
+          # 8. Find apksigner
+          APKSIGNER_PATH=$(find $ANDROID_HOME/build-tools -name apksigner -type f | head -n 1)
+          if [ -z "$APKSIGNER_PATH" ]; then
+            echo "::error::Could not find apksigner utility"
+            exit 1
+          fi
+          
+          # 9. Verify signing certificate SHA-256 fingerprint
+          SIGNINFO=$($APKSIGNER_PATH verify --print-certs "$APK_PATH")
+          FINGERPRINT=$(echo "$SIGNINFO" | grep -i "SHA-256 digest" | head -n 1 | awk '{print $NF}' | tr -d ':' | tr '[:upper:]' '[:lower:]')
+          EXPECTED_FINGERPRINT="900cf259185c81100cda8bb08571fa23552e9789131cf07a8f4056e4d4129206"
+          
+          echo "APK Signing SHA-256 fingerprint: $FINGERPRINT"
+          if [ "$FINGERPRINT" != "$EXPECTED_FINGERPRINT" ]; then
+            echo "::error::Signature fingerprint mismatch! Expected $EXPECTED_FINGERPRINT, got $FINGERPRINT"
+            exit 1
+          fi
+          
+          # 10. Calculate APK SHA-256
+          APK_SHA256=$(sha256sum "$APK_PATH" | awk '{print $1}')
+          echo "Calculated APK SHA-256: $APK_SHA256"
+          
+          # 11. Calculate APK size
+          APK_SIZE=$(stat -c%s "$APK_PATH")
+          echo "Calculated APK size: $APK_SIZE bytes"
+          if [ "$APK_SIZE" -le 0 ]; then
+            echo "::error::APK size is zero or invalid!"
+            exit 1
+          fi
+          
+          # 12. Verify release metadata matches the actual APK
+          METADATA_PATH="firebase-public/app-release.json"
+          if [ ! -f "$METADATA_PATH" ]; then
+            echo "::error::Release metadata file $METADATA_PATH does not exist!"
+            exit 1
+          fi
+          
+          META_VERSION=$(node -p "require('./$METADATA_PATH').version")
+          META_CODE=$(node -p "require('./$METADATA_PATH').versionCode")
+          META_SHA256=$(node -p "require('./$METADATA_PATH').sha256")
+          META_SIZE=$(node -p "require('./$METADATA_PATH').apkSizeBytes")
+          
+          echo "Metadata properties: version=$META_VERSION, versionCode=$META_CODE, sha256=$META_SHA256, size=$META_SIZE"
+          
+          if [ "$META_VERSION" != "$REQ_VERSION" ]; then
+            echo "::error::Metadata version mismatch! Expected $REQ_VERSION, got $META_VERSION"
+            exit 1
+          fi
+          
+          if [ "$META_CODE" != "$REQ_CODE" ]; then
+            echo "::error::Metadata versionCode mismatch! Expected $REQ_CODE, got $META_CODE"
+            exit 1
+          fi
+          
+          if [ "$META_SHA256" != "$APK_SHA256" ]; then
+            echo "::error::Metadata SHA-256 mismatch! Expected $APK_SHA256, got $META_SHA256"
+            exit 1
+          fi
+          
+          if [ "$META_SIZE" != "$APK_SIZE" ]; then
+            echo "::error::Metadata size mismatch! Expected $APK_SIZE, got $META_SIZE"
+            exit 1
+          fi
+          
+          echo "✓ All release verification checks passed successfully!"
+
+      - name: Upload APK Asset to GitHub Release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          VERSION=$(node -e "const fs = require('fs'); const src = fs.readFileSync('packages/studio-core/src/lib/appVersion.ts', 'utf8'); const m = src.match(/export\s+const\s+NATIVE_VERSION\s*=\s*['\"]([^'\"]+)['\"]/); console.log(m ? m[1] : 'unknown');")
+          TAG="v$VERSION"
+          if ! gh release view "$TAG" > /dev/null 2>&1; then
+            gh release create "$TAG" --title "$TAG" --notes "${{ github.event.inputs.note }}" --prerelease
+          else
+            gh release edit "$TAG" --notes "${{ github.event.inputs.note }}"
+          fi
+          FILE_NAME="studio-$VERSION.apk"
+          HASH_NAME="studio-$VERSION.sha256"
+          cp apps/studio-android/android/app/build/outputs/apk/release/app-release.apk "./$FILE_NAME"
+          sha256sum "$FILE_NAME" > "./$HASH_NAME"
+          gh release upload "$TAG" "./$FILE_NAME" "./$HASH_NAME" --clobber
+
+      - name: Deploy Update Metadata to Firebase Hosting
+        uses: FirebaseExtended/action-hosting-deploy@v0
+        with:
+          repoToken: '${{ secrets.GITHUB_TOKEN }}'
+          firebaseServiceAccount: '${{ secrets.FIREBASE_SERVICE_ACCOUNT }}'
+          projectId: '${{ secrets.FIREBASE_PROJECT_ID }}'
+          channelId: live
+
+      - name: Verify Deployed Android Metadata
+        run: |
+          echo "Waiting 15s for Firebase CDN propagation..."
+          sleep 15
+          NATIVE_VER=$(node -e "const fs = require('fs'); const src = fs.readFileSync('packages/studio-core/src/lib/appVersion.ts', 'utf8'); const m = src.match(/export\s+const\s+NATIVE_VERSION\s*=\s*['\"]([^'\"]+)['\"]/); console.log(m ? m[1] : 'unknown');")
+          
+          echo "--- Fetching app-release.json ---"
+          APP_JSON=$(curl -sf --retry 3 "https://studio-30f44.web.app/app-release.json")
+          APP_LIVE=$(echo "$APP_JSON" | node -p "JSON.parse(require('fs').readFileSync(0,'utf8')).version")
+          echo "Deployed app-release.json version = $APP_LIVE"
+          if [ "$APP_LIVE" != "$NATIVE_VER" ]; then
+            echo "::error::Deployed app-release.json version mismatch! Expected $NATIVE_VER, got $APP_LIVE"
+            exit 1
+          fi
+
+          echo "✓ Android Release Post-deploy verification passed"

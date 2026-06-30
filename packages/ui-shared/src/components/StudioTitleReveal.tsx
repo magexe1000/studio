@@ -79,14 +79,24 @@ export default function StudioTitleReveal({
     const split = new SplitText(el, { type: 'chars' });
     const targets = split.chars;
 
+    if (!targets || targets.length === 0) {
+      gsap.set(el, { opacity: 1 });
+      onComplete?.();
+      return () => { split.revert(); };
+    }
+
     // GPU acceleration + initial hidden state
     gsap.set(targets, { willChange: 'transform, opacity', opacity: 0, y: 20 });
+
+    let tween: gsap.core.Tween | null = null;
+    let io: IntersectionObserver | null = null;
+    let safetyTimer: any = null;
 
     function play() {
       if (hasPlayedRef.current) return;
       hasPlayedRef.current = true;
 
-      gsap.to(targets, {
+      tween = gsap.to(targets, {
         opacity: 1,
         y: 0,
         duration,
@@ -99,52 +109,54 @@ export default function StudioTitleReveal({
       });
     }
 
-    // ── startOnView mode: IntersectionObserver ────────────────────────────────
-    if (startOnView) {
-      const io = new IntersectionObserver(
-        ([entry]) => { if (entry.isIntersecting) { play(); io.disconnect(); } },
-        { threshold: 0.1 },
-      );
-      io.observe(el);
-      return () => { io.disconnect(); split.revert(); };
-    }
-
-    // ── Default mode: wait for studio-intro-done signal ───────────────────────
-
-    // Already fired before mount.
-    if (_introDone || (typeof window !== 'undefined' && (window as any).__introDone)) {
-      play();
-      return () => { split.revert(); };
-    }
-
-    // Safety check: if the intro overlay is gone from the DOM without firing the
-    // event (e.g. the component mounted after a page reload without the intro),
-    // play immediately so the text is never invisible.
-    if (
-      typeof document !== 'undefined' &&
-      !document.getElementById('intro') &&
-      !document.querySelector('[data-solar-intro]')
-    ) {
-      _introDone = true;
-      play();
-      return () => { split.revert(); };
-    }
-
     const handler = () => play();
 
-    // Hard safety net: if the intro-done event never fires, show text after 3.5s.
-    const safetyTimer = setTimeout(() => {
-      if (!hasPlayedRef.current) {
+    // ── startOnView mode: IntersectionObserver ────────────────────────────────
+    if (startOnView) {
+      const observer = new IntersectionObserver(
+        ([entry]) => { if (entry.isIntersecting) { play(); observer.disconnect(); } },
+        { threshold: 0.1 },
+      );
+      io = observer;
+      observer.observe(el);
+    } else {
+      // ── Default mode: wait for studio-intro-done signal ───────────────────────
+      if (_introDone || (typeof window !== 'undefined' && (window as any).__introDone)) {
+        play();
+      } else if (
+        typeof document !== 'undefined' &&
+        !document.getElementById('intro') &&
+        !document.querySelector('[data-solar-intro]')
+      ) {
         _introDone = true;
         play();
-      }
-    }, 3_500);
+      } else {
+        // Hard safety net: if the intro-done event never fires, show text after 3.5s.
+        safetyTimer = setTimeout(() => {
+          if (!hasPlayedRef.current) {
+            _introDone = true;
+            play();
+          }
+        }, 3_500);
 
-    window.addEventListener(INTRO_EVENT, handler, { once: true });
+        window.addEventListener(INTRO_EVENT, handler, { once: true });
+      }
+    }
 
     return () => {
+      if (io) {
+        io.disconnect();
+      }
       window.removeEventListener(INTRO_EVENT, handler);
-      clearTimeout(safetyTimer);
+      if (safetyTimer) {
+        clearTimeout(safetyTimer);
+      }
+      if (tween) {
+        tween.kill();
+      }
+      if (targets && targets.length > 0) {
+        gsap.killTweensOf(targets);
+      }
       split.revert();
     };
   }, [displayText]);

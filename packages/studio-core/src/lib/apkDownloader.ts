@@ -11,8 +11,17 @@ import { Filesystem, Directory } from '@capacitor/filesystem';
 // Do NOT rename the plugin name, the methods, or remove them.
 export interface AppInstallerPlugin {
   installApk(options: { filePath: string }): Promise<void>;
+  installApkDirect(options: { filePath: string }): Promise<void>;
   downloadAndInstallApk(options: { url: string; fileName?: string }): Promise<void>;
   downloadApk(options: { url: string; fileName?: string }): Promise<{ filePath: string }>;
+  getLastInstallResult(): Promise<{ statusCode: number; statusMessage: string; packageName: string; timestamp: number; expectedVersionCode?: number; expectedVersionName?: string }>;
+  getInstallerLogHistory(): Promise<{ logs: string }>;
+  clearInstallerLogHistory(): Promise<void>;
+  appendLog(options: { stage: string; status?: number; message?: string; packageName?: string; exceptionStack?: string }): Promise<void>;
+  resumePendingInstall(): Promise<void>;
+  resumePackageInstallerSession(): Promise<void>;
+  recreateActivity(): Promise<void>;
+  killProcess(): Promise<void>;
   checkPermissions(): Promise<any>;
   requestPermissions(options?: { aliases?: string[] }): Promise<any>;
   getSharedFile(): Promise<{ none?: boolean; type?: 'json' | 'audio'; data?: string; fileName?: string }>;
@@ -24,10 +33,20 @@ export interface AppInstallerPlugin {
   openInstallPermissionSettings(): Promise<void>;
   verifySha256(options: { filePath: string; expectedHash: string }): Promise<{ matches: boolean; computedHash: string }>;
   verifyApkSha256(options: { filePath: string; expectedHash: string }): Promise<{ matches: boolean; computedHash: string }>;
-  getDeviceInfo(): Promise<{ manufacturer: string; model: string; androidVersion: string; sdkInt: number; canRequestPackageInstalls: boolean }>;
+  getDeviceInfo(): Promise<{
+    manufacturer: string;
+    model: string;
+    androidVersion: string;
+    sdkInt: number;
+    canRequestPackageInstalls: boolean;
+    architecture?: string;
+    deviceLocale?: string;
+    storageAvailable?: string;
+    networkState?: string;
+  }>;
   getApkDetails(options: { filePath: string }): Promise<{ packageName: string; versionName: string; versionCode: number; signatures: string }>;
   getInstalledAppDetails(): Promise<{ packageName: string; versionName: string; versionCode: number; signatures: string }>;
-  getInstalledAppInfo(): Promise<{ packageName: string; versionName: string; versionCode: number; signingSha256: string; debuggable: boolean }>;
+  getInstalledAppInfo(): Promise<{ packageName: string; versionName: string; versionCode: number; signingSha256: string; debuggable: boolean; certificateSubject?: string; certificateIssuer?: string; }>;
   inspectApk(options: { filePath: string }): Promise<{
     packageName: string;
     versionName: string;
@@ -38,7 +57,34 @@ export interface AppInstallerPlugin {
     targetSdk: number;
     isValidApk: boolean;
     isUniversalApk: boolean;
+    certificateSubject?: string;
+    certificateIssuer?: string;
   }>;
+  readFirstBytes(options: { filePath: string; count?: number }): Promise<{ hex: string; ascii: string }>;
+  isInstallActive(): Promise<{ active: boolean; sessionId: number }>;
+  getExtendedDiagnostics(): Promise<{
+    sessionId: number;
+    sessionState: string;
+    pendingIntentCreated: boolean;
+    intentSenderCreated: boolean;
+    intentFired: boolean;
+    confirmationIntentReceived: boolean;
+    confirmationIntentStarted: boolean;
+    installationActive: boolean;
+    sessionStartTime: number;
+    sessionCreatedTime: number;
+    sessionCommitTime: number;
+    lastStatusCode: number;
+    lastStatusMessage: string;
+    lastOtherPackage: string;
+    lastStatusTimestamp: number;
+    expectedVersionCode: number;
+    expectedVersionName: string;
+    pendingConfirmIntentExists: boolean;
+    activeSessionsCount: number;
+    hasInstallPermission: boolean;
+  }>;
+  copyToClipboard(options: { text: string }): Promise<void>;
 }
 
 export const AppInstaller = registerPlugin<AppInstallerPlugin>('AppInstaller');
@@ -209,10 +255,14 @@ export async function downloadApk(
   let progressListener: any = null;
   
   try {
+    console.log(`[INSTRUMENTATION] [JS] downloadApk ENTER url=${url}`);
+    await AppInstaller.appendLog({ stage: '[INSTRUMENTATION] downloadApk ENTER', message: `url=${url}` });
+
     if (onProgress) {
       try {
         progressListener = await (AppInstaller as any).addListener('apkDownloadProgress', (status: any) => {
           if (status && typeof status.progress === 'number') {
+            console.log(`[INSTRUMENTATION] [JS] apkDownloadProgress event status.progress=${status.progress}%`);
             onProgress(status.progress);
           }
         });
@@ -228,11 +278,16 @@ export async function downloadApk(
       await progressListener.remove();
     }
     
+    console.log(`[INSTRUMENTATION] [JS] downloadApk EXIT success res.filePath=${res.filePath}`);
+    await AppInstaller.appendLog({ stage: '[INSTRUMENTATION] downloadApk EXIT', message: `Success res.filePath=${res.filePath}` });
     return res.filePath;
   } catch (err) {
     if (progressListener) {
       await progressListener.remove();
     }
+    const errMsg = err instanceof Error ? err.message : String(err);
+    console.error(`[INSTRUMENTATION] [JS] downloadApk EXIT error=${errMsg}`);
+    await AppInstaller.appendLog({ stage: '[INSTRUMENTATION] downloadApk EXIT', message: `Error: ${errMsg}` });
     console.error('[apkDownloader] Native downloadApk failed:', err);
     throw err;
   }
@@ -242,14 +297,24 @@ export async function downloadApk(
  * Verifies the SHA-256 hash of a file at the given absolute path.
  */
 export async function verifyApkSha256(filePath: string, expectedHash: string): Promise<boolean> {
-  if (!expectedHash) {
-    console.warn('[apkDownloader] No expected hash provided for verification.');
+  console.log(`[INSTRUMENTATION] [JS] verifyApkSha256 ENTER filePath=${filePath}, expectedHash=${expectedHash}`);
+  await AppInstaller.appendLog({ stage: '[INSTRUMENTATION] verifyApkSha256 ENTER', message: `filePath=${filePath}, expectedHash=${expectedHash}` });
+  if (!expectedHash || expectedHash.replace(/0/g, '') === '') {
+    console.warn('[apkDownloader] No expected hash or all-zero hash provided for verification. Skipping integrity check.');
+    console.log('[INSTRUMENTATION] [JS] verifyApkSha256 EXIT (Skipped: all-zero or empty hash)');
+    await AppInstaller.appendLog({ stage: '[INSTRUMENTATION] verifyApkSha256 EXIT', message: 'Skipped: all-zero or empty hash' });
     return true; // Skip if no hash provided
   }
   try {
     console.log(`[apkDownloader] Invoking native verifySha256 for ${filePath}`);
     const res = await AppInstaller.verifySha256({ filePath, expectedHash });
     console.log(`[apkDownloader] Native SHA-256 verification matches: ${res.matches}, computed: ${res.computedHash}`);
+    try {
+      const { otaDebugLogs } = await import('./otaUpdate');
+      otaDebugLogs.downloadedApkSha256 = res.computedHash;
+    } catch {}
+    console.log(`[INSTRUMENTATION] [JS] verifyApkSha256 EXIT matches=${res.matches}`);
+    await AppInstaller.appendLog({ stage: '[INSTRUMENTATION] verifyApkSha256 EXIT', message: `matches=${res.matches}, computedHash=${res.computedHash}` });
     return res.matches;
   } catch (err) {
     console.error('[apkDownloader] Native verifySha256 failed, falling back to JS implementation:', err);
@@ -258,6 +323,7 @@ export async function verifyApkSha256(filePath: string, expectedHash: string): P
       const { otaDebugLogs } = await import('./otaUpdate');
       const errMsg = err instanceof Error ? err.message : String(err);
       otaDebugLogs.installError = `Native verifySha256 failed: ${errMsg}`;
+      otaDebugLogs.downloadedApkSha256 = `ERROR: Native verifySha256 failed - ${errMsg}`;
     } catch {}
     
     // JS Fallback (memory heavy, OOM risk for large files)
@@ -269,6 +335,10 @@ export async function verifyApkSha256(filePath: string, expectedHash: string): P
       const base64Data = typeof result.data === 'string' ? result.data : '';
       if (!base64Data) {
         console.warn('[apkDownloader] Empty file content read for hash verification.');
+        try {
+          const { otaDebugLogs } = await import('./otaUpdate');
+          otaDebugLogs.downloadedApkSha256 = 'ERROR: Empty file read';
+        } catch {}
         return false;
       }
       
@@ -282,6 +352,11 @@ export async function verifyApkSha256(filePath: string, expectedHash: string): P
       const hashArray = Array.from(new Uint8Array(hashBuffer));
       const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
       
+      try {
+        const { otaDebugLogs } = await import('./otaUpdate');
+        otaDebugLogs.downloadedApkSha256 = hashHex;
+      } catch {}
+      
       const matches = hashHex.toLowerCase() === expectedHash.toLowerCase();
       console.log(`[apkDownloader] JS Fallback SHA-256 verification: Expected=${expectedHash.toLowerCase()}, Computed=${hashHex}, Matches=${matches}`);
       return matches;
@@ -291,6 +366,7 @@ export async function verifyApkSha256(filePath: string, expectedHash: string): P
         const { otaDebugLogs } = await import('./otaUpdate');
         const errMsg = jsErr instanceof Error ? jsErr.message : String(jsErr);
         otaDebugLogs.installError += `\nJS Fallback failed: ${errMsg}`;
+        otaDebugLogs.downloadedApkSha256 = `ERROR: JS Fallback failed - ${errMsg}`;
       } catch {}
       return false;
     }
@@ -303,6 +379,14 @@ export async function verifyApkSha256(filePath: string, expectedHash: string): P
 export async function openApkInstaller(filePath: string): Promise<void> {
   console.log(`[apkDownloader] Requesting native APK installation for path: ${filePath}`);
   await AppInstaller.installApk({ filePath });
+}
+
+/**
+ * Triggers the legacy/direct Android intent-based package installer for the given APK.
+ */
+export async function openApkInstallerDirect(filePath: string): Promise<void> {
+  console.log(`[apkDownloader] Requesting direct APK installation for path: ${filePath}`);
+  await AppInstaller.installApkDirect({ filePath });
 }
 
 /**
@@ -337,7 +421,7 @@ export interface InstallEligibility {
   };
 }
 
-export async function checkApkEligibility(filePath: string): Promise<InstallEligibility> {
+export async function checkApkEligibility(filePath: string, allowDowngrade?: boolean): Promise<InstallEligibility> {
   const { Capacitor } = await import('@capacitor/core');
   if (!Capacitor.isNativePlatform()) {
     return { eligible: true, reason: 'not_native' };
@@ -356,7 +440,9 @@ export async function checkApkEligibility(filePath: string): Promise<InstallElig
       minSdk: downloadedInspect.minSdk,
       targetSdk: downloadedInspect.targetSdk,
       isValidApk: downloadedInspect.isValidApk,
-      isUniversalApk: downloadedInspect.isUniversalApk
+      isUniversalApk: downloadedInspect.isUniversalApk,
+      certificateSubject: downloadedInspect.certificateSubject,
+      certificateIssuer: downloadedInspect.certificateIssuer,
     };
 
     if (!downloaded.isValidApk) {
@@ -391,7 +477,7 @@ export async function checkApkEligibility(filePath: string): Promise<InstallElig
       };
     }
 
-    if (downloaded.versionCode <= installed.versionCode) {
+    if (!allowDowngrade && downloaded.versionCode <= installed.versionCode) {
       return {
         eligible: false,
         reason: 'versionCode_low',

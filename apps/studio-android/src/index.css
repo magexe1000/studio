@@ -12,6 +12,10 @@
    element styling; the @font-face comes from Google Fonts. */
 @import "tailwindcss";
 
+@source "../../../packages/ui-shared/src/**/*.tsx";
+@source "../../../packages/ui-android/src/**/*.tsx";
+@source "../../../packages/studio-core/src/**/*.ts";
+
 /* ── Gradient Border System ─────────────────────────────────────────────────
    @property must live at the top level (outside any @layer / @media).
    Used by .gb-wrap (wrapper pattern) and .gb-border-ring (overlay pattern). */
@@ -121,7 +125,7 @@
   --studio-accent-glow: 0 4px 20px color-mix(in srgb, var(--studio-accent-to) 25%, transparent);
   --studio-accent-border: color-mix(in srgb, var(--studio-accent-to) 30%, transparent);
 
-  --app-bg: #0e0e0e;
+  --app-bg: #000000;
   --app-surface-lowest: #000000;
   --app-surface-low: #131313;
   --app-surface: #191a1a;
@@ -331,7 +335,8 @@ html, body { background: var(--app-bg); }
    inline hexes proved unreliable; using CSS vars is bulletproof.
    ============================================================ */
 :root {
-  --vx-deep:    #0e0e0e;  /* deepest surface (modal backdrops, inputs-on-cards) */
+  --vx-bg:      var(--app-bg);
+  --vx-deep:    #000000;  /* deepest surface (modal backdrops, inputs-on-cards) */
   --vx-card:    #161717;  /* main card background */
   --vx-card-2:  #191a1a;  /* slightly elevated card variant */
   --vx-edge:    #1f2020;  /* card border / muted surface */
@@ -715,7 +720,7 @@ html.theme-transitioning *:not([data-theme-exempt] *):not([data-theme-exempt])::
     -ms-overflow-style: none;
     scrollbar-width: none;
     /* Let the compositor handle touch scrolling without waiting for JS */
-    touch-action: pan-y;
+    touch-action: auto;
     -webkit-overflow-scrolling: touch;
     /* Scope layout/style calculations to this element and its subtree */
     contain: layout style;
@@ -1925,3 +1930,71 @@ html.web-desktop.light.amoled .app-sub-app-container {
     background: #f5f5f7 !important;
   }
 }
+
+/* ===== Global Responsive Device Framework ===== */
+.sc-responsive-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+  gap: 12px;
+}
+
+.sc-flex-responsive {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.sc-truncate {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.sc-word-wrap {
+  overflow-wrap: break-word;
+  word-wrap: break-word;
+  word-break: break-word;
+}
+
+/* Global Mobile Responsiveness & Densities */
+@media (max-width: 480px) {
+  .sc-flex-responsive {
+    flex-direction: column;
+    align-items: stretch;
+  }
+}
+
+@media (max-width: 380px) {
+  /* Ultra-compact mode for small phones */
+  :root {
+    --density-pad: 6px !important;
+    --density-row-pad: 6px 10px !important;
+    --density-gap: 6px !important;
+    --density-card-gap: 4px !important;
+  }
+  
+  .hub-accent-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    gap: 6px !important;
+  }
+
+  /* Shrink large titles/icons to prevent clipping on tiny screens */
+  h1 { font-size: 1.5rem !important; }
+  h2 { font-size: 1.25rem !important; }
+  h3 { font-size: 1.1rem !important; }
+  
+  .app-main-layout {
+    padding: 8px !important;
+  }
+}
+
+/* Landscape/Orientation safety rules */
+@media (max-height: 480px) and (orientation: landscape) {
+  /* Avoid vertical layout blockages on landscape phones */
+  .sheet-overlay, .modal-overlay, [role="dialog"], .settings-panel-sheet, .profile-panel-sheet {
+    max-height: 100vh !important;
+    overflow-y: auto !important;
+  }
+}
+

@@ -329,6 +329,9 @@ if (fs.existsSync(paths.apkPath)) {
 }
 
 if (fs.existsSync(paths.apkPath)) {
+  const appVersionPath = path.join(repoRoot, 'packages/studio-core/src/lib/appVersion.ts');
+  const appVersionSrc = fs.readFileSync(appVersionPath, 'utf8');
+
   // A. Verify non-debuggable and package manifest attributes
   try {
     const aapt2 = getAndroidTool('aapt2');
@@ -370,9 +373,6 @@ if (fs.existsSync(paths.apkPath)) {
     assert(nameMatch, 'Could not parse versionName from APK manifest!', EXIT_CODES.RELEASE_VALIDATION);
     const versionNameVal = nameMatch[1];
     
-    // Get expected versionName from NATIVE_VERSION in appVersion.ts
-    const appVersionPath = path.join(repoRoot, 'packages/studio-core/src/lib/appVersion.ts');
-    const appVersionSrc = fs.readFileSync(appVersionPath, 'utf8');
     const nativeVersionMatches = [...appVersionSrc.matchAll(/export\s+const\s+NATIVE_VERSION\s*=\s*['"]([^'"]+)['"]/g)];
     if (nativeVersionMatches.length !== 1) {
       assert(false, 'Unable to resolve NATIVE_VERSION from appVersion.ts', EXIT_CODES.RELEASE_VALIDATION);
@@ -388,6 +388,30 @@ if (fs.existsSync(paths.apkPath)) {
     }
     console.log(`✓ APK versionName is ${versionNameVal} (matches expected ${expectedVersionName}).`);
 
+    // 5. Verify inner web assets version matches
+    const zip = new AdmZip(paths.apkPath);
+    const versionEntry = zip.getEntry('assets/public/version.json');
+    assert(versionEntry, 'Web assets not bundled correctly: assets/public/version.json is missing in the APK!', EXIT_CODES.RELEASE_VALIDATION);
+    
+    let innerVersionJson;
+    try {
+      innerVersionJson = JSON.parse(versionEntry.getData().toString('utf8'));
+    } catch (e) {
+      assert(false, `Failed to parse assets/public/version.json inside APK: ${e.message}`, EXIT_CODES.RELEASE_VALIDATION);
+    }
+    
+    assert(
+      innerVersionJson && innerVersionJson.version === expectedVersionName,
+      `Web assets version mismatch! Expected version ${expectedVersionName} inside version.json, but found ${innerVersionJson ? innerVersionJson.version : 'null'}`,
+      EXIT_CODES.RELEASE_VALIDATION
+    );
+    assert(
+      innerVersionJson && innerVersionJson.versionCode === versionCodeVal,
+      `Web assets versionCode mismatch! Expected versionCode ${versionCodeVal} inside version.json, but found ${innerVersionJson ? innerVersionJson.versionCode : 'null'}`,
+      EXIT_CODES.RELEASE_VALIDATION
+    );
+    console.log(`✓ APK web assets version is ${innerVersionJson.version} (versionCode ${innerVersionJson.versionCode}) matches wrapper version.`);
+
   } catch (err) {
     assert(false, `Failed to verify manifest configuration: ${err.message}`, EXIT_CODES.RELEASE_VALIDATION);
   }
@@ -396,17 +420,24 @@ if (fs.existsSync(paths.apkPath)) {
   try {
     const apksigner = getAndroidTool('apksigner');
     console.log(`Verifying release APK signature status via ${apksigner}...`);
-    const signInfo = execSync(`${apksigner} verify --print-certs "${paths.apkPath}"`, { encoding: 'utf8' });
-    if (!signInfo.includes('SHA-256 digest')) {
+    const signInfoVerbose = execSync(`${apksigner} verify --verbose --print-certs "${paths.apkPath}"`, { encoding: 'utf8' });
+    if (!signInfoVerbose.includes('SHA-256 digest')) {
       assert(false, 'The release APK is not signed!', EXIT_CODES.RELEASE_VALIDATION);
     }
     console.log('✓ APK is successfully signed.');
 
-    const sha256Match = signInfo.match(/certificate SHA-256 digest:\s+([a-fA-F0-9:]+)/i);
+    // 1. Signature Scheme Check (V2 or V3 must be true)
+    const v2Scheme = /Verified using v2 scheme.*:\s*true/i.test(signInfoVerbose);
+    const v3Scheme = /Verified using v3 scheme.*:\s*true/i.test(signInfoVerbose);
+    assert(v2Scheme || v3Scheme, 'APK is not signed with a modern signature scheme (V2 or V3 must be true)!', EXIT_CODES.RELEASE_VALIDATION);
+    console.log('✓ APK signature scheme (V2/V3) verified successfully.');
+
+    const sha256Match = signInfoVerbose.match(/certificate SHA-256 digest:\s+([a-fA-F0-9:]+)/i);
     const currentSignature = sha256Match ? sha256Match[1].replace(/:/g, '').toLowerCase() : '';
     
     // Check signature consistency with previous release
-    const expectedProdSignature = "900cf259185c81100cda8bb08571fa23552e9789131cf07a8f4056e4d4129206";
+    const expectedSigMatch = appVersionSrc.match(/export\s+const\s+PRODUCTION_SIGNING_SHA256\s*=\s*['"]([^'"]+)['"]/);
+    const expectedProdSignature = expectedSigMatch ? expectedSigMatch[1].toLowerCase().replace(/:/g, '').trim() : '';
     const oldProdSignature = "58b9bf2de5064c62ac3ca181b5608fe135c6894a8359ff6588e19218cd384764";
 
     if (prevSignature) {
@@ -437,6 +468,69 @@ if (fs.existsSync(paths.apkPath)) {
       }
     }
     console.log('✓ APK signing certificate validation check passed.');
+
+    // 2. Certificate Details Check (Owner, Issuer, Validity)
+    try {
+      console.log('Verifying certificate Owner, Issuer, and Validity via keytool...');
+      const keytoolOut = execSync(`keytool -printcert -jarfile "${paths.apkPath}"`, { encoding: 'utf8' });
+      
+      const ownerMatch = keytoolOut.match(/Owner:\s*(.*)/i);
+      const issuerMatch = keytoolOut.match(/Issuer:\s*(.*)/i);
+      const validMatch = keytoolOut.match(/Valid from:\s*(.*?)\s+until:\s*(.*)/i);
+      
+      assert(ownerMatch, 'Could not parse certificate Owner (Subject) from keytool!', EXIT_CODES.RELEASE_VALIDATION);
+      assert(issuerMatch, 'Could not parse certificate Issuer from keytool!', EXIT_CODES.RELEASE_VALIDATION);
+      assert(validMatch, 'Could not parse certificate Validity range from keytool!', EXIT_CODES.RELEASE_VALIDATION);
+      
+      const owner = ownerMatch[1].trim();
+      const issuer = issuerMatch[1].trim();
+      const validFromStr = validMatch[1].trim();
+      const validUntilStr = validMatch[2].trim();
+      
+      console.log(`Certificate Owner:  ${owner}`);
+      console.log(`Certificate Issuer: ${issuer}`);
+      console.log(`Validity Window:    ${validFromStr} to ${validUntilStr}`);
+      
+      assert(owner.length > 0, 'Certificate Owner cannot be empty', EXIT_CODES.RELEASE_VALIDATION);
+      assert(issuer.length > 0, 'Certificate Issuer cannot be empty', EXIT_CODES.RELEASE_VALIDATION);
+      
+      const validFrom = new Date(validFromStr);
+      const validUntil = new Date(validUntilStr);
+      const now = new Date();
+      
+      assert(now >= validFrom && now <= validUntil, `Certificate is outside its validity range! Valid from: ${validFromStr} until: ${validUntilStr}`, EXIT_CODES.RELEASE_VALIDATION);
+      console.log('✓ Certificate Validity check passed.');
+    } catch (err) {
+      assert(false, `Failed to verify certificate fields using keytool: ${err.message}`, EXIT_CODES.RELEASE_VALIDATION);
+    }
+
+    // 3. Verify local app-release.json matches the generated APK SHA-256
+    const appReleasePath = path.join(repoRoot, 'firebase-public/app-release.json');
+    if (fs.existsSync(appReleasePath)) {
+      try {
+        const metadata = JSON.parse(fs.readFileSync(appReleasePath, 'utf8'));
+        
+        if (metadata.version === expectedVersionName) {
+          console.log('Verifying local app-release.json matches the APK SHA-256...');
+          
+          const crypto = await import('node:crypto');
+          const fileBuffer = fs.readFileSync(paths.apkPath);
+          const hashSum = crypto.createHash('sha256');
+          hashSum.update(fileBuffer);
+          const localApkSha = hashSum.digest('hex');
+          
+          if (metadata.sha256 && metadata.sha256 !== localApkSha) {
+            assert(false, `Local metadata SHA-256 (${metadata.sha256}) does not match APK SHA-256 (${localApkSha})!`, EXIT_CODES.RELEASE_VALIDATION);
+          }
+          console.log('✓ Local app-release.json SHA-256 matches APK hash.');
+        } else {
+          console.log(`Skipping local app-release.json SHA check because metadata version (${metadata.version}) differs from APK version (${expectedVersionName}). It will be updated later in the pipeline.`);
+        }
+      } catch (e) {
+        console.warn(`⚠ Could not verify app-release.json match: ${e.message}`);
+      }
+    }
+
   } catch (err) {
     assert(false, `Failed to verify APK signature: ${err.message}`, EXIT_CODES.RELEASE_VALIDATION);
   }

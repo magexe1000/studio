@@ -4,9 +4,9 @@ This document describes how update checking and assets caching are orchestrated 
 
 ---
 
-## 1. Caching Strategy (Firebase Hosting)
+## 1. Caching Strategy (Netlify)
 
-All web assets are served via Firebase Hosting. The caching rules are defined in `firebase.json` and designed with the following rules:
+All web assets are served via Netlify. The caching rules are defined in `netlify.toml` and designed with the following rules:
 
 1. **HTML Shell & Service Workers (No Cache):**
    The entry point `/index.html` (including clean URLs like `/` or rewritten SPA paths) and service worker scripts (`/sw.js`, `/sw-push.js`) must **never** be cached by CDN or browser.

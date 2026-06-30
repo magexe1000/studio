@@ -1360,6 +1360,7 @@ function openItemSheet(cat, label) {
     chips.forEach(chip => { chip.style.transitionDelay = '0ms'; });
     if (wrap) wrap.classList.remove('sc-dial-open');
   }
+  try { window.parent.postMessage({ type: 'sc-dial-state', open: true }, '*'); } catch(e) {}
 
   const sheet   = document.getElementById('sc-item-sheet');
   const titleEl = document.getElementById('sc-item-sheet-title');
@@ -1520,10 +1521,16 @@ function isPointerInBounds(e, dom, el) {
   const lx = rxUn + imgW / 2;
   const ly = ryUn + imgH / 2;
   
-  const px = lx / imgW;
-  const py = ly / imgH;
+  // Expand touch boundaries by 16px on each side in pixel space
+  const padX = 16;
+  const padY = 16;
   
-  return px >= bounds.left && px <= bounds.right && py >= bounds.top && py <= bounds.bottom;
+  const minX = bounds.left * imgW - padX;
+  const maxX = bounds.right * imgW + padX;
+  const minY = bounds.top * imgH - padY;
+  const maxY = bounds.bottom * imgH + padY;
+  
+  return lx >= minX && lx <= maxX && ly >= minY && ly <= maxY;
 }
 
 function repositionResizeBar(wrap) {
@@ -2235,7 +2242,7 @@ function setPropState(newState) {
     }
   }
   try {
-    window.parent.postMessage({ type: 'sc-prop-state', state: newState }, window.location.origin);
+    window.parent.postMessage({ type: 'sc-prop-state', state: newState }, '*');
   } catch(e) {}
 }
 function _getPropState() {
@@ -5020,11 +5027,13 @@ function openPresetsPanel(triggerEl) {
   hideSaveForm();
   renderPresetsList();
   lcIcons();
+  if (typeof window.reportStagexState === 'function') window.reportStagexState();
 }
 function closePresetsPanel() {
   document.getElementById('presets-panel').classList.remove('preset-open');
   document.getElementById('presets-backdrop').style.display = 'none';
   hideSaveForm();
+  if (typeof window.reportStagexState === 'function') window.reportStagexState();
 }
 
 function triggerSavePreset() {
@@ -5792,8 +5801,246 @@ function renderScenesBar() {
     `<span class="sc-scene-label">${state.lang === 'es' ? 'Escenas' : 'Scenes'}</span>` +
     tabsHtml + addHtml
   );
+  initScenesBarTouchHandler();
   requestAnimationFrame(positionScenesBar);
 }
+
+function initScenesBarTouchHandler() {
+  const bar = document.getElementById('sc-scenes-bar');
+  if (!bar || bar.dataset.touchAttached === 'true') return;
+  bar.dataset.touchAttached = 'true';
+
+  let touchStartData = null;
+
+  const getElementDebugData = (btn, clientX, clientY) => {
+    const rect = btn.getBoundingClientRect();
+    const isCloseOrAdd = btn.classList.contains('sc-scene-close') || btn.classList.contains('sc-scene-add-btn');
+    const isSceneBtn = btn.classList.contains('sc-scene-btn');
+    const borderSize = isCloseOrAdd ? 14 : 0;
+
+    const touchRect = {
+      left: rect.left,
+      top: isSceneBtn ? rect.top - 6 : rect.top,
+      width: rect.width,
+      height: isSceneBtn ? rect.height + 12 : rect.height,
+      right: rect.right,
+      bottom: isSceneBtn ? rect.bottom + 6 : rect.bottom
+    };
+
+    const visualRect = {
+      left: rect.left + borderSize,
+      top: rect.top + borderSize,
+      width: rect.width - (borderSize * 2),
+      height: rect.height - (borderSize * 2),
+      right: rect.right - borderSize,
+      bottom: rect.bottom - borderSize
+    };
+
+    const visualCenter = {
+      x: visualRect.left + visualRect.width / 2,
+      y: visualRect.top + visualRect.height / 2
+    };
+
+    const tapDeltaX = clientX - visualCenter.x;
+    const tapDeltaY = clientY - visualCenter.y;
+
+    const insideTouch = clientX >= touchRect.left && clientX <= touchRect.right &&
+                         clientY >= touchRect.top && clientY <= touchRect.bottom;
+    const insideVisual = clientX >= visualRect.left && clientX <= visualRect.right &&
+                          clientY >= visualRect.top && clientY <= visualRect.bottom;
+
+    const getPointerPath = (el) => {
+      const path = [];
+      let current = el;
+      while (current && current !== document.body) {
+        let name = current.tagName.toLowerCase();
+        if (current.id) name += '#' + current.id;
+        if (current.className) {
+          const classes = Array.from(current.classList).filter(c => c && c !== 'sc-last-tapped' && !c.startsWith('active'));
+          if (classes.length) name += '.' + classes.join('.');
+        }
+        path.push(name);
+        current = current.parentElement;
+      }
+      return path.reverse().join(' > ');
+    };
+
+    const barRect = bar.getBoundingClientRect();
+    const sceneButtons = Array.from(bar.querySelectorAll('.sc-scene-btn')).map(b => {
+      const r = b.getBoundingClientRect();
+      return { left: r.left, top: r.top, width: r.width, height: r.height };
+    });
+    const addButtonEl = bar.querySelector('.sc-scene-add-btn');
+    const addButtonRect = addButtonEl ? (() => {
+      const r = addButtonEl.getBoundingClientRect();
+      return { left: r.left, top: r.top, width: r.width, height: r.height };
+    })() : null;
+    const deleteButtons = Array.from(bar.querySelectorAll('.sc-scene-close')).map(b => {
+      const r = b.getBoundingClientRect();
+      return { left: r.left, top: r.top, width: r.width, height: r.height };
+    });
+
+    return {
+      touchRect,
+      visualRect,
+      visualCenter,
+      tapDeltaX,
+      tapDeltaY,
+      insideTouch,
+      insideVisual,
+      pointerPath: getPointerPath(btn),
+      barRect: { left: barRect.left, top: barRect.top, width: barRect.width, height: barRect.height },
+      sceneButtons,
+      addButtonRect,
+      deleteButtons
+    };
+  };
+
+  bar.addEventListener('touchstart', (e) => {
+    const touch = e.touches[0];
+    if (!touch) return;
+    
+    const btn = touch.target.closest('.sc-scene-btn, .sc-scene-add-btn, .sc-scene-close');
+    if (!btn) return;
+
+    // Highlight last-tapped
+    bar.querySelectorAll('.sc-last-tapped').forEach(el => el.classList.remove('sc-last-tapped'));
+    btn.classList.add('sc-last-tapped');
+
+    const debugData = getElementDebugData(btn, touch.clientX, touch.clientY);
+
+    touchStartData = {
+      target: btn,
+      startX: touch.clientX,
+      startY: touch.clientY,
+      startTime: Date.now(),
+      debugData
+    };
+
+    // Update floating overlay if active
+    const overlay = document.getElementById('sc-hitbox-debug-overlay');
+    if (overlay && overlay.style.display !== 'none') {
+      overlay.innerHTML = `
+        <strong>Target:</strong> ${btn.className}<br/>
+        <strong>Path:</strong> ${debugData.pointerPath}<br/>
+        <strong>Tap coords:</strong> X: ${touch.clientX.toFixed(1)}, Y: ${touch.clientY.toFixed(1)}<br/>
+        <strong>Visual Rect:</strong> L: ${debugData.visualRect.left.toFixed(1)}, T: ${debugData.visualRect.top.toFixed(1)}, W: ${debugData.visualRect.width}, H: ${debugData.visualRect.height}<br/>
+        <strong>Touch Rect:</strong> L: ${debugData.touchRect.left.toFixed(1)}, T: ${debugData.touchRect.top.toFixed(1)}, W: ${debugData.touchRect.width}, H: ${debugData.touchRect.height}<br/>
+        <strong>Tap Delta:</strong> dX: ${debugData.tapDeltaX.toFixed(1)}, dY: ${debugData.tapDeltaY.toFixed(1)}<br/>
+        <strong>Inside:</strong> Visual: ${debugData.insideVisual ? 'YES' : 'NO'}, Touch: ${debugData.insideTouch ? 'YES' : 'NO'}
+      `;
+    }
+
+    try {
+      window.parent.postMessage({
+        type: 'sc-scene-touch',
+        action: 'touchstart',
+        targetClass: btn.className,
+        startX: touch.clientX,
+        startY: touch.clientY,
+        timestamp: Date.now(),
+        debugData
+      }, '*');
+    } catch (err) {}
+  }, { passive: true });
+
+  bar.addEventListener('touchend', (e) => {
+    if (!touchStartData) return;
+    
+    const touch = e.changedTouches[0];
+    if (!touch) {
+      touchStartData = null;
+      return;
+    }
+
+    const btn = touch.target.closest('.sc-scene-btn, .sc-scene-add-btn, .sc-scene-close');
+    if (!btn || btn !== touchStartData.target) {
+      touchStartData = null;
+      return;
+    }
+
+    const duration = Date.now() - touchStartData.startTime;
+    const dx = touch.clientX - touchStartData.startX;
+    const dy = touch.clientY - touchStartData.startY;
+    const distance = Math.sqrt(dx * dx + dy * dy);
+    
+    const isValidTap = duration < 350 && distance < 12;
+
+    const debugData = getElementDebugData(btn, touch.clientX, touch.clientY);
+
+    try {
+      window.parent.postMessage({
+        type: 'sc-scene-touch',
+        action: 'touchend',
+        targetClass: btn.className,
+        distance,
+        duration,
+        isValidTap,
+        endX: touch.clientX,
+        endY: touch.clientY,
+        timestamp: Date.now(),
+        debugData
+      }, '*');
+    } catch (err) {}
+
+    if (isValidTap) {
+      e.preventDefault();
+
+      if (btn.classList.contains('sc-scene-close')) {
+        const parentBtn = btn.closest('.sc-scene-btn');
+        if (parentBtn) {
+          const allBtns = Array.from(bar.querySelectorAll('.sc-scene-btn'));
+          const idx = allBtns.indexOf(parentBtn);
+          if (idx !== -1) {
+            removeScene(idx);
+          }
+        }
+      } else if (btn.classList.contains('sc-scene-btn')) {
+        const allBtns = Array.from(bar.querySelectorAll('.sc-scene-btn'));
+        const idx = allBtns.indexOf(btn);
+        if (idx !== -1) {
+          switchScene(idx);
+        }
+      } else if (btn.classList.contains('sc-scene-add-btn')) {
+        addScene();
+      }
+    }
+
+    touchStartData = null;
+  }, { passive: false });
+
+  bar.addEventListener('touchcancel', (e) => {
+    if (!touchStartData) return;
+    try {
+      window.parent.postMessage({
+        type: 'sc-scene-touch',
+        action: 'touchcancel',
+        timestamp: Date.now()
+      }, '*');
+    } catch (err) {}
+    touchStartData = null;
+  }, { passive: true });
+}
+
+window.toggleHitboxDebug = function(enabled) {
+  document.body.classList.toggle('sc-show-hitboxes', !!enabled);
+  let overlay = document.getElementById('sc-hitbox-debug-overlay');
+  if (enabled) {
+    if (!overlay) {
+      overlay = document.createElement('div');
+      overlay.id = 'sc-hitbox-debug-overlay';
+      overlay.style.cssText = 'position: fixed; bottom: 44px; left: 10px; right: 10px; background: rgba(0,0,0,0.85); color: #00ff00; font-family: monospace; font-size: 10px; padding: 8px; border-radius: 4px; z-index: 999999; pointer-events: none; max-height: 120px; overflow-y: auto; border: 1px solid #00ff00;';
+      document.body.appendChild(overlay);
+    }
+    overlay.style.display = 'block';
+    overlay.innerHTML = 'Hitbox debugging enabled. Tap any scene control...';
+  } else {
+    if (overlay) {
+      overlay.style.display = 'none';
+      overlay.remove();
+    }
+  }
+};
 
 function positionScenesBar() {}
 
@@ -5821,6 +6068,11 @@ window.renameSceneInline = renameSceneInline;
 window.duplicateScene = duplicateScene;
 window.addSceneFromSheet = addSceneFromSheet;
 window.removeSceneFromSheet = removeSceneFromSheet;
+
+window.switchView = switchView;
+window.toggleSCDial = toggleSCDial;
+window.toggleGigMode = toggleGigMode;
+window.openPresetsPanel = openPresetsPanel;
 
 function setAutosaveUI(mode) {
   const dot = document.getElementById('autosave-dot');
@@ -6040,60 +6292,6 @@ function removeScene(idx) {
     saveProject();
   }, { title: title, okText: deleteBtnText, cancelText: cancelBtnText, isDestructive: true });
 }
-
-function renderScenesBar() {
-  const bar = document.getElementById('sc-scenes-bar');
-  if (!bar) return;
-  _ensureScenes();
-  if (state.currentView !== 'Editor') {
-    bar.style.display = 'none';
-    return;
-  }
-  bar.style.display = 'flex';
-  const tabsHtml = state.scenes.map((s, i) => {
-    const active = (i === state.currentSceneIdx);
-    return `
-      <button onclick="switchScene(${i})" title="${s.name}"
-        oncontextmenu="event.preventDefault();renameScenePrompt(${i});return false;"
-        class="sc-scene-btn ${active ? 'active' : ''}">
-        <span>${s.name}</span>
-        ${state.scenes.length > 1 ? `<span onclick="event.stopPropagation();removeScene(${i})" class="sc-scene-close">×</span>` : ''}
-      </button>`;
-  }).join('');
-  
-  const addHtml = state.scenes.length < SCENES_MAX
-    ? `<button onclick="addScene()" title="${state.lang === 'es' ? 'Añadir escena' : 'Add scene'}" class="sc-scene-add-btn">
-         <span class="material-symbols-outlined" style="font-size:14px;line-height:1;">add</span>
-       </button>`
-    : '';
-
-  bar.innerHTML = DOMPurify.sanitize(
-    `<span class="sc-scene-label">${state.lang === 'es' ? 'Escenas' : 'Scenes'}</span>` +
-    tabsHtml + addHtml
-  );
-  requestAnimationFrame(positionScenesBar);
-}
-
-function positionScenesBar() {}
-
-function renameScenePrompt(idx) {
-  _ensureScenes();
-  if (idx < 0 || idx >= state.scenes.length) return;
-  const cur = state.scenes[idx].name;
-  const nv = window.prompt(state.lang === 'es' ? 'Nombre de la escena:' : 'Scene name:', cur);
-  if (nv == null) return;
-  const v = String(nv).trim().slice(0, 24);
-  if (!v) return;
-  state.scenes[idx].name = v;
-  renderScenesBar();
-  saveProject();
-}
-
-// Expose for inline onclick handlers
-window.switchScene = switchScene;
-window.addScene = addScene;
-window.removeScene = removeScene;
-window.renameScenePrompt = renameScenePrompt;
 
 // ══════════════════════════════════════════════════════════
 //  SAVE / EXPORT
@@ -7574,19 +7772,7 @@ window.stageGoBack = function() {
     closeScenesSheet();
     return true;
   }
-  // 13. Layouts/presets panel
-  const pm = document.getElementById('presets-panel');
-  if (pm && pm.style.display !== 'none') {
-    closePresetsPanel();
-    return true;
-  }
-  // 14. Timeline panel
-  const tl = document.getElementById('timeline-panel');
-  if (tl && tl.style.display !== 'none') {
-    closeTimeline();
-    return true;
-  }
-  // 15. Item sheet
+  // 15. Item sheet (item details sheet/modal)
   const sheet = document.getElementById('sc-item-sheet');
   if (sheet && sheet.classList.contains('sc-sheet-open')) {
     closeItemSheet();
@@ -7603,15 +7789,65 @@ window.stageGoBack = function() {
     return true;
   }
 
-  if (state.currentView === 'Export') { leaveExport(); return true; }
+  // --- HIERARCHICAL VIEW BACK NAVIGATION ---
+  
+  // A. PDF Export View
+  if (state.currentView === 'Export') {
+    leaveExport();
+    return true;
+  }
+
+  // B. History Panel
+  const hp = document.getElementById('sc-hist-panel');
+  if (hp && (hp.style.display !== 'none' || hp.classList.contains('sc-hist-open'))) {
+    if (typeof closeTimelinePanel === 'function') {
+      closeTimelinePanel();
+    } else {
+      hp.classList.remove('sc-hist-open');
+    }
+    return true;
+  }
+
+  // C. Layouts panel (presets panel)
+  const pm = document.getElementById('presets-panel');
+  if (pm && (pm.style.display !== 'none' || pm.classList.contains('preset-open'))) {
+    closePresetsPanel();
+    return true;
+  }
+
+  // D. Timeline panel
+  const tl = document.getElementById('timeline-panel');
+  if (tl && tl.style.display !== 'none') {
+    closeTimeline();
+    return true;
+  }
+
+  // E. Other nested views
   if (state.currentView === 'Rider' || state.currentView === 'Setlist' ||
       state.currentView === 'Gear' || state.currentView === 'Members') {
-    switchView('SetupHub'); return true;
+    switchView('SetupHub');
+    return true;
   }
   if (state.currentView === 'SetupHub' || state.currentView === 'Preferences' || state.currentView === 'Assistant') {
-    switchView('Editor'); return true;
+    switchView('Editor');
+    return true;
   }
+
   return false;
+};
+
+// Report the state of nested panels to the parent React wrapper
+window.reportStagexState = function() {
+  const presetsOpen = !!(document.getElementById('presets-panel')?.classList.contains('preset-open'));
+  const historyOpen = !!(window._histTimelineOpen);
+  const pdfExportOpen = state.currentView === 'Export';
+  
+  window.parent.postMessage({
+    type: 'sc-state-report',
+    pdfExportOpen: pdfExportOpen,
+    historyOpen: historyOpen,
+    layoutsOpen: presetsOpen
+  }, '*');
 };
 
 // Hide parent's top header + bottom nav while scrolling down inside the export
@@ -9535,14 +9771,21 @@ function downloadQRCode() {
         }
       } catch (e) {}
     }
+  }
   window.stageHasOpenOverlay = function() {
     const ccm = document.getElementById('cable-context-menu');
     if (ccm && ccm.classList.contains('visible')) return true;
+    
+    // Check presets-panel and sc-hist-panel by class list (since they use transitions)
+    const pm = document.getElementById('presets-panel');
+    if (pm && pm.classList.contains('preset-open')) return true;
+    const hp = document.getElementById('sc-hist-panel');
+    if (hp && hp.classList.contains('sc-hist-open')) return true;
+
     const ids = [
       'gear-modal', 'sections-modal', 'batch-import-modal', 'segment-modal',
       'smart-sort-modal', 'autosave-modal', 'share-modal', 'tl-item-modal',
-      'custom-el-modal', 'song-modal', 'confirm-modal', 'presets-panel',
-      'timeline-panel'
+      'custom-el-modal', 'song-modal', 'confirm-modal', 'timeline-panel'
     ];
     for (var i = 0; i < ids.length; i++) {
       const el = document.getElementById(ids[i]);

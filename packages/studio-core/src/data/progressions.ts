@@ -10,6 +10,9 @@ export type Genre =
   | 'hard-rock'
   | 'r-and-b';
 
+import { type SongChart, ENJAMBRE_SONGS, type SongChartSection } from './songs';
+export type { ChordMarker, LyricsLine, SongChartSection, SongChart } from './songs';
+
 export interface SongProgression {
   id: string;
   title: string;
@@ -21,6 +24,7 @@ export interface SongProgression {
   bpm?: number;
   description: string;
   era?: string;
+  sections?: SongChartSection[];
 }
 
 export const GENRE_META: Record<Genre, { label: string; color: string; icon: string }> = {
@@ -36,7 +40,7 @@ export const GENRE_META: Record<Genre, { label: string; color: string; icon: str
   'r-and-b':      { label: 'R&B / Soul',    color: '#c084fc', icon: 'mic'               },
 };
 
-export const SONGS: SongProgression[] = [
+const ORIGINAL_SONGS: SongProgression[] = [
 
   // ── ENGLISH ROCK ──────────────────────────────────────────────
   {
@@ -74,6 +78,242 @@ export const SONGS: SongProgression[] = [
     bpm: 96,
     description: 'Haunting minor ascent in 6/8. Each chord is a step up in tension until the V resolves back home.',
     era: '1964',
+    sections: [
+      {
+        name: 'Verse 1',
+        lines: [
+          {
+            lyrics: 'There is a house in New Orleans',
+            chords: [
+              { chord: 'Am', offset: 0 },
+              { chord: 'C', offset: 11 },
+              { chord: 'D', offset: 18 },
+              { chord: 'F', offset: 28 }
+            ]
+          },
+          {
+            lyrics: 'They call the Rising Sun',
+            chords: [
+              { chord: 'Am', offset: 0 },
+              { chord: 'C', offset: 10 },
+              { chord: 'E', offset: 20 }
+            ]
+          },
+          {
+            lyrics: "And it's been the ruin of many a poor boy",
+            chords: [
+              { chord: 'Am', offset: 0 },
+              { chord: 'C', offset: 11 },
+              { chord: 'D', offset: 20 },
+              { chord: 'F', offset: 33 }
+            ]
+          },
+          {
+            lyrics: "And God, I know I'm one",
+            chords: [
+              { chord: 'Am', offset: 0 },
+              { chord: 'E', offset: 10 },
+              { chord: 'Am', offset: 15 }
+            ]
+          }
+        ]
+      },
+      {
+        name: 'Verse 2',
+        lines: [
+          {
+            lyrics: 'My mother was a tailor',
+            chords: [
+              { chord: 'Am', offset: 0 },
+              { chord: 'C', offset: 12 },
+              { chord: 'D', offset: 17 },
+              { chord: 'F', offset: 20 }
+            ]
+          },
+          {
+            lyrics: 'She sewed my new blue jeans',
+            chords: [
+              { chord: 'Am', offset: 0 },
+              { chord: 'C', offset: 10 },
+              { chord: 'E', offset: 21 }
+            ]
+          },
+          {
+            lyrics: 'My father was a gambling man',
+            chords: [
+              { chord: 'Am', offset: 0 },
+              { chord: 'C', offset: 10 },
+              { chord: 'D', offset: 16 },
+              { chord: 'F', offset: 25 }
+            ]
+          },
+          {
+            lyrics: 'Down in New Orleans',
+            chords: [
+              { chord: 'Am', offset: 0 },
+              { chord: 'E', offset: 8 },
+              { chord: 'Am', offset: 12 }
+            ]
+          }
+        ]
+      },
+      {
+        name: 'Verse 3',
+        lines: [
+          {
+            lyrics: 'Now the only thing a gambler needs',
+            chords: [
+              { chord: 'Am', offset: 0 },
+              { chord: 'C', offset: 13 },
+              { chord: 'D', offset: 21 },
+              { chord: 'F', offset: 30 }
+            ]
+          },
+          {
+            lyrics: "Is a suitcase and a trunk",
+            chords: [
+              { chord: 'Am', offset: 0 },
+              { chord: 'C', offset: 13 },
+              { chord: 'E', offset: 21 }
+            ]
+          },
+          {
+            lyrics: "And the only time he'll be satisfied",
+            chords: [
+              { chord: 'Am', offset: 0 },
+              { chord: 'C', offset: 13 },
+              { chord: 'D', offset: 20 },
+              { chord: 'F', offset: 27 }
+            ]
+          },
+          {
+            lyrics: "Is when he's all on a drunk",
+            chords: [
+              { chord: 'Am', offset: 0 },
+              { chord: 'E', offset: 10 },
+              { chord: 'Am', offset: 17 }
+            ]
+          }
+        ]
+      },
+      {
+        name: 'Verse 4',
+        lines: [
+          {
+            lyrics: 'Oh mother, tell your children',
+            chords: [
+              { chord: 'Am', offset: 0 },
+              { chord: 'C', offset: 11 },
+              { chord: 'D', offset: 16 },
+              { chord: 'F', offset: 25 }
+            ]
+          },
+          {
+            lyrics: 'Not to do what I have done',
+            chords: [
+              { chord: 'Am', offset: 0 },
+              { chord: 'C', offset: 10 },
+              { chord: 'E', offset: 21 }
+            ]
+          },
+          {
+            lyrics: 'Spend your lives in sin and misery',
+            chords: [
+              { chord: 'Am', offset: 0 },
+              { chord: 'C', offset: 12 },
+              { chord: 'D', offset: 20 },
+              { chord: 'F', offset: 28 }
+            ]
+          },
+          {
+            lyrics: 'In the House of the Rising Sun',
+            chords: [
+              { chord: 'Am', offset: 0 },
+              { chord: 'E', offset: 13 },
+              { chord: 'Am', offset: 21 }
+            ]
+          }
+        ]
+      },
+      {
+        name: 'Verse 5',
+        lines: [
+          {
+            lyrics: 'Well, I got one foot on the platform',
+            chords: [
+              { chord: 'Am', offset: 0 },
+              { chord: 'C', offset: 13 },
+              { chord: 'D', offset: 20 },
+              { chord: 'F', offset: 28 }
+            ]
+          },
+          {
+            lyrics: 'The other foot on the train',
+            chords: [
+              { chord: 'Am', offset: 0 },
+              { chord: 'C', offset: 10 },
+              { chord: 'E', offset: 22 }
+            ]
+          },
+          {
+            lyrics: "I'm going back to New Orleans",
+            chords: [
+              { chord: 'Am', offset: 0 },
+              { chord: 'C', offset: 10 },
+              { chord: 'D', offset: 18 },
+              { chord: 'F', offset: 25 }
+            ]
+          },
+          {
+            lyrics: 'To wear that ball and chain',
+            chords: [
+              { chord: 'Am', offset: 0 },
+              { chord: 'E', offset: 14 },
+              { chord: 'Am', offset: 23 }
+            ]
+          }
+        ]
+      },
+      {
+        name: 'Verse 6',
+        lines: [
+          {
+            lyrics: 'Well, there is a house in New Orleans',
+            chords: [
+              { chord: 'Am', offset: 0 },
+              { chord: 'C', offset: 17 },
+              { chord: 'D', offset: 24 },
+              { chord: 'F', offset: 34 }
+            ]
+          },
+          {
+            lyrics: 'They call the Rising Sun',
+            chords: [
+              { chord: 'Am', offset: 0 },
+              { chord: 'C', offset: 10 },
+              { chord: 'E', offset: 20 }
+            ]
+          },
+          {
+            lyrics: "And it's been the ruin of many a poor boy",
+            chords: [
+              { chord: 'Am', offset: 0 },
+              { chord: 'C', offset: 11 },
+              { chord: 'D', offset: 20 },
+              { chord: 'F', offset: 33 }
+            ]
+          },
+          {
+            lyrics: "And God, I know I'm one",
+            chords: [
+              { chord: 'Am', offset: 0 },
+              { chord: 'E', offset: 10 },
+              { chord: 'Am', offset: 15 }
+            ]
+          }
+        ]
+      }
+    ]
   },
   {
     id: 'hotel-california',
@@ -1792,7 +2032,143 @@ export const SONGS: SongProgression[] = [
   { id: 'heard-it-on-radio', title: 'I Wish', artist: 'Stevie Wonder', genre: 'r-and-b', key: 'Ebm', progression: ['Ebm7', 'Ab7'], progressionLabel: 'i7 – IV7', bpm: 102, description: 'Two-chord funk perfection. The bassline alone built a generation of producers.', era: '1976' },
 
   // ── LATIN (expansion) ─────────────────────────────────────────
-  { id: 'la-bamba', title: 'La Bamba', artist: 'Ritchie Valens', genre: 'latin', key: 'C', progression: ['C', 'F', 'G', 'C'], progressionLabel: 'I – IV – V – I', bpm: 156, description: 'A Mexican folk son turned rock-and-roll standard. Three chords, infinite party.', era: '1958' },
+  {
+    id: 'la-bamba',
+    title: 'La Bamba',
+    artist: 'Ritchie Valens',
+    genre: 'latin',
+    key: 'C',
+    progression: ['C', 'F', 'G', 'C'],
+    progressionLabel: 'I – IV – V – I',
+    bpm: 156,
+    description: 'A Mexican folk son turned rock-and-roll standard. Three chords, infinite party.',
+    era: '1958',
+    sections: [
+      {
+        name: 'Verse 1',
+        lines: [
+          {
+            lyrics: 'Para bailar la bamba',
+            chords: [
+              { chord: 'C', offset: 0 },
+              { chord: 'F', offset: 12 },
+              { chord: 'G', offset: 22 }
+            ]
+          },
+          {
+            lyrics: 'Para bailar la bamba se necesita una poca de gracia',
+            chords: [
+              { chord: 'C', offset: 0 },
+              { chord: 'F', offset: 12 },
+              { chord: 'G', offset: 22 },
+              { chord: 'C', offset: 34 }
+            ]
+          },
+          {
+            lyrics: 'Una poca de gracia y otra cosita',
+            chords: [
+              { chord: 'C', offset: 0 },
+              { chord: 'F', offset: 11 },
+              { chord: 'G', offset: 21 }
+            ]
+          },
+          {
+            lyrics: 'Y arriba y arriba, y arriba y arriba',
+            chords: [
+              { chord: 'C', offset: 0 },
+              { chord: 'F', offset: 9 },
+              { chord: 'G', offset: 19 },
+              { chord: 'C', offset: 28 }
+            ]
+          },
+          {
+            lyrics: 'Por ti seré, por ti seré, por ti seré',
+            chords: [
+              { chord: 'C', offset: 0 },
+              { chord: 'F', offset: 12 },
+              { chord: 'G', offset: 24 }
+            ]
+          }
+        ]
+      },
+      {
+        name: 'Chorus',
+        lines: [
+          {
+            lyrics: 'Bamba, bamba',
+            chords: [
+              { chord: 'C', offset: 0 },
+              { chord: 'F', offset: 7 },
+              { chord: 'G', offset: 11 }
+            ]
+          },
+          {
+            lyrics: 'Bamba, bamba',
+            chords: [
+              { chord: 'C', offset: 0 },
+              { chord: 'F', offset: 7 },
+              { chord: 'G', offset: 11 }
+            ]
+          },
+          {
+            lyrics: 'Bamba, bamba',
+            chords: [
+              { chord: 'C', offset: 0 },
+              { chord: 'F', offset: 7 },
+              { chord: 'G', offset: 11 }
+            ]
+          }
+        ]
+      },
+      {
+        name: 'Verse 2',
+        lines: [
+          {
+            lyrics: 'Para subir al cielo',
+            chords: [
+              { chord: 'C', offset: 0 },
+              { chord: 'F', offset: 11 },
+              { chord: 'G', offset: 18 }
+            ]
+          },
+          {
+            lyrics: 'Para subir al cielo se necesita una escalera larga',
+            chords: [
+              { chord: 'C', offset: 0 },
+              { chord: 'F', offset: 11 },
+              { chord: 'G', offset: 21 },
+              { chord: 'C', offset: 33 }
+            ]
+          },
+          {
+            lyrics: 'Una escalera larga y otra cosita',
+            chords: [
+              { chord: 'C', offset: 0 },
+              { chord: 'F', offset: 13 },
+              { chord: 'G', offset: 24 }
+            ]
+          },
+          {
+            lyrics: 'Y arriba y arriba, y arriba y arriba',
+            chords: [
+              { chord: 'C', offset: 0 },
+              { chord: 'F', offset: 9 },
+              { chord: 'G', offset: 19 },
+              { chord: 'C', offset: 28 }
+            ]
+          },
+          {
+            lyrics: 'Con tal de estar contigo, con tal de estar contigo',
+            chords: [
+              { chord: 'C', offset: 0 },
+              { chord: 'F', offset: 13 },
+              { chord: 'G', offset: 24 }
+            ]
+          }
+        ]
+      }
+    ]
+  },
   { id: 'bésame-mucho', title: 'Bésame Mucho', artist: 'Consuelo Velázquez', genre: 'latin', key: 'Cm', progression: ['Cm', 'G7', 'Cm', 'G7'], progressionLabel: 'i – V7', bpm: 80, description: 'The most-recorded Spanish-language song. A bolero of pure longing.', era: '1940' },
   { id: 'sabor-a-mi', title: 'Sabor a Mí', artist: 'Álvaro Carrillo', genre: 'latin', key: 'Dm', progression: ['Dm', 'A7', 'Dm', 'Gm'], progressionLabel: 'i – V7 – i – iv', bpm: 76, description: 'A bolero standard sung by Luis Miguel, Eydie Gormé, and a thousand others.', era: '1959' },
   { id: 'el-cuarto-de-tula', title: 'El Cuarto de Tula', artist: 'Buena Vista Social Club', genre: 'latin', key: 'Am', progression: ['Am', 'E7', 'Am', 'E7'], progressionLabel: 'i – V7', bpm: 90, description: 'Cuban son montuno at its smokiest. Two chords of fire and percussion.', era: '1997' },
@@ -1809,5 +2185,16 @@ export const SONGS: SongProgression[] = [
   { id: 'despacito', title: 'Despacito', artist: 'Luis Fonsi & Daddy Yankee', genre: 'latin', key: 'Bm', progression: ['Bm', 'G', 'D', 'A'], progressionLabel: 'i – bVI – bIII – bVII', bpm: 89, description: 'The streaming-era megahit on the most universal four-chord minor loop.', era: '2017' },
   { id: 'bailando', title: 'Bailando', artist: 'Enrique Iglesias', genre: 'latin', key: 'Bm', progression: ['Bm', 'D', 'A', 'G'], progressionLabel: 'i – bIII – bVII – bVI', bpm: 90, description: 'Latin pop polished to a club-ready sheen. The flamenco guitar is the star.', era: '2014' },
   { id: 'la-tortura', title: 'La Tortura', artist: 'Shakira & Alejandro Sanz', genre: 'latin', key: 'Am', progression: ['Am', 'C', 'G', 'F'], progressionLabel: 'i – bIII – bVII – bVI', bpm: 100, description: 'Reggaeton-flamenco fusion. Two of Latin pop\'s biggest stars in dialogue.', era: '2005' },
+];
+
+export const SONGS: SongChart[] = [
+  ...ORIGINAL_SONGS.map(s => ({
+    ...s,
+    difficulty: 'easy' as const,
+    tags: [s.genre],
+    availabilityStatus: 'available' as const,
+    sections: s.sections || []
+  })),
+  ...ENJAMBRE_SONGS
 ];
 

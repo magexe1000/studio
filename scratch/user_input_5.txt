@@ -1,0 +1,271 @@
+<USER_REQUEST>
+Livex Android — Implement Missing Per-App Launch Animation and Remove App Entry Flicker
+
+Current real-device result:
+
+After installing the latest build, there is still NO visible animation when entering any app.
+
+Affected flow:
+
+Hub → Chordex
+Hub → Stagex
+Hub → Drumex
+Hub → Groovex
+Hub → Vocalex
+
+Expected behavior:
+
+When the user taps any app from the Hub:
+
+1. A dedicated per-app launch screen appears.
+2. It shows only:
+
+   * centered app logo
+   * centered app name
+3. It remains visible for approximately 0.75s–1.0s.
+4. The selected app preloads/mounts behind it.
+5. The launch screen fades out smoothly.
+6. The app UI appears already ready.
+7. No flicker/double blink should be visible.
+
+Actual behavior:
+
+* No per-app launch animation appears.
+* The app opens directly.
+* Any existing transition is either missing, too fast, not rendered, or not connected to the actual app-opening path.
+
+==================================================
+PART A — VERIFY WHETHER THE FEATURE EXISTS
+==========================================
+
+First, inspect the current code and report:
+
+1. Is there any existing per-app launch splash component?
+2. Is it mounted anywhere?
+3. Is it connected to the Hub app-opening action?
+4. Is selected app metadata passed to it?
+5. Is it visible on Android/APK builds?
+6. Is the splash duration enforced?
+7. Is the target app mounted/preloaded behind it?
+8. Why is the user seeing no animation?
+
+Do not assume it works. The real-device result confirms it does not appear.
+
+==================================================
+PART B — IMPLEMENT THE REAL FLOW
+================================
+
+Implement the app-entry launch flow in the actual navigation path used by the Hub.
+
+Required flow:
+
+Hub visible
+→ user taps app
+→ launch transition state starts immediately
+→ selected app logo/name splash becomes visible above everything
+→ target app begins mounting/preloading behind splash
+→ splash stays visible at least 750ms
+→ if target app is ready sooner, keep splash until minimum duration completes
+→ fade splash out smoothly
+→ target app becomes fully visible/interactable
+→ clear launch state
+
+Important:
+
+There must never be a frame where:
+
+* Hub is gone
+* target app is not visually ready
+* splash is not visible
+
+Visual ownership must always be one of:
+
+* Hub
+* launch splash
+* target app
+
+==================================================
+PART C — DESIGN REQUIREMENTS
+============================
+
+The launch screen must be minimal and premium:
+
+* full-screen overlay
+* centered app logo
+* centered app name
+* subtle scale/fade-in
+* smooth fade-out
+* no buttons
+* no debug UI
+* no spinner unless already part of Studio visual language
+* must match the dark/glass Studio aesthetic
+
+Duration:
+
+* visible for 0.75s to 1.0s
+* do not make it feel slow
+* do not instantly skip it
+
+Use existing app registry/metadata for:
+
+* app name
+* app logo/icon
+* theme/accent if available
+
+Do not duplicate hardcoded app definitions if a registry already exists.
+
+==================================================
+PART D — PRELOAD TARGET APP BEHIND SPLASH
+=========================================
+
+While the splash is visible:
+
+* mount target app container
+* resolve lazy imports
+* initialize required app shell state
+* prevent Suspense/loading fallback from flashing above the splash
+* prevent blank/black/white frames
+* prevent double render flicker
+
+The final reveal should feel instant.
+
+==================================================
+PART E — REMOVE CURRENT ENTRY FLICKER
+=====================================
+
+Investigate and fix any visible double blink/parpadeo when opening apps.
+
+Check:
+
+* appMode changes
+* activeSubApp changes
+* activeAppToRender
+* stableKey
+* cachedApp refs
+* AnimatePresence sequencing
+* Suspense fallbacks
+* wrapper opacity
+* display/visibility transitions
+* Hub unmount timing
+* sub-app wrapper mount timing
+
+Do not hide this with random delays.
+
+Fix the actual lifecycle so the transition is deterministic.
+
+==================================================
+PART F — STAGEX PORTRAIT SCENES CHECK
+=====================================
+
+Also verify the current Stagex portrait scene layout after the transition changes.
+
+Check:
+
+* 1 scene
+* 2 scenes
+* 3 scenes
+* many scenes
+
+Ensure:
+
+* “Scenes” header remains visible
+* scene cards are not oversized in portrait
+* scene labels are centered/aligned
+* text remains readable
+* landscape is not regressed
+
+If this was already fixed, confirm it. If not, fix only the layout issue without redesigning Stagex.
+
+==================================================
+PART G — VALIDATION
+===================
+
+Run:
+
+* pnpm scope:check --platform apk
+* pnpm check:versions
+* pnpm typecheck:android
+* pnpm build:android:web
+* pnpm test:android
+
+Then build/install or otherwise validate Android APK behavior.
+
+Real-device success criteria:
+
+For every app:
+
+* Chordex
+* Stagex
+* Drumex
+* Groovex
+* Vocalex
+
+The user must see:
+
+* centered logo/name launch splash
+* approximately 0.75s–1.0s visible duration
+* smooth fadeout
+* no double blink
+* app ready immediately after fadeout
+
+==================================================
+PART H — RELEASE / PUSH / DEPLOY
+================================
+
+After validation passes:
+
+1. Commit only relevant files.
+
+2. Push to:
+   origin/fix/android-stagex-3640
+
+3. Build production-signed APK.
+
+4. Publish a new GitHub Release with the next patch version.
+
+5. Upload:
+
+   * APK
+   * SHA-256 file
+
+6. Update Firebase Hosting metadata:
+
+   * app-release.json
+   * version.json if needed
+   * latest APK redirect if used
+
+7. Deploy Firebase Hosting.
+
+8. Verify:
+
+   * app-release.json HTTP 200
+   * GitHub APK URL works
+   * live APK SHA matches Firebase metadata
+   * updater path is valid
+
+Do not wait for additional confirmation before commit/push/release/deploy after validation passes.
+
+==================================================
+FINAL REPORT
+============
+
+Return one final consolidated report only:
+
+1. Why no app-entry animation was visible before.
+2. Files changed.
+3. How the launch splash is connected to the real Hub navigation path.
+4. How target apps preload behind the splash.
+5. How flicker/double blink was removed.
+6. Stagex portrait scene verification/fixes.
+7. Validation results.
+8. APK version metadata.
+9. Commit hash.
+10. Branch push confirmation.
+11. GitHub Release URL.
+12. Firebase deployment verification.
+13. Confirmation that the new APK is live and downloadable.
+
+</USER_REQUEST>
+<ADDITIONAL_METADATA>
+The current local time is: 2026-06-22T14:51:27-06:00.
+</ADDITIONAL_METADATA>

@@ -315,6 +315,7 @@ function TrackChannel({ layer, hasSolo, onUpdate, onDelete, onHarmonize, isPlayi
   layer: LabLayer; hasSolo: boolean; onUpdate: (l: LabLayer) => void; onDelete: () => void;
   onHarmonize: () => void; isPlaying: boolean;
 }) {
+  const t = useT();
   const [showFx, setShowFx] = useState(false);
   const [confirmDel, setConfirmDel] = useState(false);
   const [editName, setEditName] = useState(false);
@@ -460,13 +461,13 @@ function TrackChannel({ layer, hasSolo, onUpdate, onDelete, onHarmonize, isPlayi
           onPointerLeave={e => (e.currentTarget.style.transform = 'scale(1)')}
         >
           <span className="material-symbols-outlined" style={{ fontSize: 12 }}>graphic_eq</span>
-          Harmonize
+          {t.vocalex.harmonize || 'Harmonize'}
         </button>
 
         {confirmDel ? (
           <div style={{ display: 'flex', gap: 4, marginLeft: 'auto' }}>
-            <button onClick={() => { onDelete(); setConfirmDel(false); }} style={{ background: '#7f2927', border: 'none', borderRadius: 6, padding: '4px 8px', cursor: 'pointer', fontFamily: 'Inter, sans-serif', fontSize: 9, fontWeight: 700, color: '#ff9993' }}>Delete</button>
-            <button onClick={() => setConfirmDel(false)} style={{ background: 'var(--vx-input)', border: 'none', borderRadius: 6, padding: '4px 8px', cursor: 'pointer', fontFamily: 'Inter, sans-serif', fontSize: 9, fontWeight: 700, color: 'var(--vx-text-2)' }}>Cancel</button>
+            <button onClick={() => { onDelete(); setConfirmDel(false); }} style={{ background: '#7f2927', border: 'none', borderRadius: 6, padding: '4px 8px', cursor: 'pointer', fontFamily: 'Inter, sans-serif', fontSize: 9, fontWeight: 700, color: '#ff9993' }}>{t.vocalex.deleteTake || 'Delete'}</button>
+            <button onClick={() => setConfirmDel(false)} style={{ background: 'var(--vx-input)', border: 'none', borderRadius: 6, padding: '4px 8px', cursor: 'pointer', fontFamily: 'Inter, sans-serif', fontSize: 9, fontWeight: 700, color: 'var(--vx-text-2)' }}>{t.vocalex.cancelAction || 'Cancel'}</button>
           </div>
         ) : (
           <button onClick={() => setConfirmDel(true)} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4, color: 'var(--vx-text-4)', display: 'flex', marginLeft: 'auto' }}>
@@ -938,7 +939,7 @@ function MixerView({ session, sessionNumber, onBack, onUpdate }: {
           ) : (
             <button
               onClick={() => setEditingName(true)}
-              title="Rename session"
+              title={t.vocalex.renameSession || 'Rename session'}
               style={{
                 display: 'flex', alignItems: 'center', gap: 6,
                 background: 'none', border: 'none', padding: '2px 0', marginTop: 2,
@@ -968,7 +969,7 @@ function MixerView({ session, sessionNumber, onBack, onUpdate }: {
         ) : (
           <button
             onClick={() => setConfirmDelete(true)}
-            title="Delete session"
+            title={t.vocalex.deleteSession || 'Delete session'}
             style={{
               flexShrink: 0,
               width: 36, height: 36, borderRadius: 10,

@@ -1,14 +1,3 @@
 ### Fixed
-- Restored Stagex bottom-navigation section switching.
-- Corrected Stagex plus-button and element-picker interaction.
-- Corrected Stagex eye/visibility control behavior.
-- Corrected parent-to-iframe command delivery in Android WebView.
-- Improved selected-element controls.
-- Prevented transition states from leaving Studio on a black screen.
-- Added recovery actions when a Studio module fails to load.
-
-### Improved
-- Unified Help Center and FAQ & Support into Help & Support.
-- Added searchable support content and functional troubleshooting actions.
-- Improved transition cleanup when switching between Studio apps.
-- Improved Stagex interaction diagnostics and event handling.
+- Repaired all production DevTools Dashboard buttons, ensuring robust handling of missing cached APK paths for Replay Last Install, Open Cached APK, and Open Download Folder.
+- Satisfied TypeScript checks by ensuring all code paths in the dashboard button handlers return a value.

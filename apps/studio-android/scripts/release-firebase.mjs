@@ -10,6 +10,8 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const pkgRoot = path.resolve(__dirname, '..');
 const repoRoot = path.resolve(pkgRoot, '../..');
 
+const isDevPreview = process.argv.includes('--development-preview');
+
 // Load .env file if it exists in pkgRoot
 const envPath = path.join(pkgRoot, '.env');
 if (existsSync(envPath)) {
@@ -103,7 +105,7 @@ console.log('release-firebase: → Running early validation checks...');
 
 // A. GH_TOKEN check
 const ghToken = (process.env.GH_TOKEN || process.env.GITHUB_TOKEN || '').trim();
-if (!ghToken || ghToken === 'github_pat_antigravitydummytoken') {
+if (!ghToken) {
   console.error('\x1b[31mrelease-firebase: ✗ GITHUB_TOKEN / GH_TOKEN env variable is missing or invalid. Refusing to start release pipeline.\x1b[0m');
   process.exit(1);
 }
@@ -354,7 +356,11 @@ if (syncResult.status !== 0) {
 }
 
 console.log('release-firebase: → Running AppInstaller contract validation...');
-const validateResult = spawnSync('node', ['scripts/validate-app-installer.mjs', '--allow-missing-apk'], {
+const validateArgs = ['scripts/validate-app-installer.mjs', '--allow-missing-apk'];
+if (isDevPreview) {
+  validateArgs.push('--development-preview');
+}
+const validateResult = spawnSync('node', validateArgs, {
   cwd: pkgRoot,
   stdio: 'inherit',
   shell: process.platform === 'win32',
@@ -377,13 +383,14 @@ function run(cmd, args, extraEnv = {}) {
 }
 
 // ── Signing preflight — fail fast before expensive builds ───────────
-const isDevPreview = process.argv.includes('--development-preview');
 if (!isDevPreview) {
   console.log('release-firebase: → Running signing preflight...');
   const ksPath = path.join(pkgRoot, 'android', 'app', 'release.keystore');
   const ksAlias = (process.env.ANDROID_KEY_ALIAS || '').trim();
   const ksPwd = (process.env.ANDROID_KEYSTORE_PASSWORD || '').trim();
-  const expectedSig = (process.env.EXPECTED_SIGNATURE_SHA256 || '').replace(/:/g, '').toLowerCase().trim();
+  
+  const expectedSigMatch = readFileSync(appVersionPath, 'utf8').match(/export\s+const\s+PRODUCTION_SIGNING_SHA256\s*=\s*['"]([^'"]+)['"]/);
+  const expectedSig = expectedSigMatch ? expectedSigMatch[1].toLowerCase().replace(/:/g, '').trim() : '';
 
   console.log(`release-firebase: ANDROID_KEYSTORE_PASSWORD present: ${ksPwd ? 'Yes' : 'No'}`);
   console.log(`release-firebase: ANDROID_KEY_ALIAS present: ${ksAlias ? 'Yes' : 'No'}`);
@@ -459,7 +466,7 @@ run('pnpm', ['build'], {
   BASE_PATH: '/',
 });
 
-const distDir = path.join(pkgRoot, 'dist', 'public');
+const distDir = path.resolve(repoRoot, 'dist', 'android-web');
 if (!existsSync(distDir)) {
   console.error(`release-firebase: ✗ Build output ${distDir} does not exist.`);
   process.exit(1);
@@ -468,7 +475,7 @@ if (!existsSync(distDir)) {
 // Zipping OTA bundle is disabled. All updates are delivered as complete signed APKs.
 
 // ── Copy all web assets into the Firebase public directory ────────────
-console.log(`release-firebase: → Copying assets from dist/public to firebase-public`);
+console.log(`release-firebase: → Copying assets from dist/android-web to firebase-public`);
 function copyTree(srcRoot, dstRoot, skip = new Set()) {
   for (const entry of readdirSync(srcRoot, { withFileTypes: true })) {
     if (skip.has(entry.name)) continue;
@@ -551,7 +558,11 @@ if (gradleResult.status !== 0) {
 
 // Step 4: Validate AppInstaller native plugin
 console.log('Step 4/15: Validate AppInstaller native plugin...');
-const appInstallerValidateResult = spawnSync('node', ['scripts/validate-app-installer.mjs'], {
+const appInstallerValidateArgs = ['scripts/validate-app-installer.mjs'];
+if (isDevPreview) {
+  appInstallerValidateArgs.push('--development-preview');
+}
+const appInstallerValidateResult = spawnSync('node', appInstallerValidateArgs, {
   cwd: pkgRoot,
   stdio: 'inherit',
   shell: process.platform === 'win32',
@@ -596,6 +607,9 @@ const releaseNotesFile = path.join(repoRoot, 'release-notes.md');
 
 const runGh = (args) => {
   const env = { ...process.env };
+  if (env.GITHUB_TOKEN && !env.GITHUB_TOKEN.startsWith('ghp_') && !env.GITHUB_TOKEN.startsWith('github_pat_')) {
+    delete env.GITHUB_TOKEN;
+  }
   if (env.GITHUB_TOKEN === 'github_pat_antigravitydummytoken') {
     delete env.GITHUB_TOKEN;
   }
@@ -603,15 +617,18 @@ const runGh = (args) => {
   return spawnSync('gh', normalizedArgs, {
     cwd: repoRoot,
     stdio: 'pipe',
-    shell: process.platform === 'win32',
+    shell: false,
     env
   });
 };
 
+const currentCommit = spawnSync('git', ['rev-parse', 'HEAD'], { encoding: 'utf8' }).stdout.trim();
+console.log(`release-firebase: Target commit for release tag: ${currentCommit}`);
+
 const viewRes = runGh(['release', 'view', tag, '--repo', 'MAGEXE1000/Studio']);
 if (viewRes.status !== 0) {
-  console.log(`release-firebase: Release ${tag} not found. Creating it...`);
-  const createRes = runGh(['release', 'create', tag, '--title', titleText, '--notes-file', releaseNotesFile, '--repo', 'MAGEXE1000/Studio']);
+  console.log(`release-firebase: Release ${tag} not found. Creating it pointing to target commit ${currentCommit}...`);
+  const createRes = runGh(['release', 'create', tag, '--title', titleText, '--notes-file', releaseNotesFile, '--target', currentCommit, '--repo', 'MAGEXE1000/Studio']);
   if (createRes.status !== 0) {
     console.error(`release-firebase: ✗ Failed to create GitHub Release: ${createRes.stderr.toString()}`);
     process.exit(1);
@@ -707,7 +724,11 @@ try {
 
 // Step 11: Generate version.json and app-release.json using verified URL/SHA
 console.log('Step 11/15: Generate version.json and app-release.json using verified URL/SHA...');
-const generateResult = spawnSync('node', ['scripts/generate-release-metadata.mjs'], {
+const generateArgs = ['scripts/generate-release-metadata.mjs'];
+if (isDevPreview) {
+  generateArgs.push('--development-preview');
+}
+const generateResult = spawnSync('node', generateArgs, {
   cwd: pkgRoot,
   stdio: 'inherit',
   shell: process.platform === 'win32',

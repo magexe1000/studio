@@ -1,0 +1,22 @@
+{
+  "platform": "web",
+  "version": "4.0.0",
+  "commit": "efd2b1a3",
+  "releasedAt": "6/27/2026, 6:10:00 PM CST",
+  "buildTimestamp": "6/27/2026, 6:10:00 PM CST",
+  "updateMode": "refresh",
+  "description": "• Added multi-stage signature mismatch recovery featuring automated cache clearing, session recreation, and PendingIntent resets.\n• Added direct GitHub Release package installation with SHA-256 integrity checks and signing certificate verification.\n• Added detailed error dialogs containing technical/human explanations, detected cause, and current/latest version comparison.\n• Fixed updater state machine overwrite issues to ensure signature mismatch and version checks are preserved.",
+  "whatsNew": "• Added multi-stage signature mismatch recovery featuring automated cache clearing, session recreation, and PendingIntent resets.\n• Added direct GitHub Release package installation with SHA-256 integrity checks and signing certificate verification.\n• Added detailed error dialogs containing technical/human explanations, detected cause, and current/latest version comparison.\n• Fixed updater state machine overwrite issues to ensure signature mismatch and version checks are preserved.",
+  "changelog": "• Added multi-stage signature mismatch recovery featuring automated cache clearing, session recreation, and PendingIntent resets.\n• Added direct GitHub Release package installation with SHA-256 integrity checks and signing certificate verification.\n• Added detailed error dialogs containing technical/human explanations, detected cause, and current/latest version comparison.\n• Fixed updater state machine overwrite issues to ensure signature mismatch and version checks are preserved.",
+  "releaseNotes": {
+    "added": [
+      "Added multi-stage signature mismatch recovery featuring automated cache clearing, session recreation, and PendingIntent resets.",
+      "Added direct GitHub Release package installation with SHA-256 integrity checks and signing certificate verification.",
+      "Added detailed error dialogs containing technical/human explanations, detected cause, and current/latest version comparison."
+    ],
+    "fixed": [
+      "Fixed updater state machine overwrite issues to ensure signature mismatch and version checks are preserved."
+    ]
+  },
+  "mandatory": false
+}

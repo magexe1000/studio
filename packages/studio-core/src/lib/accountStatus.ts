@@ -6,9 +6,10 @@ import {
   onSnapshot,
   serverTimestamp,
 } from 'firebase/firestore';
-import { getFirebaseDb, isFirebaseConfigured } from './firebase';
+import { getFirebaseDb, isFirebaseConfigured, incrementFirestoreListeners, decrementFirestoreListeners, incrementFirestoreWrites, decrementFirestoreWrites, setFirestoreLastError } from './firebase';
 import { subscribeAuth, deleteAccount, type AuthUser } from './auth';
 import { deleteCloudData } from './sync';
+import { useChordStore } from '../store/useChordStore';
 
 /**
  * Soft-delete account system with a 7-day grace period.
@@ -62,7 +63,8 @@ export async function getAccountDoc(uid: string): Promise<AccountDoc | null> {
     const snap = await getDoc(ref);
     if (!snap.exists()) return null;
     return parseDoc(snap.data());
-  } catch {
+  } catch (err: any) {
+    setFirestoreLastError(err.message || String(err));
     return null;
   }
 }
@@ -70,41 +72,73 @@ export async function getAccountDoc(uid: string): Promise<AccountDoc | null> {
 export async function scheduleAccountDeletion(uid: string): Promise<void> {
   const ref = metaRef(uid);
   if (!ref) throw new Error('Firebase not configured');
-  await setDoc(ref, {
-    status: 'pending_deletion',
-    scheduledAtMs: Date.now() + ACCOUNT_GRACE_MS,
-    requestedAt: serverTimestamp(),
-  }, { merge: true });
+  try {
+    incrementFirestoreWrites();
+    await setDoc(ref, {
+      status: 'pending_deletion',
+      scheduledAtMs: Date.now() + ACCOUNT_GRACE_MS,
+      requestedAt: serverTimestamp(),
+    }, { merge: true });
+  } catch (err: any) {
+    setFirestoreLastError(err.message || String(err));
+    throw err;
+  } finally {
+    decrementFirestoreWrites();
+  }
 }
 
 export async function disableAccount(uid: string): Promise<void> {
   const ref = metaRef(uid);
   if (!ref) throw new Error('Firebase not configured');
-  await setDoc(ref, {
-    status: 'disabled',
-    scheduledAtMs: null,
-    disabledAt: serverTimestamp(),
-  }, { merge: true });
+  try {
+    incrementFirestoreWrites();
+    await setDoc(ref, {
+      status: 'disabled',
+      scheduledAtMs: null,
+      disabledAt: serverTimestamp(),
+    }, { merge: true });
+  } catch (err: any) {
+    setFirestoreLastError(err.message || String(err));
+    throw err;
+  } finally {
+    decrementFirestoreWrites();
+  }
 }
 
 export async function enableAccount(uid: string): Promise<void> {
   const ref = metaRef(uid);
   if (!ref) throw new Error('Firebase not configured');
-  await setDoc(ref, {
-    status: 'active',
-    scheduledAtMs: null,
-    enabledAt: serverTimestamp(),
-  }, { merge: true });
+  try {
+    incrementFirestoreWrites();
+    await setDoc(ref, {
+      status: 'active',
+      scheduledAtMs: null,
+      enabledAt: serverTimestamp(),
+    }, { merge: true });
+  } catch (err: any) {
+    setFirestoreLastError(err.message || String(err));
+    throw err;
+  } finally {
+    decrementFirestoreWrites();
+  }
 }
 
 export async function cancelAccountDeletion(uid: string): Promise<void> {
   const ref = metaRef(uid);
   if (!ref) throw new Error('Firebase not configured');
-  await setDoc(ref, {
-    status: 'active',
-    scheduledAtMs: null,
-    cancelledAt: serverTimestamp(),
-  }, { merge: true });
+  try {
+    incrementFirestoreWrites();
+    await setDoc(ref, {
+      status: 'active',
+      scheduledAtMs: null,
+      cancelledAt: serverTimestamp(),
+    }, { merge: true });
+  } catch (err: any) {
+    setFirestoreLastError(err.message || String(err));
+    throw err;
+  } finally {
+    decrementFirestoreWrites();
+  }
 }
 
 /**
@@ -116,7 +150,15 @@ export async function finalizeAccountDeletion(uid: string): Promise<void> {
   try { await deleteCloudData(); } catch { /* continue */ }
   const ref = metaRef(uid);
   if (ref) {
-    try { await deleteDoc(ref); } catch { /* continue */ }
+    try {
+      incrementFirestoreWrites();
+      await deleteDoc(ref);
+    } catch (err: any) {
+      setFirestoreLastError(err.message || String(err));
+      /* continue */
+    } finally {
+      decrementFirestoreWrites();
+    }
   }
   await deleteAccount();
 }
@@ -131,11 +173,19 @@ export function subscribeAccountStatus(
 ): () => void {
   const ref = metaRef(uid);
   if (!ref) { cb(null); return () => {}; }
-  return onSnapshot(
+  incrementFirestoreListeners();
+  const innerUnsub = onSnapshot(
     ref,
     (snap) => cb(snap.exists() ? parseDoc(snap.data()) : null),
-    () => cb(null),
+    (err) => {
+      setFirestoreLastError(err.message || String(err));
+      cb(null);
+    },
   );
+  return () => {
+    innerUnsub();
+    decrementFirestoreListeners();
+  };
 }
 
 /**
@@ -151,15 +201,15 @@ export function subscribeAccountState(cb: (s: AccountState) => void): () => void
   let unsubStatus: (() => void) | null = null;
   let currentUser: AuthUser | null = null;
 
-  const unsubAuth = subscribeAuth((u) => {
+  const setupStatusListener = (u: AuthUser) => {
     if (unsubStatus) { unsubStatus(); unsubStatus = null; }
-    currentUser = u;
-    if (!u) {
-      cb({ phase: 'signedOut' });
+    
+    const db = getFirebaseDb();
+    if (!db) {
+      cb({ phase: 'active', user: u });
       return;
     }
-    // Optimistic — show app immediately; downgrade to 'pending' only if Firestore says so.
-    cb({ phase: 'active', user: u });
+    
     unsubStatus = subscribeAccountStatus(u.uid, (acc) => {
       if (!currentUser || currentUser.uid !== u.uid) return;
       if (acc?.status === 'pending_deletion' && acc.scheduledAtMs) {
@@ -170,10 +220,33 @@ export function subscribeAccountState(cb: (s: AccountState) => void): () => void
         cb({ phase: 'active', user: u });
       }
     });
+  };
+
+  const unsubAuth = subscribeAuth((u) => {
+    currentUser = u;
+    if (!u) {
+      if (unsubStatus) { unsubStatus(); unsubStatus = null; }
+      cb({ phase: 'signedOut' });
+      return;
+    }
+    cb({ phase: 'active', user: u });
+    setupStatusListener(u);
+  });
+
+  let lastProvider = useChordStore.getState().settings.syncBackendProvider;
+  const unsubStore = useChordStore.subscribe((state) => {
+    const currentProvider = state.settings.syncBackendProvider;
+    if (currentProvider !== lastProvider) {
+      lastProvider = currentProvider;
+      if (currentUser) {
+        setupStatusListener(currentUser);
+      }
+    }
   });
 
   return () => {
     unsubAuth();
+    unsubStore();
     if (unsubStatus) unsubStatus();
   };
 }

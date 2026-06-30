@@ -1,4 +1,4 @@
-import { useChordStore, ACCENT_COLORS, useT, setBackHandler, useNavCollapsed, setNavCollapsed, useLiquidGlassNav, DRUM_LIBRARY, LIBRARY_CATEGORIES, LIBRARY_GENRES, type LibraryCategory, type LibraryGenre, type LibraryPattern, useIsWebDesktop } from '@workspace/studio-core';
+import { useChordStore, ACCENT_COLORS, useT, setBackHandler, useNavCollapsed, setNavCollapsed, useLiquidGlassNav, DRUM_LIBRARY, LIBRARY_CATEGORIES, LIBRARY_GENRES, type LibraryCategory, type LibraryGenre, type LibraryPattern, useIsWebDesktop, registerDebugProvider, unregisterDebugProvider } from '@workspace/studio-core';
 import {
   memo, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState,
 } from 'react';
@@ -1284,7 +1284,7 @@ function DrumExportModal({ patterns, song, accent, onClose }: {
   const isWebDesktop = useIsWebDesktop();
 
   return (
-    <div style={isWebDesktop ? { position: 'fixed', inset: 0, zIndex: 300, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(0, 0, 0, 0.6)', backdropFilter: 'blur(8px)', WebkitBackdropFilter: 'blur(8px)' } : { position: 'fixed', inset: 0, zIndex: 300, background: '#0e0e0e', display: 'flex', flexDirection: 'column', animation: closing ? 'sheet-down 320ms cubic-bezier(0.25,0.46,0.45,0.94) both' : 'sheet-up 340ms cubic-bezier(0.25,0.46,0.45,0.94) both' }}>
+    <div style={isWebDesktop ? { position: 'fixed', inset: 0, zIndex: 300, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(0, 0, 0, 0.6)', backdropFilter: 'blur(8px)', WebkitBackdropFilter: 'blur(8px)' } : { position: 'fixed', inset: 0, zIndex: 300, background: '#000000', display: 'flex', flexDirection: 'column', animation: closing ? 'sheet-down 320ms cubic-bezier(0.25,0.46,0.45,0.94) both' : 'sheet-up 340ms cubic-bezier(0.25,0.46,0.45,0.94) both' }}>
       <div style={isWebDesktop ? { position: 'relative', width: '560px', maxWidth: '90vw', maxHeight: '85vh', background: '#0a0a0c', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '1.25rem', boxShadow: '0 20px 40px rgba(0,0,0,0.55)', display: 'flex', flexDirection: 'column', overflow: 'hidden' } : { display: 'flex', flexDirection: 'column', flex: 1, height: '100%' }}>
         {/* ── Header ── */}
         <div style={{ paddingTop: isWebDesktop ? '0' : 'env(safe-area-inset-top)', background: isWebDesktop ? 'transparent' : '#191a1a', flexShrink: 0, borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
@@ -1776,6 +1776,31 @@ export default function DrumEditor() {
   useEffect(() => {
     useChordStore.getState().setLastSession({ drumexTab: activeTab });
   }, [activeTab]);
+
+  useEffect(() => {
+    registerDebugProvider({
+      id: 'drumex',
+      name: 'Drumex Editor',
+      getDebugState: () => ({
+        activePatternId,
+        patternsCount: patterns?.length || 0,
+        activeTab,
+        isPlaying: drumScheduler?.isPlaying || false,
+        tempo: pattern?.bpm || 120,
+        swing: pattern?.swing || 0,
+        kitType: kitType || 'house',
+        houseKitMic,
+        loopRange: pattern?.loopRange || null,
+        soundState: {
+          houseCrashModel,
+          cymbalPack
+        }
+      })
+    });
+    return () => {
+      unregisterDebugProvider('drumex');
+    };
+  }, [activePatternId, patterns, activeTab, pattern, kitType, houseKitMic, houseCrashModel, cymbalPack]);
   const [playing, setPlaying]               = useState(false);
   const [looping, setLooping]               = useState(() => drumPrefs.loopPlayback);
   const [countingIn, setCountingIn]         = useState(false);
@@ -2797,12 +2822,16 @@ export default function DrumEditor() {
         setInEditor(false); setActiveTab('songs');
         return true;
       }
+      if (activeTab !== 'songs') {
+        setActiveTab('songs');
+        return true;
+      }
       return false;
     };
     setBackHandler(handler);
     return () => setBackHandler(null);
   }, [
-    inEditor, showClearConfirm, showExportModal, showImportDrum, showSaveGroove,
+    inEditor, activeTab, showClearConfirm, showExportModal, showImportDrum, showSaveGroove,
     showCreateForm, showSaveForm, showMixerSheet, showFXSheet, showBpmPanel,
     showLoopPanel, showSoundCharacter, showHamburger
   ]);

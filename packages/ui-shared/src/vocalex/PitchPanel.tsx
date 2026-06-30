@@ -408,12 +408,12 @@ export default function PitchPanel({ active: panelActive = true }: { active?: bo
           {listening ? (
             <>
               <span className="material-symbols-outlined" style={{ fontSize: 18 }}>mic_off</span>
-              {language === 'es' ? 'Detener' : 'Stop'}
+              {t.vocalex.tunerStop}
             </>
           ) : (
             <>
               <span className="material-symbols-outlined" style={{ fontSize: 18 }}>mic</span>
-              {language === 'es' ? 'Iniciar' : 'Start'}
+              {t.vocalex.tunerStart}
             </>
           )}
         </button>
@@ -429,7 +429,7 @@ export default function PitchPanel({ active: panelActive = true }: { active?: bo
         }}>
           <span style={{ fontWeight: 500, lineHeight: 1.4 }}>
             {permError.includes('NotAllowedError') || permError.includes('Permission denied') || permError.includes('denied')
-              ? (language === 'es' ? 'Se requiere acceso al micrófono para el afinador.' : 'Microphone access is required for pitch monitoring.')
+              ? t.vocalex.tunerMicRequired
               : permError}
           </span>
           <button
@@ -446,7 +446,7 @@ export default function PitchPanel({ active: panelActive = true }: { active?: bo
               transition: 'background 150ms ease',
             }}
           >
-            {language === 'es' ? 'Permitir e Iniciar' : 'Grant & Start'}
+            {t.vocalex.tunerGrantStart}
           </button>
         </div>
       )}

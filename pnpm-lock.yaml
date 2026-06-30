@@ -132,9 +132,6 @@ importers:
       '@capacitor/status-bar':
         specifier: ^6.0.1
         version: 6.0.3(@capacitor/core@6.2.1)
-      '@capgo/capacitor-updater':
-        specifier: ^6.43.5
-        version: 6.43.5(@capacitor/core@6.2.1)
       '@fontsource/inter':
         specifier: ^5.2.8
         version: 5.2.8
@@ -174,6 +171,9 @@ importers:
       gsap:
         specifier: ^3.15.0
         version: 3.15.0
+      html2canvas:
+        specifier: ^1.4.1
+        version: 1.4.1
       i18next:
         specifier: ^26.0.10
         version: 26.0.10(typescript@5.9.3)
@@ -390,136 +390,6 @@ importers:
       thread-stream:
         specifier: 3.1.0
         version: 3.1.0
-
-  artifacts/chord-app:
-    dependencies:
-      '@capacitor-firebase/authentication':
-        specifier: ^6.3.1
-        version: 6.3.1(@capacitor/core@6.2.1)(firebase@12.12.0)
-      '@capacitor/android':
-        specifier: ^6.2.1
-        version: 6.2.1(@capacitor/core@6.2.1)
-      '@capacitor/app':
-        specifier: ^6.0.3
-        version: 6.0.3(@capacitor/core@6.2.1)
-      '@capacitor/core':
-        specifier: ^6.2.1
-        version: 6.2.1
-      '@capacitor/filesystem':
-        specifier: ^6.0.1
-        version: 6.0.4(@capacitor/core@6.2.1)
-      '@capacitor/local-notifications':
-        specifier: ^6.1.3
-        version: 6.1.3(@capacitor/core@6.2.1)
-      '@capacitor/preferences':
-        specifier: ^8.0.1
-        version: 8.0.1(@capacitor/core@6.2.1)
-      '@capacitor/screen-orientation':
-        specifier: ^6.0.4
-        version: 6.0.4(@capacitor/core@6.2.1)
-      '@capacitor/share':
-        specifier: ^6.0.1
-        version: 6.0.4(@capacitor/core@6.2.1)
-      '@capacitor/status-bar':
-        specifier: ^6.0.1
-        version: 6.0.3(@capacitor/core@6.2.1)
-      '@capgo/capacitor-updater':
-        specifier: ^6.43.5
-        version: 6.43.5(@capacitor/core@6.2.1)
-      '@fontsource/inter':
-        specifier: ^5.2.8
-        version: 5.2.8
-      '@fontsource/manrope':
-        specifier: ^5.2.8
-        version: 5.2.8
-      '@radix-ui/react-dropdown-menu':
-        specifier: ^2.1.16
-        version: 2.1.16(@types/react-dom@19.2.3(@types/react@19.2.14))(@types/react@19.2.14)(react-dom@19.1.0(react@19.1.0))(react@19.1.0)
-      '@soundtouchjs/audio-worklet':
-        specifier: ^1.0.9
-        version: 1.0.9
-      '@supabase/supabase-js':
-        specifier: ^2.107.0
-        version: 2.107.0
-      '@tolgee/i18next':
-        specifier: ^7.0.0
-        version: 7.0.0(i18next@26.0.10(typescript@5.9.3))
-      '@tolgee/react':
-        specifier: ^7.0.0
-        version: 7.0.0(react@19.1.0)
-      clsx:
-        specifier: 'catalog:'
-        version: 2.1.1
-      firebase:
-        specifier: ^12.12.0
-        version: 12.12.0
-      gsap:
-        specifier: ^3.15.0
-        version: 3.15.0
-      i18next:
-        specifier: ^26.0.10
-        version: 26.0.10(typescript@5.9.3)
-      jspdf:
-        specifier: ^4.2.1
-        version: 4.2.1
-      lottie-react:
-        specifier: ^2.4.1
-        version: 2.4.1(react-dom@19.1.0(react@19.1.0))(react@19.1.0)
-      lucide-react:
-        specifier: 'catalog:'
-        version: 0.545.0(react@19.1.0)
-      material-symbols:
-        specifier: ^0.43.0
-        version: 0.43.0
-      motion:
-        specifier: ^12.40.0
-        version: 12.40.0(react-dom@19.1.0(react@19.1.0))(react@19.1.0)
-      pitchy:
-        specifier: ^4.1.0
-        version: 4.1.0
-      react-i18next:
-        specifier: ^17.0.7
-        version: 17.0.7(i18next@26.0.10(typescript@5.9.3))(react-dom@19.1.0(react@19.1.0))(react@19.1.0)(typescript@5.9.3)
-      tailwind-merge:
-        specifier: 'catalog:'
-        version: 3.5.0
-      zustand:
-        specifier: ^5.0.12
-        version: 5.0.12(@types/react@19.2.14)(react@19.1.0)(use-sync-external-store@1.6.0(react@19.1.0))
-    devDependencies:
-      '@capacitor/cli':
-        specifier: ^6.2.1
-        version: 6.2.1
-      '@tailwindcss/vite':
-        specifier: 'catalog:'
-        version: 4.2.1(vite@7.3.2(@types/node@25.3.5)(jiti@2.6.1)(lightningcss@1.31.1)(tsx@4.21.0)(yaml@2.8.3))
-      '@types/node':
-        specifier: 'catalog:'
-        version: 25.3.5
-      '@types/react':
-        specifier: 'catalog:'
-        version: 19.2.14
-      '@types/react-dom':
-        specifier: 'catalog:'
-        version: 19.2.3(@types/react@19.2.14)
-      '@vitejs/plugin-react':
-        specifier: 'catalog:'
-        version: 5.1.4(vite@7.3.2(@types/node@25.3.5)(jiti@2.6.1)(lightningcss@1.31.1)(tsx@4.21.0)(yaml@2.8.3))
-      archiver:
-        specifier: ^7.0.1
-        version: 7.0.1
-      react:
-        specifier: 'catalog:'
-        version: 19.1.0
-      react-dom:
-        specifier: 'catalog:'
-        version: 19.1.0(react@19.1.0)
-      tailwindcss:
-        specifier: 'catalog:'
-        version: 4.2.1
-      vite:
-        specifier: 'catalog:'
-        version: 7.3.2(@types/node@25.3.5)(jiti@2.6.1)(lightningcss@1.31.1)(tsx@4.21.0)(yaml@2.8.3)
 
   artifacts/mockup-sandbox:
     devDependencies:
@@ -773,9 +643,6 @@ importers:
       '@capacitor/status-bar':
         specifier: ^6.0.1
         version: 6.0.3(@capacitor/core@6.2.1)
-      '@capgo/capacitor-updater':
-        specifier: ^6.43.5
-        version: 6.43.5(@capacitor/core@6.2.1)
       '@fontsource/inter':
         specifier: ^5.2.8
         version: 5.2.8
@@ -894,9 +761,6 @@ importers:
       '@capacitor/status-bar':
         specifier: ^6.0.1
         version: 6.0.3(@capacitor/core@6.2.1)
-      '@capgo/capacitor-updater':
-        specifier: ^6.43.5
-        version: 6.43.5(@capacitor/core@6.2.1)
       '@fontsource/inter':
         specifier: ^5.2.8
         version: 5.2.8
@@ -1021,9 +885,6 @@ importers:
       '@capacitor/status-bar':
         specifier: ^6.0.1
         version: 6.0.3(@capacitor/core@6.2.1)
-      '@capgo/capacitor-updater':
-        specifier: ^6.43.5
-        version: 6.43.5(@capacitor/core@6.2.1)
       '@fontsource/inter':
         specifier: ^5.2.8
         version: 5.2.8
@@ -1145,9 +1006,6 @@ importers:
       '@capacitor/status-bar':
         specifier: ^6.0.1
         version: 6.0.3(@capacitor/core@6.2.1)
-      '@capgo/capacitor-updater':
-        specifier: ^6.43.5
-        version: 6.43.5(@capacitor/core@6.2.1)
       '@fontsource/inter':
         specifier: ^5.2.8
         version: 5.2.8
@@ -1555,11 +1413,6 @@ packages:
 
   '@capacitor/status-bar@6.0.3':
     resolution: {integrity: sha512-nFlgSmtx6Zwaw0tEvZgQsWHBeOfWWB/AvEoCApopLT4mHkBVoSrwkLvy2PjZs5wxCbsmqvQczr3XCyTwaDZVQg==}
-    peerDependencies:
-      '@capacitor/core': ^6.0.0
-
-  '@capgo/capacitor-updater@6.43.5':
-    resolution: {integrity: sha512-v//kbgGUPX4Y5dNTjUucCk3ki+KlPjv6i7C6QzjT5RaX6bzJ+LLl+EjCvgbNd1nuqWrIz9OfNm0ULZW5bVADlw==}
     peerDependencies:
       '@capacitor/core': ^6.0.0
 
@@ -6659,10 +6512,6 @@ snapshots:
     dependencies:
       '@capacitor/core': 6.2.1
 
-  '@capgo/capacitor-updater@6.43.5(@capacitor/core@6.2.1)':
-    dependencies:
-      '@capacitor/core': 6.2.1
-
   '@commander-js/extra-typings@14.0.0(commander@14.0.3)':
     dependencies:
       commander: 14.0.3
@@ -9168,8 +9017,7 @@ snapshots:
     dependencies:
       bare-path: 3.0.0
 
-  base64-arraybuffer@1.0.2:
-    optional: true
+  base64-arraybuffer@1.0.2: {}
 
   base64-js@1.5.1: {}
 
@@ -9351,7 +9199,6 @@ snapshots:
   css-line-break@2.1.0:
     dependencies:
       utrie: 1.0.2
-    optional: true
 
   csstype@3.2.3: {}
 
@@ -9924,7 +9771,6 @@ snapshots:
     dependencies:
       css-line-break: 2.1.0
       text-segmentation: 1.0.3
-    optional: true
 
   http-errors@2.0.1:
     dependencies:
@@ -10959,7 +10805,6 @@ snapshots:
   text-segmentation@1.0.3:
     dependencies:
       utrie: 1.0.2
-    optional: true
 
   thread-stream@3.1.0:
     dependencies:
@@ -11070,7 +10915,6 @@ snapshots:
   utrie@1.0.2:
     dependencies:
       base64-arraybuffer: 1.0.2
-    optional: true
 
   vary@1.1.2: {}
 

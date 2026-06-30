@@ -20,6 +20,9 @@ import java.net.URI;
 import android.content.pm.PackageInfo;
 import android.content.pm.PackageManager;
 import android.content.pm.Signature;
+import android.app.PendingIntent;
+import android.content.pm.PackageInstaller;
+import android.util.Log;
 
 @CapacitorPlugin(
     name = "AppInstaller",
@@ -58,6 +61,100 @@ import android.content.pm.Signature;
 // The Studio OTA/APK update flow depends on this native bridge to function.
 public class AppInstallerPlugin extends Plugin {
 
+    public static AppInstallerPlugin instance = null;
+    public static Intent pendingConfirmIntent = null;
+
+    public static void resumePendingInstall(android.app.Activity activity) {
+        if (pendingConfirmIntent != null) {
+            try {
+                android.util.Log.i("AppInstallerPlugin", "[INSTRUMENTATION] [NATIVE] Relaunching pending confirmation intent from MainActivity.onResume()");
+                activity.startActivity(pendingConfirmIntent);
+            } catch (Exception e) {
+                android.util.Log.e("AppInstallerPlugin", "[INSTRUMENTATION] [NATIVE] Failed to relaunch pending confirmation intent", e);
+            }
+        }
+    }
+
+    @Override
+    public void load() {
+        instance = this;
+    }
+
+    public void emitInstallStatus(JSObject data) {
+        notifyListeners("onInstallStatusChanged", data);
+    }
+
+    private static int callIdCounter = 0;
+    
+    public static int downloadApkCallCount = 0;
+    public static int downloadAndInstallApkCallCount = 0;
+    public static int verifySha256CallCount = 0;
+    public static int installApkCallCount = 0;
+    public static int triggerInstallationCallCount = 0;
+    public static int sessionCreateCallCount = 0;
+    public static int sessionWriteCallCount = 0;
+    public static int sessionFsyncCallCount = 0;
+    public static int sessionCommitCallCount = 0;
+
+    private static int nextCallId() {
+        synchronized (AppInstallerPlugin.class) {
+            return ++callIdCounter;
+        }
+    }
+    
+    public static void logNativeInstrumentation(Context context, String methodName, int callId, String event, String details) {
+        String threadName = Thread.currentThread().getName();
+        long threadId = Thread.currentThread().getId();
+        
+        String callerClass = "UnknownClass";
+        String callerMethod = "UnknownMethod";
+        String fileName = "UnknownFile";
+        int lineNumber = -1;
+        String stackTraceStr = "";
+        
+        try {
+            StackTraceElement[] elements = Thread.currentThread().getStackTrace();
+            for (int i = 2; i < elements.length; i++) {
+                StackTraceElement el = elements[i];
+                String cn = el.getClassName();
+                if (!cn.equals("com.chordex.app.AppInstallerPlugin") || (!el.getMethodName().equals("logNativeInstrumentation"))) {
+                    callerClass = cn;
+                    callerMethod = el.getMethodName();
+                    fileName = el.getFileName();
+                    lineNumber = el.getLineNumber();
+                    break;
+                }
+            }
+            
+            StringBuilder sb = new StringBuilder();
+            for (int i = 2; i < Math.min(elements.length, 12); i++) {
+                sb.append("\n\tat ").append(elements[i].toString());
+            }
+            stackTraceStr = sb.toString();
+        } catch (Exception ignored) {}
+        
+        long sessionId = -1;
+        String sessionState = "N/A";
+        if (context != null) {
+            try {
+                SharedPreferences prefs = context.getSharedPreferences(InstallReceiver.PREFS_NAME, Context.MODE_PRIVATE);
+                sessionId = prefs.getInt("session_id", -1);
+                sessionState = prefs.getString("session_state", "N/A");
+            } catch (Exception ignored) {}
+        }
+        
+        long now = System.currentTimeMillis();
+        String message = String.format(
+            "[%s] Call #%d | Time: %d | Thread: %s (id: %d) | SessionID: %d | SessionState: %s | Caller: %s.%s(%s:%d) | Details: %s | Stack: %s",
+            event, callId, now, threadName, threadId, sessionId, sessionState, callerClass, callerMethod, fileName, lineNumber, details, stackTraceStr
+        );
+        
+        Log.d("INSTRUMENTATION", "NATIVE: " + methodName + " " + message);
+        if (context != null) {
+            InstallReceiver.appendLog(context, "[INSTRUMENTATION] " + methodName, 0, message, context.getPackageName(), stackTraceStr);
+        }
+    }
+
     private SharedPreferences getSecurePreferences() throws Exception {
         Context context = getContext();
         String masterKeyAlias = MasterKeys.getOrCreate(MasterKeys.AES256_GCM_SPEC);
@@ -68,6 +165,12 @@ public class AppInstallerPlugin extends Plugin {
             EncryptedSharedPreferences.PrefKeyEncryptionScheme.AES256_SIV,
             EncryptedSharedPreferences.PrefValueEncryptionScheme.AES256_GCM
         );
+    }
+
+    @PluginMethod
+    public void notifyAppReady(PluginCall call) {
+        MainActivity.isWebViewReady = true;
+        call.resolve();
     }
 
     @PluginMethod
@@ -139,9 +242,13 @@ public class AppInstallerPlugin extends Plugin {
 
     @PluginMethod
     public void verifySha256(PluginCall call) {
+        verifySha256CallCount++;
+        int callId = nextCallId();
         String path = call.getString("filePath");
         String expectedHash = call.getString("expectedHash");
+        logNativeInstrumentation(getContext(), "verifySha256", callId, "ENTER", "filePath=" + path + ", expectedHash=" + expectedHash + " (total calls: " + verifySha256CallCount + ")");
         if (path == null || expectedHash == null) {
+            logNativeInstrumentation(getContext(), "verifySha256", callId, "EXIT", "Rejected: missing filePath or expectedHash");
             call.reject("filePath and expectedHash are required");
             return;
         }
@@ -157,6 +264,7 @@ public class AppInstallerPlugin extends Plugin {
                 file = new File(path);
             }
             if (!file.exists()) {
+                logNativeInstrumentation(getContext(), "verifySha256", callId, "EXIT", "Rejected: file does not exist: " + file.getAbsolutePath());
                 call.reject("File does not exist: " + file.getAbsolutePath());
                 return;
             }
@@ -181,9 +289,14 @@ public class AppInstallerPlugin extends Plugin {
             JSObject result = new JSObject();
             result.put("matches", matches);
             result.put("computedHash", computedHash);
+            logNativeInstrumentation(getContext(), "verifySha256", callId, "EXIT", "matches=" + matches + ", computedHash=" + computedHash);
             call.resolve(result);
         } catch (Exception e) {
-            call.reject("Verification failed: " + e.getMessage(), e);
+            JSObject result = new JSObject();
+            result.put("matches", false);
+            result.put("computedHash", "ERROR: " + e.getMessage());
+            logNativeInstrumentation(getContext(), "verifySha256", callId, "EXIT", "Exception: " + e.getMessage());
+            call.resolve(result);
         }
     }
 
@@ -193,18 +306,143 @@ public class AppInstallerPlugin extends Plugin {
     }
 
     @PluginMethod
+    public void copyToClipboard(PluginCall call) {
+        String text = call.getString("text");
+        if (text == null) {
+            call.reject("text is required");
+            return;
+        }
+        try {
+            android.app.Activity activity = getActivity();
+            if (activity != null) {
+                activity.runOnUiThread(new Runnable() {
+                    @Override
+                    public void run() {
+                        try {
+                            android.content.ClipboardManager clipboard = (android.content.ClipboardManager) getContext().getSystemService(Context.CLIPBOARD_SERVICE);
+                            android.content.ClipData clip = android.content.ClipData.newPlainText("Studio Diagnostics", text);
+                            clipboard.setPrimaryClip(clip);
+                            call.resolve();
+                        } catch (Exception e) {
+                            call.reject("Clipboard write failed: " + e.getMessage(), e);
+                        }
+                    }
+                });
+            } else {
+                call.reject("Activity is null");
+            }
+        } catch (Exception e) {
+            call.reject("Failed to copy to clipboard: " + e.getMessage(), e);
+        }
+    }
+
+    @PluginMethod
     public void getDeviceInfo(PluginCall call) {
         try {
+            Context context = getContext();
             JSObject result = new JSObject();
             result.put("manufacturer", Build.MANUFACTURER);
             result.put("model", Build.MODEL);
             result.put("androidVersion", Build.VERSION.RELEASE);
             result.put("sdkInt", Build.VERSION.SDK_INT);
+            
+            // Architecture
+            String abis = "";
+            if (Build.SUPPORTED_ABIS != null && Build.SUPPORTED_ABIS.length > 0) {
+                StringBuilder sb = new StringBuilder();
+                for (int i = 0; i < Build.SUPPORTED_ABIS.length; i++) {
+                    if (i > 0) sb.append(", ");
+                    sb.append(Build.SUPPORTED_ABIS[i]);
+                }
+                abis = sb.toString();
+            } else {
+                abis = Build.CPU_ABI;
+            }
+            result.put("architecture", abis);
+
+            // Device Locale
+            result.put("deviceLocale", java.util.Locale.getDefault().toString());
+
+            // Storage availability
+            try {
+                File path = context.getFilesDir();
+                android.os.StatFs stat = new android.os.StatFs(path.getPath());
+                long blockSize = stat.getBlockSizeLong();
+                long availableBlocks = stat.getAvailableBlocksLong();
+                long freeBytes = availableBlocks * blockSize;
+                result.put("storageAvailable", (freeBytes / (1024 * 1024)) + " MB free");
+            } catch (Exception e) {
+                result.put("storageAvailable", "Unknown (Error)");
+            }
+
+            // Network state
+            try {
+                android.net.ConnectivityManager cm = (android.net.ConnectivityManager) context.getSystemService(Context.CONNECTIVITY_SERVICE);
+                android.net.NetworkInfo activeNetwork = cm.getActiveNetworkInfo();
+                if (activeNetwork != null && activeNetwork.isConnectedOrConnecting()) {
+                    result.put("networkState", activeNetwork.getTypeName() + " (" + activeNetwork.getSubtypeName() + ")");
+                } else {
+                    result.put("networkState", "Disconnected / Offline");
+                }
+            } catch (Exception e) {
+                result.put("networkState", "Unknown (Error)");
+            }
+
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                result.put("canRequestPackageInstalls", getContext().getPackageManager().canRequestPackageInstalls());
+                result.put("canRequestPackageInstalls", context.getPackageManager().canRequestPackageInstalls());
             } else {
                 result.put("canRequestPackageInstalls", true);
             }
+
+            // Battery info
+            try {
+                android.content.IntentFilter ifilter = new android.content.IntentFilter(Intent.ACTION_BATTERY_CHANGED);
+                Intent batteryStatus = context.registerReceiver(null, ifilter);
+                if (batteryStatus != null) {
+                    int level = batteryStatus.getIntExtra(android.os.BatteryManager.EXTRA_LEVEL, -1);
+                    int scale = batteryStatus.getIntExtra(android.os.BatteryManager.EXTRA_SCALE, -1);
+                    float batteryPct = (level * 100) / (float) scale;
+                    result.put("battery", String.format(java.util.Locale.US, "%.0f%%", batteryPct));
+                } else {
+                    result.put("battery", "Unknown");
+                }
+            } catch (Exception e) {
+                result.put("battery", "Unknown (Error: " + e.getMessage() + ")");
+            }
+
+            // RAM info
+            try {
+                android.app.ActivityManager.MemoryInfo mi = new android.app.ActivityManager.MemoryInfo();
+                android.app.ActivityManager activityManager = (android.app.ActivityManager) context.getSystemService(Context.ACTIVITY_SERVICE);
+                if (activityManager != null) {
+                    activityManager.getMemoryInfo(mi);
+                    long totalMegs = mi.totalMem / 1048576L;
+                    long availableMegs = mi.availMem / 1048576L;
+                    result.put("ram", availableMegs + " MB free / " + totalMegs + " MB total");
+                } else {
+                    result.put("ram", "Unknown");
+                }
+            } catch (Exception e) {
+                result.put("ram", "Unknown (Error: " + e.getMessage() + ")");
+            }
+
+            // Installer Package
+            try {
+                String installer = null;
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+                    android.content.pm.InstallSourceInfo info = context.getPackageManager().getInstallSourceInfo(context.getPackageName());
+                    installer = info.getInstallingPackageName();
+                } else {
+                    installer = context.getPackageManager().getInstallerPackageName(context.getPackageName());
+                }
+                result.put("installerPackage", installer != null ? installer : "Unknown/Direct");
+            } catch (Exception e) {
+                result.put("installerPackage", "Unknown (Error: " + e.getMessage() + ")");
+            }
+
+            // Time
+            result.put("time", new java.util.Date().toString());
+
             call.resolve(result);
         } catch (Exception e) {
             call.reject("Failed to get device info: " + e.getMessage(), e);
@@ -212,9 +450,255 @@ public class AppInstallerPlugin extends Plugin {
     }
 
     @PluginMethod
+    public void getPackageInstallerDetails(PluginCall call) {
+        try {
+            Context context = getContext();
+            SharedPreferences prefs = context.getSharedPreferences(InstallReceiver.PREFS_NAME, Context.MODE_PRIVATE);
+            JSObject result = new JSObject();
+            result.put("sessionId", prefs.getInt("session_id", -1));
+            result.put("sessionState", prefs.getString("session_state", "None"));
+            result.put("sessionCreatedTime", prefs.getLong("session_created_time", 0));
+            result.put("sessionCommitTime", prefs.getLong("session_commit_time", 0));
+            result.put("receiverTriggeredTime", prefs.getLong("receiver_triggered_time", 0));
+            result.put("lastStatusCode", prefs.getInt("last_status_code", -999));
+            result.put("lastStatusMessage", prefs.getString("last_status_message", ""));
+            result.put("lastStatusTimestamp", prefs.getLong("last_status_timestamp", 0));
+            result.put("expectedVersionCode", prefs.getLong("expected_version_code", 0));
+            result.put("expectedVersionName", prefs.getString("expected_version_name", ""));
+            
+            // PendingIntent tracking
+            result.put("pendingIntentCreated", prefs.getBoolean("pending_intent_created", false));
+            result.put("intentSenderCreated", prefs.getBoolean("intent_sender_created", false));
+            result.put("intentFired", prefs.getBoolean("intent_fired", false));
+            result.put("confirmationIntentReceived", prefs.getBoolean("confirmation_intent_received", false));
+            result.put("confirmationIntentStarted", prefs.getBoolean("confirmation_intent_started", false));
+            
+            call.resolve(result);
+        } catch (Exception e) {
+            call.reject("Failed to get PackageInstaller details: " + e.getMessage(), e);
+        }
+    }
+
+    @PluginMethod
+    public void getLastInstallResult(PluginCall call) {
+        try {
+            SharedPreferences prefs = getContext().getSharedPreferences(InstallReceiver.PREFS_NAME, Context.MODE_PRIVATE);
+            JSObject result = new JSObject();
+            result.put("statusCode", prefs.getInt("last_status_code", -999));
+            result.put("statusMessage", prefs.getString("last_status_message", ""));
+            result.put("packageName", prefs.getString("last_other_package", ""));
+            result.put("timestamp", prefs.getLong("last_status_timestamp", 0));
+            result.put("expectedVersionCode", prefs.getLong("expected_version_code", 0));
+            result.put("expectedVersionName", prefs.getString("expected_version_name", ""));
+            call.resolve(result);
+        } catch (Exception e) {
+            call.reject("Failed to read last install result: " + e.getMessage());
+        }
+    }
+
+    @PluginMethod
+    public void getExtendedDiagnostics(PluginCall call) {
+        try {
+            Context context = getContext();
+            SharedPreferences prefs = context.getSharedPreferences(InstallReceiver.PREFS_NAME, Context.MODE_PRIVATE);
+            JSObject result = new JSObject();
+            
+            PackageInstaller packageInstaller = context.getPackageManager().getPackageInstaller();
+            java.util.List<PackageInstaller.SessionInfo> sessions = packageInstaller.getMySessions();
+            int activeSessionsCount = sessions != null ? sessions.size() : 0;
+            
+            result.put("sessionId", prefs.getInt("session_id", -1));
+            result.put("sessionState", prefs.getString("session_state", "none"));
+            result.put("pendingIntentCreated", prefs.getBoolean("pending_intent_created", false));
+            result.put("intentSenderCreated", prefs.getBoolean("intent_sender_created", false));
+            result.put("intentFired", prefs.getBoolean("intent_fired", false));
+            result.put("confirmationIntentReceived", prefs.getBoolean("confirmation_intent_received", false));
+            result.put("confirmationIntentStarted", prefs.getBoolean("confirmation_intent_started", false));
+            result.put("installationActive", prefs.getBoolean("installation_active", false));
+            result.put("sessionStartTime", prefs.getLong("session_start_time", 0));
+            result.put("sessionCreatedTime", prefs.getLong("session_created_time", 0));
+            result.put("sessionCommitTime", prefs.getLong("session_commit_time", 0));
+            result.put("lastStatusCode", prefs.getInt("last_status_code", -999));
+            result.put("lastStatusMessage", prefs.getString("last_status_message", ""));
+            result.put("lastOtherPackage", prefs.getString("last_other_package", ""));
+            result.put("lastStatusTimestamp", prefs.getLong("last_status_timestamp", 0));
+            result.put("expectedVersionCode", prefs.getLong("expected_version_code", 0));
+            result.put("expectedVersionName", prefs.getString("expected_version_name", ""));
+            result.put("pendingConfirmIntentExists", pendingConfirmIntent != null);
+            result.put("activeSessionsCount", activeSessionsCount);
+            
+            boolean hasInstallPerm = false;
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                hasInstallPerm = context.getPackageManager().canRequestPackageInstalls();
+            } else {
+                hasInstallPerm = true;
+            }
+            result.put("hasInstallPermission", hasInstallPerm);
+            
+            call.resolve(result);
+        } catch (Exception e) {
+            call.reject("Failed to get extended diagnostics: " + e.getMessage(), e);
+        }
+    }
+
+    @PluginMethod
+    public void getInstallerLogHistory(PluginCall call) {
+        try {
+            SharedPreferences prefs = getContext().getSharedPreferences(InstallReceiver.PREFS_NAME, Context.MODE_PRIVATE);
+            String logHistory = prefs.getString("installer_log_history", "[]");
+            JSObject result = new JSObject();
+            result.put("logs", logHistory);
+            call.resolve(result);
+        } catch (Exception e) {
+            call.reject("Failed to read installer log history: " + e.getMessage());
+        }
+    }
+
+    @PluginMethod
+    public void clearInstallerLogHistory(PluginCall call) {
+        try {
+            SharedPreferences prefs = getContext().getSharedPreferences(InstallReceiver.PREFS_NAME, Context.MODE_PRIVATE);
+            prefs.edit()
+                .putString("installer_log_history", "[]")
+                .putInt("last_status_code", -999)
+                .putString("last_status_message", "")
+                .putString("last_other_package", "")
+                .putLong("expected_version_code", 0)
+                .putString("expected_version_name", "")
+                .putBoolean("installation_active", false)
+                .apply();
+            call.resolve();
+        } catch (Exception e) {
+            call.reject("Failed to clear installer log history: " + e.getMessage());
+        }
+    }
+
+    @PluginMethod
+    public void appendLog(PluginCall call) {
+        String stage = call.getString("stage");
+        Integer status = call.getInt("status");
+        String message = call.getString("message");
+        String packageName = call.getString("packageName");
+        String exceptionStack = call.getString("exceptionStack");
+        if (stage == null) {
+            call.reject("stage is required");
+            return;
+        }
+        try {
+            InstallReceiver.appendLog(getContext(), stage, status != null ? status : 0, message, packageName, exceptionStack);
+            call.resolve();
+        } catch (Exception e) {
+            call.reject("Failed to append log: " + e.getMessage());
+        }
+    }
+
+    @PluginMethod
+    public void resumePendingInstall(PluginCall call) {
+        try {
+            if (pendingConfirmIntent != null) {
+                android.app.Activity activity = getActivity();
+                if (activity != null) {
+                    android.util.Log.i("AppInstallerPlugin", "[INSTRUMENTATION] [NATIVE] Relaunching pending confirmation intent via PluginMethod");
+                    if (android.os.Build.VERSION.SDK_INT >= 34) {
+                        android.app.ActivityOptions options = android.app.ActivityOptions.makeBasic();
+                        options.setPendingIntentBackgroundActivityStartMode(
+                                android.app.ActivityOptions.MODE_BACKGROUND_ACTIVITY_START_ALLOWED);
+                        activity.startActivity(pendingConfirmIntent, options.toBundle());
+                    } else {
+                        activity.startActivity(pendingConfirmIntent);
+                    }
+                    call.resolve();
+                } else {
+                    call.reject("MainActivity activity context is null");
+                }
+            } else {
+                call.reject("No pending confirmation intent exists");
+            }
+        } catch (Exception e) {
+            call.reject("Failed to resume pending install: " + e.getMessage(), e);
+        }
+    }
+
+    @PluginMethod
+    public void resumePackageInstallerSession(PluginCall call) {
+        try {
+            Context context = getContext();
+            SharedPreferences prefs = context.getSharedPreferences(InstallReceiver.PREFS_NAME, Context.MODE_PRIVATE);
+            int sessionId = prefs.getInt("session_id", -1);
+            if (sessionId == -1) {
+                call.reject("No active session ID stored in preferences");
+                return;
+            }
+            
+            PackageInstaller packageInstaller = context.getPackageManager().getPackageInstaller();
+            PackageInstaller.SessionInfo info = packageInstaller.getSessionInfo(sessionId);
+            if (info == null) {
+                call.reject("Session ID " + sessionId + " not found or already closed in PackageInstaller");
+                return;
+            }
+            
+            if (pendingConfirmIntent != null) {
+                android.app.Activity activity = getActivity();
+                if (activity != null) {
+                    if (android.os.Build.VERSION.SDK_INT >= 34) {
+                        android.app.ActivityOptions options = android.app.ActivityOptions.makeBasic();
+                        options.setPendingIntentBackgroundActivityStartMode(
+                                android.app.ActivityOptions.MODE_BACKGROUND_ACTIVITY_START_ALLOWED);
+                        activity.startActivity(pendingConfirmIntent, options.toBundle());
+                    } else {
+                        activity.startActivity(pendingConfirmIntent);
+                    }
+                    call.resolve();
+                } else {
+                    call.reject("Activity context is null");
+                }
+            } else {
+                call.resolve(); // Session is active in OS but no intent saved
+            }
+        } catch (Exception e) {
+            call.reject("Failed to resume session: " + e.getMessage(), e);
+        }
+    }
+
+    @PluginMethod
+    public void recreateActivity(PluginCall call) {
+        try {
+            final android.app.Activity activity = getActivity();
+            if (activity != null) {
+                activity.runOnUiThread(new Runnable() {
+                    @Override
+                    public void run() {
+                        activity.recreate();
+                    }
+                });
+                call.resolve();
+            } else {
+                call.reject("Activity context is null");
+            }
+        } catch (Exception e) {
+            call.reject("Failed to recreate activity: " + e.getMessage());
+        }
+    }
+
+    @PluginMethod
+    public void killProcess(PluginCall call) {
+        try {
+            android.util.Log.i("AppInstallerPlugin", "Killing app process via System.exit(0)");
+            System.exit(0);
+            call.resolve();
+        } catch (Exception e) {
+            call.reject("Failed to kill process: " + e.getMessage());
+        }
+    }
+
+    @PluginMethod
     public void installApk(PluginCall call) {
+        installApkCallCount++;
+        int callId = nextCallId();
         String path = call.getString("filePath");
+        logNativeInstrumentation(getContext(), "installApk", callId, "ENTER", "filePath=" + path + " (total calls: " + installApkCallCount + ")");
         if (path == null) {
+            logNativeInstrumentation(getContext(), "installApk", callId, "EXIT", "Rejected: missing filePath");
             call.reject("filePath is required");
             return;
         }
@@ -232,20 +716,139 @@ public class AppInstallerPlugin extends Plugin {
             }
 
             if (!file.exists()) {
+                logNativeInstrumentation(getContext(), "installApk", callId, "EXIT", "Rejected: file does not exist: " + file.getAbsolutePath());
                 call.reject("File does not exist: " + file.getAbsolutePath());
                 return;
             }
 
+            logNativeInstrumentation(getContext(), "installApk", callId, "EXIT", "Launching triggerInstallation for file: " + file.getAbsolutePath());
             triggerInstallation(file, call);
         } catch (Exception e) {
+            logNativeInstrumentation(getContext(), "installApk", callId, "EXIT", "Exception: " + e.getMessage());
             call.reject("Failed to install APK: " + e.getMessage(), e);
+        }
+    }
+
+    private File downloadFileWithResume(String urlString, String fileName, int callId, String methodTag) throws Exception {
+        java.io.InputStream input = null;
+        java.io.RandomAccessFile output = null;
+        java.net.HttpURLConnection connection = null;
+        try {
+            File cacheDir = getContext().getExternalCacheDir();
+            if (cacheDir == null) {
+                cacheDir = getContext().getCacheDir();
+            }
+            if (fileName == null || fileName.isEmpty()) {
+                fileName = "update.apk";
+            }
+            File apkFile = new File(cacheDir, fileName);
+            
+            long existingLength = 0;
+            if (apkFile.exists()) {
+                existingLength = apkFile.length();
+                logNativeInstrumentation(getContext(), methodTag, callId, "STEP", "Found existing file of size: " + existingLength + " bytes");
+            }
+            
+            java.net.URL url = new java.net.URL(urlString);
+            connection = (java.net.HttpURLConnection) url.openConnection();
+            connection.setInstanceFollowRedirects(true);
+            
+            // Set range header if we want to resume
+            if (existingLength > 0) {
+                connection.setRequestProperty("Range", "bytes=" + existingLength + "-");
+            }
+            
+            int redirectCount = 0;
+            int status = connection.getResponseCode();
+            while ((status == java.net.HttpURLConnection.HTTP_MOVED_TEMP
+                    || status == java.net.HttpURLConnection.HTTP_MOVED_PERM
+                    || status == 301 || status == 302 || status == 307 || status == 308)
+                    && redirectCount < 8) {
+                String newUrl = connection.getHeaderField("Location");
+                if (newUrl == null) break;
+                
+                url = new java.net.URL(newUrl);
+                connection = (java.net.HttpURLConnection) url.openConnection();
+                connection.setInstanceFollowRedirects(true);
+                if (existingLength > 0) {
+                    connection.setRequestProperty("Range", "bytes=" + existingLength + "-");
+                }
+                status = connection.getResponseCode();
+                redirectCount++;
+            }
+
+            boolean isResume = (status == 206); // HTTP_PARTIAL
+            if (status != java.net.HttpURLConnection.HTTP_OK && !isResume) {
+                // If resume request failed (e.g. 416 Range Not Satisfiable), clear the file and restart from 0
+                if (existingLength > 0) {
+                    logNativeInstrumentation(getContext(), methodTag, callId, "STEP", "Range request failed (status " + status + "). Restarting from scratch.");
+                    apkFile.delete();
+                    existingLength = 0;
+                    connection = (java.net.HttpURLConnection) url.openConnection();
+                    connection.setInstanceFollowRedirects(true);
+                    status = connection.getResponseCode();
+                    if (status != java.net.HttpURLConnection.HTTP_OK) {
+                        throw new Exception("Server returned non-OK status: " + status);
+                    }
+                } else {
+                    throw new Exception("Server returned non-OK status: " + status);
+                }
+            }
+
+            long totalBytesRead = isResume ? existingLength : 0;
+            long fileLength = connection.getContentLength();
+            if (fileLength > 0) {
+                fileLength += totalBytesRead; // Total size is content length + existing
+            }
+            
+            logNativeInstrumentation(getContext(), methodTag, callId, "STEP", "Connected. Status: " + status + ", Total file size: " + fileLength + " bytes");
+            input = new java.io.BufferedInputStream(connection.getInputStream());
+            
+            output = new java.io.RandomAccessFile(apkFile, "rw");
+            if (isResume) {
+                output.seek(existingLength);
+            } else {
+                output.setLength(0); // Truncate existing file if starting new download
+            }
+
+            byte[] data = new byte[8192];
+            int count;
+            int lastProgress = 0;
+            
+            while ((count = input.read(data)) != -1) {
+                totalBytesRead += count;
+                output.write(data, 0, count);
+                
+                if (fileLength > 0) {
+                    int progress = (int) (totalBytesRead * 100 / fileLength);
+                    if (progress > lastProgress) {
+                        lastProgress = progress;
+                        JSObject progressObj = new JSObject();
+                        progressObj.put("progress", progress);
+                        notifyListeners("apkDownloadProgress", progressObj);
+                    }
+                }
+            }
+
+            output.close();
+            input.close();
+            return apkFile;
+        } finally {
+            try {
+                if (output != null) output.close();
+                if (input != null) input.close();
+            } catch (Exception ignored) {}
         }
     }
 
     @PluginMethod
     public void downloadAndInstallApk(PluginCall call) {
+        downloadAndInstallApkCallCount++;
+        int callId = nextCallId();
         String urlString = call.getString("url");
+        logNativeInstrumentation(getContext(), "downloadAndInstallApk", callId, "ENTER", "url=" + urlString + " (total calls: " + downloadAndInstallApkCallCount + ")");
         if (urlString == null) {
+            logNativeInstrumentation(getContext(), "downloadAndInstallApk", callId, "EXIT", "Rejected: missing url");
             call.reject("url is required");
             return;
         }
@@ -253,92 +856,15 @@ public class AppInstallerPlugin extends Plugin {
         new Thread(new Runnable() {
             @Override
             public void run() {
-                java.io.InputStream input = null;
-                java.io.OutputStream output = null;
-                java.net.HttpURLConnection connection = null;
+                int threadCallId = callId;
+                logNativeInstrumentation(getContext(), "downloadAndInstallApk", threadCallId, "STEP", "Download/Install thread started");
                 try {
-                    java.net.URL url = new java.net.URL(urlString);
-                    connection = (java.net.HttpURLConnection) url.openConnection();
-                    connection.setInstanceFollowRedirects(true);
-                    
-                    int redirectCount = 0;
-                    int status = connection.getResponseCode();
-                    while ((status == java.net.HttpURLConnection.HTTP_MOVED_TEMP
-                            || status == java.net.HttpURLConnection.HTTP_MOVED_PERM
-                            || status == 301 || status == 302 || status == 307 || status == 308)
-                            && redirectCount < 8) {
-                        String newUrl = connection.getHeaderField("Location");
-                        if (newUrl == null) break;
-                        
-                        url = new java.net.URL(newUrl);
-                        connection = (java.net.HttpURLConnection) url.openConnection();
-                        connection.setInstanceFollowRedirects(true);
-                        status = connection.getResponseCode();
-                        redirectCount++;
-                    }
-
-                    if (status != java.net.HttpURLConnection.HTTP_OK) {
-                        throw new Exception("Server returned non-OK status: " + status);
-                    }
-
-                    int fileLength = connection.getContentLength();
-                    input = new java.io.BufferedInputStream(connection.getInputStream());
-                    
-                    File cacheDir = getContext().getExternalCacheDir();
-                    if (cacheDir == null) {
-                        cacheDir = getContext().getCacheDir();
-                    }
-                    // Clean stale cached files
-                    File[] files = cacheDir.listFiles();
-                    if (files != null) {
-                        for (File f : files) {
-                            String name = f.getName();
-                            if (name.equals("update.apk") || (name.startsWith("studio-update-") && name.endsWith(".apk"))) {
-                                try {
-                                    f.delete();
-                                } catch (Exception ignored) {}
-                            }
-                        }
-                    }
                     String fileName = call.getString("fileName");
-                    if (fileName == null || fileName.isEmpty()) {
-                        fileName = "update.apk";
-                    }
-                    File apkFile = new File(cacheDir, fileName);
-                    
-                    output = new java.io.FileOutputStream(apkFile);
-
-                    byte[] data = new byte[4096];
-                    long total = 0;
-                    int count;
-                    int lastProgress = 0;
-                    
-                    while ((count = input.read(data)) != -1) {
-                        total += count;
-                        output.write(data, 0, count);
-                        
-                        if (fileLength > 0) {
-                            int progress = (int) (total * 100 / fileLength);
-                            if (progress > lastProgress) {
-                                lastProgress = progress;
-                                JSObject progressObj = new JSObject();
-                                progressObj.put("progress", progress);
-                                notifyListeners("apkDownloadProgress", progressObj);
-                            }
-                        }
-                    }
-
-                    output.flush();
-                    output.close();
-                    input.close();
-
+                    File apkFile = downloadFileWithResume(urlString, fileName, threadCallId, "downloadAndInstallApk");
+                    logNativeInstrumentation(getContext(), "downloadAndInstallApk", threadCallId, "EXIT", "Success. Triggering installation for: " + apkFile.getAbsolutePath());
                     triggerInstallation(apkFile, call);
-
                 } catch (Exception e) {
-                    try {
-                        if (output != null) output.close();
-                        if (input != null) input.close();
-                    } catch (Exception ignored) {}
+                    logNativeInstrumentation(getContext(), "downloadAndInstallApk", threadCallId, "EXIT", "Exception: " + e.getMessage());
                     call.reject("Download failed: " + e.getMessage(), e);
                 }
             }
@@ -347,8 +873,12 @@ public class AppInstallerPlugin extends Plugin {
 
     @PluginMethod
     public void downloadApk(PluginCall call) {
+        downloadApkCallCount++;
+        int callId = nextCallId();
         String urlString = call.getString("url");
+        logNativeInstrumentation(getContext(), "downloadApk", callId, "ENTER", "url=" + urlString + " (total calls: " + downloadApkCallCount + ")");
         if (urlString == null) {
+            logNativeInstrumentation(getContext(), "downloadApk", callId, "EXIT", "Rejected: missing url");
             call.reject("url is required");
             return;
         }
@@ -356,98 +886,74 @@ public class AppInstallerPlugin extends Plugin {
         new Thread(new Runnable() {
             @Override
             public void run() {
-                java.io.InputStream input = null;
-                java.io.OutputStream output = null;
-                java.net.HttpURLConnection connection = null;
+                int threadCallId = callId;
+                logNativeInstrumentation(getContext(), "downloadApk", threadCallId, "STEP", "Download thread started");
                 try {
-                    java.net.URL url = new java.net.URL(urlString);
-                    connection = (java.net.HttpURLConnection) url.openConnection();
-                    connection.setInstanceFollowRedirects(true);
-                    
-                    int redirectCount = 0;
-                    int status = connection.getResponseCode();
-                    while ((status == java.net.HttpURLConnection.HTTP_MOVED_TEMP
-                            || status == java.net.HttpURLConnection.HTTP_MOVED_PERM
-                            || status == 301 || status == 302 || status == 307 || status == 308)
-                            && redirectCount < 8) {
-                        String newUrl = connection.getHeaderField("Location");
-                        if (newUrl == null) break;
-                        
-                        url = new java.net.URL(newUrl);
-                        connection = (java.net.HttpURLConnection) url.openConnection();
-                        connection.setInstanceFollowRedirects(true);
-                        status = connection.getResponseCode();
-                        redirectCount++;
-                    }
-
-                    if (status != java.net.HttpURLConnection.HTTP_OK) {
-                        throw new Exception("Server returned non-OK status: " + status);
-                    }
-
-                    int fileLength = connection.getContentLength();
-                    input = new java.io.BufferedInputStream(connection.getInputStream());
-                    
-                    File cacheDir = getContext().getExternalCacheDir();
-                    if (cacheDir == null) {
-                        cacheDir = getContext().getCacheDir();
-                    }
-                    // Clean stale cached files
-                    File[] files = cacheDir.listFiles();
-                    if (files != null) {
-                        for (File f : files) {
-                            String name = f.getName();
-                            if (name.equals("update.apk") || (name.startsWith("studio-update-") && name.endsWith(".apk"))) {
-                                try {
-                                    f.delete();
-                                } catch (Exception ignored) {}
-                            }
-                        }
-                    }
                     String fileName = call.getString("fileName");
-                    if (fileName == null || fileName.isEmpty()) {
-                        fileName = "update.apk";
-                    }
-                    File apkFile = new File(cacheDir, fileName);
-                    
-                    output = new java.io.FileOutputStream(apkFile);
-
-                    byte[] data = new byte[4096];
-                    long total = 0;
-                    int count;
-                    int lastProgress = 0;
-                    
-                    while ((count = input.read(data)) != -1) {
-                        total += count;
-                        output.write(data, 0, count);
-                        
-                        if (fileLength > 0) {
-                            int progress = (int) (total * 100 / fileLength);
-                            if (progress > lastProgress) {
-                                lastProgress = progress;
-                                JSObject progressObj = new JSObject();
-                                progressObj.put("progress", progress);
-                                notifyListeners("apkDownloadProgress", progressObj);
-                            }
-                        }
-                    }
-
-                    output.flush();
-                    output.close();
-                    input.close();
-
-                    JSObject result = new JSObject();
-                    result.put("filePath", apkFile.getAbsolutePath());
-                    call.resolve(result);
-
+                    File apkFile = downloadFileWithResume(urlString, fileName, threadCallId, "downloadApk");
+                    logNativeInstrumentation(getContext(), "downloadApk", threadCallId, "EXIT", "Success. filePath=" + apkFile.getAbsolutePath());
+                    JSObject ret = new JSObject();
+                    ret.put("filePath", apkFile.getAbsolutePath());
+                    call.resolve(ret);
                 } catch (Exception e) {
-                    try {
-                        if (output != null) output.close();
-                        if (input != null) input.close();
-                    } catch (Exception ignored) {}
+                    logNativeInstrumentation(getContext(), "downloadApk", threadCallId, "EXIT", "Exception: " + e.getMessage());
                     call.reject("Download failed: " + e.getMessage(), e);
                 }
             }
         }).start();
+    }
+
+    @PluginMethod
+    public void installApkDirect(PluginCall call) {
+        int callId = nextCallId();
+        String filePath = call.getString("filePath");
+        logNativeInstrumentation(getContext(), "installApkDirect", callId, "ENTER", "filePath=" + filePath);
+        if (filePath == null) {
+            logNativeInstrumentation(getContext(), "installApkDirect", callId, "EXIT", "Rejected: missing filePath");
+            call.reject("filePath is required");
+            return;
+        }
+
+        try {
+            File file = new File(filePath);
+            if (!file.exists()) {
+                throw new Exception("APK file not found at path: " + filePath);
+            }
+
+            Context context = getContext();
+            Uri apkUri;
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+                String authority = context.getPackageName() + ".fileprovider";
+                apkUri = androidx.core.content.FileProvider.getUriForFile(context, authority, file);
+            } else {
+                apkUri = Uri.fromFile(file);
+            }
+
+            Intent intent = new Intent(Intent.ACTION_VIEW);
+            intent.setDataAndType(apkUri, "application/vnd.android.package-archive");
+            intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+            intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
+            
+            // On Android 8.0+ request unknown sources if we don't have it
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                if (!context.getPackageManager().canRequestPackageInstalls()) {
+                    Intent settingsIntent = new Intent(android.provider.Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES);
+                    settingsIntent.setData(Uri.parse("package:" + context.getPackageName()));
+                    settingsIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                    context.startActivity(settingsIntent);
+                    logNativeInstrumentation(context, "installApkDirect", callId, "EXIT", "Redirected to unknown sources settings");
+                    call.reject("Please enable install permission for this app and try again.");
+                    return;
+                }
+            }
+
+            context.startActivity(intent);
+            logNativeInstrumentation(context, "installApkDirect", callId, "EXIT", "Direct install activity launched");
+            call.resolve();
+        } catch (Exception e) {
+            logNativeInstrumentation(getContext(), "installApkDirect", callId, "EXIT", "Exception: " + e.getMessage());
+            call.reject("Direct install failed: " + e.getMessage(), e);
+        }
     }
 
     @PluginMethod
@@ -483,9 +989,42 @@ public class AppInstallerPlugin extends Plugin {
     }
 
     private void triggerInstallation(File file, PluginCall call) {
+        Context context = getContext();
+        triggerInstallationCallCount++;
+        int callId = nextCallId();
+        logNativeInstrumentation(context, "triggerInstallation", callId, "ENTER", "file=" + file.getAbsolutePath() + " (total calls: " + triggerInstallationCallCount + ")");
         try {
-            Context context = getContext();
-            
+            PackageManager pm = context.getPackageManager();
+            PackageInfo archiveInfo = pm.getPackageArchiveInfo(file.getAbsolutePath(), 0);
+            long expectedVersionCode = 0;
+            String expectedVersionName = "";
+            if (archiveInfo != null) {
+                expectedVersionName = archiveInfo.versionName != null ? archiveInfo.versionName : "";
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+                    expectedVersionCode = archiveInfo.getLongVersionCode();
+                } else {
+                    expectedVersionCode = archiveInfo.versionCode;
+                }
+            }
+
+            // Reset previous results and store session start time in prefs
+            SharedPreferences prefs = context.getSharedPreferences(InstallReceiver.PREFS_NAME, Context.MODE_PRIVATE);
+            prefs.edit()
+                .putLong("session_start_time", System.currentTimeMillis())
+                .putInt("last_status_code", -999)
+                .putString("last_status_message", "installation_in_progress")
+                .putString("last_other_package", "")
+                .putLong("last_status_timestamp", System.currentTimeMillis())
+                .putLong("expected_version_code", expectedVersionCode)
+                .putString("expected_version_name", expectedVersionName)
+                .putBoolean("pending_intent_created", false)
+                .putBoolean("intent_sender_created", false)
+                .putBoolean("intent_fired", false)
+                .putBoolean("confirmation_intent_received", false)
+                .putBoolean("confirmation_intent_started", false)
+                .putString("session_state", "created")
+                .apply();
+
             // Check for INSTALL_PACKAGES permission on Android 8.0+
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
                 if (!context.getPackageManager().canRequestPackageInstalls()) {
@@ -493,26 +1032,190 @@ public class AppInstallerPlugin extends Plugin {
                     settingsIntent.setData(Uri.parse("package:" + context.getPackageName()));
                     settingsIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
                     context.startActivity(settingsIntent);
+                    logNativeInstrumentation(context, "triggerInstallation", callId, "EXIT", "Rejected: missing REQUEST_INSTALL_PACKAGES permission");
                     call.reject("Please enable install permission for this app and try again.");
+                    InstallReceiver.appendLog(context, "Install Failure", -2, "Missing unknown sources permission", null, null);
                     return;
                 }
             }
 
-            Intent intent = new Intent(Intent.ACTION_VIEW);
-            Uri apkUri;
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
-                String authority = context.getPackageName() + ".fileprovider";
-                apkUri = FileProvider.getUriForFile(context, authority, file);
-                intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
-            } else {
-                apkUri = Uri.fromFile(file);
+            // Use PackageInstaller Session API
+            PackageInstaller packageInstaller = context.getPackageManager().getPackageInstaller();
+            PackageInstaller.SessionParams params = new PackageInstaller.SessionParams(
+                    PackageInstaller.SessionParams.MODE_FULL_INSTALL);
+            
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                // setRequestDowngrade(true) was added in API level 34.
+                // Call via reflection to support compiling against older SDK platforms.
+                try {
+                    java.lang.reflect.Method setRequestDowngradeMethod = 
+                        params.getClass().getMethod("setRequestDowngrade", boolean.class);
+                    setRequestDowngradeMethod.invoke(params, true);
+                    InstallReceiver.appendLog(context, "PackageInstaller Session Setup", 0, "Successfully setRequestDowngrade(true) via reflection", null, null);
+                } catch (Exception e) {
+                    InstallReceiver.appendLog(context, "PackageInstaller Session Setup", -1, "Failed to setRequestDowngrade(true) via reflection: " + e.getMessage(), null, null);
+                }
+            }
+            
+            // Re-use file size if available
+            if (file.length() > 0) {
+                params.setSize(file.length());
             }
 
-            intent.setDataAndType(apkUri, "application/vnd.android.package-archive");
-            intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-            context.startActivity(intent);
-            call.resolve();
+            int sessionId;
+            try {
+                sessionCreateCallCount++;
+                logNativeInstrumentation(context, "triggerInstallation", callId, "STEP", "Calling PackageInstaller.createSession() call #" + sessionCreateCallCount);
+                sessionId = packageInstaller.createSession(params);
+                prefs.edit()
+                    .putInt("session_id", sessionId)
+                    .putLong("session_created_time", System.currentTimeMillis())
+                    .putString("session_state", "session_created")
+                    .apply();
+                logNativeInstrumentation(context, "triggerInstallation", callId, "STEP", "Session.create() success. sessionId=" + sessionId);
+                InstallReceiver.appendLog(context, "PackageInstaller Session Created", 0, "Session ID: " + sessionId, null, null);
+            } catch (Exception e) {
+                throw new Exception("[Session creation] Failed to create PackageInstaller session: " + e.getMessage(), e);
+            }
+
+            PackageInstaller.Session session;
+            try {
+                logNativeInstrumentation(context, "triggerInstallation", callId, "STEP", "Opening Session: sessionId=" + sessionId);
+                session = packageInstaller.openSession(sessionId);
+            } catch (Exception e) {
+                throw new Exception("[Session open] Failed to open session " + sessionId + ": " + e.getMessage(), e);
+            }
+            
+            java.io.OutputStream out;
+            try {
+                sessionWriteCallCount++;
+                logNativeInstrumentation(context, "triggerInstallation", callId, "STEP", "Session.write() call #" + sessionWriteCallCount + " start. Opening output stream.");
+                out = session.openWrite("studio_install", 0, -1);
+                java.io.FileInputStream fis = new java.io.FileInputStream(file);
+                byte[] buffer = new byte[65536];
+                int count;
+                long bytesWritten = 0;
+                while ((count = fis.read(buffer)) != -1) {
+                    out.write(buffer, 0, count);
+                    bytesWritten += count;
+                }
+                fis.close();
+                out.flush();
+                logNativeInstrumentation(context, "triggerInstallation", callId, "STEP", "Session.write() finished. Total bytes written: " + bytesWritten);
+                InstallReceiver.appendLog(context, "Package Written", 0, "Bytes written: " + file.length(), null, null);
+            } catch (Exception e) {
+                try { session.close(); } catch (Exception ignored) {}
+                throw new Exception("[Session write] Failed to write APK to session " + sessionId + ": " + e.getMessage(), e);
+            }
+
+            try {
+                sessionFsyncCallCount++;
+                logNativeInstrumentation(context, "triggerInstallation", callId, "STEP", "Session.fsync() call #" + sessionFsyncCallCount + " start");
+                session.fsync(out);
+                out.close();
+                logNativeInstrumentation(context, "triggerInstallation", callId, "STEP", "Session.fsync() finished");
+                InstallReceiver.appendLog(context, "Package Synced", 0, "fsync completed", null, null);
+            } catch (Exception e) {
+                try { session.close(); } catch (Exception ignored) {}
+                throw new Exception("[Session fsync] Failed to fsync session " + sessionId + ": " + e.getMessage(), e);
+            }
+            
+            PendingIntent pendingIntent;
+            try {
+                Intent intent = new Intent(context, InstallReceiver.class);
+                intent.setPackage(context.getPackageName());
+                intent.setAction("com.chordex.app.SESSION_API_PACKAGE_INSTALLED");
+                
+                int pendingFlags = PendingIntent.FLAG_UPDATE_CURRENT;
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                    pendingFlags |= PendingIntent.FLAG_MUTABLE;
+                }
+                pendingIntent = PendingIntent.getBroadcast(
+                        context, 
+                        sessionId, 
+                        intent, 
+                        pendingFlags
+                );
+                prefs.edit().putBoolean("pending_intent_created", true).apply();
+            } catch (Exception e) {
+                try { session.close(); } catch (Exception ignored) {}
+                throw new Exception("[PendingIntent creation] Failed to create PendingIntent for session " + sessionId + ": " + e.getMessage(), e);
+            }
+            
+            try {
+                sessionCommitCallCount++;
+                logNativeInstrumentation(context, "triggerInstallation", callId, "STEP", "Session.commit() call #" + sessionCommitCallCount + " start. Calling session.commit()");
+                InstallReceiver.appendLog(context, "Session Commit Started", 0, "Calling session.commit()", null, null);
+                prefs.edit()
+                     .putBoolean("installation_active", true)
+                     .putBoolean("intent_sender_created", true)
+                     .putBoolean("intent_fired", true)
+                     .putLong("session_commit_time", System.currentTimeMillis())
+                     .putString("session_state", "committed")
+                     .apply();
+                session.commit(pendingIntent.getIntentSender());
+                session.close();
+                logNativeInstrumentation(context, "triggerInstallation", callId, "STEP", "Session.commit() finished and session closed");
+                InstallReceiver.appendLog(context, "Session Commit Finished", 0, "Session committed and closed", null, null);
+
+                // Register session callback ONLY AFTER commit to avoid early onActiveChanged during write phase!
+                final int targetSessionId = sessionId;
+                final PackageInstaller finalPackageInstaller = packageInstaller;
+                final PackageInstaller.SessionCallback callback = new PackageInstaller.SessionCallback() {
+                    @Override
+                    public void onCreated(int id) {}
+                    @Override
+                    public void onBadgingChanged(int id) {}
+                    @Override
+                    public void onActiveChanged(int id, boolean active) {
+                        if (id == targetSessionId && active) {
+                            Log.d("AppInstallerPlugin", "Session active: " + id);
+                            if (instance != null) {
+                                JSObject data = new JSObject();
+                                data.put("status", -2); // installing start
+                                data.put("message", "installing_start");
+                                instance.emitInstallStatus(data);
+                            }
+                        }
+                    }
+                    @Override
+                    public void onProgressChanged(int id, float progress) {
+                        if (id == targetSessionId) {
+                            Log.d("AppInstallerPlugin", "Session progress: " + id + " progress: " + progress);
+                            if (instance != null) {
+                                JSObject data = new JSObject();
+                                data.put("status", -3); // installing progress
+                                data.put("message", "installing_progress");
+                                data.put("progress", progress);
+                                instance.emitInstallStatus(data);
+                            }
+                        }
+                    }
+                    @Override
+                    public void onFinished(int id, boolean success) {
+                        if (id == targetSessionId) {
+                            Log.d("AppInstallerPlugin", "Session finished: " + id + " success: " + success);
+                            try {
+                                finalPackageInstaller.unregisterSessionCallback(this);
+                            } catch (Exception ignored) {}
+                        }
+                    }
+                };
+                packageInstaller.registerSessionCallback(callback, new android.os.Handler(android.os.Looper.getMainLooper()));
+            } catch (Exception e) {
+                try { session.close(); } catch (Exception ignored) {}
+                throw new Exception("[Installation handoff] Failed to commit session " + sessionId + ": " + e.getMessage(), e);
+            }
+            
+            Log.d("AppInstallerPlugin", "Installation session committed: sessionId=" + sessionId);
+            JSObject result = new JSObject();
+            result.put("sessionId", sessionId);
+            logNativeInstrumentation(context, "triggerInstallation", callId, "EXIT", "Success: sessionId=" + sessionId);
+            call.resolve(result);
         } catch (Exception e) {
+            Log.e("AppInstallerPlugin", "Failed to trigger installation via PackageInstaller", e);
+            logNativeInstrumentation(context, "triggerInstallation", callId, "EXIT", "Exception: " + e.getMessage() + "\nStack: " + Log.getStackTraceString(e));
+            InstallReceiver.appendLog(context, "Install Failure", -3, "Exception: " + e.getMessage(), null, Log.getStackTraceString(e));
             call.reject("Failed to trigger installation: " + e.getMessage(), e);
         }
     }
@@ -694,6 +1397,8 @@ public class AppInstallerPlugin extends Plugin {
             result.put("debuggable", debuggable);
 
             String sha256 = "";
+            String subject = "";
+            String issuer = "";
             Signature[] signatures = null;
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
                 if (info.signingInfo != null) {
@@ -718,8 +1423,26 @@ public class AppInstallerPlugin extends Plugin {
                     hexString.append(append);
                 }
                 sha256 = hexString.toString().toLowerCase();
+
+                try {
+                    java.io.InputStream is = new java.io.ByteArrayInputStream(cert);
+                    java.security.cert.CertificateFactory cf = java.security.cert.CertificateFactory.getInstance("X.509");
+                    java.security.cert.X509Certificate x509 = (java.security.cert.X509Certificate) cf.generateCertificate(is);
+                    if (x509 != null) {
+                        if (x509.getSubjectX500Principal() != null) {
+                            subject = x509.getSubjectX500Principal().getName();
+                        }
+                        if (x509.getIssuerX500Principal() != null) {
+                            issuer = x509.getIssuerX500Principal().getName();
+                        }
+                    }
+                } catch (Exception certEx) {
+                    // Ignored
+                }
             }
             result.put("signingSha256", sha256);
+            result.put("certificateSubject", subject);
+            result.put("certificateIssuer", issuer);
 
             call.resolve(result);
         } catch (Exception e) {
@@ -818,6 +1541,8 @@ public class AppInstallerPlugin extends Plugin {
             result.put("debuggable", debuggable);
 
             String sha256 = "";
+            String subject = "";
+            String issuer = "";
             Signature[] signatures = null;
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
                 if (info.signingInfo != null) {
@@ -842,12 +1567,97 @@ public class AppInstallerPlugin extends Plugin {
                     hexString.append(append);
                 }
                 sha256 = hexString.toString().toLowerCase();
+
+                try {
+                    java.io.InputStream is = new java.io.ByteArrayInputStream(cert);
+                    java.security.cert.CertificateFactory cf = java.security.cert.CertificateFactory.getInstance("X.509");
+                    java.security.cert.X509Certificate x509 = (java.security.cert.X509Certificate) cf.generateCertificate(is);
+                    if (x509 != null) {
+                        if (x509.getSubjectX500Principal() != null) {
+                            subject = x509.getSubjectX500Principal().getName();
+                        }
+                        if (x509.getIssuerX500Principal() != null) {
+                            issuer = x509.getIssuerX500Principal().getName();
+                        }
+                    }
+                } catch (Exception certEx) {
+                    // Ignored
+                }
             }
             result.put("signingSha256", sha256);
+            result.put("certificateSubject", subject);
+            result.put("certificateIssuer", issuer);
 
             call.resolve(result);
         } catch (Exception e) {
             call.reject("Failed to read installed app info: " + e.getMessage(), e);
+        }
+    }
+
+    @PluginMethod
+    public void readFirstBytes(PluginCall call) {
+        String path = call.getString("filePath");
+        Integer bytesCount = call.getInt("count", 4);
+        if (path == null) {
+            call.reject("filePath is required");
+            return;
+        }
+        try {
+            File file;
+            if (path.startsWith("file://")) {
+                try {
+                    file = new File(new java.net.URI(path));
+                } catch (Exception e) {
+                    file = new File(path.substring(7));
+                }
+            } else {
+                file = new File(path);
+            }
+            if (!file.exists()) {
+                call.reject("File does not exist");
+                return;
+            }
+            java.io.FileInputStream fis = new java.io.FileInputStream(file);
+            byte[] buffer = new byte[bytesCount];
+            int read = fis.read(buffer);
+            fis.close();
+            
+            StringBuilder hexString = new StringBuilder();
+            for (int i = 0; i < read; i++) {
+                String hex = Integer.toHexString(0xff & buffer[i]);
+                if (hex.length() == 1) hexString.append('0');
+                hexString.append(hex);
+            }
+            JSObject result = new JSObject();
+            result.put("hex", hexString.toString());
+            result.put("ascii", new String(buffer, 0, read, "UTF-8"));
+            call.resolve(result);
+        } catch (Exception e) {
+            call.reject("Failed to read first bytes: " + e.getMessage());
+        }
+    }
+
+    @PluginMethod
+    public void isInstallActive(PluginCall call) {
+        try {
+            Context context = getContext();
+            SharedPreferences prefs = context.getSharedPreferences(InstallReceiver.PREFS_NAME, Context.MODE_PRIVATE);
+            boolean active = prefs.getBoolean("installation_active", false);
+            int activeSessionId = -1;
+            
+            PackageInstaller packageInstaller = context.getPackageManager().getPackageInstaller();
+            java.util.List<PackageInstaller.SessionInfo> sessions = packageInstaller.getMySessions();
+            if (sessions != null && !sessions.isEmpty()) {
+                active = true;
+                activeSessionId = sessions.get(0).getSessionId();
+            }
+            
+            JSObject result = new JSObject();
+            result.put("active", active);
+            result.put("sessionId", activeSessionId);
+            call.resolve(result);
+        } catch (Exception e) {
+            call.reject("Failed to check active installer sessions: " + e.getMessage(), e);
         }
     }
 }

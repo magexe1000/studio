@@ -218,6 +218,7 @@ export function StudioHubSkeleton() {
         }}
       >
         <div
+          data-intro-target="studio"
           className="studio-shimmer"
           style={{ width: 56, height: 56, borderRadius: '28%', marginBottom: 12 }}
         />
@@ -263,8 +264,9 @@ export function StudioHubSkeleton() {
             >
               {/* App icon circle */}
               <div
+                data-intro-target={['chords', 'drums', 'stage', 'groovex', 'vocalex'][i]}
                 className="studio-shimmer"
-                style={{ width: 44, height: 44, borderRadius: '50%', flexShrink: 0 }}
+                style={{ width: 42, height: 42, borderRadius: 12, flexShrink: 0 }}
               />
               {/* Info text details */}
               <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 6 }}>

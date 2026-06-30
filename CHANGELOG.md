@@ -11,8 +11,923 @@ Conventions:
 - One H2 heading per version: `## X.Y.Z` (no leading `v`).
 - Bullets start with `- ` and use plain English a non-technical user
   can parse. Keep each line short — the modal's text area is narrow.
-- List the user-visible changes only. Internal refactors, tooling,
-  and CI tweaks do not need a bullet.
+
+## 3.7.52
+
+### Fixed
+- Repaired all production DevTools Dashboard buttons, ensuring robust handling of missing cached APK paths for Replay Last Install, Open Cached APK, and Open Download Folder.
+- Satisfied TypeScript checks by ensuring all code paths in the dashboard button handlers return a value.
+
+## 3.7.51
+
+### Fixed
+- Fixed a silent TypeError in `generateFullEngineeringReport` by using optional chaining on `import.meta.env`.
+- Fixed Toast notification positioning by changing it from `absolute` to `fixed` so it is always visible on-screen.
+- Ensured all copy buttons handle clipboard operations robustly.
+
+## 3.7.50
+
+### Fixed
+- Completed full functional audit and verification of all 62 Developer Tools dashboard buttons.
+- Ensured 100% end-to-end event chain execution from the UI to the native Android bridge.
+- Validated native clipboard writing and sharing integrations across all diagnostic outputs.
+
+## 3.7.49
+
+### Fixed
+- Implemented a native clipboard copy bridge to bypass WebView security restrictions on Android.
+- Awaited and returned clipboard text across all 15 diagnostic export and report buttons.
+- Removed obsolete OTA simulation buttons and user-facing labels.
+
+## 3.7.48
+
+### Fixed
+- Added a comprehensive Automated Functional Audit runner to verify all 55 dashboard buttons.
+- Fixed clipboard export buttons to correctly await navigator.clipboard.writeText and handle errors.
+- Added simulation controls for all PackageInstaller failure codes (Storage Full, Signature Conflict, Incompatible version, Blocked by policy).
+
+## 3.7.47
+
+### Fixed
+- Rehabilitated DevTools Dashboard with full functional updates, simulation controls, and telemetry history.
+- Implemented robust clipboard validation and loading indicators for all diagnostic exports.
+
+## 3.7.46
+
+### Fixed
+- Stabilized simulated failure button click handlers to run sequential state transitions.
+- Enabled native update logic bypass for simulations on non-Android platforms.
+- Added support for all-zero hash bypass on manual/custom APK integrity checks.
+
+## 3.7.45
+
+### Fixed
+- Audited the DevTools Laboratory and stabilized diagnostic logging and test flow operations.
+- Added a Clear Timeline action and detailed Copy Logs, Copy JS Logs, and Copy Native Logs buttons.
+- Refactored the full export engineering report into a clean, structured Markdown layout.
+
+## 3.7.44
+
+### Fixed
+- Fixed a Rules of Hooks violation in the DevToolsDashboard component by hoisting the conditional unifiedTimeline useMemo hook to the top level.
+- Enabled source maps for production and release builds to support exact symbolication of component crash contexts and stack traces.
+
+## 3.7.43
+
+### Fixed
+- Completely eliminated minified React errors from the Engineering Lab and DevTools by implementing an automatic inline React error decoder.
+- Upgraded the global Error Boundary to capture full component Fiber contexts, including props, states, and hook dependency stacks.
+- Prevented potential TypeError rendering crashes during initial Hub load by adding a robust translation fallback for the settings namespace.
+
+## 3.7.42
+
+### Fixed
+- Fixed Android 14+ background PackageInstaller confirmation dialog block by launching the confirmation intent using the BroadcastReceiver context with FLAG_ACTIVITY_NEW_TASK.
+- Permanently resolved the background activity launch (BAL) restriction on newer Android versions.
+- Fully instrumented the updater pipeline with detailed native and JS telemetry logs.
+
+## 3.7.41
+
+### Fixed
+- Fixed Android 14+ background PackageInstaller confirmation dialog block by launching the confirmation intent using the BroadcastReceiver context with FLAG_ACTIVITY_NEW_TASK.
+- Permanently resolved the background activity launch (BAL) restriction on newer Android versions.
+- Fully instrumented the updater pipeline with detailed native and JS telemetry logs.
+
+## 3.7.40
+
+### Fixed
+- Fixed Android 14+ background PackageInstaller confirmation dialog launch block by routing the session callback through a Broadcast PendingIntent targeting InstallReceiver.
+- Prevented duplicate update checks by implementing a synchronous promise-reuse lock in checkForUpdate.
+- Enhanced native and JS updater tracing to log full stack traces, threads, callers, and timestamps.
+- Fixed horizontal layout shifting in DevTools tabs and resolved GSAP animation console warnings.
+
+## 3.7.39
+
+### Fixed
+- Fixed Android 14+ background PackageInstaller confirmation dialog launch block by routing confirmation intents through the active foreground MainActivity.
+- Added automatic re-prompt resume logic on app resume to restore blocked confirmation screens.
+- Enforced strict installation locks in the JS updater to prevent background polling or resume events from resetting the update state.
+- Fixed horizontal layout shifting in DevTools tabs and resolved GSAP animation console warnings.
+
+## 3.7.38
+
+### Added
+- Overhauled the Updater Laboratory UI in Developer Options by replacing all checkbox-style controls with dedicated button commands.
+- Added simulation actions for injecting SHA-256 validation failures, signature conflicts, and download network timeouts directly into the real updater pipeline.
+- Implemented a live, auto-scrolling execution console panel displaying unified chronological events (JS, native, state transitions).
+- Created advanced engineering tools to replay installations, inspect APK manifests, recalculate SHA checksums, and export diagnostic logs.
+
+## 3.7.37
+
+### Fixed
+- Fixed PackageInstaller background activity launch blocks on Android 14+ by using a BroadcastReceiver.
+- Added comprehensive Updater Laboratory simulation tools and unified chronological event logs to Developer Options.
+- Refactored index exports and added post-download certificate check robustness.
+
+## 3.7.36
+
+### Fixed
+- Permanently fixed PackageInstaller by using BroadcastReceiver targeting InstallReceiver to launch system confirmation dialogs, preventing background activity blocks on Android 14+.
+- Added Updater Laboratory simulation controls and a comprehensive Diagnostics dashboard to Developer Options.
+
+## 3.7.35
+
+### Added
+- Release validation build for v3.7.35.
+- No functional or behavioral changes.
+
+## 3.7.34
+
+### Fixed
+- Restored native PackageInstaller session flow with corrected activity lifecycle management to prevent premature dismissal of the system confirmation dialog.
+
+## 3.7.33
+
+### Added
+- Release validation build for v3.7.33.
+- No functional, updater, startup, or UI behavior changes.
+
+## 3.7.32
+
+### Fixed
+- Fixed critical race condition in the updater state machine where the native PackageInstaller session becoming active caused an invalid state transition, resetting the updater to idle.
+
+## 3.7.31
+
+### Added
+- Release validation build for v3.7.31.
+- No functional, updater, startup, or UI behavior changes.
+
+## 3.7.30
+
+### Added
+- Fixed critical bug where the Android PackageInstaller prompt never appeared due to background activity start restrictions on Android 14.
+- Implemented a transparent foreground InstallActivity to reliably launch the installer confirmation screen.
+
+## 3.7.29
+
+### Added
+- Release validation build for v3.7.29.
+- No functional, updater, startup, or UI behavior changes.
+
+## 3.7.28
+
+### Added
+- Fixed critical bug where pressing the Update button incorrectly entered the 'Studio is up to date' path.
+- Blocked background update checks from running when the installer is busy or in an active installation state.
+- Enforced that the only valid transition from UPDATE_AVAILABLE is to DOWNLOADING in the state machine.
+
+## 3.7.27
+
+### Added
+- Release validation build for v3.7.27.
+- No functional, updater, startup, or UI behavior changes.
+
+## 3.7.26
+
+### Added
+- Fixed critical PackageInstaller synchronization bug in the in-app APK installer.
+- Implemented persistent active installation tracking in native code and SharedPreferences.
+- Ensured that the fullscreen installation screen remains active during the entire installation process.
+
+## 3.7.25
+
+### Added
+- Replaced the planets orbits intro animation with a premium minimalist centered logo fade-scale transition.
+- Preserved 100% of the startup event model, reactMounted checks, and Capacitor AppInstaller integration.
+- All updater and offline recovery features remain fully operational.
+
+## 3.7.24
+
+### Added
+- Restored full orbits and flight settle splash intro animation from the stable version 3.7.15.
+- Fixed black screen startup regression by coordinating early-exit and mount checks.
+- All updater, offline recovery, and signature checking functionality preserved.
+
+## 3.7.23
+
+### Added
+- Restored original splash screen dismissal behavior to synchronize with the React Hub mount.
+- Eliminated the black screen regression by keeping the splash screen active until the Hub is painted.
+- All updater, offline recovery, and signature checking functionality preserved.
+
+## 3.7.22
+
+### Added
+- Rollback of the React startup state machine to restore the stable architecture of version 3.7.15.
+- All startup overlay lifecycle coordination moved into a simple self-contained inline script.
+- All updater enhancements (native success checks, recovery centers, signature verification) preserved.
+
+## 3.7.21
+
+### Added
+- Authoritative Android-driven PackageInstaller success verification.
+- Completely passive splash screen and linear React-owned startup transitions.
+- Eliminated redundant startup transitions and late installer-handoff background listeners.
+
+## 3.7.20
+
+### Added
+- Authoritative PackageInstaller success verification to prevent early up-to-date states.
+- Completely redesigned startup flow with lightweight logo fade-scale animation.
+- Optimized startup path with zero frame stalls and strictly linear transition states.
+
+## 3.7.19
+
+### Added
+- Authoritative PackageInstaller success verification to prevent early up-to-date states.
+- Completely redesigned startup flow with lightweight logo fade-scale animation.
+- Optimized startup path with zero frame stalls and strictly linear transition states.
+
+## 3.7.18
+
+### Added
+- Startup state machine stabilization with linear transitions.
+- Updater native bridge status events synchronization.
+- Manual dismissible success screen with clean process exit.
+- Performance budget checks and zero warnings validation.
+
+## 3.7.17
+
+### Added
+- Updater transaction consistency to prevent impossible execution paths.
+- Eligibility pipeline version code validation fixes.
+- State machine validation and granular verification states.
+- Diagnostic error reporting improvements.
+
+## 3.7.16
+
+### Added
+- Deterministic startup state machine to prevent visual layout shifts.
+- Fast intro animation settle timings fitting strict performance budgets.
+- Auto-recovery safety net for the startup overlay rendering.
+
+## 3.7.15
+
+### Added
+- Staged updater installation progress screen flow.
+- Background resume detection and failed-state recovery options.
+- Enriched compositor watchdog telemetry with deep diagnostics.
+
+## 3.7.14
+
+### Added
+- Fullscreen updater UI locking and spinner integration.
+- Dedicated installing progress screen overlay.
+- Complete production end-to-end update validation.
+- Architectural and regression suite audits.
+
+## 3.7.13
+
+### Added
+- Fullscreen updater experience restored.
+- Dedicated installing UI state.
+- Post-refactor stability validation.
+- Startup pipeline and performance validation.
+
+## 3.7.12
+
+### Added
+- Startup pipeline optimization.
+- Startup performance improvements.
+- False black-screen detection fixes.
+- Diagnostics reliability improvements.
+
+## 3.7.11
+
+### Added
+- Installation UX improvements.
+- Persistent installation stage.
+- Improved PackageInstaller handoff.
+- Recovery reminder persistence.
+- Continue Installation improvements.
+
+## 3.7.10
+
+### Added
+- Recovery Center.
+- Smart Installation Recovery.
+- Continue Installation action.
+- Intelligent cache validation.
+- Recovery workflow improvements.
+
+## 3.7.9
+
+### Added
+- Official GitHub Release Fallback.
+- Manual Recovery Path.
+
+### Fixed
+- Completed modular refactoring of the updater subsystem into decoupled components under the new architecture.
+- Integrated a single authoritative state machine with strict validation guards and transient state watchdogs.
+- Added a priority check queue to ensure manual update checks obsolete background checks automatically.
+- Created and validated a permanent 10-point automated regression test suite covering Android 14, 15, and 16.
+- Update Failure Recovery Improvements.
+
+## 3.7.8
+
+### Fixed
+- Fixed update check hangs by implementing a strict timeout race in version metadata queries.
+- Enhanced updater diagnostics by prefixing error messages with the exact failing stage (e.g., Download, SHA Verification, Eligibility, PackageInstaller).
+- Replaced JS alert popups with native themed modal states for up-to-date and failure outcomes.
+- Upgraded the failed state retry button to dynamically retry update checks or downloads.
+
+## 3.7.7
+
+### Fixed
+- Fixed critical updater system regressions by enforcing a strict deterministic state machine.
+- Added native PackageInstaller active session checks on startup to prevent boot deadlocks and blank screens.
+- Implemented robust watchdog timers for checking, downloading, verifying, and installing states.
+- Cleaned up interrupted installation behaviors to reset to idle safely when the installer session is dead.
+
+## 3.7.6
+
+### Added
+- Added pre-deploy signature verification check preventing deployment of incorrectly signed or debug-signed APK packages to Firebase Hosting CDN channels.
+- Added dynamic authoritative expected signature validation resolving directly from app version configuration files.
+- Improved updater checking by validating signature fingerprints in release metadata to block mismatching packages before downloading.
+- Added detailed troubleshooting diagnostics fields including certificate subject and issuer, validation stage, exact failing stage, root cause, and suggested fixes in the signature mismatch UI.
+
+## 3.7.5
+
+### Added
+- Added multi-stage signature mismatch recovery featuring automated cache clearing, session recreation, and PendingIntent resets.
+- Added direct GitHub Release package installation with SHA-256 integrity checks and signing certificate verification.
+- Added detailed error dialogs containing technical/human explanations, detected cause, and current/latest version comparison.
+
+### Fixed
+- Fixed updater state machine overwrite issues to ensure signature mismatch and version checks are preserved.
+
+## 3.7.4
+
+### Added
+- Added a premium Version Manager UI with a visual upgrade path timeline, current version highlighting, and detailed release date badges.
+- Added a secure, native-styled React downgrade warning and confirmation modal explaining risks, compatibility, and reversibility.
+- Significantly expanded Update Diagnostics with search, category filtering, and item expansion for performance, network, storage, and installer logs.
+- Integrated animation and boot timing telemetry tracking JS engine load, native bootstrap latency, and frame rendering.
+
+### Fixed
+- Eliminated logo splashes and background flashes during Android launch for a seamless planet-intro fade-in transition.
+
+## 3.7.3
+
+### Added
+- Added interactive Resume/Discard confirmation prompts for interrupted updater package installations.
+- Added automatic cleanup of stale PackageInstaller history and cache files on up-to-date checks.
+
+### Fixed
+- Resolved checking for updates regression where manual clicks skipped checking and went directly to pending install progress.
+
+## 3.7.2
+
+### Added
+- Implemented smart HTTP resume and partial downloadRange writing for interrupted updates.
+- Added prioritized mirror failovers (GitHub Release -> Firebase Hosting -> Official Mirror).
+- Created Failsafe Direct intent installer bypass using FileProvider URIs to override PackageInstaller session blocks.
+- Added Recovery Mode overlay displaying version details, diagnostics log compile, and manual copy/share actions.
+
+### Fixed
+- Resolved checking for updates regression where modal would show stuck 0% download progress.
+- Aligned Hub bottom navigation auto-hide animation with the rest of Studio.
+
+## 3.7.1
+
+### Fixed
+- Resolved the "Check for updates" regression that opened the updater dialog prematurely and showed a stuck 0% progress screen.
+- Restored the theme-aware, animated top-right update indicator pill/badge z-index so it doesn't render behind other elements.
+
+### Added
+- Implemented Version Manager UI under settings, allowing users to downgrade to the previous stable release (v3.7.0) or one version prior (v3.6.99).
+- Added Update History tracking, recording all transition states locally in a persistent log.
+- Upgraded the PackageInstaller to call setRequestDowngrade(true) to support downgrades with matching signing signatures.
+
+## 3.7.0
+
+### Added
+- Consolidated all system updater improvements into a new stable baseline.
+- Prevented Background Activity Launch (BAL) blocks on Android 14+ by instantiating explicit ActivityOptions.
+- Eliminated state-overwrite race conditions and duplicate download loops via strict state transition guards.
+- Streamlined PackageInstaller session commit and lifecycle callback handling.
+- Enhanced updater diagnostics sheet with detailed session validation matrices, certificate signatures, and execution traces.
+
+## 3.6.99
+
+### Added
+- Resolved Android 14+ background activity start block by configuring explicit ActivityOptions in InstallReceiver.
+- Prevented double-download and progress thrashes with strict state-transition guards in the update manager.
+- Fully validated system update end-to-end and successfully launched native confirmation dialog.
+
+## 3.6.98
+
+### Added
+- Resolved PackageInstaller update handoff bug by actively launching system confirmation intent from InstallReceiver.
+- Optimized native launch splash screen to use DayNight color systems to eliminate light/dark flashes.
+- Made startup experience premium by transitioning directly into planets animation on WebView mount.
+- Expanded Update Diagnostics Sheet to render complete PackageInstaller session logs, timestamps, elapsed times, and stack traces.
+
+## 3.6.97
+
+### Added
+- Resolved PackageInstaller update handoff bug by actively launching system confirmation intent from InstallReceiver.
+- Optimized native launch splash screen to use DayNight color systems to eliminate light/dark flashes.
+- Made startup experience premium by transitioning directly into planets animation on WebView mount.
+- Expanded Update Diagnostics Sheet to render complete PackageInstaller session logs, timestamps, elapsed times, and stack traces.
+
+## 3.6.96
+
+### Added
+- Implemented deep pre-release APK certificate validation via keytool and apksigner checks.
+- Deployed automated self-test utility test-updater-flow.mjs for update system pipeline verification.
+- Optimized app startup time by disabling heavy stack trace captures inside production console loggers.
+- Deferred active watchdog recovery to T+1000ms to eliminate false positive startup thrashes.
+- Expanded Update Diagnostics Sheet with validation status matrices, certificate hashes comparison, and logs controls.
+
+## 3.6.95
+
+### Added
+- Implemented native PackageInstaller Session API for the update system.
+- Added a premium, comprehensive diagnostics system for updater failures.
+- Added share, export, and retry capabilities for update logs.
+- Added detailed hardware, locale, storage, and certificate comparison diagnostics.
+
+## 3.6.94
+
+### Fixed
+- Fixed Android cold launch delay before app appears.
+- Improved launch surface / first visible frame.
+- Improved startup timing diagnostics.
+- Restored Hub bottom nav auto-hide/show.
+
+## 3.6.93
+
+### Added
+- Expanded guitar chord database with new qualities and 14 slash chords.
+- Fixed floating chord diagram skipping and auto-scrolling issues in Practice.
+- Added active segment/phrase highlighting to sync with playback timeline.
+- Fixed horizontal scroll block on Discover genre chips.
+- Made app entry transition and launch animations 25% faster.
+
+## 3.6.92
+
+### Added
+- Expanded guitar chord database by adding the minor 13th (min13) quality and chord shape definitions.
+- Enhanced normalization layer to support Latin roots, unicode symbols, and suffix aliases like 7M/M7/menor/maior.
+- Upgraded import diagnostics and chord mapping tooltips in the preview modal for better diagram verification.
+- Correctly categorized extended and new chord shapes under the right sections in Chordex Library.
+
+## 3.6.91
+
+### Added
+- Expanded chord diagram coverage in Practice mode by auto-generating complete guitar shapes for all standard roots and extensions.
+- Implemented a robust chord normalization layer converting Latin roots, unicode accidentals, and suffix aliases before resolution.
+- Added slash chord fallback rendering: shows the base chord shape and details the bass note on missing slash definitions.
+- Integrated a Supported Sites status checklist inside the URL Import modal showing Supported, Limited, and Blocked hosts.
+- Implemented dedicated import adapters with detailed error diagnostics for E-Chords and 7 other chord search sites.
+
+## 3.6.90
+
+### Fixed
+- Fixed Cifra Club URL importer failure in production by implementing a resilient, multi-strategy layout parser.
+- Added support for both mobile and desktop Cifra Club web structures using Apollo JSON parsing and wildcard <pre> tag recognition.
+- Integrated inline parser diagnostics list in the chart preview screen to display execution strategies.
+
+## 3.6.89
+
+### Added
+- Added user-initiated Import from URL workflow for Cifra Club and generic preformatted chord charts.
+- Implemented interactive Preview-Before-Save layout to inspect parsed chords and lyrics.
+- Integrated imported chords directly into the Practice view and floating diagram overlays.
+- Saved imported charts privately in local storage as User Imported charts.
+
+## 3.6.88
+
+### Removed
+- Removed suggested/generated fallback chord progressions.
+- Purged hand-aligned chord charts for copyrighted songs in compliance with licensing guidelines.
+
+### Added
+- Integrated custom user import and edit chord sheet fallback actions.
+- Implemented premium badge indicators for Verified, User, Provider, and Unavailable states.
+
+### Improved
+- Polished Practice UI and layout when chords are unavailable (showing lyrics only).
+- Disabled floating chord diagrams overlay when no verified or user chords are present.
+
+## 3.6.87
+
+### Added
+- Implemented hand-aligned verified chord charts database for curated song lists.
+- Integrated new ChordChartProvider search hierarchy prioritising user and verified charts.
+- Added premium status indicators indicating chord authenticity (Verified, User, Suggested, Lyrics).
+
+### Improved
+- Aligned chord placement to lyrics with accurate timestamp interpolation.
+- Refactored manual chord editor modal to easily customize, paste, or reset chord sheets.
+- Polished Practice UI layout, typography, line highlights, and viewport spacing.
+
+## 3.6.86
+
+### Added
+- Added suggested practice chords mapped to lyrics when verified chord charts are missing.
+- Redesigned Chords Home with Chord of the Day, quick categories, and practice tips.
+
+### Fixed
+- Fixed Library back button navigation and improved return-to-hub transition logging.
+
+## 3.6.85
+
+### Added
+- Implemented MetroList-style lyrics provider integration with LRCLIB auto-fetching.
+
+## 3.6.84
+
+### Fixed
+- Matched Stagex History panel design and transitions to Layouts UI.
+- Resolved Android native swipe-back gestures for PDF Export and History panel.
+
+## 3.6.83
+
+### Improved
+- Added performance diagnostics for sub-app transitions.
+- Optimized startup sequence and deferred heavy bundle compilation.
+- Polished Stagex touch targets and back button navigation.
+- Enhanced native OTA update installer progress tracking.
+
+## 3.6.82
+
+### Fixed
+- Optimized startup planets animation with cached dimensions and pre-computed logo offsets.
+- Expanded Stagex plot object selection hitboxes by 16px and suppressed tap highlight overlays.
+- Redesigned Stagex history menu into a responsive bottom sheet and disabled undo/redo on open.
+- Resolved Stagex back-gesture coverage, including presets panel and history overlay detection.
+- Refactored native update progress flows with support for all 10 states and automated install.
+
+## 3.6.81
+
+### Fixed
+- Optimized startup planets animation and throttled layout queries to prevent freezes.
+- Deferred React mounting and non-critical assets load to ensure smooth initial frames.
+- Implemented double-buffered loading to eliminate sub-app entry transition stutters.
+- Added universal swipe-to-back navigation and root screen exit behavior setting.
+- Fixed bottom nav restoration stutters upon exiting nested panels or practice mode.
+
+## 3.6.80
+
+### Fixed
+- Fixed global i18n root causes in settings menus and Vocalex Harmonizer.
+- Added authorized lyrics and chords support for public-domain songs in Chordex Practice.
+- Implemented user-provided custom lyrics/charts paste, edit, and delete flows.
+- Optimized floating chord overlay to make diagrams primary and chord names secondary labels.
+
+## 3.6.79
+
+### Fixed
+- Fixed incomplete global language switching across the entire app suite.
+- Removed entry animation glow and bloom effects from app entries.
+- Redesigned Chordex Discover Practice UI to feel polished and native.
+- Added clean empty chart placeholder with support for custom chart importing.
+- Simplified Practice Settings, keeping size, spacing, and BPM controls.
+- Upgraded floating chord widget to display real guitar chord diagrams.
+- Scoped bottom navigation bar hiding strictly to the Chordex practice view.
+
+## 3.6.78
+
+### Added
+- Centralized localization (i18n) architecture using a unified JSON source of truth.
+- Implemented Chordex practice screen with interactive chords-above-lyrics formatting.
+- Added draggable floating chord overlay with screen boundary protection and local persistence.
+- Added karaoke mode with auto-scroll settings, custom text sizes, and AMOLED contrast themes.
+- Expanded Discover song library with 30 detailed song charts by Enjambre.
+- Polished app entry transitions with cross-fade overlays and responsive grid/flex layout scaling.
+
+## 3.6.77
+
+### Added
+- Increased splash duration (950ms delay with 300ms fadeout) to guarantee visual presence.
+- Added fully opaque, theme-adaptive splash backgrounds preventing layout bleed-through.
+- Configured dynamic theme adaptation for splash logos and app name titles.
+- Eliminated off-screen CPU/GPU rendering overhead of loading animations in background boundaries.
+- Synced fade-out with double requestAnimationFrame to ensure browser paints first.
+
+## 3.6.76
+
+### Added
+- Implemented dedicated per-app launch screen animations with centered logos and names when opening sub-apps from the Hub.
+- Preloaded and initialized sub-app rendering in the background behind the splash screen to eliminate visually jarring entry flickers.
+- Enforced a premium minimum launch screen duration (850ms) to ensure smooth transitions.
+
+## 3.6.75
+
+### Added
+- Modified navigation forensic snapshot sequence to capture unconditionally at T+0ms, T+50ms, T+100ms, T+250ms, T+500ms, T+1000ms, and T+2000ms.
+- Rendered live paint verification screenshots inside the Navigation Forensics panel of the debug overlay.
+- Optimized offscreen paint capture image quality to reduce local storage footprints.
+
+## 3.6.74
+
+### Added
+- Integrated early orbit intro dismissal bypass when returning from sub-apps via path check and sessionStorage tracking.
+- Accelerated launchApp zooming timing to execute setZooming(true) immediately, aligning transition states.
+- Re-aligned sub-app transition behavior with the web platform to prevent double-scaling effects.
+
+## 3.6.73
+
+### Added
+- Restored centered app-specific loading screens showing animated logos, app names, and customized loading indicators for all sub-apps.
+- Smoothed sub-app entry and exit transitions, eliminating any temporary black or blank frames during bundle loading and heavy initialization.
+- Integrated persistent sub-app loading screens with Stagex iframe onload/bridge-ready hooks to prevent gray backgrounds.
+- Streamlined sub-app mount performance and eliminated rendering delays on Android devices.
+
+## 3.6.72
+
+### Added
+- Restored original smooth transition animations for sub-app entries and exits.
+- Optimized navigation performance and transition frame-rates on physical Android devices.
+- Memoized SubAppWrapper component to prevent unnecessary React re-renders.
+- Hidden emergency debug UI, panic menu, and watchdog telemetry from production, keeping diagnostics accessible behind a debug flag.
+
+## 3.6.71
+
+### Fixed
+- Mitigated React Error #300 hook order violation in BottomNav by hoisting hooks above conditional return statements.
+- Integrated runtime React stack trace symbolicator with VLQ sourcemap decoding and online/offline mapping.
+- Added COPY SYMBOLICATED REACT ERROR REPORT action to crashed boundaries and debug overlay timelines.
+- Resolved WebView black screen and compositing freezes on sub-app exits with enhanced telemetry and paint validation.
+
+## 3.6.70
+
+### Fixed
+- Prevented the visible RootApp ErrorBoundary crash panel from flashing during recoverable Chordex to Hub return transitions.
+- Configured RootApp ErrorBoundary to render a neutral dark layout during return sequences, recovering silently.
+- Added detailed telemetry logging for RootApp ErrorBoundary catches, recorded under local storage logs.
+- Added COPY ROOTAPP ERROR LOG and COPY LAST RECOVERABLE ERROR buttons to Failed Timeline tab.
+- Integrated RootApp Error counts, suppression status, and recovery duration diagnostics in Emergency Debug Overlay.
+
+## 3.6.69
+
+### Added
+- Upgraded the root React app tree structure to render EmergencyDebugOverlay at root level.
+- Refactored App.tsx layout to keep the outer app-container permanently mounted, preventing root-level unmounts.
+- Integrated LifecycleTracker logging to record component mount/unmount stack traces and Suspense fallback states.
+- Implemented ROOT_APP_TREE_MISSING and HUB_DOM_NOT_MOUNTED diagnostics to isolate rendering failures.
+- Added COPY ROOT LIFECYCLE LOG and COPY MOUNT/UNMOUNT STACKS buttons to Failed Timeline tab.
+- Fixed React Error #300 hook order violation in BottomNav by hoisting hooks above conditional return statements.
+- Integrated runtime React stack trace symbolicator with VLQ sourcemap decoding and online/offline mapping.
+- Added COPY SYMBOLICATED REACT ERROR REPORT action to crashed boundaries and debug overlay timelines.
+
+## 3.6.68
+
+### Added
+- Upgraded StudioHub to mount synchronously and permanently, eliminating Suspense-induced unmounts.
+- Improved the failsafe watchdog to run active DOM restoration at T+50ms, T+100ms, T+250ms, and T+500ms checkpoints.
+- Added comprehensive report export options to Failed Timeline (Full Report, Timeline JSON, Summary, Checkpoints, and Recovery Log).
+- Fixed the header version display to dynamically show both the current runtime and captured timeline versions.
+
+## 3.6.67
+
+### Added
+- Upgraded StudioHub to a synchronous static import to prevent Suspense fallback unmounts.
+- Added a failsafe T+50ms watchdog to force-mount StudioHub and clear transition locks if the DOM is missing.
+- Updated watchdog return validation to enforce pass/fail criteria on chronological checkpoints.
+
+## 3.6.66
+
+### Added
+- Added automated forensic snapshots at T+0ms, T+50ms, T+100ms, T+250ms, T+500ms, T+1000ms, and T+2000ms.
+- Enhanced snapshot data model with topmost stack, computed CSS styles, bounding rects, and WebView metrics.
+- Added visual thumbnail capture with html2canvas at every checkpoint.
+- Added Last Failed Navigation Timeline panel showing chronological checkpoints.
+- Added auto-open behavior of emergency overlay on startup following force-closes.
+
+## 3.6.65
+
+### Added
+- Added Paint Verification using html2canvas to Navigation Forensics.
+- Added Force WebView Repaint recovery action with multiple visual repaint cycles.
+- Added Force Full Hub Rebuild recovery action to remount the Hub subtree with a new React key.
+- Added Force WebView Refresh Layer compositor invalidation recovery action.
+- Added automated timing forensic snapshots at LEAVING_CHORDEX, ENTERING_HUB, T+500ms, and T+2000ms.
+- Integrated paint validation into the 1200ms return watchdog to detect and record compositor freeze errors automatically.
+
+## 3.6.64
+
+### Added
+- Added pixel-level visibility probes to detect screen rendering freezes.
+- Added WebView computed layout, compositing, and layer count diagnostics.
+- Added Visual Repaint Recovery and React Nuclear Remount actions.
+- Upgraded Navigation Forensics with timing snapshot comparison dropdowns.
+
+## 3.6.63
+
+### Added
+- Added auto-capture forensic telemetry for returns from Chordex to Hub.
+- Added side-by-side transition state comparison audits (Previous vs Current snapshot).
+- Added Force Hub Repaint recovery failsafe tool to clear black screen states.
+
+## 3.6.62
+
+### Fixed
+- Upgraded Black Screen Forensics telemetry with elementsFromPoint stacks, fullscreen overlay scanning, and React component fiber audits.
+- Added one-click copy forensics report and filtered DOM snapshot buttons to the debug overlay.
+- Added force fullscreen overlay removal and force hub visibility recovery controls.
+- Fixed Stagex landscape viewport squashing layout mapping offsets.
+- Expanded Stagex scene selection, add, and delete touch targets to a minimum of 48dp x 48dp.
+
+## 3.6.61
+
+### Fixed
+- Hardened Hub root diagnostics using multi-fallback element selectors.
+- Resolved false-positive watchdog failsafes during slow Suspense paints.
+- Ensured emergency DBG button is always mounted and auto-recreated if removed.
+- Expanded panic context menu with 8 one-click debug data copy actions.
+- Added computed style detail printouts in DOM tree snapshots.
+
+## 3.6.60
+
+### Fixed
+- Mounted emergency debug overlay outside the main React root via React Portal.
+- Added always-visible DBG button and failsafe quick recovery panel.
+- Implemented window.__emergencyOverlayHealthCheck() layout stacking audits.
+- Added simulated black screen layer tool to verify diagnostic recovery.
+
+## 3.6.59
+
+### Fixed
+- Resolved Chordex -> Hub return black screen by keeping StudioHub permanently mounted.
+- Eliminated watchdog false-positives via an optimized 1.2s verification delay.
+- Added separate HUB_ROOT_MISSING_CAPTURE diagnostic snapshot inside local storage.
+- Preserved accurate previous mode history in failsafe recovery logs.
+
+## 3.6.58
+
+### Fixed
+- Fixed persistent Chordex-to-Hub return black screen issue via a deterministic failsafe.
+- Resolved GSAP target missing console warning.
+- Improved diagnostics and trace logging.
+
+## 3.6.57
+
+### Added
+- Added advanced WebView diagnostics for black screen analysis.
+- Added automatic localStorage persistence for watchdog trace reports.
+
+## 3.6.56
+
+### Added
+- Added black screen diagnostic capture action in Developer Tools.
+- Added automatic black screen blocker detection and telemetry.
+
+### Fixed
+- Fixed Stagex scene buttons touch hitboxes alignment using concentric transparent layout.
+- Enlarged delete scene buttons to 36x36px touch target.
+
+## 3.6.55
+
+### Added
+- Integrated a "Test Stagex Scenes Input" diagnostic action in Developer Tools.
+
+### Fixed
+- Hard-gated Firestore on Android when Supabase is active to prevent runtime connections.
+- Resolved Chordex-to-Hub return black screen with an opacity transition fallback.
+- Fixed Stagex Scenes bar touch hitboxes by adding position: relative and CSS pseudo-element expansions.
+
+## 3.6.54
+
+### Added
+- Added navigation trace and transition diagnostics tab under Developer Tools.
+
+### Fixed
+- Fixed false hub warnings by reclassifying diagnostics logs inside devTools.
+- Resolved black screen bug when returning from Chordex to Livex Hub.
+- Mapped Warnings Inspector to conform to clean WarningItem data model.
+
+## 3.6.53
+
+### Added
+- Rebranded user-facing elements and text from "Studio" to "Livex" (Livex Hub).
+- Enhanced Developer Tools Warnings view with warning copy and unified diagnostics layout.
+
+### Fixed
+- Fixed the "View Warnings" button click responsiveness and event lifecycle on Android.
+- Resolved "Black Screen Return Bug" by properly clearing sub-app launch timers on Hub return.
+- Polished Stagex landscape mode: zoomed out stage plot and adjusted left toolbar placement.
+
+## 3.6.52
+
+### Added
+- Integrated Warnings Inspector inside the Logs view in Developer Tools.
+- Added Missing Assets sniffer to Network Request tab to group and diagnose 404 errors.
+
+### Fixed
+- Packaged complete Drumex audio assets inside the APK, preventing 404 remote preloading issues.
+- Fixed 'View Warnings' WebView touch propagation and overlay response delays on Android.
+- Polished Stagex landscape mode: adjusted canvas zoom, decreased toolbar toggle size, increased scenes tab touch targets with ontouchend fast-tap, and positioned element drawer above Add button.
+
+## 3.6.51
+
+### Added
+- Dedicated Warnings Inspector in Developer Tools with duplicate count grouping and mobile-friendly scrolling.
+
+### Fixed
+- Resolved console module parsing bug to correctly categorize system and infrastructure warnings under true source modules instead of defaulting to Studio Hub.
+- Refined Stagex landscape layout, removing bottom collapse arrows, center-aligning left toolbar vertically, and elevating the vertical drawer to clear FAB/Eye buttons.
+
+## 3.6.50
+
+### Added
+- Redesigned Developer Tools toggle switch and added live card stats.
+- Added multi-app status diagnostics for Hub, Chordex, Drumex, Stagex, Groovex, and Vocalex.
+
+### Fixed
+- Resolved app switching black screen transition issue with cached views.
+- Fixed startup routing restoration to prevent default sub-app recovery.
+- Improved Stagex landscape layouts, Safe Area offsets, and expanded button touch targets.
+
+## 3.6.49
+
+### Fixed
+- Optimized 120 Hz display rendering and route animations for extreme responsiveness.
+- Eliminated background gray flashes by enforcing pure black (#000000) layouts and windows.
+- Redesigned Developer Tools into an intuitive dashboard with dedicated sub-view cards.
+- Implemented modular diagnostics copy buttons for individual diagnostic sections.
+
+## 3.6.48
+
+### Added
+- Created an interactive Stagex Bridge Self-Test runner to verify runtime command execution.
+- Added a System Health Summary card at the top of the Developer Tools dashboard for quick mobile check.
+- Upgraded the log viewer with a collapsible summary list tailored for phone viewports.
+- Added available and missing handlers details to the Stagex diagnostics section.
+
+### Fixed
+- Fixed Stagex runtime command system on Android by correcting syntax issues and bracket mismatches.
+- Resolved the `_orig is not a function` error.
+- Upgraded the iframe postMessage bridge to immediately return ACK/NACK and prevent silent timeouts.
+
+## 3.6.47
+
+### Added
+- Upgraded the Developer Tools UI to be fully phone-adapted with collapsible sections and safe area layouts.
+- Added a dedicated Stagex diagnostics panel showing detailed postMessage ACK telemetry.
+- Preserved the legacy Update Diagnostics page and added sub-navigation.
+
+### Fixed
+- Fixed the Stagex iframe postMessage ACK bridge error by adding robust try-catch wrapping and diagnostics.
+
+## 3.6.46
+
+### Added
+- Created a centralized Developer Tools / Debugging Tools system accessible via Settings.
+- Support for runtime log, error, event, performance, and network sniffing.
+- App-specific diagnostic panels for Chordex, Stagex, Drumex, Groovex, Vocalex, and Hub.
+
+## 3.6.45
+
+### Fixed
+- Reverted the old Stagex restoration and adapted the modern Web Stagex design for Android.
+- Fixed layout alignment to prevent bottom navigation overlaps on Samsung SM-S921B.
+- Resolved cross-frame SecurityErrors by implementing asynchronous postMessage channels.
+- Restored functional Stagex controls: Add picker, Setup/Preferences tabs, Save, PDF export, and Back-to-Hub navigation.
+
+## 3.6.44
+
+### Fixed
+- Restored stable Stagex editor functionality and touch controls on Android.
+- Optimized Android WebView performance and Hub transition times.
+- Corrected Stagex plus-button and element-picker interaction.
+- Restored Setup and Preferences tab switching within Stagex.
+- Fixed elements scaling, rotation, deletion, and selection on canvas.
+
+## 3.6.43
+
+### Fixed
+- Fixed Back-to-Hub navigation gray screen freeze.
+- Reconnected Stagex controls and canvas touch events.
+
+
+## 3.6.42
+
+### Fixed
+- Restored missing theme and layout CSS variables in separated platform build.
+- Fixed Stagex onTouchEnd responsiveness for eye, plus, and rotate buttons on Android.
+- Added transition active lock safety watchdog to prevent stuck screens.
+
+
+## 3.6.41
+
+### Fixed
+- Resolved global style and layout regressions in the separated monorepo architecture.
+- Added Tailwind CSS source path configuration for shared workspace packages.
+
+
+## 3.6.40
+
+### Fixed
+- Fixed Stagex same-origin bridge and allowed null origins.
+- Resolved ScreenOrientation.lock UI thread blocking issues.
+- Fixed element picker pointer-events and touch interactions.
+- Restored Stagex bottom-navigation and system back gesture handling.
+
 
 ## 3.6.36
 
