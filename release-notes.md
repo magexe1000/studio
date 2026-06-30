@@ -1,4 +1,4 @@
 ### Fixed
-- Audited the DevTools Laboratory and stabilized diagnostic logging and test flow operations.
-- Added a Clear Timeline action and detailed Copy Logs, Copy JS Logs, and Copy Native Logs buttons.
-- Refactored the full export engineering report into a clean, structured Markdown layout.
+- Stabilized simulated failure button click handlers to run sequential state transitions.
+- Enabled native update logic bypass for simulations on non-Android platforms.
+- Added support for all-zero hash bypass on manual/custom APK integrity checks.

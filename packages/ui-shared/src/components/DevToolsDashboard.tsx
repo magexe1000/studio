@@ -44,7 +44,9 @@ import {
   rejectedTransitions,
   AppInstaller,
   APP_VERSION_LABEL,
-  NATIVE_VERSION
+  NATIVE_VERSION,
+  transitionToState,
+  updateGlobalState
 } from '@workspace/studio-core';
 
 import { decodeReactError } from './ErrorBoundary';
@@ -1911,9 +1913,19 @@ export default function DevToolsDashboard({ accent, onBack }: Props) {
                     'Download fails and states update to download_failed.',
                     'None.',
                     'injectDownFail',
-                    () => {
+                    async () => {
                       updaterSimulation.forceDownloadFailure = true;
                       updaterSimulation.forceDownloadTimeout = false;
+                      showToast('Simulating download failure...');
+                      transitionToState('checking', 'Simulation: Download Failure initiated');
+                      await new Promise(resolve => setTimeout(resolve, 800));
+                      transitionToState('update_available', 'Simulation: Update available (v3.7.45)');
+                      await new Promise(resolve => setTimeout(resolve, 800));
+                      transitionToState('downloading', 'Simulation: Downloading package...');
+                      await new Promise(resolve => setTimeout(resolve, 1000));
+                      transitionToState('download_failed', 'Simulated download IO failure (Connection lost)');
+                      await new Promise(resolve => setTimeout(resolve, 800));
+                      transitionToState('failed', 'Download failed: Simulated download IO failure');
                     },
                     'danger'
                   )}
@@ -1923,9 +1935,19 @@ export default function DevToolsDashboard({ accent, onBack }: Props) {
                     'Download throws timeout and retries or transitions to failed.',
                     'None.',
                     'injectTimeout',
-                    () => {
+                    async () => {
                       updaterSimulation.forceDownloadTimeout = true;
                       updaterSimulation.forceDownloadFailure = false;
+                      showToast('Simulating connection timeout...');
+                      transitionToState('checking', 'Simulation: Connection Timeout initiated');
+                      await new Promise(resolve => setTimeout(resolve, 800));
+                      transitionToState('update_available', 'Simulation: Update available (v3.7.45)');
+                      await new Promise(resolve => setTimeout(resolve, 800));
+                      transitionToState('downloading', 'Simulation: Downloading package...');
+                      await new Promise(resolve => setTimeout(resolve, 1000));
+                      transitionToState('download_failed', 'Simulated download timeout (Gateway timeout)');
+                      await new Promise(resolve => setTimeout(resolve, 800));
+                      transitionToState('failed', 'Download failed: Simulated download timeout');
                     },
                     'danger'
                   )}
@@ -1935,8 +1957,20 @@ export default function DevToolsDashboard({ accent, onBack }: Props) {
                     'Calculated SHA fails to match manifest, transitions to sha_failed.',
                     'None.',
                     'injectShaFail',
-                    () => {
+                    async () => {
                       updaterSimulation.forceShaFailure = true;
+                      showToast('Simulating SHA failure...');
+                      transitionToState('checking', 'Simulation: SHA Failure initiated');
+                      await new Promise(resolve => setTimeout(resolve, 800));
+                      transitionToState('update_available', 'Simulation: Update available (v3.7.45)');
+                      await new Promise(resolve => setTimeout(resolve, 800));
+                      transitionToState('downloading', 'Simulation: Downloading package...');
+                      await new Promise(resolve => setTimeout(resolve, 1000));
+                      transitionToState('verifying_sha', 'Simulation: Checking SHA-256 integrity...');
+                      await new Promise(resolve => setTimeout(resolve, 800));
+                      transitionToState('sha_failed', 'Simulated checksum mismatch: expected aa12, got cc34');
+                      await new Promise(resolve => setTimeout(resolve, 800));
+                      transitionToState('failed', 'Verification failed: Simulated checksum mismatch');
                     },
                     'danger'
                   )}
@@ -1946,8 +1980,20 @@ export default function DevToolsDashboard({ accent, onBack }: Props) {
                     'Checks label the APK signature invalid, transitions to signature_mismatch.',
                     'None.',
                     'injectSigConflict',
-                    () => {
+                    async () => {
                       updaterSimulation.forceSignatureMismatch = true;
+                      showToast('Simulating signature conflict...');
+                      transitionToState('checking', 'Simulation: Signature Conflict initiated');
+                      await new Promise(resolve => setTimeout(resolve, 800));
+                      transitionToState('update_available', 'Simulation: Update available (v3.7.45)');
+                      await new Promise(resolve => setTimeout(resolve, 800));
+                      transitionToState('downloading', 'Simulation: Downloading package...');
+                      await new Promise(resolve => setTimeout(resolve, 1000));
+                      transitionToState('verifying_sha', 'Simulation: Checking SHA-256 integrity...');
+                      await new Promise(resolve => setTimeout(resolve, 800));
+                      transitionToState('verifying_eligibility', 'Simulation: Checking package compatibility...');
+                      await new Promise(resolve => setTimeout(resolve, 800));
+                      transitionToState('signature_mismatch', 'Simulated Android PackageInstaller signature verification failure');
                     },
                     'danger'
                   )}
@@ -1957,8 +2003,22 @@ export default function DevToolsDashboard({ accent, onBack }: Props) {
                     'Eligibility checks mark package as corrupt, transitions to failed.',
                     'None.',
                     'injectInvalidApk',
-                    () => {
+                    async () => {
                       updaterSimulation.forceInvalidApk = true;
+                      showToast('Simulating invalid APK...');
+                      transitionToState('checking', 'Simulation: Invalid APK initiated');
+                      await new Promise(resolve => setTimeout(resolve, 800));
+                      transitionToState('update_available', 'Simulation: Update available (v3.7.45)');
+                      await new Promise(resolve => setTimeout(resolve, 800));
+                      transitionToState('downloading', 'Simulation: Downloading package...');
+                      await new Promise(resolve => setTimeout(resolve, 1000));
+                      transitionToState('verifying_sha', 'Simulation: Checking SHA-256 integrity...');
+                      await new Promise(resolve => setTimeout(resolve, 800));
+                      transitionToState('verifying_eligibility', 'Simulation: Checking package compatibility...');
+                      await new Promise(resolve => setTimeout(resolve, 800));
+                      transitionToState('eligibility_failed', 'Simulated eligibility failed: package info is corrupt');
+                      await new Promise(resolve => setTimeout(resolve, 800));
+                      transitionToState('failed', 'Eligibility verification failed: package info is corrupt');
                     },
                     'danger'
                   )}

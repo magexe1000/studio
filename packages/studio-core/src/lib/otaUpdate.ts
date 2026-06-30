@@ -633,6 +633,25 @@ export async function checkAndCleanCache(): Promise<boolean> {
   return valid;
 }
 
+function isSimulationActive(): boolean {
+  return !!(
+    updaterSimulation.simulateDownload ||
+    updaterSimulation.forceInstallSuccess ||
+    updaterSimulation.forceInstallFailure ||
+    updaterSimulation.forceUserCancel ||
+    updaterSimulation.forcePendingUserAction ||
+    updaterSimulation.forceUpdateAvailable ||
+    updaterSimulation.forceNoUpdate ||
+    updaterSimulation.forceDowngrade ||
+    updaterSimulation.forceMetadataFailure ||
+    updaterSimulation.forceDownloadFailure ||
+    updaterSimulation.forceDownloadTimeout ||
+    updaterSimulation.forceShaFailure ||
+    updaterSimulation.forceSignatureMismatch ||
+    updaterSimulation.forceInvalidApk
+  );
+}
+
 export function downloadUpdate(trigger?: string): Promise<void> {
   const callId = nextJsCallId();
   logDetailedJsTrace('downloadUpdate', 'otaUpdate.ts', 634, `Entering downloadUpdate Call #${callId}`, { prevState: globalOtaState.updateState, reason: `Trigger: ${trigger}` });
@@ -651,7 +670,7 @@ export function downloadUpdate(trigger?: string): Promise<void> {
   const apkUrl = globalOtaState.updateAvailable ? (globalOtaState as any).apkUrl : null;
   const isDowngrade = globalOtaState.updateAvailable && compareSemver(ver, APP_VERSION) < 0;
 
-  if (!isNative() || !isAppInstallerAvailable()) {
+  if ((!isNative() || !isAppInstallerAvailable()) && !isSimulationActive()) {
     console.log('[OTA] Non-Android / Web platform detected. Falling back to web-reload update path.');
     (async () => {
       try {
@@ -718,7 +737,8 @@ export function downloadUpdate(trigger?: string): Promise<void> {
     
     try {
       let filePath: string;
-      if (updaterSimulation.simulateDownload) {
+      const shouldSimulate = !isNative() || !isAppInstallerAvailable() || updaterSimulation.simulateDownload;
+      if (shouldSimulate) {
         addJsLog('[Simulate Download] Starting simulated download loop...');
         for (let i = 1; i <= 10; i++) {
           if (updaterSimulation.injectNetworkTimeout) {
@@ -774,7 +794,7 @@ export function downloadUpdate(trigger?: string): Promise<void> {
         throw new Error('Simulated SHA-256 checksum mismatch');
       }
 
-      if (updaterSimulation.simulateDownload) {
+      if (shouldSimulate) {
         if (updaterSimulation.injectChecksumFailure) {
           addJsLog('[Simulate Download] Injecting checksum failure!');
           transitionToState('sha_failed', 'Simulated checksum failure');
@@ -887,7 +907,7 @@ export function applyUpdate(trigger?: string): Promise<void> {
     return Promise.resolve();
   }
 
-  if (!isNative() || !isAppInstallerAvailable()) {
+  if ((!isNative() || !isAppInstallerAvailable()) && !isSimulationActive()) {
     (async () => {
       try {
         const { Filesystem } = await import('@capacitor/filesystem');
@@ -975,8 +995,10 @@ export function applyUpdate(trigger?: string): Promise<void> {
             }
           };
 
-          nativeListener = await (AppInstaller as any).addListener('onInstallStatusChanged', onStatusEvent);
           setSimulateStatusCallback(onStatusEvent);
+          if (isNative() && isAppInstallerAvailable()) {
+            nativeListener = await (AppInstaller as any).addListener('onInstallStatusChanged', onStatusEvent);
+          }
         } catch (e) {
           console.warn('Failed to register native status listener:', e);
         }
@@ -985,11 +1007,14 @@ export function applyUpdate(trigger?: string): Promise<void> {
       otaDebugLogs.installError += `\nAPK is eligible. Launching APK installer intent for file: ${filePath}`;
       updateGlobalState({ statusText: 'Waiting for Android...' });
 
-      if (updaterSimulation.simulateDownload || 
+      const shouldSimulateInstall = !isNative() || !isAppInstallerAvailable() ||
+          updaterSimulation.simulateDownload || 
           updaterSimulation.forceInstallSuccess || 
           updaterSimulation.forceInstallFailure || 
           updaterSimulation.forceUserCancel || 
-          updaterSimulation.forcePendingUserAction) {
+          updaterSimulation.forcePendingUserAction;
+
+      if (shouldSimulateInstall) {
         addJsLog('[Simulate Install] Simulation active. Skipping native install trigger.');
         void logProgressStage('Simulation committed', 'Simulation mode active');
         

@@ -12,6 +12,13 @@ Conventions:
 - Bullets start with `- ` and use plain English a non-technical user
   can parse. Keep each line short — the modal's text area is narrow.
 
+## 3.7.46
+
+### Fixed
+- Stabilized simulated failure button click handlers to run sequential state transitions.
+- Enabled native update logic bypass for simulations on non-Android platforms.
+- Added support for all-zero hash bypass on manual/custom APK integrity checks.
+
 ## 3.7.45
 
 ### Fixed

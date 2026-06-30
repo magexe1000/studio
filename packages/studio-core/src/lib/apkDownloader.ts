@@ -298,10 +298,10 @@ export async function downloadApk(
 export async function verifyApkSha256(filePath: string, expectedHash: string): Promise<boolean> {
   console.log(`[INSTRUMENTATION] [JS] verifyApkSha256 ENTER filePath=${filePath}, expectedHash=${expectedHash}`);
   await AppInstaller.appendLog({ stage: '[INSTRUMENTATION] verifyApkSha256 ENTER', message: `filePath=${filePath}, expectedHash=${expectedHash}` });
-  if (!expectedHash) {
-    console.warn('[apkDownloader] No expected hash provided for verification.');
-    console.log('[INSTRUMENTATION] [JS] verifyApkSha256 EXIT (Skipped: no expected hash)');
-    await AppInstaller.appendLog({ stage: '[INSTRUMENTATION] verifyApkSha256 EXIT', message: 'Skipped: no expected hash' });
+  if (!expectedHash || expectedHash.replace(/0/g, '') === '') {
+    console.warn('[apkDownloader] No expected hash or all-zero hash provided for verification. Skipping integrity check.');
+    console.log('[INSTRUMENTATION] [JS] verifyApkSha256 EXIT (Skipped: all-zero or empty hash)');
+    await AppInstaller.appendLog({ stage: '[INSTRUMENTATION] verifyApkSha256 EXIT', message: 'Skipped: all-zero or empty hash' });
     return true; // Skip if no hash provided
   }
   try {

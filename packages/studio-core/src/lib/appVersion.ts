@@ -25,7 +25,7 @@
 import { useMemo } from 'react';
 import { Capacitor } from '@capacitor/core';
 
-export const NATIVE_VERSION = '3.7.45';
+export const NATIVE_VERSION = '3.7.46';
 export const WEB_VERSION = '4.0.0';
 export const APP_VERSION = Capacitor.isNativePlatform() ? NATIVE_VERSION : WEB_VERSION;
 
@@ -37,7 +37,7 @@ export const APP_VERSION_LABEL = `${APP_VERSION_TAG} ${APP_VERSION}`;
 
 /** Release date for the CURRENT bundle, shown alongside the version pill
  *  in the changelog sheet. ISO-8601 (`YYYY-MM-DD`). */
-export const APP_VERSION_DATE = '2026-06-30'; // 3.7.45
+export const APP_VERSION_DATE = '2026-06-30'; // 3.7.46
 // Note: keep ISO-8601. Bump together with APP_VERSION on each release.
 
 export const APP_COMMIT_SHA = import.meta.env.VITE_GIT_COMMIT_SHA || 'efd2b1a3';
@@ -60,9 +60,9 @@ export const APP_CHANGELOG_SECTIONS: ChangelogSection[] = [
   {
     heading: "Fixed",
     items: [
-      "Audited the DevTools Laboratory and stabilized diagnostic logging and test flow operations.",
-      "Added a Clear Timeline action and detailed Copy Logs, Copy JS Logs, and Copy Native Logs buttons.",
-      "Refactored the full export engineering report into a clean, structured Markdown layout.",
+      "Stabilized simulated failure button click handlers to run sequential state transitions.",
+      "Enabled native update logic bypass for simulations on non-Android platforms.",
+      "Added support for all-zero hash bypass on manual/custom APK integrity checks.",
     ],
   },
 ];
@@ -72,8 +72,8 @@ export const APP_CHANGELOG_SECTIONS_NATIVE: ChangelogSection[] = [
   {
     heading: "What's New",
     items: [
-      "Fixed PackageInstaller by launching confirmation dialogs from the BroadcastReceiver context, resolving the Android 14+ background activity block.",
-      "Added rich JS and native telemetry tracing across the entire update pipeline.",
+      "Stabilized simulated failure button click handlers to run sequential state transitions.",
+      "Enabled native update logic bypass for simulations on non-Android platforms.",
     ],
   },
 ];
