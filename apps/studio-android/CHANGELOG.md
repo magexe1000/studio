@@ -12,6 +12,13 @@ Conventions:
 - Bullets start with `- ` and use plain English a non-technical user
   can parse. Keep each line short — the modal's text area is narrow.
 
+## 3.7.51
+
+### Fixed
+- Fixed a silent TypeError in `generateFullEngineeringReport` by using optional chaining on `import.meta.env`.
+- Fixed Toast notification positioning by changing it from `absolute` to `fixed` so it is always visible on-screen.
+- Ensured all copy buttons handle clipboard operations robustly.
+
 ## 3.7.50
 
 ### Fixed

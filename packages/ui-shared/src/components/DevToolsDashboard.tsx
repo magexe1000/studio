@@ -1525,8 +1525,8 @@ export default function DevToolsDashboard({ accent, onBack }: Props) {
       r += `App Version:            ${APP_VERSION_LABEL}\n`;
       r += `Native Version:         ${NATIVE_VERSION}\n`;
       r += `VersionCode:            ${devInfo.versionCode ?? 'N/A'}\n`;
-      r += `Vite Git Commit:        ${import.meta.env.VITE_GIT_COMMIT_SHA || 'unknown'}\n`;
-      r += `Build Timestamp:        ${import.meta.env.VITE_BUILD_TIMESTAMP || 'unknown'}\n`;
+      r += `Vite Git Commit:        ${import.meta.env?.VITE_GIT_COMMIT_SHA || 'unknown'}\n`;
+      r += `Build Timestamp:        ${import.meta.env?.VITE_BUILD_TIMESTAMP || 'unknown'}\n`;
       r += `Update Type/Channel:    ${otaDebugLogs.updateType || 'N/A'}\n\n`;
       
       r += `==================================================\n`;
@@ -4982,7 +4982,7 @@ export default function DevToolsDashboard({ accent, onBack }: Props) {
       {/* TOAST NOTIFICATION */}
       {toastMsg && (
         <div style={{
-          position: 'absolute',
+          position: 'fixed',
           bottom: 24,
           left: '50%',
           transform: 'translateX(-50%)',
