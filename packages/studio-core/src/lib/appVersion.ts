@@ -25,7 +25,7 @@
 import { useMemo } from 'react';
 import { Capacitor } from '@capacitor/core';
 
-export const NATIVE_VERSION = '3.7.44';
+export const NATIVE_VERSION = '3.7.45';
 export const WEB_VERSION = '4.0.0';
 export const APP_VERSION = Capacitor.isNativePlatform() ? NATIVE_VERSION : WEB_VERSION;
 
@@ -37,11 +37,11 @@ export const APP_VERSION_LABEL = `${APP_VERSION_TAG} ${APP_VERSION}`;
 
 /** Release date for the CURRENT bundle, shown alongside the version pill
  *  in the changelog sheet. ISO-8601 (`YYYY-MM-DD`). */
-export const APP_VERSION_DATE = '2026-06-29'; // 3.7.44
+export const APP_VERSION_DATE = '2026-06-30'; // 3.7.45
 // Note: keep ISO-8601. Bump together with APP_VERSION on each release.
 
 export const APP_COMMIT_SHA = import.meta.env.VITE_GIT_COMMIT_SHA || 'efd2b1a3';
-export const APP_BUILD_TIMESTAMP = import.meta.env.VITE_BUILD_TIMESTAMP || '6/29/2026, 6:00:00 PM CST';
+export const APP_BUILD_TIMESTAMP = import.meta.env.VITE_BUILD_TIMESTAMP || '6/30/2026, 12:00:00 AM CST';
 
 /**
  * Changelog for the CURRENT release — shown to the user the first
@@ -60,8 +60,9 @@ export const APP_CHANGELOG_SECTIONS: ChangelogSection[] = [
   {
     heading: "Fixed",
     items: [
-      "Fixed a Rules of Hooks violation in the DevToolsDashboard component by hoisting the conditional unifiedTimeline useMemo hook to the top level.",
-      "Enabled source maps for production and release builds to support exact symbolication of component crash contexts and stack traces.",
+      "Audited the DevTools Laboratory and stabilized diagnostic logging and test flow operations.",
+      "Added a Clear Timeline action and detailed Copy Logs, Copy JS Logs, and Copy Native Logs buttons.",
+      "Refactored the full export engineering report into a clean, structured Markdown layout.",
     ],
   },
 ];

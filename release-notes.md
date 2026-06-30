@@ -1,3 +1,4 @@
 ### Fixed
-- Fixed a Rules of Hooks violation in the DevToolsDashboard component by hoisting the conditional unifiedTimeline useMemo hook to the top level.
-- Enabled source maps for production and release builds to support exact symbolication of component crash contexts and stack traces.
+- Audited the DevTools Laboratory and stabilized diagnostic logging and test flow operations.
+- Added a Clear Timeline action and detailed Copy Logs, Copy JS Logs, and Copy Native Logs buttons.
+- Refactored the full export engineering report into a clean, structured Markdown layout.
