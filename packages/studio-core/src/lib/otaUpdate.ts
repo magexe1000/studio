@@ -740,7 +740,7 @@ export interface CentralizedOtaState {
   packageName: string | null;
 }
 
-export let globalOtaState: CentralizedOtaState = {
+let globalOtaState: CentralizedOtaState = {
   updateState: 'idle',
   updateAvailable: false,
   remoteVersion: null,
