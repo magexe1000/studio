@@ -6,8 +6,6 @@ export interface UpdaterSimulation {
   forceDowngrade: boolean;
   forceMandatoryUpdate: boolean;
   forceOptionalUpdate: boolean;
-  forceApkUpdate: boolean;
-  forceOtaUpdate: boolean;
   
   forceSignatureMismatch: boolean;
   forceShaFailure: boolean;
@@ -38,8 +36,6 @@ export const updaterSimulation: UpdaterSimulation = {
   forceDowngrade: false,
   forceMandatoryUpdate: false,
   forceOptionalUpdate: false,
-  forceApkUpdate: false,
-  forceOtaUpdate: false,
   
   forceSignatureMismatch: false,
   forceShaFailure: false,

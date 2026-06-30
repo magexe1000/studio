@@ -224,7 +224,7 @@ jobs:
           VERSION=$(node -e "const fs = require('fs'); const src = fs.readFileSync('packages/studio-core/src/lib/appVersion.ts', 'utf8'); const m = src.match(/export\s+const\s+NATIVE_VERSION\s*=\s*['\"]([^'\"]+)['\"]/); console.log(m ? m[1] : 'unknown');")
           TAG="v$VERSION"
           if ! gh release view "$TAG" > /dev/null 2>&1; then
-            gh release create "$TAG" --title "Studio v$VERSION" --notes "${{ github.event.inputs.note }}" --prerelease
+            gh release create "$TAG" --title "$TAG" --notes "${{ github.event.inputs.note }}" --prerelease
           else
             gh release edit "$TAG" --notes "${{ github.event.inputs.note }}"
           fi

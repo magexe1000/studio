@@ -1,9 +1,9 @@
 # scripts/publish-release.ps1
 # Automate version bump, git push, GitHub workflow trigger, monitoring, and post-deploy verification.
 
-$VersionName = "3.7.48"
-$VersionCode = "176"
-$ReleaseNote = "Release v3.7.48: Automated Functional Audit and Clipboard Fixes"
+$VersionName = "3.7.49"
+$VersionCode = "177"
+$ReleaseNote = "v3.7.49"
 
 # Get current branch name
 $BranchName = (git symbolic-ref --short HEAD).Trim()
@@ -13,7 +13,18 @@ Write-Host "1. Bumping Android version to $VersionName ($VersionCode)..."
 pnpm version:android --name $VersionName --code $VersionCode
 
 Write-Host "2. Committing and pushing version changes to Git..."
-git add .
+git add packages/studio-core/src/lib/appVersion.ts
+git add packages/studio-core/src/lib/apkDownloader.ts
+git add packages/studio-core/src/lib/otaUpdate.ts
+git add packages/studio-core/src/lib/updater/updaterSimulation.ts
+git add packages/ui-shared/src/components/DevToolsDashboard.tsx
+git add apps/studio-android/android/app/src/main/java/com/chordex/app/AppInstallerPlugin.java
+git add apps/studio-android/package.json
+git add apps/studio-android/android/app/build.gradle
+git add CHANGELOG.md
+git add apps/studio-android/CHANGELOG.md
+git add scripts/publish-release.ps1
+git add .github/workflows/release.yml
 if (git diff --staged --quiet) {
     Write-Host "No changes to commit."
 } else {

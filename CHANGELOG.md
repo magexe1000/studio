@@ -12,6 +12,13 @@ Conventions:
 - Bullets start with `- ` and use plain English a non-technical user
   can parse. Keep each line short — the modal's text area is narrow.
 
+## 3.7.49
+
+### Fixed
+- Implemented a native clipboard copy bridge to bypass WebView security restrictions on Android.
+- Awaited and returned clipboard text across all 15 diagnostic export and report buttons.
+- Removed obsolete OTA simulation buttons and user-facing labels.
+
 ## 3.7.48
 
 ### Fixed

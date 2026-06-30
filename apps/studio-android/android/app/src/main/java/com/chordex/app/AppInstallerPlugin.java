@@ -306,6 +306,37 @@ public class AppInstallerPlugin extends Plugin {
     }
 
     @PluginMethod
+    public void copyToClipboard(PluginCall call) {
+        String text = call.getString("text");
+        if (text == null) {
+            call.reject("text is required");
+            return;
+        }
+        try {
+            android.app.Activity activity = getActivity();
+            if (activity != null) {
+                activity.runOnUiThread(new Runnable() {
+                    @Override
+                    public void run() {
+                        try {
+                            android.content.ClipboardManager clipboard = (android.content.ClipboardManager) getContext().getSystemService(Context.CLIPBOARD_SERVICE);
+                            android.content.ClipData clip = android.content.ClipData.newPlainText("Studio Diagnostics", text);
+                            clipboard.setPrimaryClip(clip);
+                            call.resolve();
+                        } catch (Exception e) {
+                            call.reject("Clipboard write failed: " + e.getMessage(), e);
+                        }
+                    }
+                });
+            } else {
+                call.reject("Activity is null");
+            }
+        } catch (Exception e) {
+            call.reject("Failed to copy to clipboard: " + e.getMessage(), e);
+        }
+    }
+
+    @PluginMethod
     public void getDeviceInfo(PluginCall call) {
         try {
             Context context = getContext();

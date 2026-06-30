@@ -84,6 +84,7 @@ export interface AppInstallerPlugin {
     activeSessionsCount: number;
     hasInstallPermission: boolean;
   }>;
+  copyToClipboard(options: { text: string }): Promise<void>;
 }
 
 export const AppInstaller = registerPlugin<AppInstallerPlugin>('AppInstaller');

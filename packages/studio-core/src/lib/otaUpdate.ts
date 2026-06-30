@@ -405,15 +405,6 @@ export function checkForUpdate(isManual = false, trigger = 'unknown', reason = '
       }
 
       if (remote) {
-        if (updaterSimulation.forceApkUpdate) {
-          addJsLog('Simulation override: Forcing APK update type');
-          remote.updateType = 'apk';
-          remote.apkUrl = remote.apkUrl || 'https://cdn.example.com/studio-3.7.99.apk';
-        } else if (updaterSimulation.forceOtaUpdate) {
-          addJsLog('Simulation override: Forcing OTA update type');
-          remote.updateType = 'ota';
-          remote.downloadUrl = remote.downloadUrl || 'https://cdn.example.com/studio-3.7.99.zip';
-        }
         
         if (updaterSimulation.forceMandatoryUpdate) {
           addJsLog('Simulation override: Forcing Mandatory Update');

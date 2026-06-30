@@ -805,7 +805,11 @@ export default function DevToolsDashboard({ accent, onBack }: Props) {
   const renderUpdaterView = () => {
     const handleCopyText = async (text: string, label: string) => {
       try {
-        await navigator.clipboard.writeText(text);
+        if (isNative()) {
+          await AppInstaller.copyToClipboard({ text });
+        } else {
+          await navigator.clipboard.writeText(text);
+        }
         showToast(`${label} copied to clipboard!`);
       } catch (err: any) {
         showToast(`Copy failed: ${err?.message || String(err)}`);
@@ -1020,7 +1024,7 @@ export default function DevToolsDashboard({ accent, onBack }: Props) {
           addResult('Clear All Simulations', 'failed', 'Failed to clear simulation flags.');
         }
 
-        const testCopyButton = async (name: string, actionFn: () => Promise<void> | void, expectedHeader: string) => {
+        const testCopyButton = async (name: string, actionFn: () => Promise<any> | any, expectedHeader: string) => {
           lastWrittenClipboardText = '';
           try {
             await actionFn();
@@ -1484,26 +1488,30 @@ export default function DevToolsDashboard({ accent, onBack }: Props) {
 
 
 
-    const exportTimelineMarkdown = () => {
+    const exportTimelineMarkdown = async () => {
       let md = `# Unified Chronological Timeline\n\n| Type | Timestamp | Event / Details |\n|---|---|---|\n`;
       unifiedTimeline.forEach(e => {
         const timeStr = new Date(e.time).toLocaleTimeString();
         md += `| **${e.type.toUpperCase()}** | ${timeStr} | ${e.text} ${e.details ? `(${e.details})` : ''} |\n`;
       });
-      handleCopyText(md, 'Timeline Markdown');
+      await handleCopyText(md, 'Timeline Markdown');
+      return md;
     };
 
-    const exportCompleteTimelineJSON = () => {
-      handleCopyText(JSON.stringify(unifiedTimeline, null, 2), 'Unified Timeline JSON');
+    const exportCompleteTimelineJSON = async () => {
+      const json = JSON.stringify(unifiedTimeline, null, 2);
+      await handleCopyText(json, 'Unified Timeline JSON');
+      return json;
     };
 
-    const exportCompleteTimelineText = () => {
+    const exportCompleteTimelineText = async () => {
       let txt = `=== UNIFIED CHRONOLOGICAL TIMELINE ===\n`;
       unifiedTimeline.forEach(e => {
         const timeStr = new Date(e.time).toLocaleTimeString();
         txt += `[${timeStr}] [${e.type.toUpperCase()}] ${e.text} ${e.details ? ` - ${e.details}` : ''}\n`;
       });
-      handleCopyText(txt, 'Timeline Plain Text');
+      await handleCopyText(txt, 'Timeline Plain Text');
+      return txt;
     };
     const generateFullEngineeringReport = () => {
       const diag = getAutoDiagnostics();
@@ -1767,12 +1775,14 @@ export default function DevToolsDashboard({ accent, onBack }: Props) {
 
     const exportEngineeringReport = async () => {
       const report = generateFullEngineeringReport();
-      handleCopyText(report, 'Complete Engineering Report');
+      await handleCopyText(report, 'Complete Engineering Report');
+      return report;
     };
 
     const exportEverything = async () => {
       const report = generateFullEngineeringReport();
-      handleCopyText(report, 'All Diagnostics Combined');
+      await handleCopyText(report, 'All Diagnostics Combined');
+      return report;
     };
 
     const diag = getAutoDiagnostics();
@@ -2165,32 +2175,7 @@ export default function DevToolsDashboard({ accent, onBack }: Props) {
                     },
                     'secondary'
                   )}
-                  {renderLabButtonBlock(
-                    'Force APK Update',
-                    'Forces update package type to system APK.',
-                    'Triggers PackageInstaller sessions instead of ZIP files.',
-                    'None.',
-                    'forceApk',
-                    async () => {
-                      updaterSimulation.forceApkUpdate = true;
-                      updaterSimulation.forceOtaUpdate = false;
-                      await checkForUpdate(true, 'dev_tools', 'Simulation: Force APK Update');
-                    },
-                    'secondary'
-                  )}
-                  {renderLabButtonBlock(
-                    'Force OTA Update',
-                    'Forces update package type to Javascript bundle ZIP.',
-                    'State machine targets internal JS hot-reload file writing.',
-                    'None.',
-                    'forceOta',
-                    async () => {
-                      updaterSimulation.forceOtaUpdate = true;
-                      updaterSimulation.forceApkUpdate = false;
-                      await checkForUpdate(true, 'dev_tools', 'Simulation: Force OTA Update');
-                    },
-                    'secondary'
-                  )}
+
                   {renderLabButtonBlock(
                     'Force Pending User Action',
                     'Mocks status callback for user confirmation prompt.',
@@ -2499,8 +2484,6 @@ export default function DevToolsDashboard({ accent, onBack }: Props) {
                       updaterSimulation.forceDowngrade = false;
                       updaterSimulation.forceMandatoryUpdate = false;
                       updaterSimulation.forceOptionalUpdate = false;
-                      updaterSimulation.forceApkUpdate = false;
-                      updaterSimulation.forceOtaUpdate = false;
                       updaterSimulation.forceMetadataFailure = false;
                       updaterSimulation.forceShaFailure = false;
                       updaterSimulation.forceSignatureMismatch = false;
@@ -4476,7 +4459,7 @@ export default function DevToolsDashboard({ accent, onBack }: Props) {
       {
         id: 'updater',
         title: 'Updater',
-        description: 'Inspect update, OTA and APK diagnostics.',
+        description: 'Inspect update and native APK diagnostics.',
         action: () => setSubView('updater')
       },
       {
@@ -4874,7 +4857,7 @@ export default function DevToolsDashboard({ accent, onBack }: Props) {
               </span>
             </div>
             <div>
-              <span style={{ color: 'rgba(255,255,255,0.4)', display: 'block', marginBottom: 2 }}>OTA Status</span>
+              <span style={{ color: 'rgba(255,255,255,0.4)', display: 'block', marginBottom: 2 }}>Update Status</span>
               <span style={{ fontWeight: 800, color: '#679cff', textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap', display: 'block' }}>
                 {otaStatus}
               </span>
