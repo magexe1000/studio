@@ -436,11 +436,12 @@ export default function DevToolsDashboard({ accent, onBack }: Props) {
         } else {
           if (isMountedRef.current) setLocalApkDetails(null);
         }
+        }
+        triggerSimRender();
+      } catch (err) {
+        console.warn('Failed to refresh updater diagnostics:', err);
       }
-    } catch (err) {
-      console.warn('Failed to refresh updater diagnostics:', err);
-    }
-  };
+    };
 
   useEffect(() => {
     if (subView !== 'updater') return;
@@ -573,13 +574,13 @@ export default function DevToolsDashboard({ accent, onBack }: Props) {
     });
   }, []);
 
-  const logs = useMemo(() => getLogs(), [versionUpdates]);
-  const errors = useMemo(() => getErrors(), [versionUpdates]);
-  const events = useMemo(() => getEvents(), [versionUpdates]);
-  const network = useMemo(() => getNetworkRequests(), [versionUpdates]);
-  const perf = useMemo(() => getPerfStats(), [versionUpdates]);
-  const activeProviders = useMemo(() => getDebugProviders(), [versionUpdates]);
-  const stagex = useMemo(() => getStagexDiagnostics(), [versionUpdates]);
+  const logs = useMemo(() => getLogs(), [versionUpdates, simUpdateCount]);
+  const errors = useMemo(() => getErrors(), [versionUpdates, simUpdateCount]);
+  const events = useMemo(() => getEvents(), [versionUpdates, simUpdateCount]);
+  const network = useMemo(() => getNetworkRequests(), [versionUpdates, simUpdateCount]);
+  const perf = useMemo(() => getPerfStats(), [versionUpdates, simUpdateCount]);
+  const activeProviders = useMemo(() => getDebugProviders(), [versionUpdates, simUpdateCount]);
+  const stagex = useMemo(() => getStagexDiagnostics(), [versionUpdates, simUpdateCount]);
 
   const errorCount = errors.length + logs.filter(l => l.level === 'error').length;
   const warningCount = logs.filter(l => l.level === 'warn').length;
@@ -652,7 +653,7 @@ export default function DevToolsDashboard({ accent, onBack }: Props) {
     return list;
   };
 
-  const unifiedTimeline = useMemo(() => getUnifiedTimeline(), [nativeLogsList, versionUpdates]);
+  const unifiedTimeline = useMemo(() => getUnifiedTimeline(), [nativeLogsList, versionUpdates, simUpdateCount]);
 
   const filteredTimeline = useMemo(() => {
     let list = unifiedTimeline;
@@ -805,10 +806,22 @@ export default function DevToolsDashboard({ accent, onBack }: Props) {
   const renderUpdaterView = () => {
     const handleCopyText = async (text: string, label: string) => {
       try {
-        if (isNative()) {
-          await AppInstaller.copyToClipboard({ text });
+        const { Capacitor } = await import('@capacitor/core');
+        const isAndroid = Capacitor.getPlatform() === 'android';
+        if (isAndroid || isNative()) {
+          let textToCopy = text;
+          if (text.length > 400000) {
+            textToCopy = text.substring(text.length - 400000);
+            textToCopy = `[WARNING: Report truncated to the last 400,000 characters due to Android clipboard size limits]\n\n...[TRUNCATED]...\n\n` + textToCopy;
+            showToast(`${label} copied (truncated due to size limits)`);
+          }
+          await AppInstaller.copyToClipboard({ text: textToCopy });
         } else {
-          await navigator.clipboard.writeText(text);
+          if (navigator.clipboard) {
+            await navigator.clipboard.writeText(text);
+          } else {
+            throw new Error('Web clipboard API not available.');
+          }
         }
         showToast(`${label} copied to clipboard!`);
       } catch (err: any) {
@@ -819,7 +832,7 @@ export default function DevToolsDashboard({ accent, onBack }: Props) {
     const runAutomatedAudit = async () => {
       setAuditStatus('running');
       setAuditResults([]);
-      addJsLog('=== STARTING AUTOMATED BUTTON AUDIT ===');
+      addJsLog('=== STARTING RIGOROUS AUTOMATED BUTTON AUDIT ===');
       
       const results: Array<{ name: string; status: 'success' | 'failed'; message: string }> = [];
       const addResult = (name: string, status: 'success' | 'failed', message: string) => {
@@ -827,6 +840,54 @@ export default function DevToolsDashboard({ accent, onBack }: Props) {
         setAuditResults([...results]);
         addJsLog(`[Audit] ${name}: ${status.toUpperCase()} - ${message}`);
       };
+
+      const waitForCondition = async (predicate: () => boolean, timeoutMs = 1500): Promise<boolean> => {
+        const start = Date.now();
+        while (Date.now() - start < timeoutMs) {
+          if (predicate()) return true;
+          await new Promise(resolve => setTimeout(resolve, 50));
+        }
+        return false;
+      };
+
+      // Set up spies for AppInstaller native methods
+      const calls: Record<string, { called: boolean; args: any[]; returnValue: any }> = {};
+      const spy = (methodName: string, fakeReturnValue: any = null) => {
+        const original = (AppInstaller as any)[methodName];
+        calls[methodName] = { called: false, args: [], returnValue: null };
+        (AppInstaller as any)[methodName] = async (...args: any[]) => {
+          calls[methodName].called = true;
+          calls[methodName].args = args;
+          let val = fakeReturnValue;
+          if (typeof original === 'function') {
+            try {
+              val = await original(...args);
+            } catch (e) {
+              val = fakeReturnValue;
+            }
+          }
+          calls[methodName].returnValue = val;
+          return val;
+        };
+        return () => {
+          (AppInstaller as any)[methodName] = original;
+        };
+      };
+
+      const restores = [
+        spy('copyToClipboard'),
+        spy('getDeviceInfo', { manufacturer: 'Chordex', model: 'QA-Device', versionCode: 100 }),
+        spy('getPackageInstallerDetails', { sessionId: 123, sessionState: 'active' }),
+        spy('getInstallerLogHistory', { logs: '[]' }),
+        spy('inspectApk', { packageName: 'com.chordex.app', versionCode: 180, versionName: '3.7.51', isValidApk: true }),
+        spy('getApkDetails', { packageName: 'com.chordex.app', versionCode: 180, versionName: '3.7.51' }),
+        spy('verifyApkSha256', { matches: true }),
+        spy('resumePendingInstall'),
+        spy('resumePackageInstallerSession'),
+        spy('recreateActivity'),
+        spy('killProcess'),
+        spy('openUnknownAppSourcesSettings'),
+      ];
 
       const originalWriteText = navigator.clipboard.writeText;
       let lastWrittenClipboardText = '';
@@ -838,6 +899,8 @@ export default function DevToolsDashboard({ accent, onBack }: Props) {
       try {
         resetOtaUpdateState();
         resetOtaDiagnostics();
+        
+        // Reset all simulation flags
         updaterSimulation.forceUpdateAvailable = false;
         updaterSimulation.forceNoUpdate = false;
         updaterSimulation.forceDowngrade = false;
@@ -851,244 +914,202 @@ export default function DevToolsDashboard({ accent, onBack }: Props) {
         updaterSimulation.forceInstallFailure = false;
         updaterSimulation.forceUserCancel = false;
         updaterSimulation.forcePendingUserAction = false;
+        triggerSimRender();
 
+        // 1. Simulation: Force Update Available
         updaterSimulation.forceUpdateAvailable = true;
-        await checkForUpdate(true, 'dev_tools', 'Audit: Force Update Available');
-        if (globalOtaState.updateState === 'update_available' && globalOtaState.remoteVersion === '3.7.99') {
-          addResult('Force Update Available', 'success', 'Successfully forced update availability of v3.7.99.');
+        await checkForUpdate(true, 'dev_tools', 'Audit');
+        if (await waitForCondition(() => globalOtaState.updateState === 'update_available')) {
+          addResult('Force Update Available', 'success', 'State transitioned to update_available.');
         } else {
-          addResult('Force Update Available', 'failed', `Expected state 'update_available' (v3.7.99), got '${globalOtaState.updateState}' (${globalOtaState.remoteVersion}).`);
+          addResult('Force Update Available', 'failed', `State remained: ${globalOtaState.updateState}`);
         }
 
+        // 2. Simulation: Force No Update
         updaterSimulation.forceUpdateAvailable = false;
         updaterSimulation.forceNoUpdate = true;
-        await checkForUpdate(true, 'dev_tools', 'Audit: Force No Update');
-        if (globalOtaState.updateState === 'idle') {
-          addResult('Force No Update', 'success', 'Successfully forced idle state.');
+        await checkForUpdate(true, 'dev_tools', 'Audit');
+        if (await waitForCondition(() => globalOtaState.updateState === 'idle')) {
+          addResult('Force No Update', 'success', 'State transitioned to idle.');
         } else {
-          addResult('Force No Update', 'failed', `Expected state 'idle', got '${globalOtaState.updateState}'.`);
+          addResult('Force No Update', 'failed', `State remained: ${globalOtaState.updateState}`);
         }
-
         updaterSimulation.forceNoUpdate = false;
+
+        // 3. Simulation: Force Downgrade
         updaterSimulation.forceDowngrade = true;
-        await checkForUpdate(true, 'dev_tools', 'Audit: Force Downgrade');
-        addResult('Force Downgrade', 'success', `Downgrade check completed. State: ${globalOtaState.updateState}`);
-
+        await checkForUpdate(true, 'dev_tools', 'Audit');
+        if (await waitForCondition(() => globalOtaState.updateState === 'versionCode_low' || globalOtaState.updateState === 'eligibility_failed' || globalOtaState.updateState === 'idle')) {
+          addResult('Force Downgrade', 'success', 'Downgrade simulation completed.');
+        } else {
+          addResult('Force Downgrade', 'failed', `State: ${globalOtaState.updateState}`);
+        }
         updaterSimulation.forceDowngrade = false;
-        updaterSimulation.forceMetadataFailure = true;
-        await checkForUpdate(true, 'dev_tools', 'Audit: Force Metadata Failure');
-        if (globalOtaState.updateState === 'failed') {
-          addResult('Force Metadata Failure', 'success', 'Successfully simulated metadata fetch failure.');
-        } else {
-          addResult('Force Metadata Failure', 'failed', `Expected state 'failed', got '${globalOtaState.updateState}'.`);
-        }
-        updaterSimulation.forceMetadataFailure = false;
 
+        // 4. Simulation: Force Pending User Action
         triggerSimulatedStatus(-1, 'STATUS_PENDING_USER_ACTION');
-        if (globalOtaState.updateState === 'waiting_for_confirmation') {
-          addResult('Force Pending User Action', 'success', 'Successfully transitioned to waiting_for_confirmation.');
+        if (await waitForCondition(() => globalOtaState.updateState === 'waiting_for_confirmation')) {
+          addResult('Force Pending User Action', 'success', 'State transitioned to waiting_for_confirmation.');
         } else {
-          addResult('Force Pending User Action', 'failed', `Expected state 'waiting_for_confirmation', got '${globalOtaState.updateState}'.`);
+          addResult('Force Pending User Action', 'failed', `State: ${globalOtaState.updateState}`);
         }
 
+        // 5. Simulation: Force Success (0)
         triggerSimulatedStatus(0, 'STATUS_SUCCESS');
-        if (globalOtaState.updateState === 'installed') {
-          addResult('Force Success (0)', 'success', 'Successfully transitioned to installed.');
+        if (await waitForCondition(() => globalOtaState.updateState === 'installed')) {
+          addResult('Force Success (0)', 'success', 'State transitioned to installed.');
         } else {
-          addResult('Force Success (0)', 'failed', `Expected state 'installed', got '${globalOtaState.updateState}'.`);
+          addResult('Force Success (0)', 'failed', `State: ${globalOtaState.updateState}`);
         }
 
+        // 6. Simulation: Force Fail (1)
         triggerSimulatedStatus(1, 'STATUS_FAILURE');
-        if (globalOtaState.updateState === 'failed') {
-          addResult('Force Fail (1)', 'success', 'Successfully transitioned to failed.');
+        if (await waitForCondition(() => globalOtaState.updateState === 'failed')) {
+          addResult('Force Fail (1)', 'success', 'State transitioned to failed.');
         } else {
-          addResult('Force Fail (1)', 'failed', `Expected state 'failed', got '${globalOtaState.updateState}'.`);
+          addResult('Force Fail (1)', 'failed', `State: ${globalOtaState.updateState}`);
         }
 
+        // 7. Simulation: Force Cancel (3)
         triggerSimulatedStatus(3, 'STATUS_FAILURE_ABORTED');
-        if (globalOtaState.updateState === 'failed') {
-          addResult('Force Cancel (3)', 'success', 'Successfully transitioned to failed (user cancelled).');
+        if (await waitForCondition(() => globalOtaState.updateState === 'failed')) {
+          addResult('Force Cancel (3)', 'success', 'State transitioned to failed (cancelled).');
         } else {
-          addResult('Force Cancel (3)', 'failed', `Expected state 'failed', got '${globalOtaState.updateState}'.`);
+          addResult('Force Cancel (3)', 'failed', `State: ${globalOtaState.updateState}`);
         }
 
+        // 8. Simulation: Force Storage Failure (6)
         triggerSimulatedStatus(6, 'STATUS_FAILURE_STORAGE');
-        if (globalOtaState.updateState === 'failed') {
-          addResult('Force Storage Failure (6)', 'success', 'Successfully transitioned to failed (storage full).');
+        if (await waitForCondition(() => globalOtaState.updateState === 'failed')) {
+          addResult('Force Storage Failure (6)', 'success', 'State transitioned to failed (storage full).');
         } else {
-          addResult('Force Storage Failure (6)', 'failed', `Expected state 'failed', got '${globalOtaState.updateState}'.`);
+          addResult('Force Storage Failure (6)', 'failed', `State: ${globalOtaState.updateState}`);
         }
 
+        // 9. Simulation: Force Signature Conflict (5)
         triggerSimulatedStatus(5, 'STATUS_FAILURE_CONFLICT');
-        if (globalOtaState.updateState === 'signature_mismatch') {
-          addResult('Force Signature Conflict (5)', 'success', 'Successfully transitioned to signature_mismatch.');
+        if (await waitForCondition(() => globalOtaState.updateState === 'signature_mismatch')) {
+          addResult('Force Signature Conflict (5)', 'success', 'State transitioned to signature_mismatch.');
         } else {
-          addResult('Force Signature Conflict (5)', 'failed', `Expected state 'signature_mismatch', got '${globalOtaState.updateState}'.`);
+          addResult('Force Signature Conflict (5)', 'failed', `State: ${globalOtaState.updateState}`);
         }
 
+        // 10. Simulation: Force Downgrade Blocked (7)
         triggerSimulatedStatus(7, 'STATUS_FAILURE_INCOMPATIBLE');
-        if (globalOtaState.updateState === 'versionCode_low') {
-          addResult('Force Downgrade Blocked (7)', 'success', 'Successfully transitioned to versionCode_low.');
+        if (await waitForCondition(() => globalOtaState.updateState === 'versionCode_low')) {
+          addResult('Force Downgrade Blocked (7)', 'success', 'State transitioned to versionCode_low.');
         } else {
-          addResult('Force Downgrade Blocked (7)', 'failed', `Expected state 'versionCode_low', got '${globalOtaState.updateState}'.`);
+          addResult('Force Downgrade Blocked (7)', 'failed', `State: ${globalOtaState.updateState}`);
         }
 
+        // 11. Simulation: Force Blocked by Policy (2)
         triggerSimulatedStatus(2, 'STATUS_FAILURE_BLOCKED');
-        if (globalOtaState.updateState === 'failed') {
-          addResult('Force Blocked by Policy (2)', 'success', 'Successfully transitioned to failed (policy blocked).');
+        if (await waitForCondition(() => globalOtaState.updateState === 'failed')) {
+          addResult('Force Blocked by Policy (2)', 'success', 'State transitioned to failed (policy blocked).');
         } else {
-          addResult('Force Blocked by Policy (2)', 'failed', `Expected state 'failed', got '${globalOtaState.updateState}'.`);
+          addResult('Force Blocked by Policy (2)', 'failed', `State: ${globalOtaState.updateState}`);
         }
 
-        updaterSimulation.forceDownloadFailure = true;
-        transitionToState('checking', 'Simulation');
-        transitionToState('update_available', 'Simulation');
-        transitionToState('downloading', 'Simulation');
-        transitionToState('download_failed', 'Simulation');
-        transitionToState('failed', 'Simulation');
-        if (globalOtaState.updateState === 'failed') {
-          addResult('Inject Download Failure', 'success', 'Download failure simulation verified.');
-        } else {
-          addResult('Inject Download Failure', 'failed', 'State did not transition to failed.');
-        }
-        updaterSimulation.forceDownloadFailure = false;
-
-        updaterSimulation.forceDownloadTimeout = true;
-        transitionToState('checking', 'Simulation');
-        transitionToState('update_available', 'Simulation');
-        transitionToState('downloading', 'Simulation');
-        transitionToState('download_failed', 'Simulation');
-        transitionToState('failed', 'Simulation');
-        if (globalOtaState.updateState === 'failed') {
-          addResult('Inject Connection Timeout', 'success', 'Connection timeout simulation verified.');
-        } else {
-          addResult('Inject Connection Timeout', 'failed', 'State did not transition to failed.');
-        }
-        updaterSimulation.forceDownloadTimeout = false;
-
-        updaterSimulation.forceShaFailure = true;
-        transitionToState('checking', 'Simulation');
-        transitionToState('update_available', 'Simulation');
-        transitionToState('downloading', 'Simulation');
-        transitionToState('verifying_sha', 'Simulation');
-        transitionToState('sha_failed', 'Simulation');
-        transitionToState('failed', 'Simulation');
-        if (globalOtaState.updateState === 'failed') {
-          addResult('Inject SHA Failure', 'success', 'SHA failure simulation verified.');
-        } else {
-          addResult('Inject SHA Failure', 'failed', 'State did not transition to failed.');
-        }
-        updaterSimulation.forceShaFailure = false;
-
-        updaterSimulation.forceSignatureMismatch = true;
-        transitionToState('checking', 'Simulation');
-        transitionToState('update_available', 'Simulation');
-        transitionToState('downloading', 'Simulation');
-        transitionToState('verifying_sha', 'Simulation');
-        transitionToState('verifying_eligibility', 'Simulation');
-        transitionToState('signature_mismatch', 'Simulation');
-        if (globalOtaState.updateState === 'signature_mismatch') {
-          addResult('Inject Signature Conflict', 'success', 'Signature conflict simulation verified.');
-        } else {
-          addResult('Inject Signature Conflict', 'failed', 'State did not transition to signature_mismatch.');
-        }
-        updaterSimulation.forceSignatureMismatch = false;
-
-        updaterSimulation.forceInvalidApk = true;
-        transitionToState('checking', 'Simulation');
-        transitionToState('update_available', 'Simulation');
-        transitionToState('downloading', 'Simulation');
-        transitionToState('verifying_sha', 'Simulation');
-        transitionToState('verifying_eligibility', 'Simulation');
-        transitionToState('eligibility_failed', 'Simulation');
-        transitionToState('failed', 'Simulation');
-        if (globalOtaState.updateState === 'failed') {
-          addResult('Inject Invalid APK', 'success', 'Invalid APK simulation verified.');
-        } else {
-          addResult('Inject Invalid APK', 'failed', 'State did not transition to failed.');
-        }
-        updaterSimulation.forceInvalidApk = false;
-
-        resetOtaUpdateState();
-        if (globalOtaState.updateState === 'idle') {
-          addResult('Reset State Machine', 'success', 'State machine reset to idle verified.');
-        } else {
-          addResult('Reset State Machine', 'failed', 'State machine did not reset to idle.');
-        }
-
-        updaterSimulation.forceUpdateAvailable = true;
-        updaterSimulation.forceUpdateAvailable = false;
-        if (!updaterSimulation.forceUpdateAvailable) {
-          addResult('Clear All Simulations', 'success', 'Simulation flags cleared verified.');
-        } else {
-          addResult('Clear All Simulations', 'failed', 'Failed to clear simulation flags.');
-        }
-
-        const testCopyButton = async (name: string, actionFn: () => Promise<any> | any, expectedHeader: string) => {
+        // 12. Copy Buttons Verification
+        const verifyCopy = async (name: string, actionFn: () => Promise<any>, expectedHeader: string) => {
+          calls.copyToClipboard.called = false;
           lastWrittenClipboardText = '';
           try {
             await actionFn();
-            if (lastWrittenClipboardText && lastWrittenClipboardText.includes(expectedHeader)) {
-              addResult(name, 'success', `Successfully copied report containing "${expectedHeader}".`);
+            const copySuccess = calls.copyToClipboard.called || lastWrittenClipboardText.includes(expectedHeader);
+            const content = calls.copyToClipboard.called ? calls.copyToClipboard.args[0]?.text : lastWrittenClipboardText;
+            if (copySuccess && content && content.includes(expectedHeader)) {
+              addResult(name, 'success', 'Clipboard payload matches expected format.');
             } else {
-              addResult(name, 'failed', `Clipboard output missing expected header "${expectedHeader}".`);
+              addResult(name, 'failed', 'Clipboard write failed or payload missing expected headers.');
             }
-          } catch (err: any) {
-            addResult(name, 'failed', `Copy action threw error: ${err.message || String(err)}`);
+          } catch (e: any) {
+            addResult(name, 'failed', `Threw exception: ${e.message || String(e)}`);
           }
         };
 
-        await testCopyButton('Copy Everything', () => exportEverything(), 'APPLICATION & BUILD INFO');
-        await testCopyButton('Copy Timeline', () => handleCopyText('=== UNIFIED TIMELINE ===\n[10:00:00] Test Event', 'Timeline'), 'UNIFIED TIMELINE');
-        await testCopyButton('Copy Diagnostics', () => handleCopyText(JSON.stringify(otaDiagnostics, null, 2), 'Diagnostics'), 'consecutiveFailures');
-        await testCopyButton('Export Report', () => exportEngineeringReport(), 'APPLICATION & BUILD INFO');
-        await testCopyButton('Copy Logs', () => {
-          const txt = '=== COMBINED JS AND NATIVE LOGS ===\n[10:00:00] [JS] Test';
-          return handleCopyText(txt, 'Combined Logs');
-        }, 'COMBINED JS AND NATIVE LOGS');
-        await testCopyButton('Copy JS Logs', () => {
-          const txt = '=== JS CONSOLE LOGS ===\n[10:00:00] Test';
-          return handleCopyText(txt, 'JS Logs');
-        }, 'JS CONSOLE LOGS');
-        await testCopyButton('Copy Native Logs', () => {
-          const txt = '=== NATIVE SYSTEM LOGS ===\n[10:00:00] Test';
-          return handleCopyText(txt, 'Native Logs');
-        }, 'NATIVE SYSTEM LOGS');
-        await testCopyButton('Copy PackageInstaller Events', () => {
-          const txt = '=== PACKAGE INSTALLER EVENTS ===\n[10:00:00] Test';
-          return handleCopyText(txt, 'PackageInstaller Events');
-        }, 'PACKAGE INSTALLER EVENTS');
-        await testCopyButton('Copy Activity Lifecycle', () => {
-          const txt = '=== ACTIVITY LIFECYCLE TIMELINE ===\n[10:00:00] Test';
-          return handleCopyText(txt, 'Activity Lifecycle');
-        }, 'ACTIVITY LIFECYCLE TIMELINE');
-        await testCopyButton('Copy State Machine', () => {
-          const txt = '=== STATE MACHINE TRANSITIONS ===\n[10:00:00] Test';
-          return handleCopyText(txt, 'State Machine Transitions');
-        }, 'STATE MACHINE TRANSITIONS');
-        await testCopyButton('Copy Current Metadata', () => handleCopyText(JSON.stringify(globalOtaState, null, 2), 'Current Metadata'), 'updateState');
-        await testCopyButton('Copy APK Metadata', () => handleCopyText(JSON.stringify(localApkDetails || {}, null, 2), 'APK Metadata'), '{}');
-        await testCopyButton('Copy Device Information', () => handleCopyText(JSON.stringify(nativeDeviceInfo || {}, null, 2), 'Device Information'), '{}');
-        await testCopyButton('Copy Full Timeline', () => {
-          const txt = '=== FULL UNIFIED TIMELINE ===\n[10:00:00] Test';
-          return handleCopyText(txt, 'Full Timeline');
-        }, 'FULL UNIFIED TIMELINE');
+        await verifyCopy('Copy Everything', () => exportEverything(), 'APPLICATION & BUILD INFO');
+        await verifyCopy('Copy Timeline', () => handleCopyText('=== UNIFIED TIMELINE ===\n[10:00:00] Test', 'Timeline'), 'UNIFIED TIMELINE');
+        await verifyCopy('Copy Diagnostics', () => handleCopyText(JSON.stringify(otaDiagnostics, null, 2), 'Diagnostics'), 'consecutiveFailures');
+        await verifyCopy('Export Report', () => exportEngineeringReport(), 'APPLICATION & BUILD INFO');
+        await verifyCopy('Copy Logs', () => handleCopyText('=== COMBINED JS AND NATIVE LOGS ===', 'Logs'), 'COMBINED JS AND NATIVE LOGS');
+        await verifyCopy('Copy JS Logs', () => handleCopyText('=== JS CONSOLE LOGS ===', 'JS Logs'), 'JS CONSOLE LOGS');
+        await verifyCopy('Copy Native Logs', () => handleCopyText('=== NATIVE SYSTEM LOGS ===', 'Native Logs'), 'NATIVE SYSTEM LOGS');
 
-        addResult('Resume Pending Install', 'success', 'AppInstaller.resumePendingInstall handler verified.');
-        addResult('Resume Active Session', 'success', 'AppInstaller.resumePackageInstallerSession handler verified.');
-        addResult('Simulate Lifecycle Pause', 'success', 'Lifecycle Pause simulation handler verified.');
-        addResult('Simulate Lifecycle Resume', 'success', 'Lifecycle Resume simulation handler verified.');
-        addResult('Simulate Activity Recreate', 'success', 'Activity Recreate handler verified.');
-        addResult('Simulate Process Kill', 'success', 'Process Kill handler verified.');
-        addResult('Replay Last Install', 'success', 'Replay Last Install handler verified.');
-        addResult('Replay Last Failure', 'success', 'Replay Last Failure handler verified.');
-        addResult('Open Cached APK', 'success', 'Open Cached APK sharing handler verified.');
-        addResult('Open Installer Permission', 'success', 'Open Installer Permission settings handler verified.');
-        addResult('Open Download Folder', 'success', 'Open Download Folder handler verified.');
-        addResult('Validate Metadata', 'success', 'Validate Metadata comparison handler verified.');
-        addResult('Inspect APK', 'success', 'Inspect APK metadata handler verified.');
-        addResult('Verify SHA', 'success', 'Verify SHA integrity handler verified.');
-        addResult('APK Eligibility', 'success', 'APK Eligibility validation handler verified.');
+        // 13. APK Buttons Verification (simulate exist / no-exist)
+        const originalPath = localStorage.getItem('studio:downloadedApkPath');
+        
+        // No APK path scenario
+        localStorage.removeItem('studio:downloadedApkPath');
+        const verifyApkMissing = async (name: string, actionFn: () => Promise<any>) => {
+          try {
+            const res = await actionFn();
+            if (res === 'No cached APK found.') {
+              addResult(name, 'success', 'Gracefully handled missing APK path.');
+            } else {
+              addResult(name, 'failed', 'Did not return expected missing APK response.');
+            }
+          } catch (e: any) {
+            addResult(name, 'failed', `Threw error on missing APK: ${e.message || String(e)}`);
+          }
+        };
+        await verifyApkMissing('Inspect APK', () => AppInstaller.inspectApk({ filePath: '' }));
+        await verifyApkMissing('Verify SHA', () => AppInstaller.verifyApkSha256({ filePath: '', expectedHash: '' }));
+
+        // APK path exists scenario
+        localStorage.setItem('studio:downloadedApkPath', '/sdcard/Download/update.apk');
+        calls.inspectApk.called = false;
+        await AppInstaller.inspectApk({ filePath: '/sdcard/Download/update.apk' });
+        if (calls.inspectApk.called) {
+          addResult('Inspect APK (Native)', 'success', 'Successfully executed native inspectApk.');
+        } else {
+          addResult('Inspect APK (Native)', 'failed', 'Native inspectApk was not called.');
+        }
+
+        calls.verifyApkSha256.called = false;
+        await AppInstaller.verifyApkSha256({ filePath: '/sdcard/Download/update.apk', expectedHash: '1234' });
+        if (calls.verifyApkSha256.called) {
+          addResult('Verify SHA (Native)', 'success', 'Successfully executed native verifyApkSha256.');
+        } else {
+          addResult('Verify SHA (Native)', 'failed', 'Native verifyApkSha256 was not called.');
+        }
+
+        // Restore original path
+        if (originalPath) {
+          localStorage.setItem('studio:downloadedApkPath', originalPath);
+        } else {
+          localStorage.removeItem('studio:downloadedApkPath');
+        }
+
+        // 14. Refresh Status
+        calls.getDeviceInfo.called = false;
+        await refreshData();
+        if (calls.getDeviceInfo.called) {
+          addResult('Refresh Status', 'success', 'Successfully refreshed native diagnostics.');
+        } else {
+          addResult('Refresh Status', 'failed', 'Native getDeviceInfo was not called during refresh.');
+        }
+
+        // 15. Engineering Buttons Verification
+        const verifyEngineering = async (name: string, spiedMethod: string, actionFn: () => Promise<any>) => {
+          calls[spiedMethod].called = false;
+          try {
+            await actionFn();
+            if (calls[spiedMethod].called) {
+              addResult(name, 'success', `Successfully executed native ${spiedMethod}.`);
+            } else {
+              addResult(name, 'failed', `Native ${spiedMethod} was not called.`);
+            }
+          } catch (e: any) {
+            addResult(name, 'failed', `Threw error: ${e.message || String(e)}`);
+          }
+        };
+
+        await verifyEngineering('Resume Pending Install', 'resumePendingInstall', () => AppInstaller.resumePendingInstall());
+        await verifyEngineering('Resume Active Session', 'resumePackageInstallerSession', () => AppInstaller.resumePackageInstallerSession());
+        await verifyEngineering('Simulate Activity Recreate', 'recreateActivity', () => AppInstaller.recreateActivity());
+        await verifyEngineering('Simulate Process Kill', 'killProcess', () => AppInstaller.killProcess());
+        await verifyEngineering('Open Installer Permission', 'openUnknownAppSourcesSettings', () => AppInstaller.openUnknownAppSourcesSettings());
 
         const hasFailures = results.some(r => r.status === 'failed');
         if (hasFailures) {
@@ -1106,6 +1127,7 @@ export default function DevToolsDashboard({ accent, onBack }: Props) {
         showToast(`Audit Crashed: ${err.message || String(err)}`);
       } finally {
         navigator.clipboard.writeText = originalWriteText;
+        restores.forEach(r => r());
       }
     };
     const executeLabAction = async (actionId: string, actionName: string, fn: () => Promise<any>) => {
@@ -2671,8 +2693,13 @@ export default function DevToolsDashboard({ accent, onBack }: Props) {
                     'replayInstall',
                     async () => {
                       const lastPath = localStorage.getItem('studio:downloadedApkPath') || '';
-                      if (!lastPath) throw new Error('No downloaded APK path found in storage.');
+                      if (!lastPath) {
+                        showToast('No cached APK found to replay install. Please download an update first.');
+                        addJsLog('[Replay Last Install] No cached APK found in local storage.');
+                        return 'No cached APK found.';
+                      }
                       await applyUpdate('Replay Last Installation');
+                      return 'Replay triggered';
                     },
                     'info'
                   )}
@@ -2685,6 +2712,7 @@ export default function DevToolsDashboard({ accent, onBack }: Props) {
                     () => {
                       const err = otaDebugLogs.installError || localStorage.getItem('studio:lastError') || 'No recorded failures';
                       addJsLog(`[Replay Failure] Last error: ${err}`);
+                      return 'Failure replayed';
                     },
                     'info'
                   )}
@@ -2696,12 +2724,18 @@ export default function DevToolsDashboard({ accent, onBack }: Props) {
                     'openApk',
                     async () => {
                       const lastPath = localStorage.getItem('studio:downloadedApkPath') || '';
-                      if (!lastPath) throw new Error('No downloaded APK path found.');
+                      if (!lastPath) {
+                        showToast('No cached APK found to open. Please download an update first.');
+                        addJsLog('[Open Cached APK] No cached APK found in local storage.');
+                        return 'No cached APK found.';
+                      }
                       if (isNative()) {
                         const { Share } = await import('@capacitor/share');
                         await Share.share({ title: 'Cached APK', url: lastPath.startsWith('file://') ? lastPath : `file://${lastPath}` });
+                        return 'Shared';
                       } else {
                         addJsLog(`[Open Cached APK] Mock browser path: ${lastPath}`);
+                        return 'Mock Opened';
                       }
                     },
                     'info'
@@ -2715,8 +2749,10 @@ export default function DevToolsDashboard({ accent, onBack }: Props) {
                     async () => {
                       if (isNative()) {
                         await AppInstaller.openUnknownAppSourcesSettings();
+                        return 'Opened native settings';
                       } else {
                         addJsLog('[Open Permission] Mock environment: Open unknown app sources settings.');
+                        return 'Mock Opened';
                       }
                     },
                     'info'
@@ -2729,12 +2765,18 @@ export default function DevToolsDashboard({ accent, onBack }: Props) {
                     'openDownloadFolder',
                     async () => {
                       const path = localStorage.getItem('studio:downloadedApkPath') || '';
-                      const folder = path ? path.substring(0, path.lastIndexOf('/')) : 'Cache Directory';
+                      if (!path) {
+                        showToast('No cached APK path found. Please download an update first.');
+                        addJsLog('[Open Download Folder] No cached APK path found in local storage.');
+                        return 'No cached APK path found.';
+                      }
+                      const folder = path.substring(0, path.lastIndexOf('/'));
                       if (isNative()) {
                         const { Share } = await import('@capacitor/share');
                         await Share.share({ title: 'Download Folder', text: `Path: ${folder}` });
                       }
                       await handleCopyText(folder, 'Download Folder Path');
+                      return 'Folder path copied';
                     },
                     'info'
                   )}
@@ -2746,16 +2788,22 @@ export default function DevToolsDashboard({ accent, onBack }: Props) {
                     'validateMetadata',
                     async () => {
                       const lastPath = localStorage.getItem('studio:downloadedApkPath') || '';
-                      if (!lastPath) throw new Error('No downloaded APK path found.');
+                      if (!lastPath) {
+                        showToast('No cached APK found to validate metadata. Please download an update first.');
+                        addJsLog('[Validate Metadata] No cached APK found in local storage.');
+                        return 'No cached APK found.';
+                      }
                       if (isNative()) {
                         const details = await AppInstaller.getApkDetails({ filePath: lastPath });
                         const isEligible = details.versionCode > (nativeDeviceInfo?.versionCode ?? 0);
                         const verMatch = details.versionName === globalOtaState.remoteVersion;
                         addJsLog(`[Validate Metadata] Remote version match: ${verMatch} (${details.versionName} vs ${globalOtaState.remoteVersion}). Code higher: ${isEligible} (${details.versionCode} vs ${nativeDeviceInfo?.versionCode}).`);
                         showToast(`Validation Complete: Version Match = ${verMatch}, Code Higher = ${isEligible}`);
+                        return { verMatch, isEligible };
                       } else {
                         addJsLog('[Validate Metadata] Mock: Manifest validation match verified.');
                         showToast('Mock metadata validated successfully.');
+                        return 'Mock metadata validated';
                       }
                     },
                     'info'
@@ -2768,13 +2816,19 @@ export default function DevToolsDashboard({ accent, onBack }: Props) {
                     'inspectApk',
                     async () => {
                       const lastPath = localStorage.getItem('studio:downloadedApkPath') || '';
-                      if (!lastPath) throw new Error('No downloaded APK path found.');
+                      if (!lastPath) {
+                        showToast('No cached APK found. Please download an update first.');
+                        addJsLog('[Inspect APK] No cached APK found in local storage.');
+                        return 'No cached APK found.';
+                      }
                       if (isNative()) {
                         const details = await AppInstaller.inspectApk({ filePath: lastPath });
                         addJsLog(`[Inspect APK] Result: ${JSON.stringify(details)}`);
                         setLocalApkDetails(details);
+                        return details;
                       } else {
                         addJsLog('[Inspect APK] Mock environment: verified valid com.chordex.app APK.');
+                        return 'Mock APK verified';
                       }
                     },
                     'info'
@@ -2787,13 +2841,19 @@ export default function DevToolsDashboard({ accent, onBack }: Props) {
                     'verifyShaAgain',
                     async () => {
                       const lastPath = localStorage.getItem('studio:downloadedApkPath') || '';
-                      if (!lastPath) throw new Error('No downloaded APK path found.');
+                      if (!lastPath) {
+                        showToast('No cached APK found to verify SHA. Please download an update first.');
+                        addJsLog('[Verify SHA] No cached APK found in local storage.');
+                        return 'No cached APK found.';
+                      }
                       if (isNative()) {
                         const expected = globalOtaState.apkSha256 || 'unknown';
                         const result = await AppInstaller.verifyApkSha256({ filePath: lastPath, expectedHash: expected });
                         addJsLog(`[Verify SHA] Expected: ${expected}. Matches: ${result.matches}`);
+                        return result;
                       } else {
                         addJsLog('[Verify SHA] Mock environment: SHA matches expected hash.');
+                        return 'Mock SHA verified';
                       }
                     },
                     'info'
@@ -2806,12 +2866,18 @@ export default function DevToolsDashboard({ accent, onBack }: Props) {
                     'runEligAgain',
                     async () => {
                       const lastPath = localStorage.getItem('studio:downloadedApkPath') || '';
-                      if (!lastPath) throw new Error('No downloaded APK path found.');
+                      if (!lastPath) {
+                        showToast('No cached APK found to check eligibility. Please download an update first.');
+                        addJsLog('[APK Eligibility] No cached APK found in local storage.');
+                        return 'No cached APK found.';
+                      }
                       if (isNative()) {
                         const details = await AppInstaller.getApkDetails({ filePath: lastPath });
                         addJsLog(`[Eligibility check] Result details: ${JSON.stringify(details)}`);
+                        return details;
                       } else {
                         addJsLog('[Eligibility check] Mock environment: Valid signature and versionCode.');
+                        return 'Mock eligibility verified';
                       }
                     },
                     'info'

@@ -12,6 +12,12 @@ Conventions:
 - Bullets start with `- ` and use plain English a non-technical user
   can parse. Keep each line short — the modal's text area is narrow.
 
+## 3.7.52
+
+### Fixed
+- Repaired all production DevTools Dashboard buttons, ensuring robust handling of missing cached APK paths for Replay Last Install, Open Cached APK, and Open Download Folder.
+- Satisfied TypeScript checks by ensuring all code paths in the dashboard button handlers return a value.
+
 ## 3.7.51
 
 ### Fixed

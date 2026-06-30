@@ -25,7 +25,7 @@
 import { useMemo } from 'react';
 import { Capacitor } from '@capacitor/core';
 
-export const NATIVE_VERSION = '3.7.51';
+export const NATIVE_VERSION = '3.7.52';
 export const WEB_VERSION = '4.0.0';
 export const APP_VERSION = Capacitor.isNativePlatform() ? NATIVE_VERSION : WEB_VERSION;
 
@@ -60,8 +60,8 @@ export const APP_CHANGELOG_SECTIONS: ChangelogSection[] = [
   {
     heading: "Fixed",
     items: [
-      "Rehabilitated DevTools Dashboard with full functional updates, simulation controls, and telemetry history.",
-      "Implemented robust clipboard validation and loading indicators for all diagnostic exports.",
+      "Repaired all production DevTools Dashboard buttons, ensuring robust handling of missing cached APK paths for Replay Last Install, Open Cached APK, and Open Download Folder.",
+      "Satisfied TypeScript checks by ensuring all code paths in the dashboard button handlers return a value.",
     ],
   },
 ];
