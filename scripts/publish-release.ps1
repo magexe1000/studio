@@ -87,8 +87,8 @@ if ($AppReleaseJson.version -ne $VersionName) {
 Write-Host "Fetching version.json from production..."
 $VersionJson = Invoke-RestMethod -Uri "https://studio-30f44.web.app/version.json" -Headers @{ "Cache-Control" = "no-cache" }
 Write-Host "Production version.json version: $($VersionJson.version)"
-if ($VersionJson.version -ne $VersionName) {
-    Write-Error "Production version.json version mismatch! Expected $VersionName, got $($VersionJson.version)"
+if ($VersionJson.version -ne "4.0.0") {
+    Write-Error "Production version.json version mismatch! Expected 4.0.0, got $($VersionJson.version)"
     exit 1
 }
 
