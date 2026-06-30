@@ -12,6 +12,12 @@ Conventions:
 - Bullets start with `- ` and use plain English a non-technical user
   can parse. Keep each line short — the modal's text area is narrow.
 
+## 3.7.47
+
+### Fixed
+- Rehabilitated DevTools Dashboard with full functional updates, simulation controls, and telemetry history.
+- Implemented robust clipboard validation and loading indicators for all diagnostic exports.
+
 ## 3.7.46
 
 ### Fixed

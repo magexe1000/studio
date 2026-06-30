@@ -1,0 +1,463 @@
+<USER_REQUEST>
+Studio / Livex Android — Real Startup Performance Fixes, Stagex Swipe/Selection UX, and Native Update Progress Flow
+
+Current latest release: v3.6.81 / versionCode 108.
+
+This task is NOT about lyrics.
+
+Do not continue lyrics/provider work in this task.
+
+Focus only on:
+
+A. Real startup planets animation performance.
+B. Stagex swipe-to-back coverage.
+C. Stagex PDF export / layouts / history navigation.
+D. Stagex stage plot object selection hitboxes.
+E. Native update install progress UX.
+
+If publishing is required, use the next available version:
+
+* versionName: 3.6.82
+* versionCode: next valid code after 108
+
+Do not reuse v3.6.81.
+
+==================================================
+SECTION A — REAL STARTUP PERFORMANCE FIX
+========================================
+
+Current real-device issue:
+
+The planets animation still freezes/stutters during app startup.
+
+Important:
+
+Do NOT solve this by only adding delays, fade overlays, or extra animations.
+
+The goal is real smoothness, not masking the problem.
+
+Required behavior:
+
+* planets animation starts naturally
+* no first-frame freeze
+* no mid-animation stutter
+* no freeze at the end
+* no sudden jump into the Hub
+* no artificial “wait” feeling
+* slight fade-in is allowed, but only as polish, not as the fix
+
+Required investigation:
+
+1. Identify the exact long tasks blocking startup.
+2. Measure frame timing during the planets animation.
+3. Identify expensive synchronous work during startup.
+4. Identify any layout reads/writes happening during animation frames.
+5. Identify any React mount/bootstrap work competing with the animation.
+6. Identify any asset/data initialization running too early.
+7. Identify any forced reflow/layout thrashing.
+8. Identify any heavy JSON/data/module initialization during first boot.
+
+Required fix:
+
+1. Remove or replace artificial startup delays if they are only hiding the problem.
+2. Move non-critical initialization off the critical animation path.
+3. Split startup work into small chunks when possible.
+4. Use requestIdleCallback or safe idle scheduling where appropriate.
+5. Avoid reading layout every frame.
+6. Precompute/cache static animation targets if possible.
+7. Keep animation frame work minimal.
+8. Ensure React bootstrap does not starve the animation.
+9. Keep the fade-in, but make the animation genuinely smooth underneath.
+
+Validation:
+
+* cold open app multiple times
+* planets animation must remain smooth from start to finish
+* no visible freeze before Hub appears
+* no artificial delay feeling
+
+==================================================
+SECTION B — APP ENTRY STUTTER ROOT FIX
+======================================
+
+Current real-device issue:
+
+Opening apps still feels heavy and sometimes freezes.
+
+Important:
+
+Do not fix this with arbitrary delays.
+
+Required behavior:
+
+* Hub → Chordex smooth
+* Hub → Stagex smooth
+* Hub → Drumex smooth
+* Hub → Groovex smooth
+* Hub → Vocalex smooth
+
+Required work:
+
+1. Measure which app entry causes the longest main-thread block.
+2. Identify heavy mount work per app.
+3. Defer non-critical work inside each app until after entry transition.
+4. Preload only what helps; do not load everything at once.
+5. Avoid blocking animation frames with large store updates.
+6. Avoid rendering expensive panels before they are visible.
+7. Keep splash/transition smooth while app mounts behind it.
+8. Do not introduce extra waiting that makes the app feel slower.
+
+Add lightweight diagnostics:
+
+* app entry start time
+* first visual response
+* app ready time
+* longest blocking task if detectable
+* app-specific mount duration
+
+==================================================
+SECTION C — STAGEX UNIVERSAL SWIPE-TO-BACK COVERAGE
+===================================================
+
+Current issue:
+
+Swipe-to-back still does not work correctly in several Stagex areas.
+
+Required coverage:
+
+Swipe-to-back must work correctly in Stagex for:
+
+* PDF export flow
+* export PDF modal/screen
+* layout menus
+* layout editor/selector
+* history panel
+* any nested Stagex panel
+* any modal/sheet opened inside Stagex
+
+Back hierarchy:
+
+1. If a modal/dialog/sheet is open:
+   close it first.
+
+2. Else if PDF export flow is open:
+   close PDF export and return to Stagex.
+
+3. Else if layout menu/editor is open:
+   close layout menu/editor and return to Stagex.
+
+4. Else if history panel is open:
+   close history panel and return to Stagex.
+
+5. Else if a nested Stagex panel is open:
+   go back inside Stagex.
+
+6. Else if Stagex is on root screen:
+   apply global swipe-back setting:
+
+   * exit to Hub if enabled
+   * stay in Stagex if manual-only is enabled
+
+Do not jump directly to Hub from nested Stagex screens.
+
+==================================================
+SECTION D — NEW STAGEX HISTORY MENU
+===================================
+
+Current issue:
+
+Stagex history needs a better menu.
+
+Create a redesigned History menu.
+
+Requirements:
+
+* professional UI
+* clean mobile layout
+* clear undo/redo history entries
+* current state visibly marked
+* actions readable
+* not cramped
+* swipe/back closes history first
+* works in portrait and landscape
+* does not cover essential stage controls permanently
+
+Do not redesign the entire Stagex app.
+
+Only improve the History menu.
+
+==================================================
+SECTION E — STAGEX STAGE PLOT OBJECT SELECTION HITBOX
+=====================================================
+
+Current issue:
+
+When placing or selecting an object on the Stage Plot, selection can be difficult.
+
+Required behavior:
+
+* objects should be easier to tap/select
+* each object should have a slightly larger invisible hitbox around its outline
+* the visible outline/shape should remain the same size
+* only the touch/click hit target should be expanded
+* selection should feel reliable on phones
+
+Important visual requirement:
+
+When tapping near or around an object:
+
+* do not show an unwanted semi-transparent white square
+* do not show a large visible rectangular selection artifact
+* do not add ugly visible hitbox UI
+* hitbox must be invisible or almost invisible
+
+Implementation requirements:
+
+1. Expand pointer/touch target around stage plot items.
+2. Keep visual object bounds unchanged.
+3. Ensure hitbox respects z-order and object stacking.
+4. Ensure nearby objects remain selectable correctly.
+5. Avoid selecting the wrong object when two items are close.
+6. Remove the unwanted white translucent square around nearby taps.
+
+Validation:
+
+* place multiple objects
+* select each object easily
+* tap near edges
+* tap between nearby objects
+* no white transparent square appears
+* selection remains accurate
+
+==================================================
+SECTION F — NATIVE UPDATE PROGRESS FLOW REDESIGN
+================================================
+
+Current update UX issue:
+
+When the user taps install/update, the flow should move directly into the large colorful progress screen instead of feeling abrupt or disconnected.
+
+Required behavior:
+
+1. User taps install/update.
+2. Immediately transition to the full update progress screen:
+
+   * colorful background
+   * large progress bar
+   * clear status text
+   * existing premium update visual style
+3. Transition into this screen must be butter smooth:
+
+   * swipe-like or smooth slide/fade transition
+   * no stutter
+   * no abrupt cut
+4. Download/verify progress starts naturally.
+5. Progress should rise smoothly.
+6. At 99% or 100%, show the native install confirmation prompt.
+7. If user accepts installation:
+
+   * keep the app on the progress screen
+   * continue showing the install progress/status there
+   * do not kick the user out early
+8. Only after the install/update process is fully completed:
+
+   * show “Ready” or equivalent final state
+   * then exit/close/restart flow if required by Android
+
+Important:
+
+Do not launch the installer too early while the app still looks idle.
+
+The user should visually understand:
+
+* downloading
+* verifying
+* ready to install
+* installing
+* ready/completed
+
+==================================================
+SECTION G — UPDATE FLOW STATES
+==============================
+
+Implement a deterministic update state machine.
+
+States should be explicit, for example:
+
+* idle
+* preparing
+* enteringProgressScreen
+* downloading
+* verifying
+* readyForInstallPrompt
+* waitingForUserInstallConfirmation
+* installing
+* installedOrReady
+* failed
+
+Each state must have:
+
+* visible UI status text
+* progress behavior
+* error handling
+* retry/cancel behavior if safe
+
+Do not rely on scattered booleans.
+
+==================================================
+SECTION H — UPDATE PROGRESS SMOOTHNESS
+======================================
+
+The progress bar must feel natural.
+
+Requirements:
+
+* no sudden jumps from 0 to high values
+* no stutter
+* no frozen progress unless truly waiting for user confirmation
+* smooth interpolation between real progress values
+* clear text changes for each phase
+* no fake completion before verification is done
+
+At 99/100%:
+
+* pause clearly for install prompt
+* do not mislead the user that update is complete before install begins
+
+==================================================
+SECTION I — VALIDATION
+======================
+
+Run:
+
+* pnpm scope:check --platform apk
+* pnpm check:versions
+* pnpm typecheck:android
+* pnpm build:android:web
+* pnpm test:android
+
+Manual Android validation required:
+
+Startup:
+
+* cold launch app 5 times
+* planets animation must not freeze
+* fade-in must feel natural
+* Hub transition must be smooth
+
+App entry:
+
+* open Chordex
+* open Stagex
+* open Drumex
+* open Groovex
+* open Vocalex
+* verify no heavy freezes
+
+Stagex swipe/back:
+
+* open PDF export
+* swipe/back closes PDF export first
+* open layout menu/editor
+* swipe/back closes layout menu/editor first
+* open history
+* swipe/back closes history first
+* root Stagex follows global swipe-back setting
+
+Stagex hitboxes:
+
+* add multiple objects
+* select objects reliably
+* tap edges
+* tap between nearby objects
+* no white translucent square appears
+
+Update flow:
+
+* trigger update from previous version
+* tap install/update
+* progress screen opens immediately
+* progress animates smoothly
+* install prompt appears at 99/100%
+* after accepting, app remains on update progress UI until final ready state
+* no early exit before final ready state
+
+==================================================
+SECTION J — CHANGELOG
+=====================
+
+Update changelog for this release only.
+
+Include:
+
+* real startup planets performance fix
+* app entry stutter root fix
+* Stagex swipe/back coverage fixes
+* Stagex history menu redesign
+* Stagex stage plot selection hitbox improvement
+* update progress flow redesign
+
+Do not include old lyrics/provider work.
+
+Do not include unrelated historical changes.
+
+==================================================
+SECTION K — RELEASE / PUSH / DEPLOY
+===================================
+
+After validation passes:
+
+1. Commit only relevant files.
+
+2. Push directly to:
+   origin/fix/android-stagex-3640
+
+3. Build production-signed APK.
+
+4. Publish GitHub Release:
+   v3.6.82
+
+5. Upload:
+
+   * studio-3.6.82.apk
+   * studio-3.6.82.apk.sha256
+
+6. Update Firebase metadata.
+
+7. Deploy Firebase Hosting.
+
+8. Verify updater detects:
+   v3.6.81 → v3.6.82
+
+Do not wait for additional confirmation after validation passes.
+
+==================================================
+FINAL REPORT
+============
+
+Return one final consolidated report only:
+
+A. Startup freeze root cause.
+B. Real startup performance fix implemented.
+C. Whether artificial delays were removed or justified.
+D. App entry stutter root cause.
+E. Per-app entry performance changes.
+F. Stagex swipe/back coverage implemented.
+G. Stagex history menu redesign.
+H. Stagex stage plot hitbox fix.
+I. White translucent square artifact fix.
+J. Update progress flow state machine.
+K. Update progress UI/animation changes.
+L. Validation results.
+M. Changelog cleanup.
+N. APK metadata.
+O. Commit hash.
+P. Branch push confirmation.
+Q. GitHub Release URL.
+R. Firebase deployment verification.
+S. Confirmation that v3.6.82 is live and downloadable.
+
+</USER_REQUEST>
+<ADDITIONAL_METADATA>
+The current local time is: 2026-06-22T20:36:53-06:00.
+</ADDITIONAL_METADATA>

@@ -25,7 +25,7 @@
 import { useMemo } from 'react';
 import { Capacitor } from '@capacitor/core';
 
-export const NATIVE_VERSION = '3.7.46';
+export const NATIVE_VERSION = '3.7.47';
 export const WEB_VERSION = '4.0.0';
 export const APP_VERSION = Capacitor.isNativePlatform() ? NATIVE_VERSION : WEB_VERSION;
 
@@ -37,11 +37,11 @@ export const APP_VERSION_LABEL = `${APP_VERSION_TAG} ${APP_VERSION}`;
 
 /** Release date for the CURRENT bundle, shown alongside the version pill
  *  in the changelog sheet. ISO-8601 (`YYYY-MM-DD`). */
-export const APP_VERSION_DATE = '2026-06-30'; // 3.7.46
+export const APP_VERSION_DATE = '2026-07-14'; // 3.7.47
 // Note: keep ISO-8601. Bump together with APP_VERSION on each release.
 
 export const APP_COMMIT_SHA = import.meta.env.VITE_GIT_COMMIT_SHA || 'efd2b1a3';
-export const APP_BUILD_TIMESTAMP = import.meta.env.VITE_BUILD_TIMESTAMP || '6/30/2026, 12:00:00 AM CST';
+export const APP_BUILD_TIMESTAMP = import.meta.env.VITE_BUILD_TIMESTAMP || '7/14/2026, 12:00:00 AM CST';
 
 /**
  * Changelog for the CURRENT release — shown to the user the first
@@ -50,7 +50,7 @@ export const APP_BUILD_TIMESTAMP = import.meta.env.VITE_BUILD_TIMESTAMP || '6/30
  * heading + bullet list rendered Metrolist-style in `ChangelogSheet`.
  */
 export interface ChangelogSection {
-  /** Short uppercase header (e.g. "Short uppercase header (e.g. Added, Fixed)"). */
+  /** Short uppercase header (e.g. "What's new", "Fixes"). */
   heading: string;
   /** Plain user-facing bullets. Keep each line short. */
   items: string[];
@@ -60,9 +60,8 @@ export const APP_CHANGELOG_SECTIONS: ChangelogSection[] = [
   {
     heading: "Fixed",
     items: [
-      "Stabilized simulated failure button click handlers to run sequential state transitions.",
-      "Enabled native update logic bypass for simulations on non-Android platforms.",
-      "Added support for all-zero hash bypass on manual/custom APK integrity checks.",
+      "Rehabilitated DevTools Dashboard with full functional updates, simulation controls, and telemetry history.",
+      "Implemented robust clipboard validation and loading indicators for all diagnostic exports.",
     ],
   },
 ];
@@ -72,8 +71,8 @@ export const APP_CHANGELOG_SECTIONS_NATIVE: ChangelogSection[] = [
   {
     heading: "What's New",
     items: [
-      "Stabilized simulated failure button click handlers to run sequential state transitions.",
-      "Enabled native update logic bypass for simulations on non-Android platforms.",
+      "Rehabilitated DevTools Dashboard with full functional updates, simulation controls, and telemetry history.",
+      "Implemented robust clipboard validation and loading indicators for all diagnostic exports.",
     ],
   },
 ];
@@ -84,11 +83,8 @@ export const APP_CHANGELOG_SECTIONS_ES: ChangelogSection[] = [
   {
     heading: "Novedades",
     items: [
-      "Expansión masiva de diagramas de acordes incluyendo 10 cualidades y 14 de tipo slash.",
-      "Se corrigieron los saltos del diagrama flotante y del scroll en modo Práctica.",
-      "Resaltado dinámico por segmentos de acordes/letra sincronizados.",
-      "Se desbloqueó el scroll horizontal de géneros en la pestaña Descubrir.",
-      "Transición y apertura de aplicaciones un 25% más rápida.",
+      "Rehabilitación completa del panel de herramientas de desarrollo (DevTools) con simulaciones y registro de telemetría.",
+      "Validación mejorada del portapapeles con indicadores de carga en las exportaciones de diagnóstico.",
     ],
   },
 ];

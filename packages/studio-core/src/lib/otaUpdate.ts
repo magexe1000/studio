@@ -1,149 +1,342 @@
+/**
+ * Over-the-air update checker.
+ *
+ * Compares the bundle version (from `lib/appVersion`) against a
+ * remote `version.json` file shipped alongside the app. The remote
+ * file is the single source of "what's the latest released version".
+ *
+ * Behaviour:
+ *  - On app boot, fetch `<base>version.json` once with a short timeout.
+ *  - If `remote.version > local APP_VERSION`, expose `updateAvailable`
+ *    state to the UI (a tiny indicator surfaces this in the Hub).
+ *  - On every launch we compare the bundled `APP_VERSION` against a
+ *    `lastSeenVersion` stored in localStorage. If the bundle has
+ *    advanced since last launch, the user just received an update —
+ *    show the changelog modal, then write the new version back.
+ *  - Every failure path (offline, malformed JSON, missing file,
+ *    parse error) is swallowed silently. Updates are best-effort.
+ *
+ * Single source of truth: the bundle's `APP_VERSION` is the *current*
+ * version (what the user has installed). The remote `version.json` is
+ * the *latest* version the team has shipped. The OTA system never
+ * accepts a version from any other source.
+ */
+
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { APP_VERSION, compareSemver, normalizeSemver } from './appVersion';
-import { isNative, shouldUseAndroidApkUpdater } from './capgoUpdater';
+import { isNative, notifyOtaAvailable, shouldUseAndroidApkUpdater } from './capgoUpdater';
 import { nativeSet, NATIVE_PREFS } from './nativePrefs';
 import { useChordStore } from '../store/useChordStore';
 import { logActivity } from './activityLogger';
 
-// Import modular subcomponents
-import {
-  globalOtaState,
-  updateGlobalState,
-  transitionToState,
-  stopWatchdog,
-  stateListeners,
-  CentralizedOtaState,
-  OtaUpdateState,
-  StructuredReleaseNotes
-} from './updater/stateMachine';
-
-import {
-  RemoteVersionInfo,
-  fetchRemoteVersion,
-  versionJsonUrls
-} from './updater/releaseMetadata';
-import { compareVersions } from './updater/versionComparison';
-import { downloadUpdateApk, downloadAndInstallGitHubApk } from './updater/downloadManager';
-import { verifyFileIntegrity } from './updater/integrityVerification';
-import { runEligibilityCheck } from './updater/eligibilityVerification';
-import { triggerNativeInstall, processLastInstallResult } from './updater/installer';
-import { runSignatureMismatchRecovery, isRecovering, setIsRecovering } from './updater/recovery';
-import { updaterSimulation, setSimulateStatusCallback, addJsLog, triggerSimulatedStatus } from './updater/updaterSimulation';
-import { validateLocalApk, deleteLocalApk, getLocalApkPath, recordDismissal, shouldShowRecoveryReminder } from './updater/cacheManager';
-import {
-  otaDebugLogs,
-  otaDiagnostics,
-  logProgressStage,
-  populateDiagnostics,
-  nextJsCallId,
-  isAppInstallerAvailable,
-  runUpdaterHealthCheck,
-  getDiagnosticsReport,
-  HealthStatus
-} from './updater/diagnostics';
-
-import { detectJustUpdated, writeLastSeen } from './updater/versionManager';
-
-export function logDetailedJsTrace(
-  functionName: string,
-  fileName: string,
-  line: number,
-  details: string,
-  extra?: {
-    durationMs?: number;
-    sessionId?: number | string;
-    prevState?: string;
-    nextState?: string;
-    reason?: string;
-  }
-) {
-  const timestamp = Date.now();
-  const thread = "Main JS Thread";
-  let stackTrace = "N/A";
-  let caller = "Unknown";
-  try {
-    const err = new Error();
-    if (err.stack) {
-      stackTrace = err.stack;
-      const lines = err.stack.split('\n');
-      if (lines.length > 2) {
-        caller = lines[2].trim();
-      }
-    }
-  } catch {}
-
-  const logObj = {
-    timestamp,
-    thread,
-    caller,
-    function: functionName,
-    file: fileName,
-    line,
-    stackTrace,
-    durationMs: extra?.durationMs ?? null,
-    sessionId: extra?.sessionId ?? globalOtaState.sessionId ?? localStorage.getItem('studio:installer_session_id') ?? 'N/A',
-    prevState: extra?.prevState ?? globalOtaState.updateState,
-    nextState: extra?.nextState ?? null,
-    reason: extra?.reason ?? null,
-    details
-  };
-
-  console.log(`[INSTRUMENTATION] [JS_TRACE] ${JSON.stringify(logObj, null, 2)}`);
-  void logProgressStage(`[JS_TRACE] ${functionName}`, `${details} | State: ${globalOtaState.updateState}`);
-}
-
-export {
-  globalOtaState,
-  otaDebugLogs,
-  otaDiagnostics,
-  logProgressStage,
-  populateDiagnostics,
-  nextJsCallId,
-  isAppInstallerAvailable,
-  runEligibilityCheck,
-  runSignatureMismatchRecovery,
-  detectJustUpdated,
-  resetLastCheckedTime,
-  downloadAndInstallGitHubApk,
-  runUpdaterHealthCheck,
-  getDiagnosticsReport
+export let otaDebugLogs: {
+  appVersion: string;
+  nativeApkVersion: string | null;
+  currentOtaVersion: string | null;
+  fetchedVersionJson: string | null;
+  fetchedAppReleaseJson: string | null;
+  compareResult: number | null;
+  updateType: string | null;
+  remoteUpdateType: string | null;
+  otaBlockedBecauseApkRequired: boolean;
+  apkEligibilityResult: string;
+  finalDecision: string | null;
+  downloadStatus: string | null;
+  installError: string | null;
+  shaVerification: string | null;
+  fileDetails: string | null;
+  installerLaunchStatus: string | null;
+  lastExceptionStackTrace: string | null;
+  appInstallerAvailable: boolean;
+  registeredPlugins: string;
+  pluginMethodCheck: string;
+  finalUpdatePath: string;
+  downloadApkAvailable: boolean;
+  verifyApkSha256Available: boolean;
+  installApkAvailable: boolean;
+  openInstallPermissionSettingsAvailable: boolean;
+  installedVersionCode: number | null;
+  requiredApkVersion: string | null;
+  requiredVersionCode: number | null;
+  nativeApkBehind: boolean;
+  apkUpdateRequired: boolean;
+  pendingOtaBundleId: string | null;
+  staleOtaCleared: boolean;
+  capgoSetBlocked: boolean;
+  triggerComponent: string | null;
+  finalPathExecuted: 'OTA applied' | 'APK installer launched' | 'blocked due to APK required' | 'N/A';
+  installedPackageName: string | null;
+  installedVersionName: string | null;
+  installedSigningSha256: string | null;
+  installedDebuggable: boolean | null;
+  downloadedPackageName: string | null;
+  downloadedVersionName: string | null;
+  downloadedVersionCode: number | null;
+  downloadedSigningSha256: string | null;
+  downloadedDebuggable: boolean | null;
+  downloadedApkPath: string | null;
+  downloadedApkSize: string | null;
+  downloadedApkSha256: string | null;
+  downloadedIsValidApk: boolean | null;
+  downloadedIsUniversalApk: boolean | null;
+  eligibilityPackageNameMatch: boolean | null;
+  eligibilitySigningMatch: boolean | null;
+  eligibilityVersionCodeHigher: boolean | null;
+  eligibilityReleaseBuild: boolean | null;
+  eligibilityValidApk: boolean | null;
+  eligibilityFinalInstall: string | null;
+  eligibilityReason: string | null;
+  updateDecision: string | null;
+  updateDecisionReason: string | null;
+  remoteVersionCode: number | null;
+  versionComparisonResult: string | null;
+  nativePlatformDetected: boolean | null;
+  platformDetected: string | null;
+  apkMetadataValid: boolean | null;
+  apkUrlPresent: boolean | null;
+  apkShaPresent: boolean | null;
+  skippedDismissedState: string | null;
+  releaseChannel: string | null;
+  rolloutEligibility: string | null;
+  magicHeaderCheck: string | null;
+} = {
+  appVersion: APP_VERSION,
+  nativeApkVersion: null,
+  currentOtaVersion: null,
+  fetchedVersionJson: null,
+  fetchedAppReleaseJson: null,
+  compareResult: null,
+  updateType: null,
+  remoteUpdateType: null,
+  otaBlockedBecauseApkRequired: false,
+  apkEligibilityResult: 'N/A',
+  finalDecision: null,
+  downloadStatus: null,
+  installError: null,
+  shaVerification: null,
+  fileDetails: null,
+  installerLaunchStatus: null,
+  lastExceptionStackTrace: null,
+  appInstallerAvailable: false,
+  registeredPlugins: '[]',
+  pluginMethodCheck: 'N/A',
+  finalUpdatePath: 'N/A',
+  downloadApkAvailable: false,
+  verifyApkSha256Available: false,
+  installApkAvailable: false,
+  openInstallPermissionSettingsAvailable: false,
+  installedVersionCode: null,
+  requiredApkVersion: null,
+  requiredVersionCode: null,
+  nativeApkBehind: false,
+  apkUpdateRequired: false,
+  pendingOtaBundleId: null,
+  staleOtaCleared: false,
+  capgoSetBlocked: false,
+  triggerComponent: null,
+  finalPathExecuted: 'N/A',
+  installedPackageName: null,
+  installedVersionName: null,
+  installedSigningSha256: null,
+  installedDebuggable: null,
+  downloadedPackageName: null,
+  downloadedVersionName: null,
+  downloadedVersionCode: null,
+  downloadedSigningSha256: null,
+  downloadedDebuggable: null,
+  downloadedApkPath: null,
+  downloadedApkSize: null,
+  downloadedApkSha256: null,
+  downloadedIsValidApk: null,
+  downloadedIsUniversalApk: null,
+  eligibilityPackageNameMatch: null,
+  eligibilitySigningMatch: null,
+  eligibilityVersionCodeHigher: null,
+  eligibilityReleaseBuild: null,
+  eligibilityValidApk: null,
+  eligibilityFinalInstall: null,
+  eligibilityReason: null,
+  updateDecision: null,
+  updateDecisionReason: null,
+  remoteVersionCode: null,
+  versionComparisonResult: null,
+  nativePlatformDetected: null,
+  platformDetected: null,
+  apkMetadataValid: null,
+  apkUrlPresent: null,
+  apkShaPresent: null,
+  skippedDismissedState: null,
+  releaseChannel: null,
+  rolloutEligibility: null,
+  magicHeaderCheck: null,
 };
 
-export type { CentralizedOtaState, OtaUpdateState, StructuredReleaseNotes, RemoteVersionInfo, HealthStatus };
-
-// Storage utilities
-export function getStoredList(key: string): string[] {
-  try {
-    const data = localStorage.getItem(key);
-    return data ? JSON.parse(data) : [];
-  } catch {
-    return [];
-  }
+export interface OtaDiagnostics {
+  exceptionMessage: string | null;
+  failureReason: string | null;
+  downloadUrl: string | null;
+  apkPath: string | null;
+  fileSize: string | null;
+  shaExpected: string | null;
+  shaCalculated: string | null;
+  installerResult: string | null;
+  permissionState: string | null;
+  androidVersion: string | null;
+  deviceModel: string | null;
+  timestamp: string | null;
 }
 
-export function addToStoredList(key: string, val: string): void {
+export let otaDiagnostics: OtaDiagnostics = {
+  exceptionMessage: null,
+  failureReason: null,
+  downloadUrl: null,
+  apkPath: null,
+  fileSize: null,
+  shaExpected: null,
+  shaCalculated: null,
+  installerResult: null,
+  permissionState: null,
+  androidVersion: null,
+  deviceModel: null,
+  timestamp: null,
+};
+
+export function isAppInstallerAvailable(): boolean {
+  const cap = (window as any).Capacitor;
+  if (!cap) return false;
+  if (typeof cap.isNativePlatform === 'function' && !cap.isNativePlatform()) {
+    return false;
+  }
+  const isPluginAvail = cap.isPluginAvailable?.('AppInstaller') ?? false;
+  if (!isPluginAvail) return false;
+  const plugin = cap.Plugins?.AppInstaller;
+  if (!plugin) return false;
+
+  return (
+    typeof plugin.downloadApk === 'function' &&
+    (typeof plugin.verifyApkSha256 === 'function' || typeof plugin.verifySha256 === 'function') &&
+    typeof plugin.installApk === 'function' &&
+    (typeof plugin.openInstallPermissionSettings === 'function' || typeof plugin.openUnknownAppSourcesSettings === 'function')
+  );
+}
+
+export async function populateDiagnostics(err: any, reason: string) {
   try {
-    const list = getStoredList(key);
-    if (!list.includes(val)) {
-      list.push(val);
-      localStorage.setItem(key, JSON.stringify(list));
+    const timestamp = new Date().toISOString();
+    let manufacturer = 'Web Browser';
+    let model = typeof navigator !== 'undefined' ? navigator.userAgent : 'N/A';
+    let androidVersion = 'N/A';
+    let permissionState = 'N/A';
+
+    if (isNative()) {
+      try {
+        const { AppInstaller } = await import('./apkDownloader');
+        const deviceInfo = await AppInstaller.getDeviceInfo();
+        manufacturer = deviceInfo.manufacturer;
+        model = deviceInfo.model;
+        androidVersion = `${deviceInfo.androidVersion} (API ${deviceInfo.sdkInt})`;
+        permissionState = `canRequestPackageInstalls: ${deviceInfo.canRequestPackageInstalls}`;
+      } catch (e) {
+        console.warn('[OTA] Failed to get native device info for diagnostics:', e);
+        permissionState = 'Error querying permission';
+      }
     }
-  } catch {
-    /* ignore */
+
+    const apkPath = otaDebugLogs.downloadedApkPath || localStorage.getItem('studio:downloadedApkPath') || 'N/A';
+    let fileSize = 'N/A';
+    let magicHeader = 'N/A';
+
+    if (isNative() && apkPath && apkPath !== 'N/A') {
+      try {
+        const { Filesystem } = await import('@capacitor/filesystem');
+        const info = await Filesystem.stat({ path: apkPath });
+        fileSize = `${(info.size / (1024 * 1024)).toFixed(2)} MB (${info.size} bytes)`;
+
+        // Read magic header (first 4 bytes)
+        try {
+          const { AppInstaller } = await import('./apkDownloader');
+          const firstBytes = await AppInstaller.readFirstBytes({ filePath: apkPath, count: 4 });
+          const matchesPK = firstBytes.hex.toLowerCase().startsWith('504b');
+          magicHeader = `Hex: ${firstBytes.hex}, ASCII: ${firstBytes.ascii} (Matches PK/ZIP: ${matchesPK})`;
+          otaDebugLogs.magicHeaderCheck = magicHeader;
+        } catch (hErr) {
+          console.warn('[OTA] Failed to read magic bytes:', hErr);
+          magicHeader = `Failed to read: ${hErr instanceof Error ? hErr.message : String(hErr)}`;
+          otaDebugLogs.magicHeaderCheck = magicHeader;
+        }
+
+        // Run eligibility check to populate downloaded/installed details if not already done
+        if (!otaDebugLogs.downloadedPackageName) {
+          const { checkApkEligibility } = await import('./apkDownloader');
+          const el = await checkApkEligibility(apkPath);
+          
+          otaDebugLogs.installedPackageName = el.installed?.packageName ?? null;
+          otaDebugLogs.installedVersionName = el.installed?.versionName ?? null;
+          otaDebugLogs.installedVersionCode = el.installed?.versionCode ?? null;
+          otaDebugLogs.installedSigningSha256 = el.installed?.signingSha256 ?? null;
+          otaDebugLogs.installedDebuggable = el.installed?.debuggable ?? null;
+
+          otaDebugLogs.downloadedPackageName = el.downloaded?.packageName ?? null;
+          otaDebugLogs.downloadedVersionName = el.downloaded?.versionName ?? null;
+          otaDebugLogs.downloadedVersionCode = el.downloaded?.versionCode ?? null;
+          otaDebugLogs.downloadedSigningSha256 = el.downloaded?.signingSha256 ?? null;
+          otaDebugLogs.downloadedDebuggable = el.downloaded?.debuggable ?? null;
+          otaDebugLogs.downloadedApkPath = apkPath;
+          otaDebugLogs.downloadedIsValidApk = el.downloaded?.isValidApk ?? null;
+          otaDebugLogs.downloadedIsUniversalApk = el.downloaded?.isUniversalApk ?? null;
+          
+          if (el.installed && el.downloaded) {
+            otaDebugLogs.eligibilityPackageNameMatch = el.installed.packageName === el.downloaded.packageName;
+            otaDebugLogs.eligibilitySigningMatch = el.installed.signingSha256.replace(/:/g, '').toLowerCase() === el.downloaded.signingSha256.replace(/:/g, '').toLowerCase();
+            otaDebugLogs.eligibilityVersionCodeHigher = el.downloaded.versionCode > el.installed.versionCode;
+            otaDebugLogs.eligibilityReleaseBuild = el.downloaded.debuggable === false;
+            otaDebugLogs.eligibilityValidApk = el.downloaded.isValidApk === true;
+          }
+          otaDebugLogs.eligibilityFinalInstall = el.eligible ? 'can install' : 'cannot install';
+          otaDebugLogs.eligibilityReason = el.reason ?? null;
+        }
+      } catch (fErr) {
+        console.warn('[OTA] Failed to query file details:', fErr);
+        fileSize = 'File not found or unreadable';
+      }
+    }
+
+    const shaCalculated = otaDebugLogs.shaVerification === 'SUCCESS' ? (globalOtaState.apkSha256 || 'N/A') : 'N/A';
+
+    otaDiagnostics.exceptionMessage = err instanceof Error ? err.message : String(err);
+    otaDiagnostics.failureReason = reason + (err instanceof Error && err.stack ? `\nStack: ${err.stack}` : '');
+    otaDiagnostics.downloadUrl = globalOtaState.apkUrl || globalOtaState.downloadUrl || 'N/A';
+    otaDiagnostics.apkPath = apkPath;
+    otaDiagnostics.fileSize = fileSize;
+    otaDiagnostics.shaExpected = globalOtaState.apkSha256 || 'N/A';
+    otaDiagnostics.shaCalculated = shaCalculated;
+    otaDiagnostics.installerResult = otaDebugLogs.installError || 'N/A';
+    otaDiagnostics.permissionState = permissionState;
+    otaDiagnostics.androidVersion = androidVersion;
+    otaDiagnostics.deviceModel = `${manufacturer} ${model}`;
+    otaDiagnostics.timestamp = timestamp;
+  } catch (diagErr) {
+    console.error('[OTA] Failed to populate diagnostics:', diagErr);
   }
 }
 
-export function removeFromStoredList(key: string, val: string): void {
+let cachedNativeVersion: string | null = null;
+export async function getNativeVersion(): Promise<string | null> {
+  if (cachedNativeVersion) return cachedNativeVersion;
+  if (!isNative()) return null;
   try {
-    const list = getStoredList(key);
-    const filtered = list.filter((v) => v !== val);
-    localStorage.setItem(key, JSON.stringify(filtered));
-  } catch {
-    /* ignore */
+    const { App } = await import('@capacitor/app');
+    const info = await App.getInfo();
+    cachedNativeVersion = info.version;
+    return cachedNativeVersion;
+  } catch (err) {
+    console.warn('[ota] Failed to get native version:', err);
+    return null;
   }
 }
 
-export function getSessionItem(key: string): string | null {
+
+function getSessionItem(key: string): string | null {
   try {
     return sessionStorage.getItem(key);
   } catch {
@@ -151,15 +344,15 @@ export function getSessionItem(key: string): string | null {
   }
 }
 
-export function setSessionItem(key: string, val: string): void {
+function setSessionItem(key: string, value: string): void {
   try {
-    sessionStorage.setItem(key, val);
+    sessionStorage.setItem(key, value);
   } catch {
     /* ignore */
   }
 }
 
-export function removeSessionItem(key: string): void {
+function removeSessionItem(key: string): void {
   try {
     sessionStorage.removeItem(key);
   } catch {
@@ -167,178 +360,702 @@ export function removeSessionItem(key: string): void {
   }
 }
 
-export async function getNativeVersion(): Promise<string | null> {
-  if (!isNative()) return null;
+function getStoredList(key: string): string[] {
   try {
-    const { AppInstaller } = await import('./apkDownloader');
-    const info = await AppInstaller.getInstalledAppInfo();
-    return info.versionName;
-  } catch (e) {
-    console.warn('[OTA] Failed to query native app version:', e);
+    const val = localStorage.getItem(key);
+    return val ? JSON.parse(val) : [];
+  } catch {
+    return [];
+  }
+}
+
+function addToStoredList(key: string, value: string) {
+  try {
+    const list = getStoredList(key);
+    if (!list.includes(value)) {
+      list.push(value);
+      localStorage.setItem(key, JSON.stringify(list));
+    }
+  } catch (err) {
+    console.warn(`[OTA] Failed to write key ${key} to storage`, err);
+  }
+}
+
+const LAST_SEEN_KEY = 'studio:lastSeenVersion';
+const FETCH_TIMEOUT_MS = 6000;
+/** How often to re-check for updates while the app is open and visible.
+ *  60 s — short enough that a release is detected the first time the
+ *  user touches the phone after publishing, long enough to be invisible
+ *  on battery. The native WorkManager worker (`OtaCheckWorker.java`)
+ *  handles the background path. */
+const FOREGROUND_POLL_MS = 60 * 1000;
+
+export interface StructuredReleaseNotes {
+  added?: string[];
+  improved?: string[];
+  fixed?: string[];
+  changed?: string[];
+}
+
+export interface RemoteVersionInfo {
+  version: string;
+  /** Flat user-facing changelog string, separated by newlines. */
+  changelog?: string;
+  /** Mandatory update flag — disables the "Later" button. */
+  mandatory: boolean;
+  /** Absolute OTA zip bundle URL. Missing on APK-only updates
+   * — service-worker reload handles bundle swaps in the browser.
+   */
+  downloadUrl?: string;
+  updateType?: 'ota' | 'apk' | 'both' | 'none';
+  apkUrl?: string;
+  apkSha256?: string;
+  manualApkUrl?: string;
+  fallbackApkUrl?: string;
+  releaseNotes?: string[] | StructuredReleaseNotes;
+  requiredApkVersion?: string;
+  requiredVersionCode?: number;
+  versionCode?: number;
+  platform?: string;
+  reinstallRequired?: boolean;
+  signatureChanged?: boolean;
+  previousSignatureSha256?: string;
+  newSignatureSha256?: string;
+  installMode?: 'reinstall-required';
+  packageName?: string;
+}
+
+export interface OtaState {
+  /** True when remote > local. */
+  updateAvailable: boolean;
+  /** Latest version reported by the server, if we successfully fetched. */
+  remoteVersion: string | null;
+  /** Server-provided release notes for the new version. */
+  changelog: string | null;
+  /** Server-provided "users must update" flag. */
+  mandatory: boolean;
+  /** Absolute URL to the Capgo bundle zip, if the server published one. */
+  downloadUrl: string | null;
+  /** True until the first fetch resolves (used to gate UI shimmer). */
+  loading: boolean;
+}
+
+const INITIAL_STATE: OtaState = {
+  updateAvailable: false,
+  remoteVersion: null,
+  changelog: null,
+  mandatory: false,
+  downloadUrl: null,
+  loading: true,
+};
+
+/**
+ * Resolve every URL we should try in order to discover the latest
+ * `version.json`. We return a LIST so a slow/stale CDN can be raced
+ * against a fast/fresh origin — `fetchRemoteVersion` takes the first
+ * one that responds successfully.
+ *
+ * Sources in priority order:
+ *
+ *   1. `VITE_OTA_VERSION_URL` (explicit override) — if set, it's the
+ *      ONLY source we try. Lets ops point at any custom endpoint
+ *      (e.g. a small Cloudflare worker).
+ *   2. `VITE_OTA_BASE_URL` (or Firebase Hosting default base URL fallback)
+ *      which queries `app-release.json` and `version.json`.
+ *   3. Same-origin paths on web / PWA.
+ *
+ * Every URL is cache-busted with a unique `?t=` query and fetched with
+ * `cache: 'no-store'` so neither the browser nor CDN can hand us a
+ * stale entry.
+ */
+function versionJsonUrls(): string[] {
+  const t = Date.now();
+  const override = (import.meta.env.VITE_OTA_VERSION_URL as string | undefined)?.trim();
+  if (override) {
+    const sep = override.includes('?') ? '&' : '?';
+    return [`${override}${sep}t=${t}`];
+  }
+
+  const remoteBase = (import.meta.env.VITE_OTA_BASE_URL as string | undefined)?.replace(/\/$/, '') || 'https://studio-30f44.web.app';
+  const urls: string[] = [];
+
+  if (shouldUseAndroidApkUpdater()) {
+    urls.push(`${remoteBase}/app-release.json?t=${t}`);
+  } else {
+    // Web / PWA / dev preview / iframe — same-origin only.
+    // Querying the Firebase production domain causes updates to be falsely detected on staging / Netlify hosts.
+    // Web / PWA same-origin cache-busting check - v2
+    const localBase = import.meta.env.BASE_URL || '/';
+    urls.push(`${localBase}version.json?t=${t}`);
+  }
+
+  return urls;
+}
+
+/**
+ * Try one specific URL. Returns the parsed manifest, or `null` for any
+ * failure (HTTP error, abort, malformed JSON, missing required field).
+ * Never throws.
+ */
+async function fetchOne(
+  url: string,
+  signal: AbortSignal,
+): Promise<RemoteVersionInfo | null> {
+  try {
+    const res = await fetch(url, {
+      method: 'GET',
+      cache: 'no-store',
+      signal,
+    });
+    if (!res.ok) {
+      if (url.includes('version.json')) otaDebugLogs.fetchedVersionJson = `HTTP Error ${res.status}`;
+      if (url.includes('app-release.json')) otaDebugLogs.fetchedAppReleaseJson = `HTTP Error ${res.status}`;
+      return null;
+    }
+    const json = (await res.json()) as unknown;
+    if (!json || typeof json !== 'object') {
+      if (url.includes('version.json')) otaDebugLogs.fetchedVersionJson = 'Malformed JSON';
+      if (url.includes('app-release.json')) otaDebugLogs.fetchedAppReleaseJson = 'Malformed JSON';
+      return null;
+    }
+    const obj = json as Record<string, unknown>;
+    if (typeof obj.version !== 'string' || !obj.version.trim()) {
+      if (url.includes('version.json')) otaDebugLogs.fetchedVersionJson = 'Missing version field';
+      if (url.includes('app-release.json')) otaDebugLogs.fetchedAppReleaseJson = 'Missing version field';
+      return null;
+    }
+    
+    if (url.includes('version.json')) {
+      otaDebugLogs.fetchedVersionJson = obj.version;
+    } else if (url.includes('app-release.json')) {
+      otaDebugLogs.fetchedAppReleaseJson = obj.version;
+    }
+
+    // Map new app-release.json fields to RemoteVersionInfo fields
+    const changelog = typeof obj.description === 'string' ? obj.description : (typeof obj.changelog === 'string' ? obj.changelog : undefined);
+    const downloadUrl = typeof obj.downloadUrl === 'string' ? obj.downloadUrl : (typeof obj.ota_download_url === 'string' ? obj.ota_download_url : undefined);
+    const updateType = (obj.update_type === 'ota' || obj.update_type === 'apk' || obj.update_type === 'both' || obj.update_type === 'none') 
+      ? obj.update_type 
+      : ((obj.updateType === 'ota' || obj.updateType === 'apk' || obj.updateType === 'both' || obj.updateType === 'none') ? obj.updateType : undefined);
+    const apkUrl = typeof obj.download_url === 'string' ? obj.download_url : (typeof obj.apkUrl === 'string' ? obj.apkUrl : undefined);
+    const apkSha256 = typeof obj.sha256 === 'string' ? obj.sha256 : (typeof obj.apkSha256 === 'string' ? obj.apkSha256 : undefined);
+    const manualApkUrl = typeof obj.manual_download_url === 'string' ? obj.manual_download_url : (typeof obj.manualApkUrl === 'string' ? obj.manualApkUrl : undefined);
+    const fallbackApkUrl = typeof obj.fallback_download_url === 'string' ? obj.fallback_download_url : (typeof obj.fallbackApkUrl === 'string' ? obj.fallbackApkUrl : undefined);
+    
+    const reinstallRequired = !!(obj.reinstallRequired || obj.reinstall_required);
+    const signatureChanged = !!(obj.signatureChanged || obj.signature_changed);
+    const previousSignatureSha256 = typeof obj.previousSignatureSha256 === 'string' ? obj.previousSignatureSha256 : (typeof obj.previous_signature_sha256 === 'string' ? obj.previous_signature_sha256 : undefined);
+    const newSignatureSha256 = typeof obj.newSignatureSha256 === 'string' ? obj.newSignatureSha256 : (typeof obj.new_signature_sha256 === 'string' ? obj.new_signature_sha256 : undefined);
+    const installMode = (obj.installMode === 'reinstall-required' || obj.install_mode === 'reinstall-required') ? 'reinstall-required' : undefined;
+    const packageName = typeof obj.packageName === 'string' ? obj.packageName : (typeof obj.package_name === 'string' ? obj.package_name : undefined);
+    
+    const requiredApkVersion = typeof obj.required_apk_version === 'string'
+      ? obj.required_apk_version
+      : (typeof obj.requiredApkVersion === 'string' ? obj.requiredApkVersion : undefined);
+    const requiredVersionCode = typeof obj.required_version_code === 'number'
+      ? obj.required_version_code
+      : (typeof obj.requiredVersionCode === 'number' ? obj.requiredVersionCode : (typeof obj.required_version_code === 'string' ? parseInt(obj.required_version_code, 10) : (typeof obj.requiredVersionCode === 'string' ? parseInt(obj.requiredVersionCode, 10) : undefined)));
+    const versionCode = typeof obj.versionCode === 'number'
+      ? obj.versionCode
+      : (typeof obj.version_code === 'number' ? obj.version_code : (typeof obj.versionCode === 'string' ? parseInt(obj.versionCode, 10) : (typeof obj.version_code === 'string' ? parseInt(obj.version_code, 10) : undefined)));
+
+    let parsedReleaseNotes: string[] | StructuredReleaseNotes | undefined = undefined;
+    if (obj.releaseNotes) {
+      if (Array.isArray(obj.releaseNotes)) {
+        parsedReleaseNotes = obj.releaseNotes.filter((item: any) => typeof item === 'string') as string[];
+      } else if (typeof obj.releaseNotes === 'object') {
+        const rnObj = obj.releaseNotes as any;
+        const notesObj: StructuredReleaseNotes = {};
+        if (Array.isArray(rnObj.added)) {
+          notesObj.added = rnObj.added.filter((item: any) => typeof item === 'string') as string[];
+        }
+        if (Array.isArray(rnObj.improved)) {
+          notesObj.improved = rnObj.improved.filter((item: any) => typeof item === 'string') as string[];
+        }
+        if (Array.isArray(rnObj.fixed)) {
+          notesObj.fixed = rnObj.fixed.filter((item: any) => typeof item === 'string') as string[];
+        }
+        if (Array.isArray(rnObj.changed)) {
+          notesObj.changed = rnObj.changed.filter((item: any) => typeof item === 'string') as string[];
+        }
+        if (notesObj.added || notesObj.improved || notesObj.fixed || notesObj.changed) {
+          parsedReleaseNotes = notesObj;
+        }
+      }
+    }
+
+    return {
+      version: obj.version,
+      changelog,
+      mandatory: obj.mandatory === true,
+      downloadUrl,
+      updateType,
+      apkUrl,
+      apkSha256,
+      manualApkUrl,
+      fallbackApkUrl,
+      releaseNotes: parsedReleaseNotes,
+      requiredApkVersion,
+      requiredVersionCode,
+      versionCode,
+      platform: typeof obj.platform === 'string' ? obj.platform : undefined,
+      reinstallRequired,
+      signatureChanged,
+      previousSignatureSha256,
+      newSignatureSha256,
+      installMode,
+      packageName,
+    };
+  } catch (err) {
+    const errMsg = err instanceof Error ? err.message : String(err);
+    if (url.includes('version.json')) otaDebugLogs.fetchedVersionJson = `Error: ${errMsg}`;
+    if (url.includes('app-release.json')) otaDebugLogs.fetchedAppReleaseJson = `Error: ${errMsg}`;
     return null;
   }
 }
 
-export async function getNativeVersionCode(): Promise<number | null> {
-  if (!isNative()) return null;
+/**
+ * Fetch the remote version manifest. Tries every URL returned by
+ * `versionJsonUrls()` IN PARALLEL and returns whichever response
+ * resolves first. Racing in parallel ensures we bypass any slow caching
+ * and get the latest version from Firebase Hosting.
+ *
+ * Resolves to `null` only when EVERY source failed. Never throws.
+ */
+export async function fetchRemoteVersion(
+  signal?: AbortSignal,
+): Promise<RemoteVersionInfo | null> {
+  const urls = versionJsonUrls();
+  if (urls.length === 0) return null;
+
+  const ctrl = signal ? null : new AbortController();
+  const sig = signal ?? ctrl!.signal;
+  const timer = ctrl ? setTimeout(() => ctrl.abort(), FETCH_TIMEOUT_MS) : null;
+
   try {
-    const { AppInstaller } = await import('./apkDownloader');
-    const info = await AppInstaller.getInstalledAppInfo();
-    return info.versionCode;
-  } catch (e) {
-    console.warn('[OTA] Failed to query native app version code:', e);
-    return null;
+    // Race all URL fetches in parallel, resolving immediately on the first
+    // successful fetch of a version strictly newer than local APP_VERSION.
+    // Otherwise, collect them and fallback to the best response once all complete.
+    return await new Promise<RemoteVersionInfo | null>((resolve) => {
+      let resolved = false;
+      let failedCount = 0;
+      let fallbackRes: RemoteVersionInfo | null = null;
+      const total = urls.length;
+
+      urls.forEach((url) => {
+        fetchOne(url, sig)
+          .then((res) => {
+            if (resolved) return;
+            if (res) {
+              if (compareSemver(res.version, APP_VERSION) > 0) {
+                resolved = true;
+                resolve(res);
+              } else {
+                fallbackRes = res;
+                failedCount++;
+                if (failedCount === total) {
+                  resolve(fallbackRes);
+                }
+              }
+            } else {
+              failedCount++;
+              if (failedCount === total) {
+                resolve(fallbackRes);
+              }
+            }
+          })
+          .catch(() => {
+            if (resolved) return;
+            failedCount++;
+            if (failedCount === total) {
+              resolve(fallbackRes);
+            }
+          });
+      });
+    });
+  } finally {
+    if (timer) clearTimeout(timer);
   }
 }
 
+/**
+ * Best-effort: compare the remote version against the bundle's version
+ * and return whether an update is available. All errors swallowed.
+ */
+export type OtaUpdateState =
+  | 'idle'
+  | 'checking'
+  | 'available'
+  | 'manual_apk_required'
+  | 'downloading_ota'
+  | 'downloading_apk'
+  | 'verifying_apk'
+  | 'ready_to_install'
+  | 'installing'
+  | 'completed'
+  | 'failed'
+  | 'signature_mismatch'
+  | 'versionCode_low'
+  | 'preparing'
+  | 'enteringProgressScreen'
+  | 'downloading'
+  | 'verifying'
+  | 'readyForInstallPrompt'
+  | 'waitingForUserInstallConfirmation'
+  | 'installedOrReady';
+
+export interface CentralizedOtaState {
+  updateState: OtaUpdateState;
+  updateAvailable: boolean;
+  remoteVersion: string | null;
+  changelog: string | null;
+  mandatory: boolean;
+  downloadUrl: string | null;
+  loading: boolean;
+  progress: number;
+  error: string | null;
+  updateType: 'ota' | 'apk' | 'both' | 'none';
+  remoteUpdateType: 'ota' | 'apk' | 'both' | 'none';
+  otaBlockedBecauseApkRequired: boolean;
+  apkUrl: string | null;
+  apkSha256: string | null;
+  manualApkUrl: string | null;
+  fallbackApkUrl: string | null;
+  releaseNotes: string[] | StructuredReleaseNotes | null;
+  statusText: string | null;
+  requiredApkVersion: string | null;
+  requiredVersionCode: number | null;
+  nativeApkBehind: boolean;
+  apkUpdateRequired: boolean;
+  pendingOtaBundleId: string | null;
+  staleOtaCleared: boolean;
+  capgoSetBlocked: boolean;
+  triggerComponent: string | null;
+  finalPathExecuted: 'OTA applied' | 'APK installer launched' | 'blocked due to APK required' | 'N/A';
+  reinstallRequired: boolean;
+  signatureChanged: boolean;
+  previousSignatureSha256: string | null;
+  newSignatureSha256: string | null;
+  installMode: 'reinstall-required' | null;
+  packageName: string | null;
+}
+
+export let globalOtaState: CentralizedOtaState = {
+  updateState: 'idle',
+  updateAvailable: false,
+  remoteVersion: null,
+  changelog: null,
+  mandatory: false,
+  downloadUrl: null,
+  loading: true,
+  progress: 0,
+  error: null,
+  updateType: 'none',
+  remoteUpdateType: 'none',
+  otaBlockedBecauseApkRequired: false,
+  apkUrl: null,
+  apkSha256: null,
+  manualApkUrl: null,
+  fallbackApkUrl: null,
+  releaseNotes: null,
+  statusText: null,
+  requiredApkVersion: null,
+  requiredVersionCode: null,
+  nativeApkBehind: false,
+  apkUpdateRequired: false,
+  pendingOtaBundleId: null,
+  staleOtaCleared: false,
+  capgoSetBlocked: false,
+  triggerComponent: null,
+  finalPathExecuted: 'N/A',
+  reinstallRequired: false,
+  signatureChanged: false,
+  previousSignatureSha256: null,
+  newSignatureSha256: null,
+  installMode: null,
+  packageName: null,
+};
+
+const stateListeners = new Set<(state: CentralizedOtaState) => void>();
+
+export const stateTransitionHistory: Array<{ timestamp: number; from: OtaUpdateState; to: OtaUpdateState }> = [];
+export const lifecycleHistory: Array<{ timestamp: number; state: string }> = [];
+export const packageInstallerHistory: Array<{ timestamp: number; event: string; details?: any }> = [];
+
+// Initialize lifecycle listener
+if (isNative()) {
+  import('@capacitor/app').then(({ App }) => {
+    App.addListener('appStateChange', (state) => {
+      lifecycleHistory.push({
+        timestamp: Date.now(),
+        state: state.isActive ? 'RESUME / ACTIVE' : 'PAUSE / BACKGROUND'
+      });
+    });
+  }).catch(() => {});
+}
+
+function updateGlobalState(updates: Partial<CentralizedOtaState>) {
+  const oldState = globalOtaState.updateState;
+  globalOtaState = { ...globalOtaState, ...updates };
+  const newState = globalOtaState.updateState;
+  if (oldState !== newState) {
+    stateTransitionHistory.push({
+      timestamp: Date.now(),
+      from: oldState,
+      to: newState
+    });
+  }
+  stateListeners.forEach((l) => l(globalOtaState));
+}
+
+// ── SIMULATION FUNCTIONS ──
+export function simulateTimeout() {
+  updateGlobalState({
+    updateState: 'checking',
+    loading: true,
+    error: null,
+  });
+  setTimeout(() => {
+    otaDebugLogs.updateDecision = 'failed';
+    otaDebugLogs.updateDecisionReason = 'timeout';
+    otaDebugLogs.lastExceptionStackTrace = 'TimeoutError: Connection timed out after 6000ms';
+    
+    otaDiagnostics.exceptionMessage = 'Connection timed out';
+    otaDiagnostics.failureReason = 'Simulated timeout during update check';
+    otaDiagnostics.timestamp = new Date().toISOString();
+    
+    updateGlobalState({
+      updateState: 'failed',
+      loading: false,
+      error: 'Connection timed out',
+    });
+  }, 1000);
+}
+
+export function simulateChecksumFailure() {
+  updateGlobalState({
+    updateState: 'downloading',
+    progress: 0.5,
+    error: null,
+    statusText: 'Downloading update (Simulated)',
+  });
+  setTimeout(() => {
+    updateGlobalState({
+      updateState: 'verifying',
+      progress: 1.0,
+      statusText: 'Verifying package (Simulated)',
+    });
+    setTimeout(() => {
+      otaDebugLogs.shaVerification = 'FAILED';
+      otaDebugLogs.updateDecision = 'failed';
+      otaDebugLogs.updateDecisionReason = 'checksum_failure';
+      otaDebugLogs.lastExceptionStackTrace = 'Error: APK hash verification failed (corrupted download)';
+      
+      otaDiagnostics.exceptionMessage = 'Hash verification failed';
+      otaDiagnostics.failureReason = 'Simulated checksum failure: expected SHA-256 does not match computed SHA-256';
+      otaDiagnostics.shaExpected = '900cf259185c81100cda8bb08571fa23552e9789131cf07a8f4056e4d4129206';
+      otaDiagnostics.shaCalculated = '3f786850e0c1100cda8bb08571fa23552e9789131cf07a8f4056e4d4129206';
+      otaDiagnostics.timestamp = new Date().toISOString();
+      
+      updateGlobalState({
+        updateState: 'failed',
+        loading: false,
+        error: 'APK hash verification failed (corrupted download)',
+        statusText: null,
+      });
+    }, 1000);
+  }, 1000);
+}
+
+export function simulateNetworkFailure() {
+  updateGlobalState({
+    updateState: 'checking',
+    loading: true,
+    error: null,
+  });
+  setTimeout(() => {
+    otaDebugLogs.updateDecision = 'failed';
+    otaDebugLogs.updateDecisionReason = 'network_failure';
+    otaDebugLogs.lastExceptionStackTrace = 'TypeError: Network request failed';
+    
+    otaDiagnostics.exceptionMessage = 'Network request failed';
+    otaDiagnostics.failureReason = 'Simulated network failure during update check';
+    otaDiagnostics.timestamp = new Date().toISOString();
+    
+    updateGlobalState({
+      updateState: 'failed',
+      loading: false,
+      error: 'Network request failed',
+    });
+  }, 1000);
+}
+
+export function simulateCancel() {
+  updateGlobalState({
+    updateState: 'downloading',
+    progress: 0.3,
+    statusText: 'Downloading update (Simulated)',
+  });
+  setTimeout(() => {
+    otaDebugLogs.downloadStatus = 'CANCELLED';
+    updateGlobalState({
+      updateState: 'available',
+      progress: 0,
+      statusText: 'Update cancelled by user',
+    });
+  }, 1000);
+}
+
+export function simulateInstallFailure() {
+  updateGlobalState({
+    updateState: 'installing',
+    statusText: 'Installing update (Simulated)',
+  });
+  setTimeout(() => {
+    otaDebugLogs.installError = 'PackageInstaller failed: INSTALL_FAILED_CONFLICTING_PROVIDER';
+    otaDebugLogs.installerLaunchStatus = 'FAILED';
+    otaDebugLogs.lastExceptionStackTrace = 'Error: PackageInstaller failed with exit code 1';
+    
+    otaDiagnostics.exceptionMessage = 'Installation failed';
+    otaDiagnostics.failureReason = 'Simulated install failure: INSTALL_FAILED_CONFLICTING_PROVIDER';
+    otaDiagnostics.installerResult = 'INSTALL_FAILED_CONFLICTING_PROVIDER';
+    otaDiagnostics.timestamp = new Date().toISOString();
+    
+    updateGlobalState({
+      updateState: 'failed',
+      error: 'PackageInstaller failed with exit code 1',
+      statusText: 'Installation failed',
+    });
+  }, 1000);
+}
+
+export function simulateServerUnavailable() {
+  updateGlobalState({
+    updateState: 'checking',
+    loading: true,
+    error: null,
+  });
+  setTimeout(() => {
+    otaDebugLogs.updateDecision = 'failed';
+    otaDebugLogs.updateDecisionReason = 'server_unavailable';
+    otaDebugLogs.lastExceptionStackTrace = 'HTTP Error 503: Service Unavailable';
+    
+    otaDiagnostics.exceptionMessage = 'HTTP Error 503 Service Unavailable';
+    otaDiagnostics.failureReason = 'Simulated server unavailable (503)';
+    otaDiagnostics.timestamp = new Date().toISOString();
+    
+    updateGlobalState({
+      updateState: 'failed',
+      loading: false,
+      error: 'HTTP Error 503 Service Unavailable',
+    });
+  }, 1000);
+}
+
+export function simulateCorruptedApk() {
+  updateGlobalState({
+    updateState: 'downloading',
+    progress: 0.8,
+    statusText: 'Downloading update (Simulated)',
+  });
+  setTimeout(() => {
+    updateGlobalState({
+      updateState: 'verifying',
+      statusText: 'Verifying package (Simulated)',
+    });
+    setTimeout(() => {
+      otaDebugLogs.downloadedIsValidApk = false;
+      otaDebugLogs.eligibilityFinalInstall = 'cannot install';
+      otaDebugLogs.eligibilityReason = 'invalid_apk';
+      otaDebugLogs.apkEligibilityResult = 'invalid_apk';
+      otaDebugLogs.lastExceptionStackTrace = 'Error: Eligibility validation failed: invalid_apk';
+      
+      otaDiagnostics.exceptionMessage = 'Eligibility validation failed';
+      otaDiagnostics.failureReason = 'Simulated corrupted APK: invalid ZIP/APK headers';
+      otaDiagnostics.timestamp = new Date().toISOString();
+      
+      updateGlobalState({
+        updateState: 'failed',
+        error: 'Eligibility validation failed: invalid_apk',
+        statusText: null,
+      });
+    }, 1000);
+  }, 1000);
+}
+
+export function simulateRollback() {
+  updateGlobalState({
+    updateState: 'checking',
+    loading: true,
+  });
+  setTimeout(() => {
+    otaDebugLogs.updateDecision = 'apk';
+    otaDebugLogs.updateDecisionReason = 'rollback';
+    otaDebugLogs.remoteVersionCode = 10;
+    otaDebugLogs.installedVersionCode = 20;
+    
+    otaDiagnostics.exceptionMessage = null;
+    otaDiagnostics.failureReason = 'Rollback to version 3.6.30 triggered by server';
+    otaDiagnostics.timestamp = new Date().toISOString();
+    
+    updateGlobalState({
+      updateState: 'available',
+      updateAvailable: true,
+      remoteVersion: '3.6.30',
+      changelog: 'Rollback to stable version 3.6.30.',
+      mandatory: true,
+      reinstallRequired: true,
+      loading: false,
+    });
+  }, 1000);
+}
 
 export function resetOtaUpdateState() {
   updateGlobalState({
     updateState: 'idle',
-    loading: false,
-    progress: 0,
-    error: null,
-    statusText: null,
-    remoteVersion: null,
     updateAvailable: false,
-    mandatory: false,
+    remoteVersion: null,
     changelog: null,
+    mandatory: false,
+    downloadUrl: null,
+    error: null,
+    progress: 0,
+    updateType: 'none',
+    remoteUpdateType: 'none',
+    otaBlockedBecauseApkRequired: false,
+    apkUrl: null,
+    apkSha256: null,
+    manualApkUrl: null,
+    fallbackApkUrl: null,
     releaseNotes: null,
+    requiredApkVersion: null,
+    requiredVersionCode: null,
+    nativeApkBehind: false,
+    apkUpdateRequired: false,
+    pendingOtaBundleId: null,
+    staleOtaCleared: false,
+    capgoSetBlocked: false,
+    triggerComponent: null,
+    finalPathExecuted: 'N/A',
   });
 }
 
-export async function enforceStartupRecovery() {
-  console.log('[OTA DEBUG] enforceStartupRecovery starting...');
-  
-  if (!isNative() || !isAppInstallerAvailable()) {
-    return;
-  }
-
-  try {
-    const { AppInstaller } = await import('./apkDownloader');
-    const check = await AppInstaller.isInstallActive();
-    
-    if (check.active) {
-      console.log('[OTA DEBUG] enforceStartupRecovery: Active PackageInstaller session detected. Setting state to installing.');
-      const result = await AppInstaller.getLastInstallResult();
-      const expectedName = result.expectedVersionName || null;
-      const expectedCode = result.expectedVersionCode || null;
-      
-      updateGlobalState({
-        updateState: 'installing',
-        remoteVersion: expectedName,
-        requiredVersionCode: expectedCode ? Number(expectedCode) : 0,
-        statusText: 'Installing update...',
-        loading: true,
-      });
-      return;
-    }
-
-    const result = await AppInstaller.getLastInstallResult();
-    if (result.statusCode !== -999) {
-      console.log('[OTA DEBUG] enforceStartupRecovery: Pending install result exists (code ' + result.statusCode + ').');
-      const processed = processLastInstallResult(result);
-      if (processed) {
-        updateGlobalState({
-          updateState: (processed.category === 'cancelled' ? 'failed' : processed.category) as OtaUpdateState,
-          error: processed.errMsg,
-          statusText: processed.errMsg
-        });
-      }
-      return;
-    }
-
-    console.log('[OTA DEBUG] No active session and no pending result. Resetting state to IDLE.');
-    stopWatchdog();
-
-    activeCheckPromise = null;
-    activeApplyPromise = null;
-    activeDownloadPromise = null;
-
-    resetOtaUpdateState();
-
-    const downloadedPath = localStorage.getItem('studio:downloadedApkPath');
-    if (downloadedPath) {
-      const { Filesystem } = await import('@capacitor/filesystem');
-      await Filesystem.deleteFile({ path: downloadedPath }).catch(() => {});
-      localStorage.removeItem('studio:downloadedApkPath');
-    }
-  } catch (err) {
-    console.warn('[OTA] enforceStartupRecovery error:', err);
-  }
-}
-
-// Queue / Check variables
-let latestCheckId = 0;
-let activeCheckIsManual = false;
 let activeCheckPromise: Promise<CentralizedOtaState> | null = null;
 let activeDownloadPromise: Promise<void> | null = null;
 let activeApplyPromise: Promise<void> | null = null;
 
 let lastCheckedTime = 0;
-function resetLastCheckedTime() {
-  lastCheckedTime = 0;
-}
-const MIN_AUTO_CHECK_INTERVAL_MS = 15 * 60 * 1000;
+const MIN_AUTO_CHECK_INTERVAL_MS = 15 * 60 * 1000; // 15 minutes rate limit for auto updates
 
-export function checkForUpdate(isManual = false, trigger = 'unknown', reason = 'unknown'): Promise<CentralizedOtaState> {
-  const current = globalOtaState.updateState;
-  
-  // Do NOT run a check if we are in the middle of downloading, verifying, or installing.
-  const isBusy = [
-    'downloading',
-    'verifying',
-    'verifying_sha',
-    'verifying_eligibility',
-    'ready_to_install',
-    'waiting_for_confirmation',
-    'installing',
-    'installed',
-  ].includes(current);
+/**
+ * Centralized checkForUpdate: racing fetches in parallel, resolving
+ * immediately, checking seen/dismissed locks, and locking concurrent requests.
+ */
+export function checkForUpdate(isManual = false): Promise<CentralizedOtaState> {
+  // 1. Synchronously return if check is already running
+  if (activeCheckPromise) return activeCheckPromise;
 
-  if (isBusy) {
-    console.log(`[OTA] Skipping checkForUpdate: installer is currently busy (state: ${current})`);
-    return Promise.resolve(globalOtaState);
-  }
-
-  // If it's a background/automatic check (not manual), and we already have an update available
-  // or a failed state, do NOT run the check to avoid wiping out the user-facing state.
-  if (!isManual && current !== 'idle') {
-    console.log(`[OTA] Skipping background checkForUpdate: current state is ${current}`);
-    return Promise.resolve(globalOtaState);
-  }
-
-  const callId = nextJsCallId();
-
-  let callerInfo = 'Unknown';
-  try {
-    const stack = new Error().stack;
-    if (stack) {
-      const lines = stack.split('\n');
-      if (lines.length > 2) {
-        callerInfo = lines[2].trim();
-      }
-    }
-  } catch {
-    /* ignore */
-  }
-
-  logDetailedJsTrace('checkForUpdate', 'otaUpdate.ts', 326, `Entering checkForUpdate Call #${callId}`, { prevState: globalOtaState.updateState, reason: `Trigger: ${trigger} | Reason: ${reason}` });
-
-  if (activeCheckPromise) {
-    if (!activeCheckIsManual && isManual) {
-      logDetailedJsTrace('checkForUpdate', 'otaUpdate.ts', 330, `Obsoleting background check in favor of manual check Call #${callId}`, { prevState: globalOtaState.updateState });
-      activeCheckPromise = null;
-      activeCheckIsManual = true;
-    } else {
-      logDetailedJsTrace('checkForUpdate', 'otaUpdate.ts', 333, `Exiting checkForUpdate Call #${callId} early (reusing activeCheckPromise)`, { prevState: globalOtaState.updateState });
-      return activeCheckPromise;
-    }
-  }
-
-  const checkId = ++latestCheckId;
-  logDetailedJsTrace('checkForUpdate', 'otaUpdate.ts', 338, `Starting new update check (checkId=${checkId})`, { prevState: globalOtaState.updateState });
-
+  // Rate limit non-manual auto updates to avoid infinite loops on focus changes, etc.
   if (!isManual) {
     const now = Date.now();
     if (now - lastCheckedTime < MIN_AUTO_CHECK_INTERVAL_MS) {
@@ -347,90 +1064,28 @@ export function checkForUpdate(isManual = false, trigger = 'unknown', reason = '
     }
   }
 
+  // 2. Synchronous early return if check is unnecessary
+  if (globalOtaState.updateState === 'downloading_ota' || 
+      globalOtaState.updateState === 'downloading_apk' || 
+      globalOtaState.updateState === 'verifying_apk' || 
+      globalOtaState.updateState === 'ready_to_install' || 
+      globalOtaState.updateState === 'installing' || 
+      globalOtaState.updateState === 'completed') {
+    return Promise.resolve(globalOtaState);
+  }
+
+  // 3. Clear session storage locks on manual checks so the modal always auto-opens
   if (isManual) {
     removeSessionItem('studio:laterUpdateVersion');
     removeSessionItem('studio:autoOpenedUpdateVersion');
   }
 
-
   activeCheckPromise = (async () => {
-    const startTime = Date.now();
-    transitionToState('checking', 'checkForUpdate start');
+    updateGlobalState({ updateState: 'checking', loading: true });
     try {
-      if (updaterSimulation.forceMetadataFailure) {
-        addJsLog('Simulation override: Injecting Metadata Fetch Failure');
-        throw new Error('[Metadata Failure] Simulated network metadata fetch failure.');
-      }
-      
-      if (updaterSimulation.forceRecoveryMode) {
-        addJsLog('Simulation override: Forcing Recovery Mode');
-        updateGlobalState({ consecutiveFailures: 5, recoveryMode: true });
-      }
-
-      const natVer = await getNativeVersion();
-      const natVerCode = await getNativeVersionCode();
-
-      let remote;
-      if (updaterSimulation.forceUpdateAvailable) {
-        remote = {
-          version: '3.7.99',
-          versionCode: 999,
-          mandatory: updaterSimulation.forceMandatoryUpdate,
-          apkUrl: 'https://cdn.example.com/studio-3.7.99.apk',
-          apkSha256: '900cf259185c81100cda8bb08571fa23552e9789131cf07a8f4056e4d4129206',
-          changelog: 'Simulated update release notes.',
-          releaseNotes: { added: ['Feature A'], improved: ['Performance B'], fixed: ['Bug C'] }
-        };
-        addJsLog(`Simulation override: Forcing Update Available (v3.7.99)`);
-      } else if (updaterSimulation.forceNoUpdate) {
-        remote = {
-          version: APP_VERSION,
-          versionCode: natVerCode ?? 1,
-          mandatory: false,
-          apkUrl: '',
-          apkSha256: ''
-        };
-        addJsLog(`Simulation override: Forcing No Update (matching current version ${APP_VERSION})`);
-      } else if (updaterSimulation.forceDowngrade) {
-        remote = {
-          version: '3.7.10',
-          versionCode: 10,
-          mandatory: false,
-          apkUrl: 'https://cdn.example.com/studio-3.7.10.apk',
-          apkSha256: '1234567890'
-        };
-        addJsLog(`Simulation override: Forcing Downgrade (v3.7.10)`);
-      } else {
-        remote = await fetchRemoteVersion();
-      }
-
-      if (remote) {
-        if (updaterSimulation.forceApkUpdate) {
-          addJsLog('Simulation override: Forcing APK update type');
-          remote.updateType = 'apk';
-          remote.apkUrl = remote.apkUrl || 'https://cdn.example.com/studio-3.7.99.apk';
-        } else if (updaterSimulation.forceOtaUpdate) {
-          addJsLog('Simulation override: Forcing OTA update type');
-          remote.updateType = 'ota';
-          remote.downloadUrl = remote.downloadUrl || 'https://cdn.example.com/studio-3.7.99.zip';
-        }
-        
-        if (updaterSimulation.forceMandatoryUpdate) {
-          addJsLog('Simulation override: Forcing Mandatory Update');
-          remote.mandatory = true;
-        } else if (updaterSimulation.forceOptionalUpdate) {
-          addJsLog('Simulation override: Forcing Optional Update');
-          remote.mandatory = false;
-        }
-      }
-
-      if (checkId !== latestCheckId) {
-        console.log(`[OTA] Check request checkId=${checkId} was superseded by checkId=${latestCheckId}. Exiting silently.`);
-        return globalOtaState;
-      }
-
+      let remote = await fetchRemoteVersion();
       const mockOta = getSessionItem('studio:mockOtaResponse');
-      if (mockOta && !updaterSimulation.forceUpdateAvailable && !updaterSimulation.forceNoUpdate && !updaterSimulation.forceDowngrade) {
+      if (mockOta) {
         try {
           remote = JSON.parse(mockOta);
           console.log('[OTA DEBUG] Using mock remote response:', remote);
@@ -438,16 +1093,22 @@ export function checkForUpdate(isManual = false, trigger = 'unknown', reason = '
           console.warn('[OTA] Failed to parse mock response:', e);
         }
       }
-
+      const natVer = await getNativeVersion();
+      const appliedList = getStoredList('studio:appliedVersions');
+      const installedList = getStoredList('studio:installedVersions');
       const dismissedList = getStoredList('studio:dismissedVersions');
       const notifiedList = getStoredList('studio:notifiedVersions');
       const laterVersion = getSessionItem('studio:laterUpdateVersion');
+      const urlsTried = versionJsonUrls();
 
+      // Populate debug logs baseline
       otaDebugLogs.appVersion = APP_VERSION;
       otaDebugLogs.nativeApkVersion = natVer || 'N/A';
-      (otaDebugLogs as any).nativeApkVersionCode = natVerCode !== null ? natVerCode.toString() : 'N/A';
-      otaDebugLogs.pendingOtaBundleId = localStorage.getItem('studio:downloadedBundleId') || 'None';
-
+      try {
+        otaDebugLogs.pendingOtaBundleId = localStorage.getItem('studio:downloadedBundleId') || 'None';
+      } catch (_) {
+        otaDebugLogs.pendingOtaBundleId = 'Error';
+      }
       otaDebugLogs.staleOtaCleared = false;
       otaDebugLogs.capgoSetBlocked = false;
       otaDebugLogs.triggerComponent = isManual ? 'Developer Options (Manual Check)' : 'Auto Poll / System';
@@ -455,6 +1116,8 @@ export function checkForUpdate(isManual = false, trigger = 'unknown', reason = '
 
       if (isNative()) {
         otaDebugLogs.currentOtaVersion = 'disabled';
+
+        // Pre-fill AppInstaller diagnostics
         try {
           const cap = (window as any).Capacitor;
           const isNativePlat = cap && typeof cap.isNativePlatform === 'function' && cap.isNativePlatform();
@@ -489,429 +1152,454 @@ export function checkForUpdate(isManual = false, trigger = 'unknown', reason = '
             otaDebugLogs.pluginMethodCheck = isNativePlat ? 'Plugin not found' : 'N/A (Web)';
             otaDebugLogs.installerLaunchStatus = `MISSING: AppInstaller not registered. Plugins: ${registry.join(', ')}`;
           }
-        } catch (e) {
-          console.warn('[OTA] AppInstaller diagnostics failed:', e);
+        } catch (registryErr: any) {
+          otaDebugLogs.pluginMethodCheck = 'Check failed';
+          otaDebugLogs.installerLaunchStatus = `Registry check failed: ${registryErr?.message || String(registryErr)}`;
         }
+      } else {
+        otaDebugLogs.currentOtaVersion = 'N/A (Web)';
       }
 
-      if (isNative() && isAppInstallerAvailable()) {
-        try {
-          const { AppInstaller } = await import('./apkDownloader');
-          const result = await AppInstaller.getLastInstallResult();
-          console.log('[OTA DEBUG] Last install result status:', result);
-          
-          const processed = processLastInstallResult(result);
-          if (processed) {
-            otaDiagnostics.statusCode = result.statusCode;
-            otaDiagnostics.statusText = processed.errMsg;
-            otaDiagnostics.exceptionMessage = processed.errMsg;
-            otaDiagnostics.failureReason = `PackageInstaller code ${result.statusCode}\nMessage: ${result.statusMessage}\nPackage: ${result.packageName}`;
-            otaDiagnostics.installerResult = `Code: ${result.statusCode}\nMessage: ${result.statusMessage}\nPackage: ${result.packageName}\nTimestamp: ${new Date(result.timestamp).toISOString()}`;
-            otaDiagnostics.timestamp = new Date(result.timestamp).toISOString();
-
-            await populateDiagnostics(null, 'PackageInstaller failure detected');
-
-            updateGlobalState({
-              updateState: (processed.category === 'cancelled' ? 'failed' : processed.category) as OtaUpdateState,
-              error: processed.errMsg
-            });
-            const duration = Date.now() - startTime;
-            console.log(`[INSTRUMENTATION] checkForUpdate EXIT Call #${callId} duration=${duration}ms resolvedState=${globalOtaState.updateState}`);
-            return globalOtaState;
-          }
-        } catch (err) {
-          console.warn('[OTA] Failed to fetch last native install result:', err);
+      console.log('[OTA DEBUG] checkForUpdate started:', {
+        installedBundleVersion: APP_VERSION,
+        nativeApkVersion: natVer,
+        remoteFetched: remote,
+        urlsTried,
+        caches: {
+          appliedList,
+          installedList,
+          dismissedList,
+          notifiedList,
+          laterVersion
         }
-      }
+      });
 
       if (!remote) {
-        if (isManual) {
-          updateGlobalState({ error: 'Unable to contact the update server.' });
-          transitionToState('failed', 'Manual check failed: no remote metadata');
-        } else {
-          transitionToState('idle', 'Auto-check completed: no remote metadata');
-        }
-        const duration = Date.now() - startTime;
-        console.log(`[INSTRUMENTATION] checkForUpdate EXIT Call #${callId} duration=${duration}ms resolvedState=${globalOtaState.updateState}`);
+        console.log('[OTA DEBUG] Skip: fetchRemoteVersion returned null.');
+        otaDebugLogs.compareResult = null;
+        otaDebugLogs.updateType = null;
+        otaDebugLogs.finalDecision = 'Skip: fetchRemoteVersion returned null';
+        updateGlobalState({ updateState: 'idle', updateAvailable: false, loading: false });
         return globalOtaState;
       }
 
-      const comp = compareVersions(remote, APP_VERSION, natVerCode ?? undefined);
-      otaDebugLogs.updateDecision = comp.updateAvailable ? 'update_available' : 'up_to_date';
-      otaDebugLogs.updateDecisionReason = `Remote version ${remote.version} vs local version ${APP_VERSION}`;
+      const cmp = compareSemver(remote.version, APP_VERSION);
+      otaDebugLogs.compareResult = cmp;
 
-      if (comp.updateAvailable) {
-        const isDismissed = dismissedList.includes(remote.version);
-        const isLater = laterVersion === remote.version;
-
-        if (!isManual && (isDismissed || isLater)) {
-          console.log(`[OTA] Skipping auto-prompt for version ${remote.version} (user dismissed/later).`);
-          updateGlobalState({
-            remoteVersion: remote.version,
-            updateAvailable: true,
-            mandatory: remote.mandatory ?? false,
-            changelog: remote.changelog ?? null,
-            releaseNotes: remote.releaseNotes ?? null,
-            apkUrl: remote.apkUrl ?? null,
-            apkSha256: remote.apkSha256 ?? null,
-            manualApkUrl: remote.manualApkUrl ?? null,
-            fallbackApkUrl: remote.fallbackApkUrl ?? null,
-          });
-          await checkAndCleanCache();
-          transitionToState('idle', 'User dismissed/later');
-          const duration = Date.now() - startTime;
-          console.log(`[INSTRUMENTATION] checkForUpdate EXIT Call #${callId} duration=${duration}ms resolvedState=${globalOtaState.updateState}`);
-          return globalOtaState;
+      let installedVersionCode = 0;
+      let installedVersionName = '';
+      let installedSignature = '';
+      if (isNative()) {
+        try {
+          const { AppInstaller } = await import('./apkDownloader');
+          const installedDetails = await AppInstaller.getInstalledAppDetails();
+          installedVersionCode = installedDetails.versionCode;
+          installedVersionName = installedDetails.versionName;
+          installedSignature = (installedDetails.signatures || '').replace(/:/g, '').toLowerCase().trim();
+        } catch (err) {
+          console.warn('[OTA] Failed to query installed details:', err);
         }
-
-        updateGlobalState({
-          remoteVersion: remote.version,
-          updateAvailable: true,
-          mandatory: remote.mandatory ?? false,
-          changelog: remote.changelog ?? null,
-          releaseNotes: remote.releaseNotes ?? null,
-          apkUrl: remote.apkUrl ?? null,
-          apkSha256: remote.apkSha256 ?? null,
-          manualApkUrl: remote.manualApkUrl ?? null,
-          fallbackApkUrl: remote.fallbackApkUrl ?? null,
-        });
-
-        await checkAndCleanCache();
-        transitionToState('update_available', 'New update found');
-        void logProgressStage('Update detected', `Version: ${remote.version}`);
-      } else {
-        transitionToState('idle', 'App is up to date');
       }
 
-      const duration = Date.now() - startTime;
-      logDetailedJsTrace('checkForUpdate', 'otaUpdate.ts', 584, `Exiting checkForUpdate Call #${callId} successfully`, { durationMs: duration, prevState: 'checking', nextState: globalOtaState.updateState });
+      let nativeApkBehind = false;
+      let apkUpdateRequired = false;
+      let staleOtaCleared = true;
+
+      // Ensure old Capgo OTA state is completely cleared
+      try {
+        localStorage.removeItem('studio:downloadedBundleId');
+      } catch (_) {}
+
+      const isNativePlat = isNative();
+      const targetVersionCode = remote.versionCode ?? remote.requiredVersionCode;
+      
+      const apkUrlPresent = !!(remote.apkUrl || remote.downloadUrl);
+      const apkShaPresent = !!remote.apkSha256;
+      const apkMetadataValid = !!(remote.version && remote.platform === 'android' && apkUrlPresent && apkShaPresent);
+      
+      const isDismissed = dismissedList.includes(remote.version) || laterVersion === remote.version;
+      const skippedDismissedState = isDismissed ? 'skipped_by_user' : 'not_skipped';
+      
+      const releaseChannel = (remote as any).releaseChannel || (remote as any).channel || 'production';
+      const rolloutEligibility = (remote as any).rollout !== undefined ? `${(remote as any).rollout}%` : '100%';
+
+      const localCompareVersion = (isNativePlat && installedVersionName) ? installedVersionName : APP_VERSION;
+
+      let versionComparisonResult = 'same_version';
+      if (isNativePlat) {
+        if (targetVersionCode && installedVersionCode > 0) {
+          if (targetVersionCode > installedVersionCode) {
+            versionComparisonResult = 'remote_version_higher';
+          } else if (targetVersionCode < installedVersionCode) {
+            versionComparisonResult = 'remote_version_lower';
+          } else {
+            versionComparisonResult = 'same_version';
+          }
+        } else {
+          const sCmp = compareSemver(remote.version, localCompareVersion);
+          versionComparisonResult = sCmp > 0 ? 'remote_version_higher' : (sCmp < 0 ? 'remote_version_lower' : 'same_version');
+        }
+      } else {
+        const sCmp = compareSemver(remote.version, APP_VERSION);
+        versionComparisonResult = sCmp > 0 ? 'remote_version_higher' : (sCmp < 0 ? 'remote_version_lower' : 'same_version');
+      }
+
+      const isUpgrade = isNativePlat
+        ? (targetVersionCode && installedVersionCode > 0
+            ? targetVersionCode > installedVersionCode
+            : compareSemver(remote.version, localCompareVersion) > 0)
+        : compareSemver(remote.version, APP_VERSION) > 0;
+
+      if (isUpgrade) {
+        nativeApkBehind = true;
+        apkUpdateRequired = true;
+        
+        // Clear stale cached APK path if the cached version name is different from target remote version
+        const downloadedPath = localStorage.getItem('studio:downloadedApkPath');
+        if (downloadedPath && !downloadedPath.includes(`studio-update-${remote.version}.apk`)) {
+          localStorage.removeItem('studio:downloadedApkPath');
+        }
+      }
+
+      let updateType: 'ota' | 'apk' | 'both' | 'none' = 'none';
+      if (isUpgrade) {
+        updateType = 'apk';
+      }
+
+      const updateAvailable = isUpgrade;
+
+      let decisionReason = 'no_update_same_version';
+      if (isUpgrade) {
+        decisionReason = 'upgrade_available';
+      } else {
+        if (!isNativePlat) {
+          decisionReason = 'native_platform_not_detected';
+        } else if (remote.platform !== 'android') {
+          decisionReason = 'wrong_platform';
+        } else if (!apkUrlPresent) {
+          decisionReason = 'missing_apk_url';
+        } else if (!apkShaPresent) {
+          decisionReason = 'missing_apk_sha';
+        } else if (isDismissed) {
+          decisionReason = 'skipped_by_user';
+        } else if (versionComparisonResult === 'remote_version_lower') {
+          decisionReason = 'remote_version_lower';
+        } else if (versionComparisonResult === 'same_version') {
+          decisionReason = 'no_update_same_version';
+        } else {
+          decisionReason = 'unsupported_update_mode';
+        }
+      }
+
+      otaDebugLogs.installedVersionCode = installedVersionCode;
+      otaDebugLogs.requiredApkVersion = remote.requiredApkVersion || 'N/A';
+      otaDebugLogs.requiredVersionCode = remote.requiredVersionCode || null;
+      otaDebugLogs.nativeApkBehind = nativeApkBehind;
+      otaDebugLogs.apkUpdateRequired = apkUpdateRequired;
+      otaDebugLogs.staleOtaCleared = staleOtaCleared;
+
+      otaDebugLogs.updateType = updateType;
+      otaDebugLogs.remoteUpdateType = remote.updateType || 'none';
+      const otaBlockedBecauseApkRequired = false;
+      otaDebugLogs.otaBlockedBecauseApkRequired = otaBlockedBecauseApkRequired;
+      otaDebugLogs.apkEligibilityResult = 'N/A';
+
+      otaDebugLogs.updateDecision = updateType;
+      otaDebugLogs.updateDecisionReason = decisionReason;
+      otaDebugLogs.remoteVersionCode = targetVersionCode || null;
+      otaDebugLogs.versionComparisonResult = versionComparisonResult;
+      otaDebugLogs.nativePlatformDetected = isNativePlat;
+      otaDebugLogs.platformDetected = remote.platform || 'web';
+      otaDebugLogs.apkMetadataValid = apkMetadataValid;
+      otaDebugLogs.apkUrlPresent = apkUrlPresent;
+      otaDebugLogs.apkShaPresent = apkShaPresent;
+      otaDebugLogs.skippedDismissedState = skippedDismissedState;
+      otaDebugLogs.releaseChannel = releaseChannel;
+      otaDebugLogs.rolloutEligibility = rolloutEligibility;
+
+      // Update global context mirroring variables
+      updateGlobalState({
+        pendingOtaBundleId: null,
+        staleOtaCleared,
+        capgoSetBlocked: false,
+        triggerComponent: otaDebugLogs.triggerComponent,
+        finalPathExecuted: 'N/A'
+      });
+
+      let apkUrl: string | null = null;
+      let manualApkUrl: string | null = null;
+      let fallbackApkUrl: string | null = null;
+
+      if (updateType === 'none') {
+        console.log('[OTA DEBUG] Skip: updateType evaluated to "none" because remote.version <= APP_VERSION and no APK update required.', {
+          remoteVersion: remote.version,
+          updateType
+        });
+        otaDebugLogs.finalDecision = `Skip: updateType is 'none' (remote.version=${remote.version} <= APP_VERSION=${APP_VERSION})`;
+        updateGlobalState({
+          updateState: 'idle',
+          updateAvailable: false,
+          updateType: 'none',
+          remoteUpdateType: remote.updateType || 'none',
+          otaBlockedBecauseApkRequired: false,
+          loading: false,
+          requiredApkVersion: remote.requiredApkVersion ?? null,
+          requiredVersionCode: remote.requiredVersionCode ?? null,
+          nativeApkBehind,
+          apkUpdateRequired,
+          reinstallRequired: false,
+          signatureChanged: false,
+          previousSignatureSha256: null,
+          newSignatureSha256: null,
+          installMode: null,
+          packageName: null,
+        });
+        return globalOtaState;
+      }
+
+      if (remote.apkUrl) {
+        apkUrl = remote.apkUrl;
+      } else {
+        const { resolveApkUrl } = await import('./apkDownloader');
+        apkUrl = await resolveApkUrl(remote.version);
+      }
+      manualApkUrl = remote.manualApkUrl || `https://studio-30f44.web.app/apk/studio-${remote.version}.apk`;
+      fallbackApkUrl = remote.fallbackApkUrl || apkUrl;
+
+      const shouldSkip = !isUpgrade;
+
+      if (shouldSkip) {
+        console.log('[OTA DEBUG] Skip: No upgrade required.', {
+          version: remote.version,
+          isUpgrade
+        });
+        otaDebugLogs.finalDecision = `Skip: No upgrade required (isUpgrade=false)`;
+        updateGlobalState({
+          updateState: 'idle',
+          updateAvailable: false,
+          updateType,
+          remoteUpdateType: remote.updateType || 'none',
+          otaBlockedBecauseApkRequired,
+          loading: false,
+          requiredApkVersion: remote.requiredApkVersion ?? null,
+          requiredVersionCode: remote.requiredVersionCode ?? null,
+          nativeApkBehind,
+          apkUpdateRequired,
+          reinstallRequired: false,
+          signatureChanged: false,
+          previousSignatureSha256: null,
+          newSignatureSha256: null,
+          installMode: null,
+          packageName: null,
+        });
+        return globalOtaState;
+      }
+
+      // Determine final update path
+      let finalPath: 'OTA only' | 'APK first' | 'both: APK first then OTA' | 'manual recovery required' | 'no update' = 'no update';
+      if (!updateAvailable) {
+        finalPath = 'no update';
+      } else if (isNative()) {
+        const isAppInstallerAvail = isAppInstallerAvailable();
+        finalPath = isAppInstallerAvail ? 'APK first' : 'manual recovery required';
+      } else {
+        finalPath = 'manual recovery required';
+      }
+      otaDebugLogs.finalUpdatePath = finalPath;
+
+      // isDismissed already computed above
+      
+      let nextState: OtaUpdateState = (isNative() && !isAppInstallerAvailable())
+        ? 'manual_apk_required'
+        : 'available';
+      
+      otaDebugLogs.finalDecision = `Show: ${nextState === 'manual_apk_required' ? 'Manual APK Update Required' : 'Available'} (isDismissed=${isDismissed})`;
+
+      console.log('[OTA DEBUG] Showing Update:', {
+        version: remote.version,
+        updateType,
+        isDismissed,
+        apkUrl,
+        nextState,
+        apkUpdateRequired
+      });
+
+      let clientReinstallRequired = false;
+      if (remote.reinstallRequired || remote.installMode === 'reinstall-required') {
+        const cleanNewSig = (remote.newSignatureSha256 || '900cf259185c81100cda8bb08571fa23552e9789131cf07a8f4056e4d4129206').replace(/:/g, '').toLowerCase().trim();
+        if (isNative() && installedSignature && installedSignature !== cleanNewSig) {
+          clientReinstallRequired = true;
+        }
+      }
+
+      updateGlobalState({
+        updateState: nextState,
+        updateAvailable: true,
+        remoteVersion: remote.version,
+        changelog: remote.changelog ?? null,
+        mandatory: remote.mandatory === true,
+        downloadUrl: null,
+        updateType,
+        remoteUpdateType: remote.updateType || 'none',
+        otaBlockedBecauseApkRequired,
+        apkUrl,
+        apkSha256: remote.apkSha256 ?? null,
+        manualApkUrl,
+        fallbackApkUrl,
+        releaseNotes: remote.releaseNotes ?? null,
+        loading: false,
+        requiredApkVersion: remote.requiredApkVersion ?? null,
+        requiredVersionCode: remote.requiredVersionCode ?? null,
+        nativeApkBehind,
+        apkUpdateRequired,
+        reinstallRequired: clientReinstallRequired,
+        signatureChanged: remote.signatureChanged === true,
+        previousSignatureSha256: remote.previousSignatureSha256 ?? null,
+        newSignatureSha256: remote.newSignatureSha256 ?? null,
+        installMode: remote.installMode ?? null,
+        packageName: remote.packageName ?? null,
+      });
+
+      // System notification if never seen and not already dismissed
+      if (!notifiedList.includes(remote.version) && !isDismissed) {
+        addToStoredList('studio:notifiedVersions', remote.version);
+        await notifyOtaAvailable(remote.version);
+      }
       return globalOtaState;
     } catch (err) {
-      const duration = Date.now() - startTime;
-      logDetailedJsTrace('checkForUpdate', 'otaUpdate.ts', 589, `Exiting checkForUpdate Call #${callId} with error`, { durationMs: duration, prevState: 'checking', nextState: globalOtaState.updateState, reason: err instanceof Error ? err.message : String(err) });
-      if (isManual) {
-        updateGlobalState({ error: 'Unable to contact the update server.' });
-        transitionToState('failed', 'Manual check exception');
-      } else {
-        transitionToState('idle', 'Auto-check exception');
-      }
+      console.warn('[OTA] Check failed:', err);
+      updateGlobalState({ updateState: 'failed', error: String(err), loading: false });
       return globalOtaState;
     } finally {
-      if (checkId === latestCheckId) {
-        activeCheckPromise = null;
-        activeCheckIsManual = false;
-        lastCheckedTime = Date.now();
-      }
+      activeCheckPromise = null;
+      lastCheckedTime = Date.now();
     }
   })();
 
   return activeCheckPromise;
 }
 
-export async function checkAndCleanCache(): Promise<boolean> {
-  const ver = globalOtaState.remoteVersion;
-  if (!ver) {
-    updateGlobalState({ validApkExists: false });
+export async function runEligibilityCheck(filePath: string): Promise<boolean> {
+  try {
+    const { checkApkEligibility } = await import('./apkDownloader');
+    const el = await checkApkEligibility(filePath);
+    
+    // Populate installed app info
+    otaDebugLogs.installedPackageName = el.installed?.packageName ?? null;
+    otaDebugLogs.installedVersionName = el.installed?.versionName ?? null;
+    otaDebugLogs.installedVersionCode = el.installed?.versionCode ?? null;
+    otaDebugLogs.installedSigningSha256 = el.installed?.signingSha256 ?? null;
+    otaDebugLogs.installedDebuggable = el.installed?.debuggable ?? null;
+
+    // Populate downloaded APK info
+    otaDebugLogs.downloadedPackageName = el.downloaded?.packageName ?? null;
+    otaDebugLogs.downloadedVersionName = el.downloaded?.versionName ?? null;
+    otaDebugLogs.downloadedVersionCode = el.downloaded?.versionCode ?? null;
+    otaDebugLogs.downloadedSigningSha256 = el.downloaded?.signingSha256 ?? null;
+    otaDebugLogs.downloadedDebuggable = el.downloaded?.debuggable ?? null;
+    otaDebugLogs.downloadedApkPath = filePath;
+    otaDebugLogs.downloadedIsValidApk = el.downloaded?.isValidApk ?? null;
+    otaDebugLogs.downloadedIsUniversalApk = el.downloaded?.isUniversalApk ?? null;
+    
+    // Get file size from filesystem
+    try {
+      const { Filesystem } = await import('@capacitor/filesystem');
+      const info = await Filesystem.stat({ path: filePath });
+      otaDebugLogs.downloadedApkSize = `${(info.size / (1024 * 1024)).toFixed(2)} MB (${info.size} bytes)`;
+    } catch {
+      otaDebugLogs.downloadedApkSize = 'N/A';
+    }
+    otaDebugLogs.downloadedApkSha256 = globalOtaState.apkSha256 ?? null;
+
+    // Populate eligibility checks
+    if (el.installed && el.downloaded) {
+      otaDebugLogs.eligibilityPackageNameMatch = el.installed.packageName === el.downloaded.packageName;
+      otaDebugLogs.eligibilitySigningMatch = el.installed.signingSha256.replace(/:/g, '').toLowerCase() === el.downloaded.signingSha256.replace(/:/g, '').toLowerCase();
+      otaDebugLogs.eligibilityVersionCodeHigher = el.downloaded.versionCode > el.installed.versionCode;
+      otaDebugLogs.eligibilityReleaseBuild = el.downloaded.debuggable === false;
+      otaDebugLogs.eligibilityValidApk = el.downloaded.isValidApk === true;
+    } else {
+      otaDebugLogs.eligibilityPackageNameMatch = null;
+      otaDebugLogs.eligibilitySigningMatch = null;
+      otaDebugLogs.eligibilityVersionCodeHigher = null;
+      otaDebugLogs.eligibilityReleaseBuild = null;
+      otaDebugLogs.eligibilityValidApk = null;
+    }
+    
+    otaDebugLogs.eligibilityFinalInstall = el.eligible ? 'can install' : 'cannot install';
+    otaDebugLogs.eligibilityReason = el.reason ?? null;
+    otaDebugLogs.apkEligibilityResult = el.eligible ? 'eligible' : (el.reason ?? 'unknown');
+
+    if (!el.eligible) {
+      if (el.reason === 'signature_mismatch') {
+        updateGlobalState({ updateState: 'signature_mismatch' });
+      } else if (el.reason === 'versionCode_low') {
+        updateGlobalState({ updateState: 'versionCode_low' });
+      } else {
+        updateGlobalState({
+          updateState: 'failed',
+          error: el.errorDetails || 'APK eligibility validation failed.'
+        });
+      }
+      return false;
+    }
+    
+    return true;
+  } catch (err) {
+    console.error('[OTA] Eligibility helper check failed:', err);
+    otaDebugLogs.eligibilityFinalInstall = 'cannot install';
+    otaDebugLogs.eligibilityReason = 'parse_failed';
+    otaDebugLogs.apkEligibilityResult = 'parse_failed';
+    updateGlobalState({
+      updateState: 'failed',
+      error: err instanceof Error ? err.message : String(err)
+    });
     return false;
   }
-  
-  if (updaterSimulation.forceCachedApk) {
-    addJsLog('[Simulation] Forcing valid cached APK check to true');
-    updateGlobalState({ validApkExists: true });
-    return true;
-  }
-  
-  const expectedHash = globalOtaState.apkSha256 ?? undefined;
-  const { valid, filePath } = await validateLocalApk(ver, expectedHash);
-  
-  updateGlobalState({ validApkExists: valid });
-  
-  if (!valid && filePath) {
-    await deleteLocalApk(ver);
-  }
-  
-  return valid;
 }
 
-function isSimulationActive(): boolean {
-  return !!(
-    updaterSimulation.simulateDownload ||
-    updaterSimulation.forceInstallSuccess ||
-    updaterSimulation.forceInstallFailure ||
-    updaterSimulation.forceUserCancel ||
-    updaterSimulation.forcePendingUserAction ||
-    updaterSimulation.forceUpdateAvailable ||
-    updaterSimulation.forceNoUpdate ||
-    updaterSimulation.forceDowngrade ||
-    updaterSimulation.forceMetadataFailure ||
-    updaterSimulation.forceDownloadFailure ||
-    updaterSimulation.forceDownloadTimeout ||
-    updaterSimulation.forceShaFailure ||
-    updaterSimulation.forceSignatureMismatch ||
-    updaterSimulation.forceInvalidApk
-  );
-}
-
+/**
+ * Centralized downloadUpdate: locks the download process and mirrors progress globally.
+ */
 export function downloadUpdate(trigger?: string): Promise<void> {
-  const callId = nextJsCallId();
-  logDetailedJsTrace('downloadUpdate', 'otaUpdate.ts', 634, `Entering downloadUpdate Call #${callId}`, { prevState: globalOtaState.updateState, reason: `Trigger: ${trigger}` });
+  if (activeDownloadPromise) return activeDownloadPromise;
 
-  if (activeDownloadPromise) {
-    logDetailedJsTrace('downloadUpdate', 'otaUpdate.ts', 639, `Exiting downloadUpdate Call #${callId} early (activeDownloadPromise running)`, { prevState: globalOtaState.updateState });
-    return activeDownloadPromise;
+  if (trigger) {
+    otaDebugLogs.triggerComponent = trigger;
+    updateGlobalState({ triggerComponent: trigger });
   }
 
-  const ver = globalOtaState.remoteVersion;
-  if (!ver) {
-    logDetailedJsTrace('downloadUpdate', 'otaUpdate.ts', 645, `Exiting downloadUpdate Call #${callId} early (missing remoteVersion)`, { prevState: globalOtaState.updateState });
-    return Promise.resolve();
-  }
+  const { apkUrl, remoteVersion } = globalOtaState;
+  const ver = remoteVersion || '';
 
-  const apkUrl = globalOtaState.updateAvailable ? (globalOtaState as any).apkUrl : null;
-  const isDowngrade = globalOtaState.updateAvailable && compareSemver(ver, APP_VERSION) < 0;
-
-  if ((!isNative() || !isAppInstallerAvailable()) && !isSimulationActive()) {
-    console.log('[OTA] Non-Android / Web platform detected. Falling back to web-reload update path.');
-    (async () => {
-      try {
-        const { Filesystem } = await import('@capacitor/filesystem');
-        console.log('[OTA] Clearing ServiceWorker caches...');
-      } catch (e) {
-        console.warn('Failed to clear caches:', e);
-      } finally {
-        try {
-          const url = new URL(window.location.href);
-          url.searchParams.set('upd', Date.now().toString());
-          window.location.href = url.toString();
-        } catch {
-          window.location.reload();
-        }
-      }
-    })();
-    console.log(`[INSTRUMENTATION] downloadUpdate EXIT Call #${callId} (Resolved: web fallback)`);
-    void logProgressStage('[INSTRUMENTATION] downloadUpdate EXIT', `Call #${callId} resolved (web fallback)`);
-    return Promise.resolve();
-  }
-
-  if (!apkUrl) {
-    otaDebugLogs.downloadStatus = 'Error: Missing APK URL';
-    updateGlobalState({ updateState: 'failed', error: 'No APK download URL available' });
-    console.log(`[INSTRUMENTATION] downloadUpdate EXIT Call #${callId} (Rejected: missing apkUrl)`);
-    void logProgressStage('[INSTRUMENTATION] downloadUpdate EXIT', `Call #${callId} rejected (missing apkUrl)`);
-    return Promise.reject(new Error('No APK download URL available'));
-  }
-
-  transitionToState('downloading', 'downloadUpdate start');
-  updateGlobalState({ progress: 0, statusText: 'Preparing update...', error: null });
-
-  activeDownloadPromise = (async () => {
+  if (globalOtaState.updateState === 'readyForInstallPrompt' || globalOtaState.updateState === 'installedOrReady') {
     const downloadedPath = localStorage.getItem('studio:downloadedApkPath');
-    if (downloadedPath && !downloadedPath.includes(`studio-update-${ver}.apk`)) {
-      localStorage.removeItem('studio:downloadedApkPath');
+    if (downloadedPath) {
+      return Promise.resolve();
     }
-    
-    const hasValid = await checkAndCleanCache();
-    if (hasValid) {
-      console.log('[Smart Recovery] Valid APK already exists. Skipping download.');
-      transitionToState('verifying_sha', 'Valid cached APK exists');
-      updateGlobalState({ progress: 1.0, statusText: 'Verifying update...' });
-      const filePath = await getLocalApkPath(ver);
-      
-      transitionToState('verifying_eligibility', 'Checking cached APK eligibility');
-      const isEligible = await runEligibilityCheck(filePath, isDowngrade);
-      if (!isEligible) {
-        if (otaDebugLogs.eligibilityReason === 'signature_mismatch' && !isRecovering) {
-          const recovered = await runSignatureMismatchRecovery(applyUpdate, downloadUpdate);
-          if (recovered) return;
-        }
-        transitionToState('eligibility_failed', `Eligibility check failed: ${otaDebugLogs.eligibilityReason}`);
-        throw new Error(`[Eligibility Check] Validation failed: ${otaDebugLogs.eligibilityReason || 'unknown'}`);
-      }
-      
-      transitionToState('ready_to_install', 'Valid cached APK verified');
-      return;
-    }
-
-    otaDebugLogs.downloadStatus = `Update started: apk\nAPK URL: ${apkUrl}`;
-    updateGlobalState({ progress: 0.0, statusText: 'Entering progress screen...' });
-    
-    try {
-      let filePath: string;
-      const shouldSimulate = !isNative() || !isAppInstallerAvailable() || updaterSimulation.simulateDownload;
-      if (shouldSimulate) {
-        addJsLog('[Simulate Download] Starting simulated download loop...');
-        for (let i = 1; i <= 10; i++) {
-          if (updaterSimulation.injectNetworkTimeout) {
-            addJsLog('[Simulate Download] Injecting network timeout!');
-            transitionToState('download_failed', 'Simulated network timeout');
-            throw new Error('Simulated network timeout');
-          }
-          if (updaterSimulation.injectDownloadFailure) {
-            addJsLog('[Simulate Download] Injecting download failure!');
-            transitionToState('download_failed', 'Simulated download failure');
-            throw new Error('Simulated download failure');
-          }
-          updateGlobalState({ progress: i / 10, statusText: `Simulating download... (${i * 10}%)` });
-          await new Promise((resolve) => setTimeout(resolve, 300));
-        }
-        filePath = '/mock/path/to/simulated_download.apk';
-        addJsLog(`[Simulate Download] Completed. Mock Path: ${filePath}`);
-      } else {
-        try {
-          if (updaterSimulation.forceDownloadFailure) {
-            addJsLog('Simulation override: Injecting Download Failure');
-            throw new Error('[Simulated Download Failure] Failed to download APK from server.');
-          }
-          if (updaterSimulation.forceDownloadTimeout) {
-            addJsLog('Simulation override: Injecting Download Timeout');
-            throw new Error('[Simulated Download Timeout] Network connection timed out.');
-          }
-          if (updaterSimulation.forceResumeDownload) {
-            addJsLog('Simulation override: Forcing download resumption mode');
-          }
-          logDetailedJsTrace('downloadUpdate', 'otaUpdate.ts', 749, 'Starting APK download from URL: ' + apkUrl);
-          filePath = await downloadUpdateApk({
-            url: apkUrl,
-            version: ver,
-            manualApkUrl: (globalOtaState as any).manualApkUrl,
-            fallbackApkUrl: (globalOtaState as any).fallbackApkUrl,
-          });
-          logDetailedJsTrace('downloadUpdate', 'otaUpdate.ts', 755, 'APK download completed successfully. File path: ' + filePath);
-        } catch (dlErr) {
-          transitionToState('download_failed', 'APK download execution failed');
-          throw dlErr;
-        }
-      }
-
-      otaDebugLogs.downloadStatus += `\nAPK download completed. Path: ${filePath}`;
-      void logProgressStage('Download completed', 'Path: ' + filePath);
-
-      transitionToState('verifying_sha', 'Verifying checksum');
-      logDetailedJsTrace('downloadUpdate', 'otaUpdate.ts', 764, 'Starting SHA-256 integrity verification. Expected: ' + (globalOtaState as any).apkSha256);
-      if (updaterSimulation.forceShaFailure) {
-        addJsLog('Simulation override: Injecting SHA checksum failure!');
-        transitionToState('sha_failed', 'Simulated checksum failure');
-        throw new Error('Simulated SHA-256 checksum mismatch');
-      }
-
-      if (shouldSimulate) {
-        if (updaterSimulation.injectChecksumFailure) {
-          addJsLog('[Simulate Download] Injecting checksum failure!');
-          transitionToState('sha_failed', 'Simulated checksum failure');
-          throw new Error('Simulated checksum failure');
-        }
-        otaDebugLogs.shaVerification = 'PASSED (Simulated)';
-      } else {
-        const expectedHash = (globalOtaState as any).apkSha256;
-        if (expectedHash) {
-          try {
-            await verifyFileIntegrity(filePath, expectedHash);
-            logDetailedJsTrace('downloadUpdate', 'otaUpdate.ts', 783, 'SHA-256 integrity verification passed');
-          } catch (shaErr) {
-            transitionToState('sha_failed', 'SHA integrity check failed');
-            throw shaErr;
-          }
-        } else {
-          otaDebugLogs.shaVerification = 'SKIPPED (No expected hash)';
-        }
-      }
-
-      try {
-        const { Filesystem } = await import('@capacitor/filesystem');
-        const info = await Filesystem.stat({ path: filePath });
-        otaDebugLogs.fileDetails = `Size: ${info.size} bytes\nURI: ${info.uri}`;
-      } catch (statErr) {
-        otaDebugLogs.fileDetails = `Error reading file stats: ${statErr instanceof Error ? statErr.message : String(statErr)}`;
-      }
-
-      updateGlobalState({ progress: 1.0, statusText: 'Verifying update' });
-      await new Promise((resolve) => setTimeout(resolve, 300));
-
-      otaDebugLogs.downloadStatus += `\nRunning pre-install eligibility check...`;
-      transitionToState('verifying_eligibility', 'Checking eligibility');
-      updateGlobalState({ statusText: 'Checking eligibility...' });
-      logDetailedJsTrace('downloadUpdate', 'otaUpdate.ts', 806, 'Starting pre-install eligibility check');
-
-      const isEligible = await (async () => {
-        if (updaterSimulation.forceSignatureMismatch) {
-          addJsLog('Simulation override: Injecting Signature Mismatch');
-          otaDebugLogs.eligibilityReason = 'signature_mismatch';
-          return false;
-        }
-        if (updaterSimulation.forceInvalidApk) {
-          addJsLog('Simulation override: Injecting Invalid APK');
-          otaDebugLogs.eligibilityReason = 'invalid_apk';
-          return false;
-        }
-        return await runEligibilityCheck(filePath, isDowngrade);
-      })();
-      logDetailedJsTrace('downloadUpdate', 'otaUpdate.ts', 820, 'Pre-install eligibility check completed. Result: ' + isEligible);
-
-      if (!isEligible) {
-        if (otaDebugLogs.eligibilityReason === 'signature_mismatch' && !isRecovering) {
-          const recovered = await runSignatureMismatchRecovery(applyUpdate, downloadUpdate);
-          if (recovered) return;
-        }
-        transitionToState('eligibility_failed', `Eligibility check failed: ${otaDebugLogs.eligibilityReason}`);
-        throw new Error('[Eligibility Check] Validation failed: ' + (otaDebugLogs.eligibilityReason || 'unknown'));
-      }
-
-      void logProgressStage('Eligibility check passed', 'APK is eligible for installation');
-      void logProgressStage('Installer prepared', 'Installer prepared and files verified');
-
-      transitionToState('ready_to_install', 'APK download & verify complete');
-      updateGlobalState({ statusText: 'Ready to install' });
-      localStorage.setItem('studio:downloadedApkPath', filePath);
-      localStorage.removeItem('studio:downloadedBundleId');
-      addToStoredList('studio:downloadedVersions', ver);
-
-      logDetailedJsTrace('downloadUpdate', 'otaUpdate.ts', 797, `Exiting downloadUpdate Call #${callId} successfully (ready_to_install)`, { prevState: 'verifying_eligibility', nextState: globalOtaState.updateState });
-    } catch (err) {
-      const errMsg = err instanceof Error ? err.message : String(err);
-      const errStack = (err instanceof Error && err.stack ? err.stack : null);
-      logDetailedJsTrace('downloadUpdate', 'otaUpdate.ts', 800, `Exiting downloadUpdate Call #${callId} with error`, { prevState: globalOtaState.updateState, reason: errMsg });
-      otaDebugLogs.installError = `Download/Verify Exception: ${errMsg}\nStack: ${errStack || ''}`;
-      otaDebugLogs.lastExceptionStackTrace = errStack;
-      otaDebugLogs.installerLaunchStatus = 'FAILED';
-      await populateDiagnostics(err, 'APK download or verification failed');
-
-      if (globalOtaState.updateState !== 'signature_mismatch' && globalOtaState.updateState !== 'versionCode_low') {
-        if (!['download_failed', 'sha_failed', 'eligibility_failed'].includes(globalOtaState.updateState)) {
-          transitionToState('failed', 'Download/Verify exception');
-        } else {
-          transitionToState('failed', 'Granular error transition to failed');
-        }
-        updateGlobalState({ error: errMsg });
-      }
-      throw err;
-    } finally {
-      activeDownloadPromise = null;
-    }
-  })();
-
-  return activeDownloadPromise;
-}
-
-export function applyUpdate(trigger?: string): Promise<void> {
-  const callId = nextJsCallId();
-  logDetailedJsTrace('applyUpdate', 'otaUpdate.ts', 867, `Entering applyUpdate Call #${callId}`, { prevState: globalOtaState.updateState, reason: `Trigger: ${trigger}` });
-
-  if (activeApplyPromise) {
-    logDetailedJsTrace('applyUpdate', 'otaUpdate.ts', 872, `Exiting applyUpdate Call #${callId} early (activeApplyPromise running)`, { prevState: globalOtaState.updateState });
-    return activeApplyPromise;
   }
 
-  const remoteVersion = globalOtaState.remoteVersion;
-  if (!remoteVersion) {
-    logDetailedJsTrace('applyUpdate', 'otaUpdate.ts', 879, `Exiting applyUpdate Call #${callId} early (missing remoteVersion)`, { prevState: globalOtaState.updateState });
-    return Promise.resolve();
+  if (isNative()) {
+    if (!isAppInstallerAvailable()) {
+      otaDebugLogs.finalDecision = 'Manual update required (AppInstaller missing)';
+      otaDebugLogs.downloadStatus = 'Error: AppInstaller missing';
+      updateGlobalState({ updateState: 'manual_apk_required' });
+      return Promise.reject(new Error('AppInstaller is missing. Manual update required.'));
+    }
   }
 
-  if ((!isNative() || !isAppInstallerAvailable()) && !isSimulationActive()) {
-    (async () => {
+  if (!isNative()) {
+    // Web: clear service workers, caches, and reload page with cache-buster
+    void (async () => {
       try {
-        const { Filesystem } = await import('@capacitor/filesystem');
-        console.log('[OTA] Clearing ServiceWorker caches...');
+        if (typeof caches !== 'undefined') {
+          const keys = await caches.keys();
+          await Promise.all(keys.map(k => caches.delete(k)));
+        }
+        if (typeof navigator !== 'undefined' && navigator.serviceWorker) {
+          const regs = await navigator.serviceWorker.getRegistrations();
+          await Promise.all(regs.map(r => r.unregister()));
+        }
       } catch (e) {
         console.warn('Failed to clear cache/sw before reload:', e);
       } finally {
@@ -924,273 +1612,254 @@ export function applyUpdate(trigger?: string): Promise<void> {
         }
       }
     })();
-    console.log(`[INSTRUMENTATION] applyUpdate EXIT Call #${callId} (Resolved: web reload completed)`);
-    void logProgressStage('[INSTRUMENTATION] applyUpdate EXIT', `Call #${callId} resolved (web reload completed)`);
     return Promise.resolve();
   }
 
-  if (globalOtaState.updateState !== 'ready_to_install') {
-    console.warn(`[OTA] Rejecting applyUpdate. State is ${globalOtaState.updateState}, expected 'ready_to_install'.`);
-    const err = new Error(`Cannot apply update. State is ${globalOtaState.updateState}, expected 'ready_to_install'.`);
-    void logProgressStage('[INSTRUMENTATION] applyUpdate EXIT', `Call #${callId} rejected (invalid state)`);
-    return Promise.reject(err);
+  if (!apkUrl) {
+    otaDebugLogs.downloadStatus = 'Error: Missing APK URL';
+    updateGlobalState({ updateState: 'failed', error: 'No APK download URL available' });
+    return Promise.reject(new Error('No APK download URL available'));
   }
 
-  transitionToState('waiting_for_confirmation', 'applyUpdate start');
-  logActivity('apk_install', `Installing APK system update (v${remoteVersion})`, 'Studio');
+  // Set initial preparation state immediately to trigger progress screens instantly
+  updateGlobalState({ updateState: 'preparing', progress: 0, statusText: 'Preparing update...', error: null });
+
+  activeDownloadPromise = (async () => {
+    // Clear stale path for different versions before starting the download
+    const downloadedPath = localStorage.getItem('studio:downloadedApkPath');
+    if (downloadedPath && !downloadedPath.includes(`studio-update-${ver}.apk`)) {
+      localStorage.removeItem('studio:downloadedApkPath');
+    }
+    
+    otaDebugLogs.downloadStatus = `Update started: apk\nAPK URL: ${apkUrl}`;
+    packageInstallerHistory.push({ timestamp: Date.now(), event: 'DOWNLOAD_START', details: { url: apkUrl } });
+    updateGlobalState({ updateState: 'enteringProgressScreen', progress: 0.0, statusText: 'Entering progress screen...' });
+    
+    try {
+      const { downloadApk } = await import('./apkDownloader');
+      
+      otaDebugLogs.downloadStatus += `\nAPK download started...`;
+      const fileName = `studio-update-${ver}.apk`;
+      
+      updateGlobalState({ updateState: 'downloading', progress: 0.01, statusText: 'Downloading update' });
+      
+      const filePath = await downloadApk(apkUrl, fileName, (percent) => {
+        packageInstallerHistory.push({ timestamp: Date.now(), event: 'DOWNLOAD_PROGRESS', details: { progress: percent } });
+        updateGlobalState({ 
+          progress: Math.max(0, Math.min(1, percent / 100)),
+          statusText: 'Downloading update'
+        });
+      });
+      otaDebugLogs.downloadStatus += `\nAPK download completed. Path: ${filePath}`;
+      packageInstallerHistory.push({ timestamp: Date.now(), event: 'DOWNLOAD_COMPLETE', details: { filePath } });
+
+      // Compute/Verify SHA-256 if expected hash is available
+      const expectedHash = globalOtaState.apkSha256;
+      if (expectedHash) {
+        otaDebugLogs.downloadStatus += `\nStarting SHA verification (Expected: ${expectedHash})...`;
+        updateGlobalState({ updateState: 'verifying', statusText: 'Verifying package' });
+        const { verifyApkSha256 } = await import('./apkDownloader');
+        const isValid = await verifyApkSha256(filePath, expectedHash);
+        otaDebugLogs.shaVerification = isValid ? 'SUCCESS' : 'FAILED';
+        packageInstallerHistory.push({ timestamp: Date.now(), event: 'SHA_VERIFICATION', details: { result: otaDebugLogs.shaVerification } });
+        if (!isValid) {
+          throw new Error('APK hash verification failed (corrupted download)');
+        }
+      } else {
+        otaDebugLogs.shaVerification = 'SKIPPED (No expected hash)';
+        packageInstallerHistory.push({ timestamp: Date.now(), event: 'SHA_VERIFICATION', details: { result: 'SKIPPED' } });
+      }
+
+      // Get file details
+      try {
+        const { Filesystem } = await import('@capacitor/filesystem');
+        const info = await Filesystem.stat({ path: filePath });
+        otaDebugLogs.fileDetails = `Size: ${info.size} bytes\nURI: ${info.uri}`;
+      } catch (statErr) {
+        otaDebugLogs.fileDetails = `Error reading file stats: ${statErr instanceof Error ? statErr.message : String(statErr)}`;
+      }
+
+      updateGlobalState({ progress: 1.0, statusText: 'Verifying update' });
+      await new Promise((resolve) => setTimeout(resolve, 300));
+
+      otaDebugLogs.downloadStatus += `\nRunning pre-install eligibility check...`;
+      updateGlobalState({ updateState: 'verifying', statusText: 'Checking eligibility...' });
+      const isEligible = await runEligibilityCheck(filePath);
+      packageInstallerHistory.push({ timestamp: Date.now(), event: 'ELIGIBILITY_CHECK', details: { isEligible } });
+      if (!isEligible) {
+        throw new Error('Eligibility validation failed: ' + (otaDebugLogs.eligibilityReason || 'unknown'));
+      }
+
+      updateGlobalState({ statusText: 'Ready to install', updateState: 'readyForInstallPrompt' });
+      localStorage.setItem('studio:downloadedApkPath', filePath);
+      localStorage.removeItem('studio:downloadedBundleId');
+      addToStoredList('studio:downloadedVersions', ver);
+
+      // Automatically trigger native installation once verified
+      setTimeout(() => {
+        applyUpdate('AutoInstall: downloadUpdate');
+      }, 1000);
+    } catch (err) {
+      console.error('[OTA] APK download failed:', err);
+      const errMsg = err instanceof Error ? err.message : String(err);
+      const errStack = (err instanceof Error && err.stack ? err.stack : null);
+      otaDebugLogs.installError = `Download/Verify Exception: ${errMsg}\nStack: ${errStack || ''}`;
+      otaDebugLogs.lastExceptionStackTrace = errStack;
+      otaDebugLogs.installerLaunchStatus = 'FAILED';
+      packageInstallerHistory.push({ timestamp: Date.now(), event: 'DOWNLOAD_FAILED', details: { error: errMsg } });
+      await populateDiagnostics(err, 'APK download or verification failed');
+      updateGlobalState({ 
+        updateState: 'failed', 
+        error: errMsg,
+        statusText: null
+      });
+      throw err;
+    } finally {
+      activeDownloadPromise = null;
+    }
+  })();
+  return activeDownloadPromise;
+}
+
+/**
+ * Centralized applyUpdate: locks activation, saves history, and reloads WebView.
+ */
+export function applyUpdate(trigger?: string): Promise<void> {
+  if (activeApplyPromise) return activeApplyPromise;
+
+  const { remoteVersion } = globalOtaState;
+  if (!remoteVersion) return Promise.resolve();
+
+  if (trigger) {
+    otaDebugLogs.triggerComponent = trigger;
+    updateGlobalState({ triggerComponent: trigger });
+  }
 
   activeApplyPromise = (async () => {
-    let nativeListener: any = null;
+    if (!isNative()) {
+      otaDebugLogs.finalPathExecuted = 'N/A';
+      try {
+        if (typeof caches !== 'undefined') {
+          const keys = await caches.keys();
+          await Promise.all(keys.map(k => caches.delete(k)));
+        }
+        if (typeof navigator !== 'undefined' && navigator.serviceWorker) {
+          const regs = await navigator.serviceWorker.getRegistrations();
+          await Promise.all(regs.map(r => r.unregister()));
+        }
+      } catch (e) {
+        console.warn('Failed to clear cache/sw before reload:', e);
+      } finally {
+        try {
+          const url = new URL(window.location.href);
+          url.searchParams.set('upd', Date.now().toString());
+          window.location.href = url.toString();
+        } catch {
+          window.location.reload();
+        }
+      }
+      return;
+    }
+
+    updateGlobalState({ updateState: 'installing' });
+    localStorage.setItem('studio:appliedUpdateVersion', remoteVersion);
+    addToStoredList('studio:installedVersions', remoteVersion);
+    addToStoredList('studio:appliedVersions', remoteVersion);
+    logActivity('apk_install', `Installing APK system update (v${remoteVersion})`, 'Studio');
+    packageInstallerHistory.push({ timestamp: Date.now(), event: 'INSTALL_START', details: { version: remoteVersion } });
     try {
       const filePath = localStorage.getItem('studio:downloadedApkPath');
       if (!filePath) {
         throw new Error('No downloaded APK path found.');
       }
 
-      updateGlobalState({ statusText: 'Preparing installation...' });
+      const { AppInstaller, checkApkEligibility } = await import('./apkDownloader');
+      otaDebugLogs.installError = (otaDebugLogs.installError || '') + `\nChecking APK eligibility for: ${filePath}`;
+      updateGlobalState({ statusText: 'Verifying update eligibility' });
+
       const isEligible = await runEligibilityCheck(filePath);
       if (!isEligible) {
-        if (otaDebugLogs.eligibilityReason === 'signature_mismatch' && !isRecovering) {
-          const recovered = await runSignatureMismatchRecovery(applyUpdate, downloadUpdate);
-          if (recovered) return;
-        }
-        throw new Error('[Eligibility Check] Validation failed: ' + (otaDebugLogs.eligibilityReason || 'unknown'));
+        throw new Error('Eligibility validation failed: ' + (otaDebugLogs.eligibilityReason || 'unknown'));
       }
-
-      // Register listener to monitor native PackageInstaller status events
-      const { AppInstaller } = await import('./apkDownloader');
-      const statusPromise = new Promise<void>(async (resolvePromise, rejectPromise) => {
-        try {
-          console.log('[INSTRUMENTATION] [JS] Registering native status listener for onInstallStatusChanged');
-          const onStatusEvent = (eventData: any) => {
-            const status = eventData.status;
-            const message = eventData.message;
-            console.log('[INSTRUMENTATION] [JS] onInstallStatusChanged received:', eventData);
-            addJsLog(`Install Status Received: status=${status}, message=${message}, progress=${eventData.progress || 0}`);
-
-            if (status === -1) { // STATUS_PENDING_USER_ACTION
-              console.log('[INSTRUMENTATION] [JS] STATUS_PENDING_USER_ACTION received. Showing confirmation dialog.');
-              transitionToState('waiting_for_confirmation', 'Native prompt displayed');
-              updateGlobalState({ statusText: 'System confirmation dialog is showing...' });
-            } else if (status === -2) { // installing_start
-              console.log('[INSTRUMENTATION] [JS] Session active. Installation started.');
-              transitionToState('installing', 'PackageInstaller session active');
-              updateGlobalState({ statusText: 'Installing update...' });
-            } else if (status === -3) { // installing_progress
-              const progressPct = Math.round((eventData.progress || 0) * 100);
-              console.log(`[INSTRUMENTATION] [JS] Installation progress: ${progressPct}%`);
-              updateGlobalState({ statusText: `Installing... (${progressPct}%)` });
-            } else if (status === 0) { // STATUS_SUCCESS
-              console.log('[INSTRUMENTATION] [JS] STATUS_SUCCESS received. Installation completed successfully.');
-              transitionToState('installed', 'PackageInstaller success');
-              resolvePromise();
-            } else if (status === 3) { // STATUS_FAILURE_ABORTED (User cancelled)
-              console.log('[INSTRUMENTATION] [JS] STATUS_FAILURE_ABORTED received. User cancelled.');
-              transitionToState('failed', 'User cancelled installation');
-              rejectPromise(new Error('Installation cancelled by user.'));
-            } else {
-              console.log(`[INSTRUMENTATION] [JS] Installation failed with status ${status}: ${message}`);
-              transitionToState('failed', `Install failed: ${message || `code ${status}`}`);
-              rejectPromise(new Error(message || `PackageInstaller error code ${status}`));
-            }
-          };
-
-          setSimulateStatusCallback(onStatusEvent);
-          if (isNative() && isAppInstallerAvailable()) {
-            nativeListener = await (AppInstaller as any).addListener('onInstallStatusChanged', onStatusEvent);
-          }
-        } catch (e) {
-          console.warn('Failed to register native status listener:', e);
-        }
-      });
 
       otaDebugLogs.installError += `\nAPK is eligible. Launching APK installer intent for file: ${filePath}`;
-      updateGlobalState({ statusText: 'Waiting for Android...' });
+      updateGlobalState({ statusText: 'Launching APK installer' });
+      packageInstallerHistory.push({ timestamp: Date.now(), event: 'INSTALLER_INTENT_LAUNCHING', details: { filePath } });
 
-      const shouldSimulateInstall = !isNative() || !isAppInstallerAvailable() ||
-          updaterSimulation.simulateDownload || 
-          updaterSimulation.forceInstallSuccess || 
-          updaterSimulation.forceInstallFailure || 
-          updaterSimulation.forceUserCancel || 
-          updaterSimulation.forcePendingUserAction;
-
-      if (shouldSimulateInstall) {
-        addJsLog('[Simulate Install] Simulation active. Skipping native install trigger.');
-        void logProgressStage('Simulation committed', 'Simulation mode active');
-        
-        // Timed sequence simulation
-        (async () => {
-          await new Promise((resolve) => setTimeout(resolve, 1000));
-          triggerSimulatedStatus(-2, 'installing_start');
-          
-          await new Promise((resolve) => setTimeout(resolve, 1500));
-          triggerSimulatedStatus(-1, 'STATUS_PENDING_USER_ACTION');
-          
-          if (updaterSimulation.forcePendingUserAction) {
-            addJsLog('[Simulate Install] Pausing in STATUS_PENDING_USER_ACTION.');
-            return;
-          }
-          
-          await new Promise((resolve) => setTimeout(resolve, 2000));
-          if (updaterSimulation.forceUserCancel) {
-            triggerSimulatedStatus(3, 'STATUS_FAILURE_ABORTED');
-          } else if (updaterSimulation.forceInstallFailure) {
-            triggerSimulatedStatus(1, 'STATUS_FAILURE');
-          } else {
-            triggerSimulatedStatus(0, 'STATUS_SUCCESS');
-          }
-        })();
-      } else {
-        void logProgressStage('Session committed', 'Handing over to PackageInstaller');
-        await triggerNativeInstall(filePath);
-        void logProgressStage('Waiting for Android confirmation', 'Waiting for system confirmation dialog to overlay');
-      }
-
+      await AppInstaller.installApk({ filePath });
+      
       otaDebugLogs.installError += `\nAPK installer intent launched successfully!`;
       otaDebugLogs.installerLaunchStatus = 'SUCCESS';
       otaDebugLogs.lastExceptionStackTrace = 'None';
       otaDebugLogs.finalPathExecuted = 'APK installer launched';
-
-      // Await statusPromise to resolve, reject, or be killed on update reload
-      await statusPromise;
-
-      logDetailedJsTrace('applyUpdate', 'otaUpdate.ts', 987, `Exiting applyUpdate Call #${callId} successfully (Installer completed)`, { prevState: globalOtaState.updateState });
+      packageInstallerHistory.push({ timestamp: Date.now(), event: 'INSTALLER_INTENT_SUCCESS' });
+      updateGlobalState({ 
+        updateState: 'installedOrReady', 
+        updateAvailable: false,
+        statusText: 'APK installer launched',
+        finalPathExecuted: 'APK installer launched'
+      });
     } catch (err) {
+      console.error('[OTA] APK install failed:', err);
       const errMsg = err instanceof Error ? err.message : String(err);
       const errStack = (err instanceof Error && err.stack ? err.stack : null);
-      logDetailedJsTrace('applyUpdate', 'otaUpdate.ts', 990, `Exiting applyUpdate Call #${callId} with error`, { prevState: globalOtaState.updateState, reason: errMsg });
-      otaDebugLogs.installError = `Native Install Exception: ${errMsg}\nStack: ${errStack || ''}`;
-      otaDebugLogs.lastExceptionStackTrace = errStack;
+      otaDebugLogs.installError = (otaDebugLogs.installError || '') + `\nAPK Install Exception: ${errMsg}\nStack: ${errStack || ''}`;
       otaDebugLogs.installerLaunchStatus = 'FAILED';
+      otaDebugLogs.lastExceptionStackTrace = errStack;
+      packageInstallerHistory.push({ timestamp: Date.now(), event: 'INSTALLER_INTENT_FAILED', details: { error: errMsg } });
       await populateDiagnostics(err, 'APK installation failed');
-
-      if (globalOtaState.updateState !== 'signature_mismatch' && globalOtaState.updateState !== 'versionCode_low') {
-        transitionToState('install_failed', 'PackageInstaller exception');
-        transitionToState('failed', 'Installer error transition to failed');
-        updateGlobalState({ error: errMsg });
-      }
+      updateGlobalState({ 
+        updateState: 'failed', 
+        error: errMsg,
+        statusText: 'Installation failed'
+      });
+      localStorage.removeItem('studio:appliedUpdateVersion');
       throw err;
     } finally {
-      if (nativeListener) {
-        try {
-          await nativeListener.remove();
-        } catch (_) {}
-      }
-      setSimulateStatusCallback(null);
       activeApplyPromise = null;
     }
   })();
-
   return activeApplyPromise;
 }
 
+/**
+ * Centralized dismissUpdate: saves state in persistent storage.
+ */
 export function dismissUpdate(): void {
-  const ver = globalOtaState.remoteVersion;
-  if (ver) {
-    addToStoredList('studio:dismissedVersions', ver);
-  }
-  resetOtaUpdateState();
-  if (isNative() && isAppInstallerAvailable()) {
-    import('./apkDownloader').then(({ AppInstaller }) => {
-      AppInstaller.clearInstallerLogHistory().catch(() => {});
-    });
-  }
+  const { remoteVersion, updateType } = globalOtaState;
+  if (!remoteVersion) return;
+  setSessionItem('studio:laterUpdateVersion', remoteVersion);
+  const isApkFlow = updateType === 'apk' || updateType === 'both';
+  const nextState = (isNative() && isApkFlow && !isAppInstallerAvailable()) ? 'manual_apk_required' : 'available';
+  updateGlobalState({ updateState: nextState });
 }
 
+/**
+ * Centralized markUpdateSeen: tracks seen versions.
+ */
 export function markUpdateSeen(): void {
-  const ver = globalOtaState.remoteVersion;
-  if (ver) {
-    addToStoredList('studio:notifiedVersions', ver);
-  }
+  const { remoteVersion } = globalOtaState;
+  if (!remoteVersion) return;
+  localStorage.setItem('studio:notifiedUpdateVersion', remoteVersion);
+  void nativeSet(NATIVE_PREFS.OTA_REMOTE_SEEN, remoteVersion);
 }
 
-let isOtaInitialized = false;
-
-function initializeGlobalOtaListeners() {
-  if (isOtaInitialized) return;
-  isOtaInitialized = true;
-  console.log('[OTA] Initializing global listeners and background polling...');
-
-  const getAutoCheck = () => {
-    try {
-      return useChordStore.getState().settings.otaAutoCheck ?? true;
-    } catch {
-      return true;
-    }
-  };
-
-  const runCheck = (trigger: string, reason: string) => {
-    if (!getAutoCheck()) return;
-    void checkForUpdate(false, trigger, reason);
-  };
-
-  const initUpdater = () => {
-    console.log('[OTA] Running delayed updater startup (Phase 3)...');
-    void checkAndCleanCache();
-    if (globalOtaState.updateState === 'idle') {
-      void checkForUpdate(false, 'startup', 'App init check');
-    }
-  };
-
-  let introTimer: any = null;
-  if (typeof window !== 'undefined') {
-    if ((window as any).__introDone || sessionStorage.getItem('studio-intro-shown') === 'true') {
-      initUpdater();
-    } else {
-      const handleIntroDone = () => {
-        if (introTimer) clearTimeout(introTimer);
-        window.removeEventListener('studio-intro-done', handleIntroDone);
-        setTimeout(initUpdater, 1000);
-      };
-      window.addEventListener('studio-intro-done', handleIntroDone);
-      introTimer = setTimeout(handleIntroDone, 3000);
-    }
-  } else {
-    initUpdater();
-  }
-
-  const onVisibility = () => {
-    if (typeof document !== 'undefined' && document.visibilityState === 'visible') {
-      runCheck('lifecycle_visibility', 'visibilitychange visible');
-    }
-  };
-  const onFocus = () => { runCheck('lifecycle_focus', 'window focus'); };
-
-  if (typeof document !== 'undefined') {
-    document.addEventListener('visibilitychange', onVisibility);
-  }
-  if (typeof window !== 'undefined') {
-    window.addEventListener('focus', onFocus);
-    window.addEventListener('pageshow', onFocus);
-    window.addEventListener('online', onFocus);
-  }
-
-  if (isNative()) {
-    void (async () => {
-      try {
-        const { App } = await import('@capacitor/app');
-        await App.addListener('appStateChange', (s) => {
-          if (s.isActive) runCheck('lifecycle_appstate', 'native app active');
-        });
-      } catch {
-        /* plugin unavailable */
-      }
-    })();
-  }
-
-  const schedulePoll = () => {
-    setTimeout(async () => {
-      if (typeof document === 'undefined' || document.visibilityState === 'visible') {
-        runCheck('polling', 'periodic foreground poll');
-      }
-      schedulePoll();
-    }, FOREGROUND_POLL_MS);
-  };
-  schedulePoll();
+export interface UseOtaUpdateResult extends CentralizedOtaState {
+  checkNow: () => Promise<void>;
+  downloadUpdate: (trigger?: string) => Promise<void>;
+  applyUpdate: (trigger?: string) => Promise<void>;
+  dismissUpdate: () => void;
+  markUpdateSeen: () => void;
 }
 
-export function useOtaUpdate() {
+export function useOtaUpdate(): UseOtaUpdateResult {
   const [state, setState] = useState<CentralizedOtaState>(globalOtaState);
+  const autoCheck = useChordStore((s) => s.settings.otaAutoCheck ?? true);
+  const autoCheckRef = useRef(autoCheck);
+
+  useEffect(() => {
+    autoCheckRef.current = autoCheck;
+  }, [autoCheck]);
 
   useEffect(() => {
     const listener = (newState: CentralizedOtaState) => {
@@ -1198,146 +1867,149 @@ export function useOtaUpdate() {
     };
     stateListeners.add(listener);
 
-    initializeGlobalOtaListeners();
+    // Initial check on mount
+    if (globalOtaState.updateState === 'idle') {
+      void checkForUpdate();
+    }
 
+    const runCheck = () => {
+      if (!autoCheckRef.current) return;
+      void checkForUpdate();
+    };
+
+    // 2a. Web visibility, focus, pageshow, online listeners
+    const onVisibility = () => {
+      if (typeof document !== 'undefined' && document.visibilityState === 'visible') {
+        runCheck();
+      }
+    };
+    const onFocus = () => { runCheck(); };
+
+    if (typeof document !== 'undefined') {
+      document.addEventListener('visibilitychange', onVisibility);
+    }
+    if (typeof window !== 'undefined') {
+      window.addEventListener('focus', onFocus);
+      window.addEventListener('pageshow', onFocus);
+      window.addEventListener('online', onFocus);
+    }
+
+    // 2b. Native (Capacitor) State change listeners
+    let nativeListener: { remove: () => Promise<void> } | undefined;
+    if (isNative()) {
+      void (async () => {
+        try {
+          const { App } = await import('@capacitor/app');
+          nativeListener = await App.addListener('appStateChange', (s) => {
+            if (s.isActive) runCheck();
+          });
+        } catch {
+          /* plugin unavailable */
+        }
+      })();
+    }
+
+    // 3. Periodic foreground poll
+    let pollTimer: ReturnType<typeof setTimeout> | null = null;
+    const schedulePoll = () => {
+      pollTimer = setTimeout(async () => {
+        if (typeof document === 'undefined' || document.visibilityState === 'visible') {
+          runCheck();
+        }
+        if (stateListeners.has(listener)) schedulePoll();
+      }, FOREGROUND_POLL_MS);
+    };
+    schedulePoll();
+
+    // Mirror current installed bundle version as baseline
     void nativeSet(NATIVE_PREFS.OTA_INSTALLED, APP_VERSION);
 
     return () => {
       stateListeners.delete(listener);
+      if (typeof document !== 'undefined') {
+        document.removeEventListener('visibilitychange', onVisibility);
+      }
+      if (typeof window !== 'undefined') {
+        window.removeEventListener('focus', onFocus);
+        window.removeEventListener('pageshow', onFocus);
+        window.removeEventListener('online', onFocus);
+      }
+      if (pollTimer) clearTimeout(pollTimer);
+      if (nativeListener) void nativeListener.remove().catch(() => {});
     };
   }, []);
 
   const checkNow = async () => {
-    if (typeof window !== 'undefined') {
-      window.dispatchEvent(new CustomEvent('studio:open-update-dialog'));
-    }
-    const res = await checkForUpdate(true, 'settings_manual', 'user manual checkNow');
-    return res;
+    await checkForUpdate(true);
   };
 
   return {
     ...state,
     checkNow,
-    downloadUpdate: async (trigger?: string) => {
-      await downloadUpdate(trigger);
-    },
-    applyUpdate: async (trigger?: string) => {
-      await applyUpdate(trigger);
-    },
+    downloadUpdate,
+    applyUpdate,
     dismissUpdate,
     markUpdateSeen,
-    downloadAndInstallGitHubApk,
-    runSignatureMismatchRecovery: async () => {
-      return await runSignatureMismatchRecovery(applyUpdate, downloadUpdate);
-    },
-    runUpdaterHealthCheck,
-    getDiagnosticsReport,
-    applyUpdateDirect,
-    shareDownloadedApk,
-    getUpdateHistory,
-    triggerDowngrade,
-    checkAndCleanCache,
-    deleteLocalApk,
-    recordDismissal,
-    shouldShowRecoveryReminder,
   };
 }
 
-const FOREGROUND_POLL_MS = 60 * 60 * 1000;
+/* ──────────────────────────────────────────────────────────────────── *
+ * Post-update changelog detection.                                     *
+ * ──────────────────────────────────────────────────────────────────── */
 
-export interface UpdateHistoryEntry {
-  timestamp: number;
-  fromVersion: string;
-  toVersion: string;
-  type: 'upgrade' | 'downgrade';
-  trigger: 'user' | 'auto';
-  status: 'success' | 'failed';
-  error?: string;
-}
-
-export function getUpdateHistory(): UpdateHistoryEntry[] {
+function readLastSeen(): string | null {
   try {
-    const raw = localStorage.getItem('studio:updaterHistory');
-    if (!raw) return [];
-    return JSON.parse(raw);
+    return localStorage.getItem(LAST_SEEN_KEY);
   } catch {
-    return [];
+    return null;
   }
 }
 
-export function logUpdateTransition(
-  fromVersion: string,
-  toVersion: string,
-  type: 'upgrade' | 'downgrade',
-  trigger: 'user' | 'auto',
-  status: 'success' | 'failed',
-  error?: string
-): void {
+function writeLastSeen(version: string): void {
   try {
-    const history = getUpdateHistory();
-    if (history.length > 0) {
-      const lastEntry = history[0];
-      if (
-        lastEntry.fromVersion === fromVersion &&
-        lastEntry.toVersion === toVersion &&
-        lastEntry.status === status &&
-        lastEntry.type === type &&
-        Date.now() - lastEntry.timestamp < 5000
-      ) {
-        return;
-      }
-    }
-    const entry: UpdateHistoryEntry = {
-      timestamp: Date.now(),
-      fromVersion,
-      toVersion,
-      type,
-      trigger,
-      status,
-      error,
-    };
-    history.unshift(entry);
-    localStorage.setItem('studio:updaterHistory', JSON.stringify(history.slice(0, 50)));
-  } catch (err) {
-    console.warn('[OTA] Failed to write update history:', err);
+    localStorage.setItem(LAST_SEEN_KEY, version);
+  } catch {
+    /* quota / privacy mode — silently ignore */
   }
 }
 
-export async function triggerDowngrade(targetVersion: string, apkUrl: string, sha256: string): Promise<void> {
-  logUpdateTransition(APP_VERSION, targetVersion, 'downgrade', 'user', 'failed', 'Initiated downgrade download');
-  
-  updateGlobalState({
-    remoteVersion: targetVersion,
-    apkUrl,
-    apkSha256: sha256,
-    updateType: 'apk',
-    updateAvailable: false,
-    updateState: 'downloading',
-    progress: 0,
-    error: null,
-    statusText: 'Preparing downgrade...'
-  });
-  
-  if (isNative()) {
-    window.dispatchEvent(new CustomEvent('studio:open-update-dialog'));
+/**
+ * Determines whether THIS launch is the first one after an update.
+ * Pure function — call once on mount; gating UI state lives in the
+ * `usePostUpdateChangelog` hook below.
+ *
+ * Logic:
+ *  - No prior record → first install ever, don't show a changelog.
+ *  - Recorded version < APP_VERSION → user just upgraded, show it.
+ *  - Recorded version >= APP_VERSION → already seen this version.
+ */
+export function detectJustUpdated(): { justUpdated: boolean; from: string | null } {
+  const last = readLastSeen();
+  if (last === null) return { justUpdated: false, from: null };
+  // Defensive: if some past write corrupted the entry (foreign code,
+  // a manual edit, schema change), treat it as a fresh baseline so
+  // change detection can't get permanently wedged returning 0/equal.
+  if (normalizeSemver(last) === null) {
+    writeLastSeen(APP_VERSION);
+    return { justUpdated: false, from: null };
   }
-  
-  try {
-    await downloadUpdate('user_downgrade');
-  } catch (err) {
-    console.error('[Downgrade] Downgrade download failed:', err);
-    logUpdateTransition(
-      APP_VERSION,
-      targetVersion,
-      'downgrade',
-      'user',
-      'failed',
-      err instanceof Error ? err.message : String(err)
-    );
-    throw err;
-  }
+  return {
+    justUpdated: compareSemver(APP_VERSION, last) > 0,
+    from: last,
+  };
 }
 
+/**
+ * React hook for the post-update changelog modal.
+ *
+ *  - On first ever launch: silently records APP_VERSION and shows nothing.
+ *  - On a launch where the bundle has advanced: returns `show: true`
+ *    so the modal renders. Caller must invoke `dismiss()` to close it
+ *    AND write the new version to localStorage so it doesn't re-show.
+ *  - Calling `dismiss()` is what persists the new version. If the
+ *    user reloads before dismissing, the modal will appear again —
+ *    that's intentional, we want them to see it at least once.
+ */
 export function usePostUpdateChangelog(): {
   show: boolean;
   fromVersion: string | null;
@@ -1350,25 +2022,22 @@ export function usePostUpdateChangelog(): {
 
   useEffect(() => {
     const { justUpdated, from } = detectJustUpdated();
-    if (justUpdated && from) {
-      const cmp = compareSemver(APP_VERSION, from);
-      if (cmp !== 0) {
-        const type = cmp > 0 ? 'upgrade' : 'downgrade';
-        logUpdateTransition(from, APP_VERSION, type, 'user', 'success');
-        
-        localStorage.setItem('studio:consecutiveInstallFailures', '0');
-        updateGlobalState({ consecutiveFailures: 0, recoveryMode: false, activeFallback: null });
-
-        if (type === 'upgrade' && showChangelog) {
-          setFromVersion(from);
-          setShow(true);
-        } else {
-          writeLastSeen(APP_VERSION);
-        }
+    if (justUpdated) {
+      // Even when the user has opted out of the auto-shown sheet, we
+      // still want to advance lastSeen so the modal doesn't "build up"
+      // and surface the next time they re-enable the toggle.
+      if (showChangelog) {
+        setFromVersion(from);
+        setShow(true);
+      } else {
+        writeLastSeen(APP_VERSION);
       }
     } else if (from === null) {
+      // First install — record current version so future updates
+      // produce a clean diff against this baseline.
       writeLastSeen(APP_VERSION);
     }
+    // If `from >= APP_VERSION`, do nothing — already up to date.
   }, [showChangelog]);
 
   const dismiss = () => {
@@ -1378,33 +2047,3 @@ export function usePostUpdateChangelog(): {
 
   return { show, fromVersion, toVersion: APP_VERSION, dismiss };
 }
-
-export async function applyUpdateDirect(): Promise<void> {
-  const filePath = localStorage.getItem('studio:downloadedApkPath');
-  if (!filePath) {
-    throw new Error('No downloaded APK path found.');
-  }
-  const { openApkInstallerDirect } = await import('./apkDownloader');
-  await openApkInstallerDirect(filePath);
-}
-
-export async function shareDownloadedApk(): Promise<void> {
-  const filePath = localStorage.getItem('studio:downloadedApkPath');
-  if (!filePath) {
-    throw new Error('No downloaded APK found to share.');
-  }
-  try {
-    const { Share } = await import('@capacitor/share');
-    await Share.share({
-      title: 'Studio Update APK',
-      text: 'Here is the latest update APK for Studio.',
-      url: filePath,
-      dialogTitle: 'Share Studio Update'
-    });
-  } catch (err: any) {
-    console.error('Failed to share APK:', err);
-    throw err;
-  }
-}
-
-

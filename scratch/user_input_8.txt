@@ -1,0 +1,109 @@
+<USER_REQUEST>
+IMPORTANT
+
+Do not reuse v3.6.76.
+
+The test device is already running v3.6.76.
+
+The splash polish changes must be published as:
+
+* versionName: 3.6.77
+* next valid versionCode
+
+==================================================
+RELEASE ACTION
+==============
+
+Take the current splash polish implementation and publish it as v3.6.77.
+
+This includes:
+
+* longer splash duration
+* opaque splash background
+* theme-adaptive splash colors
+* transition smoothness improvements
+* stutter reduction changes
+
+==================================================
+VERSION REQUIREMENTS
+====================
+
+Update:
+
+* versionName → 3.6.77
+* versionCode → next valid production versionCode
+
+Ensure all release metadata uses the new version.
+
+Do not leave any references to 3.6.76 in release artifacts.
+
+==================================================
+BUILD
+=====
+
+Build a production-signed APK for v3.6.77.
+
+Verify:
+
+* packageName = com.chordex.app
+* production signing certificate matches previous releases
+* APK filename reflects 3.6.77
+* SHA file generated from final APK
+
+==================================================
+RELEASE
+=======
+
+1. Commit relevant changes.
+
+2. Push to:
+   origin/fix/android-stagex-3640
+
+3. Create GitHub Release:
+   v3.6.77
+
+4. Upload:
+
+   * studio-3.6.77.apk
+   * studio-3.6.77.apk.sha256
+
+5. Update:
+
+   * app-release.json
+   * version.json if required
+   * latest APK redirect if used
+
+6. Deploy Firebase Hosting.
+
+==================================================
+VALIDATION
+==========
+
+Verify:
+
+* app-release.json reports 3.6.77
+* GitHub Release reports 3.6.77
+* APK filename is 3.6.77
+* SHA matches APK
+* updater detects upgrade from 3.6.76 → 3.6.77
+
+==================================================
+FINAL REPORT
+============
+
+Return one final consolidated report only:
+
+1. versionName.
+2. versionCode.
+3. APK filename.
+4. APK SHA-256.
+5. Commit hash.
+6. Push confirmation.
+7. GitHub Release URL.
+8. Firebase deployment verification.
+9. Confirmation that devices currently on v3.6.76 will receive the update to v3.6.77.
+
+</USER_REQUEST>
+<ADDITIONAL_METADATA>
+The current local time is: 2026-06-22T15:48:20-06:00.
+</ADDITIONAL_METADATA>

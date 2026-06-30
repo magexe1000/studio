@@ -1,0 +1,252 @@
+<USER_REQUEST>
+Livex Android — Polish Per-App Launch Animation, Theme-Adaptive Splash, and Transition Smoothness Improvements
+
+Current status:
+
+The per-app launch animation is now visible and functional.
+
+However, after testing on a real Android device, several UX issues remain:
+
+1. The splash duration feels too short.
+2. The splash background is partially transparent.
+3. The logo/name colors do not adapt correctly to the current theme.
+4. There are still small stutters/jank during app opening.
+5. Overall transition quality is improved but does not yet feel fully native.
+
+This task is a polish pass only.
+
+Do not redesign the system.
+
+Improve the existing implementation.
+
+==================================================
+PART A — SPLASH DURATION
+========================
+
+Current behavior:
+
+The launch splash appears but disappears too quickly.
+
+Required behavior:
+
+* Increase visible duration slightly.
+* Target range:
+  1000ms–1300ms total visibility.
+* The splash should feel intentional.
+* It should not feel rushed.
+* It should not feel slow.
+
+The user should have enough time to:
+
+* recognize the logo
+* recognize the app name
+* perceive the transition
+
+before the fadeout begins.
+
+==================================================
+PART B — REMOVE TRANSPARENT BACKGROUND
+======================================
+
+Current behavior:
+
+The splash background is visibly transparent and allows underlying UI elements to show through.
+
+Required behavior:
+
+The launch splash must fully own the screen.
+
+Use an opaque background.
+
+No:
+
+* transparency
+* partial opacity backgrounds
+* bleed-through
+* visible Hub content underneath
+* visible app content underneath
+
+The splash should feel like a dedicated launch screen.
+
+==================================================
+PART C — THEME-ADAPTIVE COLORS
+==============================
+
+The splash must adapt to the active Studio theme.
+
+Requirements:
+
+Light theme:
+
+* white background
+* dark logo
+* dark app name
+
+Dark theme:
+
+* dark background
+* light logo
+* light app name
+
+If the app already has theme tokens:
+
+* reuse them
+* do not duplicate theme logic
+
+If logos support multiple variants:
+
+* automatically choose the appropriate version
+
+Avoid hardcoded colors whenever possible.
+
+The launch splash should always maintain strong contrast and readability.
+
+==================================================
+PART D — IMPROVE TRANSITION FLUIDITY
+====================================
+
+There are still minor stutters/jank during app launch.
+
+Investigate:
+
+* animation timing
+* mount timing
+* preload timing
+* React re-renders
+* layout shifts
+* expensive effects
+* image loading
+* logo asset loading
+* AnimatePresence sequencing
+* transition state updates
+* unnecessary state changes
+
+Goal:
+
+The launch sequence should feel:
+
+Hub
+→ splash
+→ app
+
+as one continuous motion.
+
+==================================================
+PART E — APP OPENING PERFORMANCE
+================================
+
+While the splash is visible:
+
+* preload logo assets
+* preload app shell
+* preload app entry components
+* avoid visible layout construction after fadeout
+* avoid visible loading flashes
+
+The user should never see:
+
+* content popping in
+* delayed rendering
+* sudden layout shifts
+
+The app should already be visually stable when the splash fades away.
+
+==================================================
+PART F — MICRO-ANIMATION POLISH
+===============================
+
+Improve the existing animation quality.
+
+Preferred behavior:
+
+Entry:
+
+* subtle fade-in
+* subtle scale-in
+
+Exit:
+
+* smooth fade-out
+* smooth scale settle
+
+Avoid:
+
+* aggressive zoom
+* bouncing
+* flashy motion
+* gaming-style effects
+
+The style should feel premium and native.
+
+==================================================
+PART G — VALIDATION
+===================
+
+Test all apps:
+
+* Chordex
+* Stagex
+* Drumex
+* Groovex
+* Vocalex
+
+Verify:
+
+* splash is fully opaque
+* theme adaptation works
+* logo remains readable
+* app name remains readable
+* duration feels intentional
+* no transparent background
+* reduced stutter during transition
+* no regression in navigation
+
+Validate Android APK behavior specifically.
+
+==================================================
+PART H — RELEASE
+================
+
+After validation passes:
+
+1. Commit only relevant files.
+
+2. Push to:
+   origin/fix/android-stagex-3640
+
+3. Build production-signed APK.
+
+4. Publish next patch release.
+
+5. Upload APK and SHA file.
+
+6. Update Firebase release metadata if required.
+
+7. Deploy Firebase Hosting if release metadata changed.
+
+Do not wait for additional confirmation after validation passes.
+
+==================================================
+FINAL REPORT
+============
+
+Return one final consolidated report only:
+
+1. Files changed.
+2. How splash duration was adjusted.
+3. How transparency was removed.
+4. How theme-adaptive colors were implemented.
+5. What caused the remaining stutters.
+6. What optimizations were applied.
+7. Validation results.
+8. APK metadata.
+9. Commit hash.
+10. Branch push confirmation.
+11. GitHub Release URL.
+12. Firebase deployment verification.
+13. Confirmation that the new APK is live and downloadable.
+
+</USER_REQUEST>
+<ADDITIONAL_METADATA>
+The current local time is: 2026-06-22T15:28:58-06:00.
+</ADDITIONAL_METADATA>

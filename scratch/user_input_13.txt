@@ -1,0 +1,530 @@
+<USER_REQUEST>
+Studio / Livex Android — Fix Incomplete I18N, Remove App Entry Glow, Redesign Chordex Discover Practice, and Use Real Chord Diagrams
+
+Current real-device result on v3.6.78:
+
+Several requested items were not completed correctly.
+
+Problems observed:
+
+1. Language switching is still incomplete.
+
+   * Some app areas still do not change language.
+   * The language change must be global across the entire suite.
+
+2. App entry animations now have a glow effect.
+
+   * The glow effect is not wanted.
+   * Remove glow from every app-entry animation.
+
+3. Chordex Discover Practice was implemented, but the UI looks unprofessional.
+
+   * The song/practice area needs a full visual redesign.
+   * It should feel minimal, polished, modern, and production-ready.
+
+4. Discover song charts do not include lyrics.
+
+   * Add lyrics/charts for all songs where legally allowed.
+   * Do not scrape copyrighted lyrics.
+   * If lyrics are not licensed/authorized/user-provided, use a clear chart-unavailable state and support importing/adding lyrics later.
+   * Do not falsely claim full lyrics are available if they are not.
+
+5. Practice Settings are too cluttered.
+
+   * Remove contrast/theme options from Practice Settings.
+   * Remove presentation mode choices.
+   * The only presentation mode should be scroll.
+   * Scroll mode should be the default and only mode.
+
+6. The floating chord widget currently shows chord names.
+
+   * It should show the actual chord diagram/graphic from the chord library.
+   * Use the existing Chordex chord diagram source/library, not plain text labels.
+
+7. The bottom navigation bar interferes with practice controls.
+
+   * Hide the bottom nav bar only inside the Chordex song practice screen.
+   * Do not hide bottom nav globally.
+   * Do not affect other Chordex screens.
+
+==================================================
+SECTION A — FIX FULL APP-WIDE LANGUAGE SWITCHING
+================================================
+
+The previous i18n pass did not fully fix language switching.
+
+This is now a blocking quality issue.
+
+When the user switches language:
+
+EVERY visible label in the entire app must change.
+
+This includes:
+
+* Hub
+* Chordex
+* Chordex Discover
+* Chordex Practice
+* Stagex
+* Drumex
+* Groovex
+* Vocalex
+* settings
+* dialogs
+* sheets
+* menus
+* empty states
+* errors
+* update screens
+* nested screens
+* tooltips
+* section headers
+* buttons
+* tabs
+* onboarding
+* debug/user-facing panels
+
+No mixed-language screens are acceptable.
+
+Required work:
+
+1. Audit all hardcoded strings.
+2. Audit all strings bypassing the current i18n system.
+3. Audit all nested modules that do not receive language updates.
+4. Fix language propagation globally.
+5. Ensure changing language causes the entire app UI to re-render correctly.
+6. Remove duplicate/local translation systems if they cause partial updates.
+7. Add missing keys to both English and Spanish translation files.
+8. Keep translations consistent and professional.
+
+Validation:
+
+* Switch to Spanish.
+* Navigate through every app.
+* Confirm no English UI remains.
+* Switch to English.
+* Navigate through every app.
+* Confirm no Spanish UI remains.
+
+==================================================
+SECTION B — REMOVE GLOW FROM APP ENTRY ANIMATIONS
+=================================================
+
+Current problem:
+
+The app-entry animation includes a glow effect.
+
+This is not wanted.
+
+Remove all glow/halo/bloom/light aura effects from app entry transitions.
+
+Affected flow:
+
+* Hub → Chordex
+* Hub → Stagex
+* Hub → Drumex
+* Hub → Groovex
+* Hub → Vocalex
+
+Remove:
+
+* text shadow glow
+* logo glow
+* box shadow glow
+* radial glow background
+* animated halo
+* bloom-like overlays
+* excessive accent light effects
+
+Keep:
+
+* smooth fade
+* subtle scale
+* professional easing
+* opaque background
+* theme-adaptive colors
+
+The transition should feel premium, minimal, and clean, not flashy.
+
+==================================================
+SECTION C — REDESIGN CHORDEX DISCOVER PRACTICE UI
+=================================================
+
+Current problem:
+
+The Discover Practice screen looks visually weak/unprofessional.
+
+Redesign it to look:
+
+* premium
+* minimal
+* clean
+* modern
+* polished
+* native-feeling
+* easy to read
+* optimized for phone screens
+
+Focus areas:
+
+1. Song header:
+
+   * title
+   * artist
+   * key
+   * capo
+   * BPM
+   * clean back button
+
+2. Lyrics/chord area:
+
+   * readable typography
+   * clear section labels
+   * good spacing
+   * smooth scrolling
+   * no clutter
+
+3. Player controls:
+
+   * play/pause
+   * scroll speed
+   * reset/top
+   * current section indicator if useful
+
+4. Practice settings:
+
+   * simplified
+   * professional bottom sheet
+   * no clutter
+   * no unnecessary theme/contrast options
+
+5. Empty/unavailable state:
+
+   * if lyrics/charts are not available, show a polished placeholder
+   * explain that chart data is not available yet
+   * do not show broken/empty content
+
+==================================================
+SECTION D — SIMPLIFY PRACTICE SETTINGS
+======================================
+
+Remove these options from Practice Settings:
+
+* contrast options
+* theme options
+* presentation mode selector
+* static mode
+* focus line mode
+* karaoke mode selector
+
+The only supported presentation mode should be:
+
+* scroll
+
+Scroll mode must be:
+
+* the default
+* always active
+* not user-switchable
+
+Practice settings should keep only useful controls such as:
+
+* font size
+* chord diagram size
+* scroll speed
+* show/hide chord overlay
+* maybe line spacing if needed
+
+Do not overbuild the settings panel.
+
+==================================================
+SECTION E — ADD LYRICS / CHART CONTENT CORRECTLY
+================================================
+
+The practice system must support lyrics/charts for all songs.
+
+However:
+
+Do not illegally scrape or embed copyrighted full lyrics.
+
+Required approach:
+
+1. If lyrics/chords are already authorized, user-provided, public-domain, or original:
+
+   * include full lyrics/charts.
+   * divide them into sections.
+   * place chord markers accurately.
+
+2. If a song is copyrighted and no authorized lyrics are available:
+
+   * do not invent or scrape full lyrics.
+   * keep metadata.
+   * show a clean “chart not available yet” state.
+   * provide a data structure ready for adding authorized charts later.
+
+3. Add clear support for importing or manually adding authorized charts later.
+
+4. Do not claim “full lyrics available” unless they are actually included.
+
+For Enjambre songs:
+
+* keep the catalog entries
+* add charts only if authorized data exists
+* otherwise mark chart availability accurately
+
+==================================================
+SECTION F — USE REAL CHORD DIAGRAMS IN FLOATING CHORD WIDGET
+============================================================
+
+Current problem:
+
+The floating chord widget shows chord names as text.
+
+Required behavior:
+
+The floating chord widget must show the actual chord diagram/graphic.
+
+Use the existing Chordex chord library/diagram system.
+
+Do not create fake diagrams manually.
+
+Do not use only the chord name.
+
+The widget should display:
+
+* current chord diagram
+* optionally next chord diagram
+* chord name as small supporting label only if helpful
+* fingering/fret graphic consistent with the existing chord library
+
+Requirements:
+
+* diagram must update based on current visible lyric/chord position
+* diagram must be readable on phones
+* widget must remain draggable
+* widget must stay within screen bounds
+* widget position must persist
+* widget must not block core controls by default
+
+If a chord diagram is missing:
+
+* show a clean fallback state
+* do not break the screen
+
+==================================================
+SECTION G — HIDE BOTTOM NAV ONLY IN CHORDEX PRACTICE
+====================================================
+
+Current problem:
+
+Bottom navigation interferes with practice controls.
+
+Required behavior:
+
+Hide bottom nav only when the user is inside:
+
+Chordex → Discover → Song Practice screen
+
+Do not hide bottom nav in:
+
+* Hub
+* Chordex Discover list
+* Chordex normal screens
+* Stagex
+* Drumex
+* Groovex
+* Vocalex
+* settings
+* any other screen
+
+Implementation requirement:
+
+* use a scoped practice-mode state/class/context
+* do not add global CSS hacks that hide nav everywhere
+* restore bottom nav immediately when leaving practice screen
+
+==================================================
+SECTION H — DISCOVER PROFESSIONAL POLISH
+========================================
+
+Improve the Discover list and song detail entry experience.
+
+Requirements:
+
+* Enjambre catalog should look organized
+* search/filter should remain usable
+* song cards should look polished
+* unavailable chart states should look intentional
+* practice CTA should be clear
+* no cramped layouts
+* no raw/debug-looking UI
+* no excessive borders/glows
+* minimal professional aesthetic
+
+==================================================
+SECTION I — PERFORMANCE REQUIREMENTS
+====================================
+
+Practice mode must remain smooth.
+
+Optimize:
+
+* long lyric rendering
+* scroll updates
+* chord overlay updates
+* draggable widget
+* chord diagram rendering
+* settings bottom sheet
+
+Avoid:
+
+* re-rendering the whole lyrics view every frame
+* recalculating chord positions unnecessarily
+* heavy layout shifts
+* animation jank
+* memory leaks
+
+==================================================
+SECTION J — CHANGELOG DISCIPLINE
+================================
+
+Update changelog for this release.
+
+Requirements:
+
+* include only changes introduced in this release
+* remove old/stale entries
+* no duplicate historical clutter
+* changelog must match actual implementation
+* do not list features that were not actually completed
+
+==================================================
+SECTION K — VERSION / RELEASE REQUIREMENTS
+==========================================
+
+If publishing is required:
+
+Use the next available version.
+
+Do not reuse the currently installed or currently published version.
+
+Current latest release is v3.6.78.
+
+Therefore, publish this fix as the next available version:
+
+* versionName: 3.6.79
+* versionCode: next valid code after 105
+
+Update all relevant version locations.
+
+==================================================
+SECTION L — VALIDATION
+======================
+
+Run:
+
+* pnpm scope:check --platform apk
+* pnpm check:versions
+* pnpm typecheck:android
+* pnpm build:android:web
+* pnpm test:android
+
+Manual validation required:
+
+1. Language:
+
+   * Spanish across every app
+   * English across every app
+   * no mixed-language UI
+
+2. Entry animation:
+
+   * no glow
+   * no halo
+   * no bloom
+   * smooth fade/scale still works
+
+3. Discover:
+
+   * song list looks professional
+   * Enjambre entries appear
+   * song opens practice screen
+   * unavailable lyrics state looks clean if no authorized chart exists
+
+4. Practice:
+
+   * scroll mode only
+   * no contrast/theme options
+   * no presentation mode selector
+   * bottom nav hidden only here
+   * chord widget shows diagrams, not plain text names
+   * overlay can be dragged
+   * overlay persists position
+   * controls are not blocked
+
+==================================================
+SECTION M — RELEASE / PUSH / DEPLOY
+===================================
+
+After validation passes:
+
+1. Commit only relevant files.
+
+2. Push directly to:
+   origin/fix/android-stagex-3640
+
+3. Build production-signed APK.
+
+4. Publish GitHub Release:
+   v3.6.79
+
+5. Upload:
+
+   * studio-3.6.79.apk
+   * studio-3.6.79.apk.sha256
+
+6. Update:
+
+   * app-release.json
+   * version.json if required
+   * latest APK redirect if used
+
+7. Deploy Firebase Hosting.
+
+8. Verify:
+
+   * app-release.json HTTP 200
+   * GitHub APK URL resolves
+   * SHA matches metadata
+   * updater detects upgrade from 3.6.78 to 3.6.79
+
+Do not wait for additional confirmation after validation passes.
+
+==================================================
+SECTION N — FINAL REPORT
+========================
+
+Return one final consolidated report only:
+
+A. I18N root cause and fix.
+B. Exact hardcoded/mixed-language areas fixed.
+C. Glow removal details.
+D. Discover UI redesign details.
+E. Practice settings simplification.
+F. Lyrics/chart availability handling.
+G. Chord diagram widget implementation.
+H. Bottom nav scoped hiding behavior.
+I. Performance optimizations.
+J. Changelog cleanup.
+K. Validation results.
+L. APK metadata.
+M. Commit hash.
+N. Branch push confirmation.
+O. GitHub Release URL.
+P. Firebase deployment verification.
+Q. Confirmation that v3.6.79 is live and downloadable.
+
+</USER_REQUEST>
+<ADDITIONAL_METADATA>
+The current local time is: 2026-06-22T16:56:53-06:00.
+</ADDITIONAL_METADATA>

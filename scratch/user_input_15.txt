@@ -1,0 +1,255 @@
+<USER_REQUEST>
+Livex Android — Fix Global I18N Root Cause + Add Authorized Lyrics/Chart Support to Chordex Practice
+
+Current real-device result on v3.6.79:
+
+The language bug is still NOT fixed.
+
+Examples still wrong:
+
+* Vocalex still has mixed/untranslated language.
+* Livex/Studio settings still have mixed/untranslated language.
+* Other nested areas may still bypass the global language system.
+
+Also:
+
+Chordex Discover Practice still does not show full lyrics/charts for the songs as requested.
+
+==================================================
+SECTION A — STOP CLAIMING I18N IS FIXED
+=======================================
+
+Do not report “global i18n fixed” unless every visible user-facing string in every app changes correctly.
+
+The previous fix only touched limited areas and did not solve the root cause.
+
+Treat this as a blocking bug.
+
+==================================================
+SECTION B — GLOBAL I18N ROOT CAUSE
+==================================
+
+Find exactly why language switching is still partial.
+
+Inspect:
+
+* Vocalex
+* Livex/Studio settings
+* Hub
+* Chordex
+* Stagex
+* Drumex
+* Groovex
+* all dialogs
+* all bottom sheets
+* all settings screens
+* all nested modules
+
+Find every source of:
+
+* hardcoded English strings
+* hardcoded Spanish strings
+* inline `language === "es"` logic
+* stale memoized labels
+* strings outside translation provider
+* components not re-rendering on language change
+* local arrays/constants created outside reactive translation hooks
+* duplicate translation systems
+
+==================================================
+SECTION C — FORCE TRUE GLOBAL LANGUAGE SWITCHING
+================================================
+
+When language changes:
+
+EVERYTHING must change immediately.
+
+Required behavior:
+
+Spanish selected:
+
+* no English user-facing UI remains
+
+English selected:
+
+* no Spanish user-facing UI remains
+
+This applies to:
+
+* Vocalex
+* Livex/Studio settings
+* Chordex
+* Discover
+* Practice
+* Stagex
+* Drumex
+* Groovex
+* Hub
+* update screens
+* error states
+* empty states
+* dialogs
+* tooltips
+* controls
+* section headers
+
+Add missing translation keys to both English and Spanish.
+
+Do not leave mixed-language fallbacks.
+
+==================================================
+SECTION D — I18N VALIDATION TOOLING
+===================================
+
+Add a small validation script or test that detects obvious untranslated/hardcoded user-facing strings in core UI files.
+
+It should flag likely raw strings in:
+
+* components
+* panels
+* app screens
+* settings screens
+
+This does not need to be perfect, but it must help prevent the same issue from returning.
+
+==================================================
+SECTION E — CHORDEX PRACTICE LYRICS / CHARTS
+============================================
+
+The user wants full lyrics/charts visible inside Chordex Practice.
+
+Important:
+
+Do not scrape copyrighted lyrics from the internet.
+
+Do not copy third-party lyrics unless they are explicitly provided by the user, licensed, public-domain, or otherwise authorized.
+
+Required implementation:
+
+1. Support full lyrics/charts for every song record.
+2. Add a clear import/editor path so user-provided lyrics and chord charts can be added.
+3. If authorized lyrics/charts are available in the project, render them fully.
+4. If not available, show a polished “lyrics/chart not added yet” state with an import/add option.
+5. Do not pretend lyrics are present if they are not.
+
+==================================================
+SECTION F — USER-PROVIDED LYRICS MODE
+=====================================
+
+Add support for user-provided lyrics/charts:
+
+* paste full lyrics/chord chart
+* parse chord-over-lyrics format
+* save locally per song
+* reopen later
+* edit/delete imported chart
+* render in Practice immediately
+
+This way the app can show full lyrics when the user provides them.
+
+==================================================
+SECTION G — CHORD DIAGRAM OVERLAY MUST USE IMPORTED CHARTS
+==========================================================
+
+When a user imports or adds a chart:
+
+* extract chord names
+* map them to existing Chordex chord diagrams
+* update floating chord widget based on scroll/current line
+* show actual chord diagram graphics
+* use chord name only as secondary label
+
+==================================================
+SECTION H — VALIDATION
+======================
+
+Run:
+
+* pnpm scope:check --platform apk
+* pnpm check:versions
+* pnpm typecheck:android
+* pnpm build:android:web
+* pnpm test:android
+
+Manual validation required:
+
+1. Switch app to Spanish.
+2. Visit Vocalex.
+3. Visit Livex/Studio settings.
+4. Visit all apps.
+5. Confirm no English UI remains.
+6. Switch app to English.
+7. Confirm no Spanish UI remains.
+8. Open Chordex Discover.
+9. Open a song.
+10. Import/paste a full chart.
+11. Confirm lyrics appear.
+12. Confirm chords appear above lyrics.
+13. Confirm chord diagram overlay follows chart.
+
+==================================================
+SECTION I — VERSION / RELEASE
+=============================
+
+Current latest release is v3.6.79.
+
+Publish using the next available version:
+
+* versionName: 3.6.80
+* versionCode: next valid code after 106
+
+Do not reuse v3.6.79.
+
+==================================================
+SECTION J — RELEASE / PUSH / DEPLOY
+===================================
+
+After validation passes:
+
+1. Commit only relevant files.
+
+2. Push directly to:
+   origin/fix/android-stagex-3640
+
+3. Build production-signed APK.
+
+4. Publish GitHub Release:
+   v3.6.80
+
+5. Upload:
+
+   * studio-3.6.80.apk
+   * studio-3.6.80.apk.sha256
+
+6. Update Firebase metadata.
+
+7. Deploy Firebase Hosting.
+
+8. Verify updater detects 3.6.79 → 3.6.80.
+
+Do not wait for additional confirmation after validation passes.
+
+==================================================
+FINAL REPORT
+============
+
+Return one final consolidated report only:
+
+1. Exact root cause of partial language switching.
+2. Every area fixed.
+3. I18N validation tooling added.
+4. How user-provided lyrics/charts work.
+5. How imported charts render in Practice.
+6. How chord diagram overlay uses imported charts.
+7. Validation results.
+8. APK metadata.
+9. Commit hash.
+10. Branch push confirmation.
+11. GitHub Release URL.
+12. Firebase deployment verification.
+13. Confirmation that v3.6.80 is live and downloadable.
+
+</USER_REQUEST>
+<ADDITIONAL_METADATA>
+The current local time is: 2026-06-22T17:33:39-06:00.
+</ADDITIONAL_METADATA>

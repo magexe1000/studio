@@ -1,0 +1,479 @@
+<USER_REQUEST>
+Studio / Livex Android — Fix Startup Animation Freezes, App Entry Stutters, and Universal Swipe-Back Navigation
+
+Current latest release: v3.6.80 / versionCode 107.
+
+This task is NOT about lyrics.
+
+Do not continue lyrics/provider work in this task.
+
+Focus only on:
+
+A. Startup planets animation performance.
+B. App entry transition freezes/stutters.
+C. Universal swipe-to-back behavior across all apps and sections.
+D. Bottom nav restoration when leaving nested sections.
+
+If publishing is required, use the next available version:
+
+* versionName: 3.6.81
+* versionCode: next valid code after 107
+
+Do not reuse v3.6.80.
+
+==================================================
+SECTION A — STARTUP PLANETS ANIMATION FREEZE
+============================================
+
+Current real-device issue:
+
+When opening the app, the main planets startup animation freezes/stutters.
+
+It also appears to start too abruptly.
+
+Required behavior:
+
+* no freezes
+* no visible stutter
+* no sudden start
+* smooth first frame
+* slight fade-in at the beginning
+* smooth completion without freezing at the end
+
+Implementation requirements:
+
+1. Find the exact startup animation component/code path.
+2. Identify what blocks the main thread during:
+
+   * first render
+   * animation start
+   * animation end
+   * transition into the Hub
+3. Add a subtle fade-in before the planets animation starts.
+4. Ensure heavy initialization does not run on the same critical frame as the animation.
+5. Defer non-critical work until after the first animation is stable.
+6. Avoid layout thrashing and forced synchronous reflows.
+7. Avoid large state updates during animation frames.
+8. Keep visual quality high.
+
+Do not remove the planets animation.
+
+Optimize it.
+
+==================================================
+SECTION B — APP ENTRY FREEZES / STUTTERS
+========================================
+
+Current real-device issue:
+
+Opening apps still causes noticeable stutters/freezes.
+
+Affected flows:
+
+* Hub → Chordex
+* Hub → Stagex
+* Hub → Drumex
+* Hub → Groovex
+* Hub → Vocalex
+
+Required behavior:
+
+App entry should feel professional, smooth, and reliable.
+
+No:
+
+* freeze
+* jank
+* delayed frame
+* frozen splash
+* sudden jump
+* double render
+* blocked tap response
+
+Investigate:
+
+* lazy-loading timing
+* Suspense behavior
+* heavy component mount work
+* large data initialization
+* Chordex Discover data loading
+* Vocalex initialization
+* Stagex WebView/core initialization
+* Drumex audio initialization
+* Groovex render cost
+* Framer Motion transitions
+* expensive effects on mount
+* unnecessary store subscriptions
+* state churn during launch
+
+Required fix:
+
+1. Profile/trace the entry path.
+2. Identify which apps cause the largest freezes.
+3. Preload or defer heavy work properly.
+4. Keep the splash/transition animation running smoothly.
+5. Do not block the UI thread during animation frames.
+6. Ensure the app is ready only after heavy critical layout is stable.
+7. Avoid masking the issue with arbitrary delays.
+
+==================================================
+SECTION C — UNIVERSAL SWIPE-TO-BACK ACROSS ALL SECTIONS
+=======================================================
+
+Current issue:
+
+Swipe-to-back is inconsistent.
+
+Some sections support it.
+
+Some sections do not.
+
+Some nested screens incorrectly exit directly to Hub.
+
+Some screens restore bottom nav late or incorrectly.
+
+This must be fixed globally.
+
+Required behavior:
+
+Every screen that has a previous internal screen/state must support Android swipe-to-back correctly.
+
+This applies to:
+
+* Hub nested screens
+* Chordex
+* Chordex Discover
+* Chordex Practice
+* Chordex song/detail screens
+* Stagex
+* Stagex nested/editor states
+* Drumex
+* Drumex nested panels
+* Groovex
+* Groovex nested panels
+* Vocalex
+* Vocalex nested panels
+* settings
+* dialogs
+* bottom sheets
+* modals
+
+Swipe-to-back must follow hierarchy:
+
+1. If a modal/dialog/sheet is open:
+
+   * close that first.
+
+2. Else if a nested screen is open:
+
+   * go back to the previous screen inside the same app.
+
+3. Else if user is on the app root screen:
+
+   * apply the global swipe-back setting:
+
+     * either return to Hub
+     * or do nothing / require manual back
+
+4. Never skip from a nested screen directly to Hub unless the user explicitly uses an exit-to-Hub control.
+
+==================================================
+SECTION D — GLOBAL SWIPE-BACK NAVIGATION SETTING
+================================================
+
+Implement a global swipe/back behavior setting.
+
+The user should be able to choose:
+
+Option 1 — Swipe Back to Hub from App Home:
+
+* Android swipe/back from the root screen of any sub-app exits directly to Hub.
+
+Option 2 — Manual Back Only:
+
+* Android swipe/back does not exit the app directly from root.
+* user must use the app’s internal back/home button.
+
+This must work across:
+
+* Chordex
+* Stagex
+* Drumex
+* Groovex
+* Vocalex
+
+This setting must NOT prevent internal swipe-to-back.
+
+Even in Manual Back Only mode:
+
+* modals must close
+* nested screens must go back
+* only root-to-Hub exit is disabled
+
+==================================================
+SECTION E — MAIN-SCREEN ONLY RULE
+=================================
+
+The global swipe-to-Hub behavior applies ONLY when the user is on the main/root screen of the current app.
+
+Allowed:
+
+* Chordex main/root screen → swipe back may exit to Hub if enabled
+* Stagex main/root screen → swipe back may exit to Hub if enabled
+* Drumex main/root screen → swipe back may exit to Hub if enabled
+* Groovex main/root screen → swipe back may exit to Hub if enabled
+* Vocalex main/root screen → swipe back may exit to Hub if enabled
+
+Not allowed:
+
+* Chordex Discover Practice screen
+* Chordex song/detail screen
+* Chordex nested screens
+* settings sheets
+* dialogs
+* modals
+* Stagex editor/nested states
+* Drumex nested panels
+* Groovex nested panels
+* Vocalex nested panels
+
+Nested screens must go back internally first.
+
+==================================================
+SECTION F — BOTTOM NAV RESTORATION
+==================================
+
+Fix the bottom nav disappearing/reappearing bug.
+
+Current issue:
+
+When leaving Chordex Discover Practice using swipe/back:
+
+* bottom nav hides
+* app returns to Hub/Livex
+* bottom nav remains missing briefly
+* then reappears
+* this causes visible reload/stutter
+
+Required behavior:
+
+* bottom nav state restores immediately and deterministically
+* no delayed reload
+* no missing nav after route changes
+* no bottom nav leaks outside practice mode
+* bottom nav hidden only in the exact scoped screen that needs it
+* nav state cleanup must run on every exit path:
+
+  * back button
+  * Android swipe/back
+  * internal navigation
+  * app switch
+  * unmount
+  * emergency route reset
+
+==================================================
+SECTION G — SHARED NAVIGATION STATE MODEL
+=========================================
+
+Implement or refine one shared navigation state model.
+
+It must know:
+
+* current app
+* current section
+* whether current section is app root
+* nested screen stack
+* open modal/sheet/dialog stack
+* whether bottom nav is hidden
+* whether Android back can exit to Hub
+* whether Android back should close nested UI first
+
+Avoid scattered one-off flags.
+
+Avoid each app inventing its own back behavior.
+
+Use a shared interface if possible.
+
+==================================================
+SECTION H — SETTINGS UI FOR SWIPE-BACK MODE
+===========================================
+
+Add a user-facing setting in Livex/Studio settings:
+
+"Swipe back behavior"
+
+Options:
+
+1. "Swipe back to Hub from app home"
+2. "Manual back only"
+
+This setting must be translated into English and Spanish.
+
+Persist it locally.
+
+Default:
+
+* Swipe back to Hub from app home
+
+But it must never exit directly from nested screens.
+
+==================================================
+SECTION I — PERFORMANCE DIAGNOSTICS
+===================================
+
+Add or extend lightweight diagnostics for animation/navigation performance.
+
+Track:
+
+* app launch start time
+* first visual response
+* app ready time
+* transition duration
+* startup animation freeze points
+* slowest app mount
+* long task markers if available
+* back/swipe handling decision path
+
+Do not add another large overlay unless necessary.
+
+Use existing diagnostics infrastructure if available.
+
+==================================================
+SECTION J — VALIDATION
+======================
+
+Run:
+
+* pnpm scope:check --platform apk
+* pnpm check:versions
+* pnpm typecheck:android
+* pnpm build:android:web
+* pnpm test:android
+
+Manual Android validation required:
+
+Startup:
+
+* cold open app
+* planets fade in smoothly
+* no freeze at animation start
+* no freeze at animation end
+* Hub appears smoothly
+
+App entry:
+
+* open Chordex
+* open Stagex
+* open Drumex
+* open Groovex
+* open Vocalex
+* confirm no heavy stutter/freezes
+
+Universal swipe/back:
+
+* verify swipe-to-back works in every section with a previous internal state
+* verify modals/sheets close first
+* verify nested screens go back internally first
+* verify app root follows global setting
+* verify nested screens never jump directly to Hub
+
+Swipe Back to Hub mode:
+
+* from each app root screen, swipe back returns to Hub smoothly
+
+Manual Only mode:
+
+* from each app root screen, swipe back does not exit to Hub
+* internal back/home controls still work
+* internal nested swipe/back still works
+
+Bottom nav:
+
+* enter Chordex Discover Practice
+* bottom nav hides
+* leave via UI back
+* bottom nav restores immediately
+* enter again
+* leave via Android swipe/back
+* bottom nav restores immediately
+* no missing nav
+* no delayed reload
+* no stutter
+
+==================================================
+SECTION K — CHANGELOG
+=====================
+
+Update changelog for this release only.
+
+Include:
+
+* startup planets animation performance fix
+* app entry transition smoothness fixes
+* universal swipe-to-back behavior
+* global swipe-back behavior setting
+* bottom nav restoration fix
+
+Do not include old lyrics/provider work.
+
+Do not include unrelated historical changes.
+
+==================================================
+SECTION L — RELEASE / PUSH / DEPLOY
+===================================
+
+After validation passes:
+
+1. Commit only relevant files.
+
+2. Push directly to:
+   origin/fix/android-stagex-3640
+
+3. Build production-signed APK.
+
+4. Publish GitHub Release:
+   v3.6.81
+
+5. Upload:
+
+   * studio-3.6.81.apk
+   * studio-3.6.81.apk.sha256
+
+6. Update Firebase metadata.
+
+7. Deploy Firebase Hosting.
+
+8. Verify updater detects:
+   v3.6.80 → v3.6.81
+
+Do not wait for additional confirmation after validation passes.
+
+==================================================
+FINAL REPORT
+============
+
+Return one final consolidated report only:
+
+A. Startup animation freeze root cause.
+B. Startup fade-in implementation.
+C. App entry stutter root cause.
+D. Per-app transition performance changes.
+E. Universal swipe-to-back implementation.
+F. Global swipe-back setting implementation.
+G. Main-screen-only back behavior enforcement.
+H. Bottom nav restoration fix.
+I. Navigation state model changes.
+J. Performance diagnostics added.
+K. Validation results.
+L. Changelog cleanup.
+M. APK metadata.
+N. Commit hash.
+O. Branch push confirmation.
+P. GitHub Release URL.
+Q. Firebase deployment verification.
+R. Confirmation that v3.6.81 is live and downloadable.
+
+</USER_REQUEST>
+<ADDITIONAL_METADATA>
+The current local time is: 2026-06-22T20:00:42-06:00.
+</ADDITIONAL_METADATA>

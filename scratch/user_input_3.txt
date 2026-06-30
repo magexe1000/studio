@@ -1,0 +1,205 @@
+<USER_REQUEST>
+Continue from the confirmed root cause.
+
+Do not investigate other causes.
+
+Confirmed root cause:
+
+GitHub Release v3.6.75 currently contains the wrong/stale APK asset.
+
+Firebase app-release.json points to:
+
+* versionName: 3.6.75
+* versionCode: 102
+* expected SHA-256:
+  c29c67e18b27e3143cfbf512c0164b99cc10cf036c52cdc579acea987a39339b
+* expected size:
+  56,167,656 bytes
+
+Local correct signed APK:
+
+* path:
+  apps/studio-android/android/app/build/outputs/apk/release/app-release.apk
+* SHA-256:
+  c29c67e18b27e3143cfbf512c0164b99cc10cf036c52cdc579acea987a39339b
+* size:
+  56,167,656 bytes
+
+GitHub Release v3.6.75 currently has wrong APK:
+
+* downloaded GitHub APK SHA-256:
+  392a61fff4bdecf9623803969fb2813269269ec56ebb38811ba7f0629b41bbdc
+* downloaded GitHub APK size:
+  56,167,609 bytes
+
+GitHub .apk.sha256 currently matches the wrong GitHub APK:
+
+* 392a61fff4bdecf9623803969fb2813269269ec56ebb38811ba7f0629b41bbdc
+
+Therefore:
+
+* The device did not download a corrupted file.
+* The GitHub release APK asset is stale/wrong.
+* Firebase metadata is consistent with the correct local APK.
+* The updater correctly rejected the wrong GitHub APK.
+
+==================================================
+TASK
+====
+
+Repair GitHub Release v3.6.75 so it matches Firebase app-release.json and the correct local signed APK.
+
+Do not bump version.
+
+Keep:
+
+* versionName: 3.6.75
+* versionCode: 102
+* packageName: com.chordex.app
+
+==================================================
+REQUIRED ACTIONS
+================
+
+1. Fix GitHub CLI authentication issue.
+
+The previous blocker was:
+
+* `gh release view v3.6.75` failed with 401 Unauthorized.
+* Cause: invalid `GITHUB_TOKEN` environment variable overriding the authenticated MAGEXE1000 keyring session.
+
+Clear or override the bad environment token for this session.
+
+Then verify:
+
+* `gh auth status`
+* `gh release view v3.6.75`
+
+2. Replace the wrong GitHub Release assets.
+
+Delete or overwrite the current assets:
+
+* studio-3.6.75.apk
+* studio-3.6.75.apk.sha256
+
+Upload the correct APK:
+
+* source:
+  apps/studio-android/android/app/build/outputs/apk/release/app-release.apk
+* remote asset name:
+  studio-3.6.75.apk
+
+Create/upload correct SHA file containing:
+
+c29c67e18b27e3143cfbf512c0164b99cc10cf036c52cdc579acea987a39339b
+
+Asset name:
+
+studio-3.6.75.apk.sha256
+
+3. Do NOT change Firebase metadata unless verification proves it is stale.
+
+Current Firebase app-release.json already matches the correct local APK.
+
+Only redeploy Firebase if needed.
+
+4. Verify live GitHub asset after upload.
+
+Download again from:
+
+https://github.com/MAGEXE1000/Studio/releases/download/v3.6.75/studio-3.6.75.apk
+
+Calculate SHA-256.
+
+It must be:
+
+c29c67e18b27e3143cfbf512c0164b99cc10cf036c52cdc579acea987a39339b
+
+Verify file size:
+
+56,167,656 bytes
+
+Verify .sha256 asset also contains:
+
+c29c67e18b27e3143cfbf512c0164b99cc10cf036c52cdc579acea987a39339b
+
+5. Verify final updater consistency.
+
+Compare:
+
+* Firebase app-release.json SHA
+* GitHub .apk.sha256
+* Downloaded GitHub APK calculated SHA
+* Local signed APK SHA
+
+All must match:
+
+c29c67e18b27e3143cfbf512c0164b99cc10cf036c52cdc579acea987a39339b
+
+Compare size:
+
+* Firebase expected size
+* Local APK size
+* Downloaded GitHub APK size
+
+All must be:
+
+56,167,656 bytes
+
+==================================================
+VALIDATION
+==========
+
+Run only the necessary validation for this release asset repair:
+
+* gh auth status
+* gh release view v3.6.75
+* download live GitHub APK
+* calculate SHA-256
+* compare file size
+* fetch live Firebase app-release.json
+* compare Firebase SHA and size against GitHub live asset
+
+Do not rerun architecture cleanup.
+Do not remove files.
+Do not refactor.
+Do not change unrelated code.
+
+==================================================
+COMMIT / PUSH
+=============
+
+If no repository source files change, do not create an empty commit.
+
+If any metadata/scripts/source files are changed:
+
+1. Commit only relevant changed files.
+2. Push to:
+   origin/fix/android-stagex-3640
+
+Do not use `git add .`.
+
+==================================================
+FINAL REPORT
+============
+
+Return one final consolidated report only:
+
+1. Confirm GitHub CLI authentication was fixed.
+2. Confirm wrong GitHub APK asset was replaced.
+3. Confirm wrong GitHub .sha256 asset was replaced.
+4. Final live GitHub APK SHA-256.
+5. Final live GitHub APK file size.
+6. Final GitHub .sha256 contents.
+7. Firebase app-release.json SHA and size.
+8. Whether Firebase redeploy was needed.
+9. Confirmation all SHA values match.
+10. Confirmation all file sizes match.
+11. GitHub Release URL.
+12. Whether a commit/push was needed.
+13. Confirmation the in-app updater should now pass SHA verification for v3.6.75.
+
+</USER_REQUEST>
+<ADDITIONAL_METADATA>
+The current local time is: 2026-06-22T13:58:41-06:00.
+</ADDITIONAL_METADATA>

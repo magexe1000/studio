@@ -1,0 +1,184 @@
+<USER_REQUEST>
+Studio Android — Architecture Simplification and Technical Debt Reduction (Safe Refactor Pass)
+
+Goal:
+
+Reduce project complexity, reduce AI context consumption, reduce maintenance cost, and improve developer velocity WITHOUT changing user-facing behavior and WITHOUT breaking APK functionality.
+
+This is NOT a redesign task.
+
+This is a safe architecture simplification task.
+
+==================================================
+PRIMARY OBJECTIVES
+==================
+
+1. Identify unnecessary complexity.
+2. Reduce code duplication.
+3. Reduce oversized files.
+4. Remove dead code.
+5. Remove obsolete systems.
+6. Reduce future AI context requirements.
+7. Improve maintainability.
+8. Preserve behavior.
+
+==================================================
+PART A — PROJECT INVENTORY
+==========================
+
+Generate a complete inventory:
+
+For every major folder:
+
+* purpose
+* owner feature
+* dependencies
+* approximate size
+* last known usage
+
+Classify:
+
+* ACTIVE
+* LEGACY
+* DUPLICATED
+* DEAD CODE
+* UNKNOWN
+
+==================================================
+PART B — FIND OVERSIZED FILES
+=============================
+
+Identify:
+
+* files > 1000 lines
+* files > 2000 lines
+* files > 3000 lines
+
+For each file:
+
+Report:
+
+* exact line count
+* feature ownership
+* reason for growth
+* recommended split strategy
+
+Do not split automatically yet.
+
+Produce recommendations first.
+
+==================================================
+PART C — FIND DEAD CODE
+=======================
+
+Identify:
+
+* unused components
+* unused hooks
+* unused utilities
+* unused stores
+* unused contexts
+* unused services
+* unused debug systems
+* unused assets
+* unused CSS
+
+Provide evidence before removal.
+
+==================================================
+PART D — FIND DUPLICATION
+=========================
+
+Identify:
+
+* duplicate helpers
+* duplicate state logic
+* duplicate navigation logic
+* duplicate app metadata
+* duplicate animation systems
+* duplicate API wrappers
+* duplicate storage helpers
+
+Estimate potential reduction.
+
+==================================================
+PART E — REDUCE AI CONTEXT COST
+===============================
+
+Identify areas where future debugging requires reading excessive code.
+
+Recommend:
+
+* extraction candidates
+* shared modules
+* reusable services
+* feature boundaries
+
+Goal:
+
+A future AI should need fewer files to understand a bug.
+
+==================================================
+PART F — SAFE REFACTOR PLAN
+===========================
+
+Create a prioritized list:
+
+Priority 1:
+High value / low risk
+
+Priority 2:
+High value / medium risk
+
+Priority 3:
+High risk
+
+Only implement Priority 1 automatically.
+
+Do NOT implement Priority 2 or 3 without explicit approval.
+
+==================================================
+PART G — IMPLEMENT SAFE WINS
+============================
+
+Allowed:
+
+* remove confirmed dead code
+* remove unused imports
+* remove obsolete assets
+* consolidate duplicate utilities
+* improve folder organization
+
+Not allowed:
+
+* redesign architecture
+* change app behavior
+* modify navigation flow
+* modify updater flow
+* modify sync systems
+* modify authentication
+
+==================================================
+FINAL REPORT
+============
+
+Return one final report only:
+
+1. Largest files.
+2. Dead code found.
+3. Duplicate systems found.
+4. Estimated code reduction.
+5. Estimated context reduction.
+6. Changes safely implemented.
+7. Files removed.
+8. Files consolidated.
+9. Risk assessment.
+10. Recommended next cleanup phase.
+
+</USER_REQUEST>
+<ADDITIONAL_METADATA>
+The current local time is: 2026-06-22T13:24:43-06:00.
+</ADDITIONAL_METADATA>
+<USER_SETTINGS_CHANGE>
+The user changed setting `Model Selection` from None to Gemini 3.5 Flash (Medium). No need to comment on this change if the user doesn't ask about it. If reporting what model you are, please use a human readable name instead of the exact string.
+</USER_SETTINGS_CHANGE>

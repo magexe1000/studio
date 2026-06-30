@@ -1,0 +1,116 @@
+<USER_REQUEST>
+STOP CURRENT CONTEXT DRIFT.
+
+The architecture cleanup / dead-code / file-consolidation task is NOT the current priority.
+
+Do not continue:
+
+* architecture cleanup
+* dead code removal
+* file consolidation
+* duplicate component cleanup
+* oversized file analysis
+* technical debt reduction
+* folder restructuring
+* refactor planning
+
+Pause that work immediately.
+
+==================================================
+CURRENT TASK
+============
+
+Resume the APK updater failure investigation.
+
+The active task is:
+
+Livex Android 3.6.75 — Fix APK Update Hash Verification Failure and Republish Correct Release Metadata
+
+Real device failure:
+
+APK hash verification failed (corrupted download)
+
+==================================================
+BEFORE DOING ANY NEW WORK
+=========================
+
+Return a status report only.
+
+Do NOT modify code yet.
+
+Report:
+
+1. What exact step of the APK investigation was completed before context drift occurred.
+
+2. Was Firebase app-release.json inspected?
+
+   * YES / NO
+   * findings
+
+3. Was Firebase version.json inspected?
+
+   * YES / NO
+   * findings
+
+4. Was GitHub Release v3.6.75 inspected?
+
+   * YES / NO
+   * findings
+
+5. Was the live APK downloaded from:
+   https://github.com/MAGEXE1000/Studio/releases/download/v3.6.75/studio-3.6.75.apk
+
+   * YES / NO
+
+6. Was SHA-256 calculated from the downloaded APK?
+
+   * YES / NO
+
+7. Was SHA compared against:
+
+   * app-release.json
+   * .apk.sha256
+   * local signed APK
+
+8. Was file size compared?
+
+   * YES / NO
+
+9. Was APK validity checked?
+
+   * YES / NO
+
+10. Was the root cause already identified?
+
+    * YES / NO
+
+11. If YES:
+
+    * provide root cause
+
+12. If NO:
+
+    * provide the exact next step required
+
+==================================================
+AFTER STATUS REPORT
+===================
+
+Resume ONLY the APK update failure investigation.
+
+Do not return to architecture cleanup until the updater issue is fully resolved.
+
+The success condition remains:
+
+* APK downloads successfully
+* SHA verification succeeds
+* installer launches
+* v3.6.75 updates correctly from v3.6.74
+* GitHub release metadata and Firebase metadata are verified and consistent
+
+Focus exclusively on the updater failure.
+
+</USER_REQUEST>
+<ADDITIONAL_METADATA>
+The current local time is: 2026-06-22T13:48:34-06:00.
+</ADDITIONAL_METADATA>
