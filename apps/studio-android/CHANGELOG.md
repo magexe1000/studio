@@ -12,6 +12,13 @@ Conventions:
 - Bullets start with `- ` and use plain English a non-technical user
   can parse. Keep each line short — the modal's text area is narrow.
 
+## 3.7.48
+
+### Fixed
+- Added a comprehensive Automated Functional Audit runner to verify all 55 dashboard buttons.
+- Fixed clipboard export buttons to correctly await navigator.clipboard.writeText and handle errors.
+- Added simulation controls for all PackageInstaller failure codes (Storage Full, Signature Conflict, Incompatible version, Blocked by policy).
+
 ## 3.7.47
 
 ### Fixed
